@@ -6,7 +6,6 @@ import {
   FlatList,
   Alert,
   ActivityIndicator,
-  ScrollView,
   Linking,
 } from 'react-native';
 import { useState, useEffect } from 'react';
@@ -34,7 +33,6 @@ export default function MapScreen() {
   const category = params.category as string | undefined;
   const { location } = useLocationStore();
   const [shops, setShops] = useState<Shop[]>([]);
-  const [selectedShop, setSelectedShop] = useState<Shop | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -59,20 +57,19 @@ export default function MapScreen() {
     }
   };
 
-  const handleShopPress = (shop: Shop) => {
-    setSelectedShop(shop);
+  const handleViewShop = (shop: Shop) => {
+    router.push({
+      pathname: '/shop-details',
+      params: {
+        shopId: shop.id,
+        shopData: JSON.stringify(shop),
+      },
+    });
   };
 
-  const handleViewShop = () => {
-    if (selectedShop) {
-      router.push({
-        pathname: '/shop-details',
-        params: {
-          shopId: selectedShop.id,
-          shopData: JSON.stringify(selectedShop),
-        },
-      });
-    }
+  const handleOpenInMaps = (shop: Shop) => {
+    const url = `https://www.google.com/maps/dir/?api=1&origin=${location?.latitude},${location?.longitude}&destination=${shop.lat},${shop.lng}`;
+    Linking.openURL(url);
   };
 
   if (!location) {
@@ -102,113 +99,81 @@ export default function MapScreen() {
         <View style={styles.placeholder} />
       </View>
 
-      {/* Map */}
-      <View style={styles.mapContainer}>
-        <MapView
-          provider={PROVIDER_GOOGLE}
-          style={styles.map}
-          initialRegion={{
-            latitude: location.latitude,
-            longitude: location.longitude,
-            latitudeDelta: 0.01,
-            longitudeDelta: 0.01,
-          }}
-        >
-          {/* User Location Marker */}
-          <Marker
-            coordinate={{
-              latitude: location.latitude,
-              longitude: location.longitude,
-            }}
-            title="Your Location"
-            pinColor="blue"
-          />
-
-          {/* Shop Markers */}
-          {shops.map((shop) => (
-            <Marker
-              key={shop.id}
-              coordinate={{
-                latitude: shop.lat,
-                longitude: shop.lng,
-              }}
-              title={shop.name}
-              description={shop.category}
-              pinColor="red"
-              onPress={() => handleShopPress(shop)}
-            />
-          ))}
-
-          {/* Route Line */}
-          {selectedShop && (
-            <Polyline
-              coordinates={[
-                {
-                  latitude: location.latitude,
-                  longitude: location.longitude,
-                },
-                {
-                  latitude: selectedShop.lat,
-                  longitude: selectedShop.lng,
-                },
-              ]}
-              strokeColor="#FF6600"
-              strokeWidth={3}
-            />
-          )}
-        </MapView>
+      {/* Location Info */}
+      <View style={styles.locationBanner}>
+        <Ionicons name="location" size={20} color="#FF6600" />
+        <Text style={styles.locationText}>
+          Showing shops near your location
+        </Text>
       </View>
 
       {/* Shop List */}
-      <View style={styles.listContainer}>
-        {isLoading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#FF6600" />
-          </View>
-        ) : (
-          <FlatList
-            data={shops}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.listContent}
-            renderItem={({ item }) => (
-              <TouchableOpacity
-                style={[
-                  styles.shopCard,
-                  selectedShop?.id === item.id && styles.shopCardSelected,
-                ]}
-                onPress={() => handleShopPress(item)}
-              >
+      {isLoading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#FF6600" />
+          <Text style={styles.loadingText}>Loading nearby shops...</Text>
+        </View>
+      ) : shops.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <Ionicons name="search-outline" size={64} color="#999999" />
+          <Text style={styles.emptyText}>No shops found</Text>
+          <Text style={styles.emptySubtext}>Try searching a different category</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={shops}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.listContent}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={styles.shopCard}
+              onPress={() => handleViewShop(item)}
+            >
+              <View style={styles.shopHeader}>
                 <View style={styles.shopInfo}>
-                  <Text style={styles.shopName} numberOfLines={1}>
-                    {item.name}
-                  </Text>
-                  <Text style={styles.shopCategory}>{item.category}</Text>
-                  <View style={styles.shopDetails}>
-                    <View style={styles.detailRow}>
-                      <Ionicons name="location" size={14} color="#666666" />
-                      <Text style={styles.detailText}>{item.distance.toFixed(1)} km</Text>
-                    </View>
-                    <View style={styles.detailRow}>
-                      <Ionicons name="pricetag" size={14} color="#4CAF50" />
-                      <Text style={styles.savingsText}>Save ₹{item.savings}</Text>
-                    </View>
+                  <Text style={styles.shopName}>{item.name}</Text>
+                  <View style={styles.categoryBadge}>
+                    <Text style={styles.categoryText}>{item.category}</Text>
                   </View>
                 </View>
-              </TouchableOpacity>
-            )}
-          />
-        )}
-      </View>
+                <TouchableOpacity
+                  style={styles.mapButton}
+                  onPress={() => handleOpenInMaps(item)}
+                >
+                  <Ionicons name="navigate" size={24} color="#FF6600" />
+                </TouchableOpacity>
+              </View>
 
-      {/* View Shop Button */}
-      {selectedShop && (
-        <View style={styles.bottomBar}>
-          <TouchableOpacity style={styles.viewButton} onPress={handleViewShop}>
-            <Text style={styles.viewButtonText}>View Shop Details</Text>
-          </TouchableOpacity>
-        </View>
+              <Text style={styles.shopAddress} numberOfLines={1}>
+                <Ionicons name="location-outline" size={14} color="#666666" />
+                {' '}{item.address}
+              </Text>
+
+              <View style={styles.shopDetails}>
+                <View style={styles.detailItem}>
+                  <Ionicons name="walk" size={16} color="#666666" />
+                  <Text style={styles.detailText}>{item.distance.toFixed(1)} km away</Text>
+                </View>
+                <View style={styles.detailItem}>
+                  <Ionicons name="cash" size={16} color="#666666" />
+                  <Text style={styles.detailText}>Avg. ₹{item.price}</Text>
+                </View>
+              </View>
+
+              <View style={styles.savingsBar}>
+                <Ionicons name="pricetag" size={16} color="#4CAF50" />
+                <Text style={styles.savingsText}>
+                  Save ₹{item.savings} at this merchant
+                </Text>
+              </View>
+
+              <View style={styles.viewButtonContainer}>
+                <Text style={styles.viewButtonText}>View Details</Text>
+                <Ionicons name="chevron-forward" size={20} color="#FF6600" />
+              </View>
+            </TouchableOpacity>
+          )}
+        />
       )}
     </SafeAreaView>
   );
@@ -217,7 +182,7 @@ export default function MapScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F5F5F5',
   },
   header: {
     flexDirection: 'row',
@@ -241,83 +206,138 @@ const styles = StyleSheet.create({
   placeholder: {
     width: 40,
   },
-  mapContainer: {
-    flex: 1,
+  locationBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF3E0',
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#FFE0B2',
   },
-  map: {
-    flex: 1,
-  },
-  listContainer: {
-    backgroundColor: '#FFFFFF',
-    borderTopWidth: 1,
-    borderTopColor: '#EEEEEE',
+  locationText: {
+    fontSize: 14,
+    color: '#E65100',
+    marginLeft: 8,
+    fontWeight: '500',
   },
   loadingContainer: {
-    padding: 24,
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
+    padding: 24,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#666666',
+    marginTop: 16,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  emptyText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#666666',
+    marginTop: 16,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: '#999999',
+    marginTop: 8,
   },
   listContent: {
     padding: 16,
   },
   shopCard: {
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 16,
-    marginRight: 12,
-    width: 240,
-    borderWidth: 2,
-    borderColor: 'transparent',
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#EEEEEE',
   },
-  shopCardSelected: {
-    borderColor: '#FF6600',
-    backgroundColor: '#FFF3E0',
+  shopHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 12,
   },
-  shopInfo: {},
+  shopInfo: {
+    flex: 1,
+  },
   shopName: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 18,
+    fontWeight: 'bold',
     color: '#1A1A1A',
-    marginBottom: 4,
-  },
-  shopCategory: {
-    fontSize: 12,
-    color: '#666666',
     marginBottom: 8,
+  },
+  categoryBadge: {
+    backgroundColor: '#FF6600',
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+  },
+  categoryText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  mapButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FFF3E0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  shopAddress: {
+    fontSize: 14,
+    color: '#666666',
+    marginBottom: 12,
   },
   shopDetails: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    marginBottom: 12,
   },
-  detailRow: {
+  detailItem: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginRight: 24,
   },
   detailText: {
-    fontSize: 12,
+    fontSize: 14,
     color: '#666666',
-    marginLeft: 4,
+    marginLeft: 6,
+  },
+  savingsBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E8F5E9',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 12,
   },
   savingsText: {
-    fontSize: 12,
-    color: '#4CAF50',
+    fontSize: 14,
+    color: '#2E7D32',
     fontWeight: '600',
-    marginLeft: 4,
+    marginLeft: 8,
   },
-  bottomBar: {
-    padding: 16,
-    backgroundColor: '#FFFFFF',
-    borderTopWidth: 1,
-    borderTopColor: '#EEEEEE',
-  },
-  viewButton: {
-    backgroundColor: '#FF6600',
-    borderRadius: 8,
-    paddingVertical: 16,
+  viewButtonContainer: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F5F5F5',
   },
   viewButtonText: {
-    color: '#FFFFFF',
     fontSize: 16,
+    color: '#FF6600',
     fontWeight: '600',
   },
   errorContainer: {

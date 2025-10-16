@@ -4,10 +4,10 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
+  Linking,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocationStore } from '../store/locationStore';
 
@@ -42,6 +42,13 @@ export default function ShopDetailsScreen() {
     });
   };
 
+  const handleOpenInMaps = () => {
+    if (location) {
+      const url = `https://www.google.com/maps/dir/?api=1&origin=${location.latitude},${location.longitude}&destination=${shop.lat},${shop.lng}`;
+      Linking.openURL(url);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView>
@@ -54,98 +61,88 @@ export default function ShopDetailsScreen() {
           <View style={styles.placeholder} />
         </View>
 
-        {/* Map with Route */}
-        {location && (
-          <View style={styles.mapContainer}>
-            <MapView
-              provider={PROVIDER_GOOGLE}
-              style={styles.map}
-              initialRegion={{
-                latitude: (location.latitude + shop.lat) / 2,
-                longitude: (location.longitude + shop.lng) / 2,
-                latitudeDelta: Math.abs(location.latitude - shop.lat) * 2 + 0.01,
-                longitudeDelta: Math.abs(location.longitude - shop.lng) * 2 + 0.01,
-              }}
-            >
-              <Marker
-                coordinate={{
-                  latitude: location.latitude,
-                  longitude: location.longitude,
-                }}
-                title="Your Location"
-                pinColor="blue"
-              />
-              <Marker
-                coordinate={{
-                  latitude: shop.lat,
-                  longitude: shop.lng,
-                }}
-                title={shop.name}
-                pinColor="red"
-              />
-              <Polyline
-                coordinates={[
-                  {
-                    latitude: location.latitude,
-                    longitude: location.longitude,
-                  },
-                  {
-                    latitude: shop.lat,
-                    longitude: shop.lng,
-                  },
-                ]}
-                strokeColor="#FF6600"
-                strokeWidth={3}
-              />
-            </MapView>
+        {/* Shop Header */}
+        <View style={styles.shopHeader}>
+          <View style={styles.iconContainer}>
+            <Ionicons name="storefront" size={48} color="#FF6600" />
           </View>
-        )}
-
-        {/* Shop Information */}
-        <View style={styles.infoContainer}>
           <View style={styles.nameSection}>
             <Text style={styles.shopName}>{shop.name}</Text>
             <View style={styles.categoryBadge}>
               <Text style={styles.categoryText}>{shop.category}</Text>
             </View>
           </View>
+        </View>
 
+        {/* Shop Information */}
+        <View style={styles.infoContainer}>
           <View style={styles.detailsSection}>
             <View style={styles.detailRow}>
               <Ionicons name="location" size={20} color="#666666" />
-              <Text style={styles.detailLabel}>Distance:</Text>
-              <Text style={styles.detailValue}>{shop.distance.toFixed(1)} km</Text>
+              <View style={styles.detailContent}>
+                <Text style={styles.detailLabel}>Distance</Text>
+                <Text style={styles.detailValue}>{shop.distance.toFixed(1)} km away</Text>
+              </View>
             </View>
 
             <View style={styles.detailRow}>
               <Ionicons name="home" size={20} color="#666666" />
-              <Text style={styles.detailLabel}>Address:</Text>
-              <Text style={styles.detailValue}>{shop.address}</Text>
+              <View style={styles.detailContent}>
+                <Text style={styles.detailLabel}>Address</Text>
+                <Text style={styles.detailValue}>{shop.address}</Text>
+              </View>
             </View>
 
             <View style={styles.detailRow}>
               <Ionicons name="cash" size={20} color="#666666" />
-              <Text style={styles.detailLabel}>Avg. Price:</Text>
-              <Text style={styles.detailValue}>₹{shop.price}</Text>
+              <View style={styles.detailContent}>
+                <Text style={styles.detailLabel}>Avg. Price</Text>
+                <Text style={styles.detailValue}>₹{shop.price}</Text>
+              </View>
             </View>
           </View>
+
+          {/* Navigation Button */}
+          <TouchableOpacity style={styles.navigationButton} onPress={handleOpenInMaps}>
+            <Ionicons name="navigate" size={24} color="#FFFFFF" />
+            <Text style={styles.navigationText}>Open in Google Maps</Text>
+          </TouchableOpacity>
 
           {/* Savings Card */}
           <View style={styles.savingsCard}>
             <View style={styles.savingsHeader}>
-              <Ionicons name="pricetag" size={24} color="#4CAF50" />
-              <Text style={styles.savingsTitle}>Merchant Savings</Text>
+              <Ionicons name="pricetag" size={32} color="#4CAF50" />
+              <View style={styles.savingsContent}>
+                <Text style={styles.savingsTitle}>Merchant Savings</Text>
+                <Text style={styles.savingsAmount}>₹{shop.savings}</Text>
+              </View>
             </View>
-            <Text style={styles.savingsAmount}>₹{shop.savings}</Text>
             <Text style={styles.savingsDescription}>
-              Save ₹{shop.savings} on your purchases at this merchant
+              Save ₹{shop.savings} on your purchases at this merchant. This is an exclusive IntownLocal offer!
             </Text>
+          </View>
+
+          {/* Features */}
+          <View style={styles.featuresSection}>
+            <Text style={styles.sectionTitle}>Why Shop Here?</Text>
+            <View style={styles.featureItem}>
+              <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+              <Text style={styles.featureText}>Verified IntownLocal partner</Text>
+            </View>
+            <View style={styles.featureItem}>
+              <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+              <Text style={styles.featureText}>Instant savings on payment</Text>
+            </View>
+            <View style={styles.featureItem}>
+              <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+              <Text style={styles.featureText}>Easy and secure transactions</Text>
+            </View>
           </View>
 
           {/* Pay Now Button */}
           <TouchableOpacity style={styles.payButton} onPress={handlePayNow}>
             <Ionicons name="card" size={24} color="#FFFFFF" />
-            <Text style={styles.payButtonText}>Pay Now</Text>
+            <Text style={styles.payButtonText}>Pay Now & Save</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -178,36 +175,45 @@ const styles = StyleSheet.create({
   placeholder: {
     width: 40,
   },
-  mapContainer: {
-    height: 250,
-    backgroundColor: '#E0E0E0',
+  shopHeader: {
+    backgroundColor: '#FFFFFF',
+    padding: 24,
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#EEEEEE',
   },
-  map: {
-    flex: 1,
-  },
-  infoContainer: {
-    padding: 16,
-  },
-  nameSection: {
+  iconContainer: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: '#FFF3E0',
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 16,
   },
+  nameSection: {
+    alignItems: 'center',
+  },
   shopName: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: 'bold',
     color: '#1A1A1A',
     marginBottom: 8,
+    textAlign: 'center',
   },
   categoryBadge: {
     backgroundColor: '#FF6600',
     paddingVertical: 6,
-    paddingHorizontal: 12,
+    paddingHorizontal: 16,
     borderRadius: 16,
-    alignSelf: 'flex-start',
   },
   categoryText: {
     color: '#FFFFFF',
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '600',
+  },
+  infoContainer: {
+    padding: 16,
   },
   detailsSection: {
     backgroundColor: '#FFFFFF',
@@ -217,20 +223,38 @@ const styles = StyleSheet.create({
   },
   detailRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
+    alignItems: 'flex-start',
+    marginBottom: 16,
+  },
+  detailContent: {
+    flex: 1,
+    marginLeft: 12,
   },
   detailLabel: {
-    fontSize: 14,
-    color: '#666666',
-    marginLeft: 8,
-    width: 80,
+    fontSize: 12,
+    color: '#999999',
+    marginBottom: 4,
   },
   detailValue: {
-    fontSize: 14,
+    fontSize: 16,
     color: '#1A1A1A',
     fontWeight: '600',
-    flex: 1,
+  },
+  navigationButton: {
+    flexDirection: 'row',
+    backgroundColor: '#2196F3',
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  navigationText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
   },
   savingsCard: {
     backgroundColor: '#E8F5E9',
@@ -245,21 +269,45 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
+  savingsContent: {
+    marginLeft: 12,
+  },
   savingsTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 14,
     color: '#2E7D32',
-    marginLeft: 8,
+    marginBottom: 4,
   },
   savingsAmount: {
-    fontSize: 40,
+    fontSize: 32,
     fontWeight: 'bold',
     color: '#2E7D32',
-    marginBottom: 8,
   },
   savingsDescription: {
     fontSize: 14,
     color: '#2E7D32',
+    lineHeight: 20,
+  },
+  featuresSection: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1A1A1A',
+    marginBottom: 16,
+  },
+  featureItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  featureText: {
+    fontSize: 14,
+    color: '#666666',
+    marginLeft: 12,
   },
   payButton: {
     flexDirection: 'row',
