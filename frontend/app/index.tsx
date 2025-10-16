@@ -1,16 +1,31 @@
-import { Text, View, StyleSheet, Image } from "react-native";
+import { View, Text, StyleSheet, Image } from 'react-native';
+import { useEffect } from 'react';
+import { useRouter } from 'expo-router';
+import { useAuthStore } from '../store/authStore';
 
-const EXPO_PUBLIC_BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+export default function SplashScreen() {
+  const router = useRouter();
+  const { isAuthenticated } = useAuthStore();
 
-export default function Index() {
-  console.log(EXPO_PUBLIC_BACKEND_URL, "EXPO_PUBLIC_BACKEND_URL");
+  useEffect(() => {
+    // Simulate splash screen for 2 seconds
+    const timer = setTimeout(() => {
+      if (isAuthenticated) {
+        router.replace('/dashboard');
+      } else {
+        router.replace('/location');
+      }
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, [isAuthenticated]);
 
   return (
     <View style={styles.container}>
-      <Image
-        source={require("../assets/images/app-image.png")}
-        style={styles.image}
-      />
+      <View style={styles.logoContainer}>
+        <Text style={styles.logoText}>INtown</Text>
+        <Text style={styles.tagline}>Local Savings Made Easy</Text>
+      </View>
     </View>
   );
 }
@@ -18,13 +33,22 @@ export default function Index() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0c0c0c",
-    alignItems: "center",
-    justifyContent: "center",
+    backgroundColor: '#FF6600',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  image: {
-    width: "100%",
-    height: "100%",
-    resizeMode: "contain",
+  logoContainer: {
+    alignItems: 'center',
+  },
+  logoText: {
+    fontSize: 64,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 8,
+  },
+  tagline: {
+    fontSize: 18,
+    color: '#FFFFFF',
+    opacity: 0.9,
   },
 });
