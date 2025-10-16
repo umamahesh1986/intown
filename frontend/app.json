@@ -47,6 +47,12 @@
         {
           "locationAlwaysAndWhenInUsePermission": "Allow IntownLocal to use your location to find nearby shops."
         }
+      ],
+      [
+        "react-native-maps",
+        {
+          "googleMapsApiKey": "AIzaSyBo3BuGtZ92gvUzyEDIWp4SXVbIxT28LNY"
+        }
       ]
     ],
     "experiments": {
