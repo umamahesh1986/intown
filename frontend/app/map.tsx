@@ -6,11 +6,12 @@ import {
   FlatList,
   Alert,
   ActivityIndicator,
+  ScrollView,
+  Linking,
 } from 'react-native';
 import { useState, useEffect } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocationStore } from '../store/locationStore';
 import { getShops } from '../utils/api';
