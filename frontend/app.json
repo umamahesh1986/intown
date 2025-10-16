@@ -41,6 +41,12 @@
           "resizeMode": "contain",
           "backgroundColor": "#000"
         }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow IntownLocal to use your location to find nearby shops."
+        }
       ]
     ],
     "experiments": {
