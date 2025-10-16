@@ -1,1 +1,98 @@
-# Here are your Instructions
+# IntownLocal Mobile App
+
+A professional React Native mobile app built with Expo for local shopping and savings.
+
+## Features
+
+### Implemented Features ✅
+
+1. **Authentication Flow**
+   - Splash screen with branding
+   - Location permission request
+   - Mobile number login with OTP
+   - Mock OTP verification (use 1234 for testing)
+   - User session management
+
+2. **Dashboard**
+   - User profile display (name & phone)
+   - Large search box for categories/shops
+   - Popular categories grid (Grocery, Salon, Restaurant, etc.)
+   - Subscription plans display (IT Max & IT Max Plus)
+   - Estimated savings calculation
+   - Find Nearby Shops button
+
+3. **Map & Shop Discovery**
+   - Google Maps integration
+   - User location marker
+   - Shop markers on map
+   - Distance calculation from user location
+   - Category filtering
+   - Route display (polyline from user to shop)
+   - Horizontal scrollable shop list
+   - Shop selection with visual feedback
+
+4. **Shop Details**
+   - Shop information display
+   - Distance and address
+   - Map with route visualization
+   - Merchant savings information
+   - Pay Now button
+
+5. **Payment Flow**
+   - Payment summary with savings
+   - Multiple payment methods (UPI, Card, Net Banking, Wallet)
+   - Mock payment processing
+   - Transaction confirmation
+
+## Tech Stack
+
+### Frontend
+- **Expo** (React Native framework)
+- **React Native** (v0.79.5)
+- **Expo Router** (File-based routing)
+- **React Native Maps** (Google Maps integration)
+- **Zustand** (State management)
+- **Axios** (API calls)
+- **AsyncStorage** (Local storage)
+- **TypeScript**
+
+### Backend
+- **FastAPI** (Python web framework)
+- **MongoDB** (Database)
+- **Motor** (Async MongoDB driver)
+- **Pydantic** (Data validation)
+
+## Testing Guide
+
+### Backend Testing
+All backend endpoints are working correctly:
+```bash
+# Test OTP sending
+curl -X POST http://localhost:8001/api/send-otp \
+  -H "Content-Type: application/json" \
+  -d '{"phone":"9876543210"}'
+
+# Test OTP verification (use OTP: 1234)
+curl -X POST http://localhost:8001/api/verify-otp \
+  -H "Content-Type: application/json" \
+  -d '{"phone":"9876543210","otp":"1234"}'
+
+# Test getting shops
+curl -X GET "http://localhost:8001/api/shops?lat=12.9716&lng=77.5946"
+```
+
+### Frontend Testing (Expo Go)
+
+1. Install Expo Go on your mobile device
+2. Scan the QR code displayed
+3. Test the complete flow:
+   - Splash screen → Location permission → Login → OTP (use 1234) → Dashboard → Map → Shop Details → Payment
+
+## Mock Services
+
+- **OTP**: Always use **1234** for testing
+- **Payment**: All transactions are mocked
+- **Shops**: 8 dummy shops in Bangalore area
+
+## Google Maps API Key
+Configured in app.json: `AIzaSyBo3BuGtZ92gvUzyEDIWp4SXVbIxT28LNY`
