@@ -50,10 +50,29 @@ export default function UserDashboard() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
   const [monthlySpend, setMonthlySpend] = useState('10000');
+  
+  // Animation for auto-scrolling shops
+  const scrollX = useRef(new Animated.Value(0)).current;
+  const CARD_WIDTH = 172; // 160 + 12 (margin)
+  const TOTAL_WIDTH = DUMMY_NEARBY_SHOPS.length * CARD_WIDTH;
 
   useEffect(() => {
     loadData();
+    startAutoScroll();
   }, []);
+
+  const startAutoScroll = () => {
+    // Duplicate shops for seamless loop
+    const animationDuration = TOTAL_WIDTH * 50; // Speed: lower = faster
+    
+    Animated.loop(
+      Animated.timing(scrollX, {
+        toValue: -TOTAL_WIDTH,
+        duration: animationDuration,
+        useNativeDriver: true,
+      })
+    ).start();
+  };
 
   const loadData = async () => {
     try {
