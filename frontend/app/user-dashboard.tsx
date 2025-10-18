@@ -31,6 +31,15 @@ interface Category {
 
 const { width } = Dimensions.get('window');
 
+const DUMMY_NEARBY_SHOPS = [
+  { id: '1', name: 'Fresh Mart Grocery', category: 'Grocery', distance: 0.5 },
+  { id: '2', name: 'Style Salon & Spa', category: 'Salon', distance: 0.8 },
+  { id: '3', name: 'Quick Bites Restaurant', category: 'Restaurant', distance: 1.2 },
+  { id: '4', name: 'Wellness Pharmacy', category: 'Pharmacy', distance: 0.3 },
+  { id: '5', name: 'Fashion Hub', category: 'Fashion', distance: 1.5 },
+  { id: '6', name: 'Tech Store', category: 'Electronics', distance: 2.0 },
+];
+
 export default function UserDashboard() {
   const router = useRouter();
   const { user, logout } = useAuthStore();
