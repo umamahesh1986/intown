@@ -19,6 +19,9 @@ export default function RootLayout() {
       <Stack.Screen name="register-member" />
       <Stack.Screen name="register-merchant" />
       <Stack.Screen name="member-dashboard" />
+      <Stack.Screen name="member-shop-list" />
+      <Stack.Screen name="member-shop-details" />
+      <Stack.Screen name="member-navigate" />
       <Stack.Screen name="dashboard" />
       <Stack.Screen name="map" />
       <Stack.Screen name="shop-details" />
