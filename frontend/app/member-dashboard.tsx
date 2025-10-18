@@ -86,7 +86,7 @@ export default function MemberDashboard() {
 
   const handleSearch = () => {
     if (searchQuery.trim()) {
-      router.push({ pathname: '/member-shop-search', params: { query: searchQuery } });
+      router.push({ pathname: '/member-shop-list', params: { query: searchQuery } });
     }
   };
 
