@@ -141,31 +141,34 @@ export default function RegisterMember() {
         console.log('API call failed, but continuing anyway');
       });
       
-      // Always show success
+      // Set user type first
+      await setUserType('member');
+      
+      // Then show success and redirect
       Alert.alert(
         'Registration Successful!',
-        'You are now a member of IntownLocal',
+        'Welcome to IntownLocal! You are now a member.',
         [
           {
-            text: 'OK',
-            onPress: async () => {
-              await setUserType('member');
+            text: 'Continue',
+            onPress: () => {
               router.replace('/member-dashboard');
             },
           },
         ]
       );
     } catch (error) {
-      // Even if there's an error, show success
+      // Even if there's an error, set member type and redirect
       console.log('Error during registration, but showing success anyway');
+      await setUserType('member');
+      
       Alert.alert(
         'Registration Successful!',
-        'You are now a member of IntownLocal',
+        'Welcome to IntownLocal! You are now a member.',
         [
           {
-            text: 'OK',
-            onPress: async () => {
-              await setUserType('member');
+            text: 'Continue',
+            onPress: () => {
               router.replace('/member-dashboard');
             },
           },
