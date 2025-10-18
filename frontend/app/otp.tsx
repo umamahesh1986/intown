@@ -39,7 +39,7 @@ export default function OTPScreen() {
         await setToken(response.token);
         
         Alert.alert('Success', 'Login successful!');
-        router.replace('/dashboard');
+        router.replace('/user-dashboard');
       } else {
         Alert.alert('Error', response.message || 'Invalid OTP');
       }
