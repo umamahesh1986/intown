@@ -559,6 +559,12 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginLeft: 8,
   },
+  autoScrollContainer: {
+    overflow: 'hidden',
+  },
+  autoScrollContent: {
+    flexDirection: 'row',
+  },
   shopCard: {
     width: 160,
     backgroundColor: '#FFFFFF',
