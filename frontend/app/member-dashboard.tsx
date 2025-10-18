@@ -151,7 +151,7 @@ export default function MemberDashboard() {
               <TouchableOpacity
                 key={category.id}
                 style={styles.categoryCard}
-                onPress={() => router.push({ pathname: '/member-category', params: { category: category.name } })}
+                onPress={() => router.push({ pathname: '/member-shop-list', params: { category: category.name } })}
               >
                 <View style={styles.categoryIcon}>
                   <Ionicons name={category.icon as any} size={32} color="#FF6600" />
