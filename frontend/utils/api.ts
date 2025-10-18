@@ -1,7 +1,7 @@
 import axios from 'axios';
-import Constants from 'expo-constants';
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://localhost:8001';
+const EXTERNAL_API = 'http://intownlocal.us-east-1.elasticbeanstalk.com/it';
 
 export const api = axios.create({
   baseURL: `${BACKEND_URL}/api`,
@@ -10,7 +10,14 @@ export const api = axios.create({
   },
 });
 
-// API functions
+export const externalApi = axios.create({
+  baseURL: EXTERNAL_API,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Auth APIs
 export const sendOTP = async (phone: string) => {
   const response = await api.post('/send-otp', { phone });
   return response.data;
@@ -21,6 +28,7 @@ export const verifyOTP = async (phone: string, otp: string) => {
   return response.data;
 };
 
+// Shop APIs
 export const getShops = async (lat: number, lng: number, category?: string) => {
   const params: any = { lat, lng };
   if (category) params.category = category;
@@ -38,7 +46,45 @@ export const getCategories = async () => {
   return response.data;
 };
 
+// Member Registration (External API - Mocked for now)
+export const registerMember = async (memberData: any) => {
+  // Mock response for now
+  console.log('Registering member:', memberData);
+  return {
+    success: true,
+    message: 'Member registered successfully',
+    memberId: `MEM${Date.now()}`,
+    data: memberData,
+  };
+  
+  // Real API call (uncomment when ready):
+  // const response = await externalApi.post('/customer/', memberData);
+  // return response.data;
+};
+
+// Merchant Registration (External API - Mocked for now)
+export const registerMerchant = async (merchantData: any) => {
+  // Mock response for now
+  console.log('Registering merchant:', merchantData);
+  return {
+    success: true,
+    message: 'Merchant registered successfully',
+    merchantId: `MER${Date.now()}`,
+    data: merchantData,
+  };
+  
+  // Real API call (uncomment when ready):
+  // const response = await externalApi.post('/merchant/', merchantData);
+  // return response.data;
+};
+
+// Payment API (Mocked)
 export const processPayment = async (paymentData: any) => {
-  const response = await api.post('/payment', paymentData);
-  return response.data;
+  console.log('Processing payment:', paymentData);
+  return {
+    success: true,
+    transactionId: `TXN${Date.now()}`,
+    message: 'Payment successful',
+    savings: paymentData.amount * 0.1,
+  };
 };

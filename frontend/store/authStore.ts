@@ -5,6 +5,8 @@ interface User {
   id: string;
   name: string;
   phone: string;
+  userType: 'user' | 'member' | 'merchant' | null; // user type tracking
+  membershipPlan?: string;
 }
 
 interface AuthState {
@@ -13,15 +15,23 @@ interface AuthState {
   isAuthenticated: boolean;
   setUser: (user: User | null) => void;
   setToken: (token: string | null) => void;
+  setUserType: (userType: 'user' | 'member' | 'merchant') => void;
   logout: () => Promise<void>;
   loadAuth: () => Promise<void>;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   token: null,
   isAuthenticated: false,
-  setUser: (user) => set({ user, isAuthenticated: !!user }),
+  setUser: async (user) => {
+    if (user) {
+      await AsyncStorage.setItem('user_data', JSON.stringify(user));
+    } else {
+      await AsyncStorage.removeItem('user_data');
+    }
+    set({ user, isAuthenticated: !!user });
+  },
   setToken: async (token) => {
     if (token) {
       await AsyncStorage.setItem('auth_token', token);
@@ -29,6 +39,14 @@ export const useAuthStore = create<AuthState>((set) => ({
       await AsyncStorage.removeItem('auth_token');
     }
     set({ token });
+  },
+  setUserType: async (userType) => {
+    const currentUser = get().user;
+    if (currentUser) {
+      const updatedUser = { ...currentUser, userType };
+      await AsyncStorage.setItem('user_data', JSON.stringify(updatedUser));
+      set({ user: updatedUser });
+    }
   },
   logout: async () => {
     await AsyncStorage.removeItem('auth_token');
