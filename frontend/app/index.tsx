@@ -5,7 +5,7 @@ import { useAuthStore } from '../store/authStore';
 
 export default function SplashScreen() {
   const router = useRouter();
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, user } = useAuthStore();
 
   useEffect(() => {
     // Simulate splash screen for 2 seconds
