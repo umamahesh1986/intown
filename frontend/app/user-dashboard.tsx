@@ -211,10 +211,42 @@ export default function UserDashboard() {
           </TouchableOpacity>
         </View>
 
+        {/* Nearby Shops Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Nearby Shops</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            {DUMMY_NEARBY_SHOPS.map((shop) => (
+              <TouchableOpacity
+                key={shop.id}
+                style={styles.shopCard}
+                onPress={() => setShowRegistrationModal(true)}
+              >
+                <View style={styles.shopImagePlaceholder}>
+                  <Ionicons name="storefront" size={40} color="#FF6600" />
+                </View>
+                <Text style={styles.shopCardName} numberOfLines={1}>
+                  {shop.name}
+                </Text>
+                <Text style={styles.shopCardCategory}>{shop.category}</Text>
+                <View style={styles.shopCardDistance}>
+                  <Ionicons name="location" size={14} color="#666666" />
+                  <Text style={styles.shopCardDistanceText}>{shop.distance} km</Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+
         {/* Footer */}
         <View style={styles.footer}>
-          <Text style={styles.footerText}>
-            Join thousands of users and merchants saving money while supporting local businesses
+          <Text style={styles.footerTagline}>
+            Shop Local, Save Instantly! Connecting Communities Through Personal Bond.
+          </Text>
+          <Text style={styles.footerDescription}>
+            India's most trusted local savings network, helping customers save instantly while enabling small businesses to thrive.
+          </Text>
+          <Text style={styles.footerCopyright}>
+            Copyright © 2025, Yagnavihar Lifestyle Pvt. Ltd.
           </Text>
         </View>
       </ScrollView>
