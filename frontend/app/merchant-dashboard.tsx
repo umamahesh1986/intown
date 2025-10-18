@@ -111,15 +111,20 @@ export default function MerchantDashboard() {
 
   const stats = getTotalStats();
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     Alert.alert('Logout', 'Are you sure you want to logout?', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Logout',
         style: 'destructive',
-        onPress: () => {
-          logout();
-          router.replace('/login');
+        onPress: async () => {
+          try {
+            await logout();
+            router.replace('/login');
+          } catch (error) {
+            console.error('Logout error:', error);
+            router.replace('/login');
+          }
         },
       },
     ]);
