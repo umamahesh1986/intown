@@ -14,7 +14,7 @@ export default function SplashScreen() {
         // Redirect based on user type
         const userType = user?.userType;
         if (userType === 'member') {
-          router.replace('/dashboard'); // Member dashboard (to be created)
+          router.replace('/member-dashboard'); // Member dashboard
         } else if (userType === 'merchant') {
           router.replace('/dashboard'); // Merchant dashboard (to be created)
         } else {
