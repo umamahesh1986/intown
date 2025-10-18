@@ -16,7 +16,7 @@ export default function SplashScreen() {
         if (userType === 'member') {
           router.replace('/member-dashboard'); // Member dashboard
         } else if (userType === 'merchant') {
-          router.replace('/dashboard'); // Merchant dashboard (to be created)
+          router.replace('/merchant-dashboard'); // Merchant dashboard
         } else {
           router.replace('/user-dashboard'); // User dashboard
         }
