@@ -7,8 +7,9 @@ import {
   TouchableOpacity,
   Modal,
   Dimensions,
+  Animated,
 } from 'react-native';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
