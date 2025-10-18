@@ -11,14 +11,22 @@ export default function SplashScreen() {
     // Simulate splash screen for 2 seconds
     const timer = setTimeout(() => {
       if (isAuthenticated) {
-        router.replace('/dashboard');
+        // Redirect based on user type
+        const userType = user?.userType;
+        if (userType === 'member') {
+          router.replace('/dashboard'); // Member dashboard (to be created)
+        } else if (userType === 'merchant') {
+          router.replace('/dashboard'); // Merchant dashboard (to be created)
+        } else {
+          router.replace('/user-dashboard'); // User dashboard
+        }
       } else {
         router.replace('/location');
       }
     }, 2000);
 
     return () => clearTimeout(timer);
-  }, [isAuthenticated]);
+  }, [isAuthenticated, user]);
 
   return (
     <View style={styles.container}>
