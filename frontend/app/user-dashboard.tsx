@@ -243,27 +243,37 @@ export default function UserDashboard() {
         {/* Nearby Shops Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Nearby Shops</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {DUMMY_NEARBY_SHOPS.map((shop) => (
-              <TouchableOpacity
-                key={shop.id}
-                style={styles.shopCard}
-                onPress={() => setShowRegistrationModal(true)}
-              >
-                <View style={styles.shopImagePlaceholder}>
-                  <Ionicons name="storefront" size={40} color="#FF6600" />
-                </View>
-                <Text style={styles.shopCardName} numberOfLines={1}>
-                  {shop.name}
-                </Text>
-                <Text style={styles.shopCardCategory}>{shop.category}</Text>
-                <View style={styles.shopCardDistance}>
-                  <Ionicons name="location" size={14} color="#666666" />
-                  <Text style={styles.shopCardDistanceText}>{shop.distance} km</Text>
-                </View>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
+          <View style={styles.autoScrollContainer}>
+            <Animated.View
+              style={[
+                styles.autoScrollContent,
+                {
+                  transform: [{ translateX: scrollX }],
+                },
+              ]}
+            >
+              {/* Render shops twice for seamless loop */}
+              {[...DUMMY_NEARBY_SHOPS, ...DUMMY_NEARBY_SHOPS].map((shop, index) => (
+                <TouchableOpacity
+                  key={`${shop.id}-${index}`}
+                  style={styles.shopCard}
+                  onPress={() => setShowRegistrationModal(true)}
+                >
+                  <View style={styles.shopImagePlaceholder}>
+                    <Ionicons name="storefront" size={40} color="#FF6600" />
+                  </View>
+                  <Text style={styles.shopCardName} numberOfLines={1}>
+                    {shop.name}
+                  </Text>
+                  <Text style={styles.shopCardCategory}>{shop.category}</Text>
+                  <View style={styles.shopCardDistance}>
+                    <Ionicons name="location" size={14} color="#666666" />
+                    <Text style={styles.shopCardDistanceText}>{shop.distance} km</Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </Animated.View>
+          </View>
         </View>
 
         {/* Footer */}
