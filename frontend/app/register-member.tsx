@@ -124,7 +124,6 @@ export default function RegisterMember() {
 
     setIsLoading(true);
     
-    // Always succeed - ignore API errors for now
     try {
       const memberData = {
         contactName,
@@ -141,39 +140,21 @@ export default function RegisterMember() {
         console.log('API call failed, but continuing anyway');
       });
       
-      // Set user type first
+      // Set user type
       await setUserType('member');
       
-      // Then show success and redirect
-      Alert.alert(
-        'Registration Successful!',
-        'Welcome to IntownLocal! You are now a member.',
-        [
-          {
-            text: 'Continue',
-            onPress: () => {
-              router.replace('/member-dashboard');
-            },
-          },
-        ]
-      );
+      // Direct navigation without alert
+      console.log('Navigating to member dashboard...');
+      router.replace('/member-dashboard');
+      
     } catch (error) {
-      // Even if there's an error, set member type and redirect
-      console.log('Error during registration, but showing success anyway');
+      console.log('Error during registration, but continuing anyway', error);
+      
+      // Set user type even on error
       await setUserType('member');
       
-      Alert.alert(
-        'Registration Successful!',
-        'Welcome to IntownLocal! You are now a member.',
-        [
-          {
-            text: 'Continue',
-            onPress: () => {
-              router.replace('/member-dashboard');
-            },
-          },
-        ]
-      );
+      // Navigate anyway
+      router.replace('/member-dashboard');
     } finally {
       setIsLoading(false);
     }
