@@ -13,7 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
 import { useLocationStore } from '../store/locationStore';
-import { getPlans, getCategories } from '../utils/api';
+import { getPlans, getCategories, getShops } from '../utils/api';
 
 interface Plan {
   id: string;
