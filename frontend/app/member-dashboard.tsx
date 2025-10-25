@@ -79,9 +79,28 @@ export default function MemberDashboard() {
 
   const { monthlySavings, annualSavings } = calculateSavings();
 
-  const handleLogout = () => {
-    logout();
-    router.replace('/login');
+  const handleLogout = async () => {
+    Alert.alert('Logout', 'Are you sure you want to logout?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Logout',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            // Clear all AsyncStorage data
+            await AsyncStorage.clear();
+            // Call logout from store
+            await logout();
+            // Navigate to login
+            router.replace('/login');
+          } catch (error) {
+            console.error('Logout error:', error);
+            // Force navigation even on error
+            router.replace('/login');
+          }
+        },
+      },
+    ]);
   };
 
   const handleSearch = () => {
