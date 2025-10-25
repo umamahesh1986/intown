@@ -1,0 +1,117 @@
+<analysis>
+The AI engineer successfully initiated the IntownLocal mobile app development, transitioning from a basic concept to a multi-flow application. Initially, a simple Expo/React Native frontend and Node.js backend with dummy data were established. Key challenges involved  compatibility, leading to a temporary shift to a list-based UI for shops. The user then provided extensive new requirements, necessitating a major restructure to accommodate User, Member, and Merchant flows. The AI engineer adapted by implementing new dashboards, registration forms with validations, and a comprehensive member flow, including search, categories, shop details, and mock payment. The current phase is focused on resolving a persistent logout functionality issue across dashboards, demonstrating iterative problem-solving and responsiveness to user feedback.
+</analysis>
+
+<product_requirements>
+The IntownLocal mobile app aims to connect local retail shops with customers. The initial goal was a professional Android/iOS app with Expo/React Native frontend and Node.js backend, using dummy data.
+**Core User Flow:** Splash screen, location permission, mobile number login via OTP (mocked), Dashboard, Map/Search results, Shop details, and a mocked payment flow.
+**Dashboard features:** Intown logo, user details, search box for categories/shops, popular categories as tiles, two subscription/pricing options (IT Max, IT Max Plus), estimated savings summary, Find Nearby Shops button.
+**Map View:** Google Maps centered on user, shop markers, filtered by category, list view of shops.
+**Shop Details:** Name, category, distance, route on map, Pay Now button, merchant savings/offer.
+**Payment:** Mocked page for plan/shop amount, savings, multiple payment methods.
+**Visual & UX:** Orange accent color, clean layout, high-quality icons, responsive, smooth transitions.
+**Technical Choices:** Expo + React Native, , , React Navigation, AsyncStorage, Node.js + Express backend with specific mock API endpoints.
+**Updated Requirements (Multi-Flow):**
+1.  **User Flow:** After OTP, user lands on a User Dashboard.
+    *   Dashboard: Logo, profile, search, popular categories, Present Local Retail Shops to Digital Presence theme.
+    *   Savings Calculator: Estimated Monthly Spend, Monthly Savings, Annual Savings.
+    *   Member/Merchant Tabs:
+        *   **Member Tab:** Shows IT Max and IT Max Plus plans. Tapping a plan leads to **Member Registration Form**: Contact Name, Customer Location (full-screen map picker), Email, Phone Number, Pincode, Multi Image Uploader, Terms & Conditions. API call () on registration (mocked success). Redirect to Member Dashboard.
+        *   **Merchant Tab:** Leads to **Merchant Registration Form**: Business Name, Contact Name, Business Category, Description, Years in Business, Branches, Email, Phone Number, Pincode, Business Location (full-screen map picker), Address, Introduced By, Multi Image Uploader, Terms & Conditions. API call () on registration (mocked success). Redirect to Merchant Dashboard.
+    *   Nearby Shops Section: Scrollable list with image, name, category, distance (auto-scrolling infinite loop added).
+    *   Footer: Shop Local, Save Instantly! statement.
+2.  **Member Flow (after registration):**
+    *   **Member Dashboard:** Logo, user profile (member dropdown with account, membership, logout). Search field (show shop list based on category/location), Popular Categories, Savings Calculator, Nearby Shops, Footer.
+    *   **Shop Details Page:** Shop image, name, rating, Navigate to Shop, Pay buttons.
+    *   **Payment Flow:** Total amount, instant savings (10%), total payable amount, payment options (PhonePe, GooglePay, Paytm, Cash - mocked). Confirm payment popup.
+    *   **Navigate Page:** Full-screen map with route to shop, Pay button (same payment flow).
+3.  **Merchant Flow (after registration):**
+    *   **Merchant Dashboard:** Logo, merchant profile (merchant dropdown with account, merchant, logout). Full details of merchant shop with images, names, ratings, total payments list (customer amount, discount, total received, payment completed button).
+
+All new API calls for registration are to be considered successful for now. Maps API key  is provided. Image uploads should be base64.
+</product_requirements>
+
+<key_technical_concepts>
+- **Frontend:** Expo, React Native,  (file-based routing), React Navigation, Zustand (state management), AsyncStorage, ,  (with  compatibility challenges),  (for auto-scrolling).
+- **Backend:** Node.js, Express (for mock APIs), FastAPI (for new APIs).
+- **Data:** In-memory dummy data (JSON).
+- **Other:** Google Maps API, Base64 encoding for images, Git/GitLab for version control.
+</key_technical_concepts>
+
+<code_architecture>
+The application uses a monorepo structure with a  (FastAPI/Node.js) and  (Expo/React Native) directory.
+
+
+
+-   ****:
+    -   **Summary**: Contains the FastAPI backend stub.
+    -   **Changes**: Initially, it had mock endpoints for OTP, verify-OTP, shops, plans, and categories. No new explicit changes were made to the backend for the new member/merchant registration APIs; the frontend was instructed to mock success.
+-   ****:
+    -   **Summary**: The splash screen and initial routing logic.
+    -   **Changes**: Updated to check  from  and redirect to  or / based on login status and user role after the restructure.
+-   ****:
+    -   **Summary**: Defines the global navigation stack using .
+    -   **Changes**: Continuously updated to include new routes as screens were added (e.g., , , , , , , , ).
+-   ****:
+    -   **Summary**: Handles OTP verification.
+    -   **Changes**: Modified to redirect to  after successful (mocked) OTP verification.
+-   ****:
+    -   **Summary**: The main dashboard after initial login, presenting Member/Merchant registration options.
+    -   **Changes**: Created from scratch to implement the new dashboard layout, popular categories, savings calculator, Member/Merchant tabs, navigation to registration forms, Nearby Shops section (with auto-scrolling), and footer.
+-   ****:
+    -   **Summary**: Member registration form.
+    -   **Changes**: Created with fields for Contact Name, Location picker (dummy map), Email, Phone, Pincode, Multi-image upload, and T&C. It includes local validations and a mocked API call that always succeeds, navigating to .
+-   ****:
+    -   **Summary**: Merchant registration form.
+    -   **Changes**: Created with fields for Business Name, Contact Name, Category, Description, Years in Business, Branches, Email, Phone, Pincode, Business Location picker (dummy map), Address, Introduced By, Multi-image upload, and T&C. Includes local validations and a mocked API call that always succeeds, intended to navigate to .
+-   ****:
+    -   **Summary**: The dashboard for registered members.
+    -   **Changes**: Created to include logo, user profile with member status and dropdown (account, membership, logout), search box, popular categories, savings calculator, Nearby Shops section, and footer. Implements navigation to  and .
+-   ****:
+    -   **Summary**: The dashboard for registered merchants.
+    -   **Changes**: Created to include logo, merchant profile with dropdown, and displays shop details, images, ratings, and a payment tracking list (customer amount, discount, total received). Logout functionality needs fixing.
+-   ****:
+    -   **Summary**: Displays shops on a map.
+    -   **Changes**: Initially tried , then switched to a list-based UI due to compatibility issues. The user's new requirements mention a full-screen map, implying a re-introduction of map functionality.
+-   ****:
+    -   **Summary**: Displays details of a selected shop.
+    -   **Changes**: Modified to reflect new navigation flows.
+-   ****:
+    -   **Summary**: Displays a list of shops for members based on search/category.
+    -   **Changes**: Created to show shops with images, names, ratings, and View/Navigate buttons.
+-   ****:
+    -   **Summary**: Detailed view of a shop for members.
+    -   **Changes**: Created to show shop image, name, rating, Navigate and Pay buttons.
+-   ****:
+    -   **Summary**: Shows a map route to a shop and handles payment for members.
+    -   **Changes**: Created to display a full-screen map with navigation route and includes the payment flow.
+-   ****:
+    -   **Summary**: Zustand store for authentication state.
+    -   **Changes**: Updated to manage  (user, member, merchant) and handle login/logout, including persisting state with AsyncStorage. Current work involves fixing its logout logic.
+-   ****:
+    -   **Summary**: Utility for API calls.
+    -   **Changes**: Contains logic to interact with backend endpoints.
+-   ****:
+    -   **Summary**: Expo configuration file.
+    -   **Changes**: Updated to include  plugin configuration (though the integration has been problematic).
+-   ****: Initial documentation.
+-   ****: Summary of architecture.
+-   ****: Plan for the multi-flow app.
+-   ****: Instructions for testing.
+</code_architecture>
+
+<pending_tasks>
+-   Full implementation of real backend APIs for customer and merchant registration.
+-   Integration of actual Google Maps for location selection in registration forms and shop navigation, as  has shown compatibility issues with the current Expo SDK.
+-   Real payment gateway integration instead of mocked payment flows.
+-   Implementation of search functionality for member/merchant dashboards to fetch shops based on location/category (backend API pending).
+-   Category page with list of items and full-screen map showing shops for that category (backend API pending).
+</pending_tasks>
+
+<current_work>
+Immediately before this summary request, the AI engineer was focused on fixing the logout functionality. The user reported that for merchant logout is not working properly ..please update when logout clicked user or merchant has to logged out and come to mobile number screen (Chat Message 353 and 359). The AI engineer identified that  might not be completely cleared upon logout and attempted to update  to ensure proper session clearing and redirection. The previous attempt involved modifying the  function within the  to clear  and reset the user state. This is an ongoing debugging effort to ensure both member and merchant flows correctly log out and navigate back to the initial mobile number entry screen.
+</current_work>
+
+<optional_next_step>
+The next step is to continue debugging and fixing the logout functionality in  and related dashboard components.
+</optional_next_step>
