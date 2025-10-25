@@ -94,21 +94,24 @@ export default function MemberDashboard() {
       await logout();
       console.log('🔴 LOGOUT STEP 4: Store logout complete');
       
-      console.log('🔴 LOGOUT STEP 5: Navigating to login...');
-      // Use push instead of replace to ensure navigation happens
-      router.push('/login');
-      console.log('🔴 LOGOUT STEP 6: Navigation called');
+      // Wait a bit for state to update
+      await new Promise(resolve => setTimeout(resolve, 100));
       
-      // Also try to reset the navigation stack
+      console.log('🔴 LOGOUT STEP 5: Navigating to splash...');
+      // Navigate to splash screen first to reset everything
+      router.replace('/');
+      console.log('🔴 LOGOUT STEP 6: Navigation to splash complete');
+      
+      // Then immediately to login
       setTimeout(() => {
-        console.log('🔴 LOGOUT STEP 7: Secondary navigation attempt');
+        console.log('🔴 LOGOUT STEP 7: Redirecting to login...');
         router.replace('/login');
-      }, 100);
+      }, 500);
       
     } catch (error) {
       console.error('🔴 LOGOUT ERROR:', error);
       // Force navigation on error
-      router.push('/login');
+      router.replace('/login');
     }
   };
 
