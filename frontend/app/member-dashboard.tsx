@@ -297,7 +297,7 @@ const styles = StyleSheet.create({
   searchContainer: { padding: 16, backgroundColor: '#FFFFFF' },
   searchBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F5F5F5', borderRadius: 12, paddingHorizontal: 16, height: 56 },
   searchIcon: { marginRight: 12 },
-  searchInput: { flex: 1, fontSize: 16, color: '#1A1A1A' },
+  searchInput: { flex: 1, fontSize: 16, color: '#1A1A1A', outlineStyle: 'none' },
   section: { padding: 16 },
   sectionTitle: { fontSize: 20, fontWeight: 'bold', color: '#1A1A1A', marginBottom: 16 },
   categoriesGrid: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -8 },
