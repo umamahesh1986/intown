@@ -81,55 +81,35 @@ export default function MemberDashboard() {
 
   const { monthlySavings, annualSavings } = calculateSavings();
 
-  const handleLogout = () => {
-    setShowDropdown(false); // Close dropdown immediately
+  const handleLogout = async () => {
+    // Close dropdown first
+    setShowDropdown(false);
     
-    // Small delay to allow dropdown to close
-    setTimeout(() => {
-      Alert.alert(
-        'Logout',
-        'Are you sure you want to logout?',
-        [
-          { 
-            text: 'Cancel', 
-            style: 'cancel',
-            onPress: () => console.log('Logout cancelled')
-          },
-          {
-            text: 'Logout',
-            style: 'destructive',
-            onPress: async () => {
-              try {
-                console.log('🔴 LOGOUT: Starting logout process...');
-                
-                // Step 1: Clear all AsyncStorage
-                await AsyncStorage.clear();
-                console.log('🔴 LOGOUT: AsyncStorage cleared');
-                
-                // Step 2: Reset auth store
-                await logout();
-                console.log('🔴 LOGOUT: Auth store reset');
-                
-                // Step 3: Force navigation with a slight delay
-                setTimeout(() => {
-                  console.log('🔴 LOGOUT: Navigating to login...');
-                  router.replace('/login');
-                  console.log('🔴 LOGOUT: Navigation complete');
-                }, 150);
-                
-              } catch (error) {
-                console.error('🔴 LOGOUT ERROR:', error);
-                // Force navigation even if error
-                setTimeout(() => {
-                  router.replace('/login');
-                }, 150);
-              }
-            },
-          },
-        ],
-        { cancelable: false }
-      );
-    }, 200);
+    try {
+      console.log('🔴 LOGOUT STEP 1: Clearing AsyncStorage...');
+      await AsyncStorage.clear();
+      console.log('🔴 LOGOUT STEP 2: AsyncStorage cleared');
+      
+      console.log('🔴 LOGOUT STEP 3: Calling store logout...');
+      await logout();
+      console.log('🔴 LOGOUT STEP 4: Store logout complete');
+      
+      console.log('🔴 LOGOUT STEP 5: Navigating to login...');
+      // Use push instead of replace to ensure navigation happens
+      router.push('/login');
+      console.log('🔴 LOGOUT STEP 6: Navigation called');
+      
+      // Also try to reset the navigation stack
+      setTimeout(() => {
+        console.log('🔴 LOGOUT STEP 7: Secondary navigation attempt');
+        router.replace('/login');
+      }, 100);
+      
+    } catch (error) {
+      console.error('🔴 LOGOUT ERROR:', error);
+      // Force navigation on error
+      router.push('/login');
+    }
   };
 
   const handleSearch = () => {
