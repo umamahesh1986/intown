@@ -184,16 +184,19 @@ export const GlobalStyles = StyleSheet.create({
     paddingVertical: Spacing.regular,
     fontSize: Typography.medium,
     color: Colors.black,
+    outlineStyle: 'none', // Remove web outline
   },
   
   inputFocused: {
     borderColor: Colors.primary,
-    borderWidth: 2,
+    borderWidth: 1,
+    outlineStyle: 'none', // Remove web outline
   },
   
   inputError: {
     borderColor: Colors.error,
-    borderWidth: 2,
+    borderWidth: 1,
+    outlineStyle: 'none', // Remove web outline
   },
   
   // Text Styles
