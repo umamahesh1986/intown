@@ -126,7 +126,7 @@ frontend:
     implemented: true
     working: "NA"
     file: "/app/frontend/app/member-dashboard.tsx"
-    stuck_count: 0
+    stuck_count: 1
     priority: "high"
     needs_retesting: true
     status_history:
@@ -136,12 +136,25 @@ frontend:
       - working: "NA"
         agent: "main"
         comment: |
-          Fixed logout implementation:
+          Fixed logout implementation (First attempt):
           - Added Alert confirmation dialog
           - Ensured AsyncStorage.clear() is called to remove all stored data
           - Properly await logout() from authStore
           - Use router.replace('/login') for navigation
           - Added error handling with fallback navigation
+      - working: false
+        agent: "user"
+        comment: "User reported member logout still not working properly"
+      - working: "NA"
+        agent: "main"
+        comment: |
+          Applied comprehensive fix (Second attempt):
+          - Close dropdown before showing Alert (prevents UI conflicts)
+          - Added console.log statements for debugging
+          - Added setTimeout wrapper around router.replace() for smooth navigation
+          - Improved error handling in authStore logout
+          - Both AsyncStorage.clear() and store logout() now have proper error handling
+          - Navigation happens after 100ms delay to ensure state is cleared first
 
   - task: "Logout functionality - Merchant Dashboard"
     implemented: true
