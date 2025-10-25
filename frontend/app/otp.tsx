@@ -150,6 +150,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     color: '#1A1A1A',
     letterSpacing: 8,
+    outlineStyle: 'none',
   },
   hint: {
     fontSize: 14,
