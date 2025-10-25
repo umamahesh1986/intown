@@ -6,6 +6,7 @@ import {
   TextInput,
   TouchableOpacity,
   Alert,
+  Image,
 } from 'react-native';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'expo-router';
@@ -90,7 +91,11 @@ export default function DashboardScreen() {
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
-            <Text style={styles.logo}>INtown</Text>
+            <Image 
+              source={require('../assets/images/intown-logo.jpg')} 
+              style={styles.logo}
+              resizeMode="contain"
+            />
           </View>
           <View style={styles.headerRight}>
             <Text style={styles.userName}>{user?.name}</Text>
@@ -200,9 +205,8 @@ const styles = StyleSheet.create({
   },
   headerLeft: {},
   logo: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#FF6600',
+    width: 120,
+    height: 40,
   },
   headerRight: {
     alignItems: 'flex-end',

@@ -31,7 +31,11 @@ export default function SplashScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.logoContainer}>
-        <Text style={styles.logoText}>INtown</Text>
+        <Image 
+          source={require('../assets/images/intown-logo.jpg')} 
+          style={styles.logoImage}
+          resizeMode="contain"
+        />
         <Text style={styles.tagline}>Local Savings Made Easy</Text>
       </View>
     </View>
@@ -48,10 +52,9 @@ const styles = StyleSheet.create({
   logoContainer: {
     alignItems: 'center',
   },
-  logoText: {
-    fontSize: 64,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
+  logoImage: {
+    width: 250,
+    height: 100,
     marginBottom: 8,
   },
   tagline: {

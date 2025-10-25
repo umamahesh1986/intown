@@ -8,6 +8,7 @@ import {
   Modal,
   Dimensions,
   Animated,
+  Image,
 } from 'react-native';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'expo-router';
@@ -106,7 +107,11 @@ export default function UserDashboard() {
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.logo}>INtown</Text>
+          <Image 
+            source={require('../assets/images/intown-logo.jpg')} 
+            style={styles.logo}
+            resizeMode="contain"
+          />
           <TouchableOpacity onPress={handleLogout} style={styles.profileButton}>
             <View style={styles.profileInfo}>
               <Text style={styles.userName}>{user?.name}</Text>
@@ -348,9 +353,8 @@ const styles = StyleSheet.create({
     borderBottomColor: '#EEEEEE',
   },
   logo: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#FF6600',
+    width: 140,
+    height: 50,
   },
   profileButton: {
     flexDirection: 'row',
@@ -388,7 +392,6 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     color: '#1A1A1A',
-    outlineStyle: 'none',
   },
   searchHint: {
     fontSize: 12,

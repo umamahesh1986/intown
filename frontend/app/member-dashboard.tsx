@@ -8,6 +8,7 @@ import {
   Animated,
   Dimensions,
   Alert,
+  Image,
 } from 'react-native';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'expo-router';
@@ -126,7 +127,11 @@ export default function MemberDashboard() {
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.logo}>INtown</Text>
+          <Image 
+            source={require('../assets/images/intown-logo.jpg')} 
+            style={styles.logo}
+            resizeMode="contain"
+          />
           <TouchableOpacity
             style={styles.profileButton}
             onPress={() => setShowDropdown(!showDropdown)}
@@ -285,7 +290,7 @@ export default function MemberDashboard() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F5F5F5' },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#EEEEEE' },
-  logo: { fontSize: 28, fontWeight: 'bold', color: '#FF6600' },
+  logo: { width: 140, height: 50 },
   profileButton: { flexDirection: 'row', alignItems: 'center' },
   profileInfo: { alignItems: 'flex-end', marginRight: 8 },
   userName: { fontSize: 14, fontWeight: '600', color: '#1A1A1A' },
@@ -297,7 +302,7 @@ const styles = StyleSheet.create({
   searchContainer: { padding: 16, backgroundColor: '#FFFFFF' },
   searchBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F5F5F5', borderRadius: 12, paddingHorizontal: 16, height: 56 },
   searchIcon: { marginRight: 12 },
-  searchInput: { flex: 1, fontSize: 16, color: '#1A1A1A', outlineStyle: 'none' },
+  searchInput: { flex: 1, fontSize: 16, color: '#1A1A1A' },
   section: { padding: 16 },
   sectionTitle: { fontSize: 20, fontWeight: 'bold', color: '#1A1A1A', marginBottom: 16 },
   categoriesGrid: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -8 },

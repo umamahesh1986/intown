@@ -5,6 +5,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  Image,
 } from 'react-native';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'expo-router';
@@ -140,7 +141,11 @@ export default function MerchantDashboard() {
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.logo}>INtown</Text>
+          <Image 
+            source={require('../assets/images/intown-logo.jpg')} 
+            style={styles.logo}
+            resizeMode="contain"
+          />
           <TouchableOpacity
             style={styles.profileButton}
             onPress={() => setShowDropdown(!showDropdown)}
@@ -313,7 +318,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#EEEEEE',
   },
-  logo: { fontSize: 28, fontWeight: 'bold', color: '#FF6600' },
+  logo: { width: 140, height: 50 },
   profileButton: { flexDirection: 'row', alignItems: 'center' },
   profileInfo: { alignItems: 'flex-end', marginRight: 8 },
   userName: { fontSize: 14, fontWeight: '600', color: '#1A1A1A' },
