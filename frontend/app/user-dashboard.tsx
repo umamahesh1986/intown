@@ -167,6 +167,7 @@ export default function UserDashboard() {
             style={styles.logo}
             resizeMode="contain"
           />
+
           <TouchableOpacity 
             onPress={(e) => {
               e.stopPropagation();
@@ -174,6 +175,7 @@ export default function UserDashboard() {
             }} 
             style={styles.profileButton}
           >
+
             <View style={styles.profileInfo}>
               <Text style={styles.userName}>{user?.name}</Text>
               <Text style={styles.userPhone}>{user?.phone}</Text>

@@ -55,12 +55,14 @@ export default function LoginScreen() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
+
       <View style={styles.content}>
       <View style={styles.header}>
             <Image 
               source={require('../assets/images/intown-logo.jpg')} 
               style={styles.logo}
               resizeMode="contain"
+
             />
           </View>
         <View style={styles.mainContentContainer}>
@@ -104,6 +106,24 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fe6f09',
   },
+  bannerContainer: {
+    height: 400,
+    position: 'relative',
+  },
+  bannerImage: {
+    width: '100%',
+    height: '100%',
+  },
+  bannerOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+  },
   content: {
     flex: 1,
     padding: 24,
@@ -123,9 +143,11 @@ const styles = StyleSheet.create({
     
   },
   logo: {
+
     maxWidth: 300,
     height: 120,
     marginBottom: 8,
+
   },
   subtitle: {
     ...FontStylesWithFallback.h5,
