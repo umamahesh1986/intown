@@ -128,6 +128,7 @@ const styles = StyleSheet.create({
     height: 56,
     fontSize: 16,
     color: '#1A1A1A',
+    outlineStyle: 'none',
   },
   button: {
     backgroundColor: '#FF6600',
