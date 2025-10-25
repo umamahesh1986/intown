@@ -119,10 +119,15 @@ export default function MerchantDashboard() {
         style: 'destructive',
         onPress: async () => {
           try {
+            // Clear all storage
+            await AsyncStorage.clear();
+            // Call logout from store
             await logout();
+            // Force navigation to login
             router.replace('/login');
           } catch (error) {
             console.error('Logout error:', error);
+            // Force navigation even on error
             router.replace('/login');
           }
         },
