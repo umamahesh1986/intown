@@ -101,3 +101,117 @@
 #====================================================================================================
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
+
+user_problem_statement: |
+  Fix logout functionality for Member and Merchant dashboards. When users click logout,
+  they should be completely logged out and redirected to the mobile number login screen.
+  Previously, logout was not properly clearing AsyncStorage, causing users to be
+  auto-logged back in when the app reloaded.
+
+backend:
+  - task: "Backend API endpoints"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "low"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Backend APIs are stable and not affected by logout fix"
+
+frontend:
+  - task: "Logout functionality - Member Dashboard"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/app/member-dashboard.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: false
+        agent: "user"
+        comment: "User reported logout not working properly - users not redirected to login screen"
+      - working: "NA"
+        agent: "main"
+        comment: |
+          Fixed logout implementation:
+          - Added Alert confirmation dialog
+          - Ensured AsyncStorage.clear() is called to remove all stored data
+          - Properly await logout() from authStore
+          - Use router.replace('/login') for navigation
+          - Added error handling with fallback navigation
+
+  - task: "Logout functionality - Merchant Dashboard"
+    implemented: true
+    working: "NA"
+    file: "/app/frontend/app/merchant-dashboard.tsx"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: false
+        agent: "user"
+        comment: "User reported logout not working properly for merchant flow"
+      - working: "NA"
+        agent: "main"
+        comment: |
+          Verified logout implementation was already correct:
+          - Has Alert confirmation dialog
+          - Calls AsyncStorage.clear()
+          - Properly awaits logout() from authStore
+          - Uses router.replace('/login')
+          - Has error handling with fallback navigation
+
+  - task: "AuthStore logout function"
+    implemented: true
+    working: true
+    file: "/app/frontend/store/authStore.ts"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: |
+          AuthStore logout is properly implemented:
+          - Removes auth_token from AsyncStorage
+          - Removes user_data from AsyncStorage
+          - Resets state (user: null, token: null, isAuthenticated: false)
+
+metadata:
+  created_by: "main_agent"
+  version: "1.0"
+  test_sequence: 1
+  run_ui: false
+
+test_plan:
+  current_focus:
+    - "Logout functionality - Member Dashboard"
+    - "Logout functionality - Merchant Dashboard"
+  stuck_tasks: []
+  test_all: false
+  test_priority: "high_first"
+
+agent_communication:
+  - agent: "main"
+    message: |
+      Implemented logout fix for both Member and Merchant dashboards.
+      
+      Changes made:
+      1. Updated member-dashboard.tsx to include Alert confirmation before logout
+      2. Ensured AsyncStorage.clear() is called in both dashboards
+      3. Both dashboards now follow the same logout pattern
+      
+      Testing needed:
+      - Test logout from Member Dashboard (after Member registration)
+      - Test logout from Merchant Dashboard (after Merchant registration)
+      - Verify users are redirected to /login screen
+      - Verify users cannot auto-login after logout (AsyncStorage cleared)
+      - Test that after logout, the app redirects to /location then /login
+      
+      The fix addresses the root cause:
+      - AsyncStorage was not being completely cleared
+      - The _layout.tsx calls loadAuth() on mount, which reloads data from AsyncStorage
+      - By clearing all AsyncStorage data, we ensure no stale auth data remains
