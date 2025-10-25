@@ -1,9 +1,18 @@
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform } from 'react-native';
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import MapView, { Marker } from 'react-native-maps';
+
+// Only import MapView on native platforms
+let MapView: any;
+let Marker: any;
+
+if (Platform.OS !== 'web') {
+  const maps = require('react-native-maps');
+  MapView = maps.default;
+  Marker = maps.Marker;
+}
 
 export default function LocationPickerScreen() {
   const router = useRouter();
@@ -28,6 +37,50 @@ export default function LocationPickerScreen() {
     setSelectedLocation({ latitude, longitude });
   };
 
+  // Web fallback UI
+  if (Platform.OS === 'web') {
+    return (
+      <SafeAreaView style={styles.container}>
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color="#1A1A1A" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Select Location</Text>
+          <View style={{ width: 40 }} />
+        </View>
+
+        {/* Web Message */}
+        <View style={styles.webMessageContainer}>
+          <Ionicons name="map" size={64} color="#FF6600" />
+          <Text style={styles.webMessageTitle}>Map View Not Available</Text>
+          <Text style={styles.webMessageText}>
+            Maps are only available on mobile devices (iOS/Android).
+          </Text>
+          <Text style={styles.webMessageText}>
+            Please test this feature on your phone using the Expo Go app.
+          </Text>
+          
+          {/* Show coordinates input for web testing */}
+          <View style={styles.coordinatesCard}>
+            <Text style={styles.coordinatesLabel}>Default Location:</Text>
+            <Text style={styles.coordinatesValue}>
+              Latitude: {selectedLocation.latitude}
+            </Text>
+            <Text style={styles.coordinatesValue}>
+              Longitude: {selectedLocation.longitude}
+            </Text>
+          </View>
+
+          <TouchableOpacity style={styles.confirmButton} onPress={handleConfirmLocation}>
+            <Text style={styles.confirmButtonText}>Use Default Location</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Native (iOS/Android) UI with actual map
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
@@ -40,18 +93,20 @@ export default function LocationPickerScreen() {
       </View>
 
       {/* Map */}
-      <MapView
-        style={styles.map}
-        initialRegion={{
-          latitude: selectedLocation.latitude,
-          longitude: selectedLocation.longitude,
-          latitudeDelta: 0.01,
-          longitudeDelta: 0.01,
-        }}
-        onPress={handleMapPress}
-      >
-        <Marker coordinate={selectedLocation} />
-      </MapView>
+      {MapView && (
+        <MapView
+          style={styles.map}
+          initialRegion={{
+            latitude: selectedLocation.latitude,
+            longitude: selectedLocation.longitude,
+            latitudeDelta: 0.01,
+            longitudeDelta: 0.01,
+          }}
+          onPress={handleMapPress}
+        >
+          {Marker && <Marker coordinate={selectedLocation} />}
+        </MapView>
+      )}
 
       {/* Instructions */}
       <View style={styles.instructionsCard}>
