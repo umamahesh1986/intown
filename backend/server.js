@@ -19,14 +19,11 @@ const DB_NAME = process.env.DB_NAME || 'intownlocal';
 // Connect to MongoDB
 async function connectToDatabase() {
   try {
-    const client = await MongoClient.connect(MONGO_URL, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
+    const client = await MongoClient.connect(MONGO_URL);
     db = client.db(DB_NAME);
     console.log('✅ Connected to MongoDB successfully');
   } catch (error) {
-    console.error('❌ MongoDB connection error:', error);
+    console.error('❌ MongoDB connection error:', error.message);
     console.log('⚠️  Running without database - using in-memory storage');
   }
 }
