@@ -136,7 +136,7 @@ export default function UserDashboard() {
               <Text style={styles.userName}>{user?.name}</Text>
               <Text style={styles.userPhone}>{user?.phone}</Text>
             </View>
-            <Ionicons name="person" size={20} color="#ffffff" />
+            <Ionicons name="person" size={20} color="#ffffff" style={styles.profileIconButton} />
           </TouchableOpacity>
         </View>
 
@@ -183,8 +183,8 @@ export default function UserDashboard() {
               >
                 <View style={styles.categoryIcon}>
                   <Ionicons name={category.icon as any} size={32} color="#FF6600" />
+                  <Text style={styles.categoryName}>{category.name}</Text>
                 </View>
-                <Text style={styles.categoryName}>{category.name}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -394,6 +394,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
+  profileIconButton: {
+    borderWidth: 2,
+    borderColor: '#fff',
+    padding: 4,
+    borderRadius: 30,
+  },
   dropdownMenu: {
     position: 'absolute',
     top: 70,
@@ -487,26 +493,33 @@ const styles = StyleSheet.create({
     padding: 16,
     alignItems: 'center',
     marginBottom: 8,
+    gap: 12,
   },
   categoryName: {
     ...FontStylesWithFallback.caption,
     color: '#1A1A1A',
     textAlign: 'center',
+    fontWeight: '600',
+    fontSize: 16,
   },
   themeSection: {
-    backgroundColor: '#FF6600',
+    backgroundColor: '#e6e6e6',
     padding: 24,
     alignItems: 'center',
   },
   themeTitle: {
     ...FontStylesWithFallback.h2,
-    color: '#FFFFFF',
+    color: '#fe6f09',
     marginBottom: 8,
+    fontWeight: '800',
+    fontSize: 30,
   },
   themeSubtitle: {
     ...FontStylesWithFallback.body,
-    color: '#FFFFFF',
+    color: '#000',
     textAlign: 'center',
+    fontWeight: '600',
+    fontSize: 16,
   },
   calculatorCard: {
     backgroundColor: '#FFFFFF',
