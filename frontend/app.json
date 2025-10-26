@@ -51,6 +51,15 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "fonts": [
+      "./assets/fonts/Inter/static/Inter_18pt-Regular.ttf",
+      "./assets/fonts/Inter/static/Inter_18pt-Medium.ttf",
+      "./assets/fonts/Inter/static/Inter_18pt-SemiBold.ttf",
+      "./assets/fonts/Inter/static/Inter_18pt-Bold.ttf"
+    ]
   }
 }

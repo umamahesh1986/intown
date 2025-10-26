@@ -13,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { FontStylesWithFallback } from '../utils/fonts';
 
 interface Payment {
   id: string;
@@ -156,7 +157,7 @@ export default function MerchantDashboard() {
                 <Text style={styles.merchantBadgeText}>Merchant</Text>
               </View>
             </View>
-            <Ionicons name="chevron-down" size={20} color="#666666" />
+            <Ionicons name="person" size={20} color="#ffffff" />
           </TouchableOpacity>
         </View>
 

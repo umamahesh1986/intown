@@ -13,6 +13,7 @@ import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { sendOTP } from '../utils/api';
 import { Ionicons } from '@expo/vector-icons';
+import { Fonts, FontStylesWithFallback } from '../utils/fonts';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -45,51 +46,44 @@ export default function LoginScreen() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      {/* Background Banner */}
-      <View style={styles.bannerContainer}>
-        <Image 
-          source={require('../assets/images/banner.jpeg')} 
-          style={styles.bannerImage}
-          resizeMode="cover"
-        />
-        
-      </View>
-      <View style={styles.bannerOverlay}>
-          <Image 
-            source={require('../assets/images/intown-logo.jpg')} 
-            style={styles.logo}
-            resizeMode="contain"
-          />
-        </View>
       <View style={styles.content}>
-
-        <View style={styles.form}>
-          <View style={styles.inputContainer}>
-            <Ionicons name="call" size={20} color="#666666" style={styles.inputIcon} />
-            <TextInput
-              style={styles.input}
-              placeholder="Enter mobile number"
-              keyboardType="phone-pad"
-              value={phone}
-              onChangeText={setPhone}
-              maxLength={10}
-              placeholderTextColor="#999999"
+      <View style={styles.header}>
+            <Image 
+              source={require('../assets/images/intown-logo.jpg')} 
+              style={styles.logo}
+              resizeMode="contain"
             />
           </View>
+        <View style={styles.mainContentContainer}>
 
-          <TouchableOpacity
-            style={[styles.button, isLoading && styles.buttonDisabled]}
-            onPress={handleSendOTP}
-            disabled={isLoading}
-          >
-            <Text style={styles.buttonText}>
-              {isLoading ? 'Sending OTP...' : 'Send OTP'}
+          <View style={styles.form}>
+            <View style={styles.inputContainer}>
+              <Ionicons name="call" size={20} color="#666666" style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="Enter mobile number"
+                keyboardType="phone-pad"
+                value={phone}
+                onChangeText={setPhone}
+                maxLength={10}
+                placeholderTextColor="#999999"
+              />
+            </View>
+
+            <TouchableOpacity
+              style={[styles.button, isLoading && styles.buttonDisabled]}
+              onPress={handleSendOTP}
+              disabled={isLoading}
+            >
+              <Text style={styles.buttonText}>
+                {isLoading ? 'Sending OTP...' : 'Send OTP'}
+              </Text>
+            </TouchableOpacity>
+
+            <Text style={styles.infoText}>
+              You will receive a one-time password on this number
             </Text>
-          </TouchableOpacity>
-
-          <Text style={styles.infoText}>
-            You will receive a one-time password on this number
-          </Text>
+          </View>
         </View>
       </View>
     </KeyboardAvoidingView>
@@ -99,41 +93,33 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  bannerContainer: {
-    height: 400,
-    position: 'relative',
-  },
-  bannerImage: {
-    width: '100%',
-    height: '100%',
-  },
-  bannerOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    backgroundColor: '#fe6f09',
   },
   content: {
     flex: 1,
     padding: 24,
     justifyContent: 'center',
   },
+  mainContentContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    paddingTop: 24,
+    paddingBottom: 24,
+    paddingLeft: 16,
+    paddingRight: 16,
+  },
   header: {
-    marginBottom: 48,
+    marginBottom: 24,
     alignItems: 'center',
+    
   },
   logo: {
-    width: 300,
+    maxWidth: 300,
     height: 120,
+    marginBottom: 8,
   },
   subtitle: {
-    fontSize: 18,
+    ...FontStylesWithFallback.h5,
     color: '#666666',
   },
   form: {
@@ -155,7 +141,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     height: 56,
-    fontSize: 16,
+    ...FontStylesWithFallback.body,
     color: '#1A1A1A',
   },
   button: {
@@ -170,11 +156,10 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '600',
+    ...FontStylesWithFallback.buttonLarge,
   },
   infoText: {
-    fontSize: 14,
+    ...FontStylesWithFallback.bodySmall,
     color: '#999999',
     textAlign: 'center',
   },

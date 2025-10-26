@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
 import { useLocationStore } from '../store/locationStore';
 import { getPlans, getCategories, getShops } from '../utils/api';
+import { FontStylesWithFallback } from '../utils/fonts';
 
 interface Plan {
   id: string;
@@ -101,7 +102,7 @@ export default function DashboardScreen() {
             <Text style={styles.userName}>{user?.name}</Text>
             <Text style={styles.userPhone}>{user?.phone}</Text>
             <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
-              <Ionicons name="log-out-outline" size={20} color="#FF6600" />
+              <Ionicons name="person" size={20} color="#ffffff" />
             </TouchableOpacity>
           </View>
         </View>
@@ -212,12 +213,11 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   userName: {
-    fontSize: 16,
-    fontWeight: '600',
+    ...FontStylesWithFallback.h6,
     color: '#1A1A1A',
   },
   userPhone: {
-    fontSize: 12,
+    ...FontStylesWithFallback.caption,
     color: '#666666',
   },
   logoutButton: {
@@ -240,15 +240,14 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    fontSize: 16,
+    ...FontStylesWithFallback.body,
     color: '#1A1A1A',
   },
   section: {
     padding: 16,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    ...FontStylesWithFallback.h4,
     color: '#1A1A1A',
     marginBottom: 16,
   },
@@ -269,10 +268,9 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   categoryName: {
-    fontSize: 12,
+    ...FontStylesWithFallback.caption,
     color: '#1A1A1A',
     textAlign: 'center',
-    fontWeight: '500',
   },
   planCard: {
     backgroundColor: '#FFFFFF',
@@ -289,8 +287,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   planName: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    ...FontStylesWithFallback.h4,
     color: '#FF6600',
   },
   planPrice: {

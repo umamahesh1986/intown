@@ -17,6 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
 import { getCategories } from '../utils/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { FontStylesWithFallback } from '../utils/fonts';
 
 const { width } = Dimensions.get('window');
 
@@ -142,7 +143,7 @@ export default function MemberDashboard() {
                 <Text style={styles.memberBadgeText}>Member</Text>
               </View>
             </View>
-            <Ionicons name="chevron-down" size={20} color="#666666" />
+            <Ionicons name="person" size={20} color="#ffffff" />
           </TouchableOpacity>
         </View>
 

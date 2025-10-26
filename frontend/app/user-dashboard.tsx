@@ -17,6 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
 import { useLocationStore } from '../store/locationStore';
 import { getPlans, getCategories, getShops } from '../utils/api';
+import { FontStylesWithFallback } from '../utils/fonts';
 
 interface Plan {
   id: string;
@@ -51,6 +52,7 @@ export default function UserDashboard() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
   const [monthlySpend, setMonthlySpend] = useState('10000');
+  const [showDropdown, setShowDropdown] = useState(false);
   
   // Animation for auto-scrolling shops
   const scrollX = useRef(new Animated.Value(0)).current;
@@ -61,6 +63,11 @@ export default function UserDashboard() {
     loadData();
     startAutoScroll();
   }, []);
+
+  useEffect(() => {
+    // Close dropdown when user changes
+    setShowDropdown(false);
+  }, [user]);
 
   const startAutoScroll = () => {
     // Duplicate shops for seamless loop
@@ -99,12 +106,18 @@ export default function UserDashboard() {
 
   const handleLogout = () => {
     logout();
+    setShowDropdown(false);
     router.replace('/login');
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <TouchableOpacity 
+        style={styles.container} 
+        activeOpacity={1} 
+        onPress={() => setShowDropdown(false)}
+      >
+        <ScrollView showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
           <Image 
@@ -112,14 +125,34 @@ export default function UserDashboard() {
             style={styles.logo}
             resizeMode="contain"
           />
-          <TouchableOpacity onPress={handleLogout} style={styles.profileButton}>
+          <TouchableOpacity 
+            onPress={(e) => {
+              e.stopPropagation();
+              setShowDropdown(!showDropdown);
+            }} 
+            style={styles.profileButton}
+          >
             <View style={styles.profileInfo}>
               <Text style={styles.userName}>{user?.name}</Text>
               <Text style={styles.userPhone}>{user?.phone}</Text>
             </View>
-            <Ionicons name="chevron-down" size={20} color="#666666" />
+            <Ionicons name="person" size={20} color="#ffffff" />
           </TouchableOpacity>
         </View>
+
+        {/* Dropdown Menu */}
+        {showDropdown && (
+          <TouchableOpacity 
+            style={styles.dropdownMenu}
+            onPress={(e) => e.stopPropagation()}
+            activeOpacity={1}
+          >
+            <TouchableOpacity style={styles.dropdownItem} onPress={handleLogout}>
+              <Ionicons name="log-out-outline" size={20} color="#FF0000" />
+              <Text style={[styles.dropdownText, {color: '#FF0000'}]}>Logout</Text>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        )}
 
         {/* Search Box */}
         <View style={styles.searchContainer}>
@@ -293,7 +326,8 @@ export default function UserDashboard() {
             Copyright © 2025, Yagnavihar Lifestyle Pvt. Ltd.
           </Text>
         </View>
-      </ScrollView>
+        </ScrollView>
+      </TouchableOpacity>
 
       {/* Registration Modal */}
       <Modal
@@ -348,7 +382,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#fe6f09',
     borderBottomWidth: 1,
     borderBottomColor: '#EEEEEE',
   },
@@ -360,18 +394,49 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
+  dropdownMenu: {
+    position: 'absolute',
+    top: 70,
+    right: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+    zIndex: 1000,
+    minWidth: 120,
+  },
+  dropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  dropdownText: {
+    ...FontStylesWithFallback.body,
+    marginLeft: 12,
+    fontWeight: '500',
+  },
   profileInfo: {
     alignItems: 'flex-end',
     marginRight: 8,
   },
   userName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1A1A1A',
+    ...FontStylesWithFallback.bodySmall,
+    color: '#fff',
+    fontWeight: '700',
   },
   userPhone: {
-    fontSize: 12,
-    color: '#666666',
+    ...FontStylesWithFallback.caption,
+    color: '#fff',
+    fontSize: 10,
   },
   searchContainer: {
     padding: 16,
@@ -390,11 +455,11 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    fontSize: 16,
+    ...FontStylesWithFallback.body,
     color: '#1A1A1A',
   },
   searchHint: {
-    fontSize: 12,
+    ...FontStylesWithFallback.caption,
     color: '#999999',
     marginTop: 8,
     textAlign: 'center',
@@ -403,8 +468,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    ...FontStylesWithFallback.h4,
     color: '#1A1A1A',
     marginBottom: 16,
   },
@@ -418,17 +482,16 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   categoryIcon: {
-    backgroundColor: '#FFF3E0',
+    backgroundColor: '#ebd7d7',
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
     marginBottom: 8,
   },
   categoryName: {
-    fontSize: 12,
+    ...FontStylesWithFallback.caption,
     color: '#1A1A1A',
     textAlign: 'center',
-    fontWeight: '500',
   },
   themeSection: {
     backgroundColor: '#FF6600',
@@ -436,13 +499,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   themeTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
+    ...FontStylesWithFallback.h2,
     color: '#FFFFFF',
     marginBottom: 8,
   },
   themeSubtitle: {
-    fontSize: 16,
+    ...FontStylesWithFallback.body,
     color: '#FFFFFF',
     textAlign: 'center',
   },

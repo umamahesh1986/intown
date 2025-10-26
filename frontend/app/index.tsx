@@ -2,6 +2,7 @@ import { View, Text, StyleSheet, Image } from 'react-native';
 import { useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../store/authStore';
+import { FontStylesWithFallback } from '../utils/fonts';
 
 export default function SplashScreen() {
   const router = useRouter();
@@ -58,7 +59,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   tagline: {
-    fontSize: 18,
+    ...FontStylesWithFallback.h5,
     color: '#FFFFFF',
     opacity: 0.9,
   },
