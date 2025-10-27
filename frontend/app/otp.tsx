@@ -23,6 +23,8 @@ export default function OTPScreen() {
   const [otp, setOtp] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  console.log('OTP Screen loaded with phone:', phone);
+
   const handleVerifyOTP = async () => {
     if (!otp || otp.length !== 4) {
       Alert.alert('Invalid OTP', 'Please enter the 4-digit OTP');
@@ -150,7 +152,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     color: '#1A1A1A',
     letterSpacing: 8,
-    outlineStyle: 'none',
   },
   hint: {
     fontSize: 14,

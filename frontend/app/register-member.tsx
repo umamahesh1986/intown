@@ -171,7 +171,7 @@ export default function RegisterMember() {
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color="#1A1A1A" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Member Registration</Text>
+          <Text style={styles.headerTitle}>Customer Registration</Text>
           <View style={styles.placeholder} />
         </View>
 
@@ -315,7 +315,7 @@ export default function RegisterMember() {
               {isLoading ? (
                 <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
-                <Text style={styles.registerButtonText}>Register Member</Text>
+                <Text style={styles.registerButtonText}>Register Customer</Text>
               )}
             </TouchableOpacity>
           </View>

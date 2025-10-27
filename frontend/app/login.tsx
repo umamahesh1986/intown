@@ -28,10 +28,19 @@ export default function LoginScreen() {
 
     setIsLoading(true);
     try {
+      console.log('Sending OTP to:', phone);
       const response = await sendOTP(phone);
+      console.log('OTP Response:', response);
+      
       if (response.success) {
-        Alert.alert('OTP Sent', 'Please check your phone for the OTP');
-        router.push({ pathname: '/otp', params: { phone } });
+        // Direct navigation for testing
+        console.log('Navigating to OTP screen with phone:', phone);
+        router.push(`/otp?phone=${phone}`);
+        
+        // Optional: Show alert after navigation
+        // Alert.alert('OTP Sent', 'Please check your phone for the OTP');
+      } else {
+        Alert.alert('Error', response.message || 'Failed to send OTP');
       }
     } catch (error) {
       console.error('Error sending OTP:', error);

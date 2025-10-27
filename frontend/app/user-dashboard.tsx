@@ -43,16 +43,28 @@ const DUMMY_NEARBY_SHOPS = [
   { id: '6', name: 'Tech Store', category: 'Electronics', distance: 2.0 },
 ];
 
+const DUMMY_CATEGORIES = [
+  { id: '1', name: 'Grocery', icon: 'storefront' },
+  { id: '2', name: 'Salon', icon: 'cut' },
+  { id: '3', name: 'Restaurant', icon: 'restaurant' },
+  { id: '4', name: 'Pharmacy', icon: 'medical' },
+  { id: '5', name: 'Fashion', icon: 'shirt' },
+  { id: '6', name: 'Electronics', icon: 'phone-portrait' },
+];
+
 export default function UserDashboard() {
   const router = useRouter();
   const { user, logout } = useAuthStore();
   const { location } = useLocationStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [plans, setPlans] = useState<Plan[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<Category[]>(DUMMY_CATEGORIES);
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
   const [monthlySpend, setMonthlySpend] = useState('10000');
   const [showDropdown, setShowDropdown] = useState(false);
+  const [activeTab, setActiveTab] = useState<'customer' | 'merchant'>('customer');
+  const [showSearchDropdown, setShowSearchDropdown] = useState(false);
+  const [filteredCategories, setFilteredCategories] = useState<Category[]>([]);
   
   // Animation for auto-scrolling shops
   const scrollX = useRef(new Animated.Value(0)).current;
@@ -88,10 +100,13 @@ export default function UserDashboard() {
         getPlans(),
         getCategories(),
       ]);
-      setPlans(plansData);
-      setCategories(categoriesData);
+      setPlans(plansData || []);
+      setCategories(categoriesData && categoriesData.length > 0 ? categoriesData : DUMMY_CATEGORIES);
     } catch (error) {
       console.error('Error loading data:', error);
+      // Use dummy data as fallback
+      setPlans([]);
+      setCategories(DUMMY_CATEGORIES);
     }
   };
 
@@ -108,6 +123,33 @@ export default function UserDashboard() {
     logout();
     setShowDropdown(false);
     router.replace('/login');
+  };
+
+  const handleSearchChange = (text: string) => {
+    setSearchQuery(text);
+    if (text.length > 0) {
+      const filtered = categories.filter(category =>
+        category.name.toLowerCase().includes(text.toLowerCase())
+      );
+      setFilteredCategories(filtered);
+      setShowSearchDropdown(true);
+    } else {
+      setShowSearchDropdown(false);
+      setFilteredCategories([]);
+    }
+  };
+
+  const handleSearchFocus = () => {
+    if (searchQuery.length > 0) {
+      setShowSearchDropdown(true);
+    }
+  };
+
+  const handleSearchBlur = () => {
+    // Delay hiding to allow for button clicks
+    setTimeout(() => {
+      setShowSearchDropdown(false);
+    }, 200);
   };
 
   return (
@@ -162,31 +204,72 @@ export default function UserDashboard() {
               style={styles.searchInput}
               placeholder="Search for Grocery, Salon, Fashion..."
               value={searchQuery}
-              onChangeText={setSearchQuery}
+              onChangeText={handleSearchChange}
+              onFocus={handleSearchFocus}
+              onBlur={handleSearchBlur}
               placeholderTextColor="#999999"
             />
           </View>
-          <Text style={styles.searchHint}>
-            Search and click "View" to register as Member or Merchant
-          </Text>
         </View>
+
+        {/* Search Dropdown */}
+        {showSearchDropdown && filteredCategories.length > 0 && (
+          <TouchableOpacity 
+            style={styles.searchDropdownContainer}
+            activeOpacity={1}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View style={styles.searchDropdown}>
+              {filteredCategories.map((category) => (
+                <TouchableOpacity
+                  key={category.id}
+                  style={styles.searchDropdownItem}
+                  onPress={() => setShowRegistrationModal(true)}
+                >
+                  <View style={styles.searchDropdownItemContent}>
+                    <View style={styles.searchDropdownItemLeft}>
+                      <Ionicons name={category.icon as any} size={20} color="#FF6600" />
+                      <Text style={styles.searchDropdownItemText}>{category.name}</Text>
+                    </View>
+                    <TouchableOpacity
+                      style={styles.viewButton}
+                      onPress={() => setShowRegistrationModal(true)}
+                    >
+                      <Text style={styles.viewButtonText}>View</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.viewButton}
+                      onPress={() => setShowRegistrationModal(true)}
+                    >
+                      <Text style={styles.viewButtonNavigate}>Navigate</Text>
+                    </TouchableOpacity>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </TouchableOpacity>
+        )}
 
         {/* Popular Categories */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Popular Categories</Text>
           <View style={styles.categoriesGrid}>
-            {categories.map((category) => (
-              <TouchableOpacity
-                key={category.id}
-                style={styles.categoryCard}
-                onPress={() => setShowRegistrationModal(true)}
-              >
-                <View style={styles.categoryIcon}>
-                  <Ionicons name={category.icon as any} size={32} color="#FF6600" />
-                  <Text style={styles.categoryName}>{category.name}</Text>
-                </View>
-              </TouchableOpacity>
-            ))}
+            {categories.length > 0 ? (
+              categories.map((category) => (
+                <TouchableOpacity
+                  key={category.id}
+                  style={styles.categoryCard}
+                  onPress={() => setShowRegistrationModal(true)}
+                >
+                  <View style={styles.categoryIcon}>
+                    <Ionicons name={category.icon as any} size={32} color="#FF6600" />
+                    <Text style={styles.categoryName}>{category.name}</Text>
+                  </View>
+                </TouchableOpacity>
+              ))
+            ) : (
+              <Text style={styles.noCategoriesText}>No categories available</Text>
+            )}
           </View>
         </View>
 
@@ -227,55 +310,115 @@ export default function UserDashboard() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Membership Plans</Text>
           
-          {/* IT Max Plan */}
-          <View style={styles.planCard}>
-            <Text style={styles.planName}>IT Max</Text>
-            <View style={styles.planPriceRow}>
-              <Text style={styles.planPrice}>₹999</Text>
-              <Text style={styles.planPeriod}>/Year</Text>
-            </View>
-            <Text style={styles.planDescription}>
-              Premium individual membership with exclusive benefits and unlimited access to all partner stores.
-            </Text>
+          {/* Tab Navigation */}
+          <View style={styles.tabContainer}>
             <TouchableOpacity
-              style={styles.purchaseButton}
-              onPress={() => router.push('/register-member')}
+              style={[styles.tab, activeTab === 'customer' && styles.activeTab]}
+              onPress={() => setActiveTab('customer')}
             >
-              <Text style={styles.purchaseButtonText}>Purchase Now</Text>
+              <Text style={[styles.tabText, activeTab === 'customer' && styles.activeTabText]}>
+                Customer
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.tab, activeTab === 'merchant' && styles.activeTab]}
+              onPress={() => setActiveTab('merchant')}
+            >
+              <Text style={[styles.tabText, activeTab === 'merchant' && styles.activeTabText]}>
+                Merchant
+              </Text>
             </TouchableOpacity>
           </View>
 
-          {/* IT Max Plus Plan */}
-          <View style={[styles.planCard, styles.popularPlan]}>
-            <View style={styles.popularBadge}>
-              <Text style={styles.popularBadgeText}>Most Popular</Text>
-            </View>
-            <Text style={styles.planName}>IT Max Plus</Text>
-            <View style={styles.planPriceRow}>
-              <Text style={styles.planPrice}>₹1499</Text>
-              <Text style={styles.planPeriod}>/Year</Text>
-            </View>
-            <Text style={styles.planDescription}>
-              Premium couple membership with exclusive benefits and unlimited access to all partner stores.
-            </Text>
-            <TouchableOpacity
-              style={[styles.purchaseButton, styles.purchaseButtonPrimary]}
-              onPress={() => router.push('/register-member')}
-            >
-              <Text style={styles.purchaseButtonText}>Purchase Now</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+          {/* Customer Tab Content */}
+          {activeTab === 'customer' && (
+            <View style={styles.tabContent}>
+              {/* IT Max Plan */}
+              <View style={styles.planCard}>
+                <Text style={styles.planName}>IT Max</Text>
+                <View style={styles.planPriceRow}>
+                  <Text style={styles.planPrice}>₹999</Text>
+                  <Text style={styles.planPeriod}>/Year</Text>
+                </View>
+                <Text style={styles.planDescription}>
+                  Premium individual membership with exclusive benefits and unlimited access to all partner stores.
+                </Text>
+                <TouchableOpacity
+                  style={styles.purchaseButton}
+                  onPress={() => router.push('/register-member')}
+                >
+                  <Text style={styles.purchaseButtonText}>Purchase Now</Text>
+                </TouchableOpacity>
+              </View>
 
-        {/* Register as Merchant */}
-        <View style={styles.section}>
-          <TouchableOpacity
-            style={styles.merchantButton}
-            onPress={() => router.push('/register-merchant')}
-          >
-            <Ionicons name="storefront" size={24} color="#FFFFFF" />
-            <Text style={styles.merchantButtonText}>Register as Merchant</Text>
-          </TouchableOpacity>
+              {/* IT Max Plus Plan */}
+              <View style={[styles.planCard, styles.popularPlan]}>
+                <View style={styles.popularBadge}>
+                  <Text style={styles.popularBadgeText}>Most Popular</Text>
+                </View>
+                <Text style={styles.planName}>IT Max Plus</Text>
+                <View style={styles.planPriceRow}>
+                  <Text style={styles.planPrice}>₹1499</Text>
+                  <Text style={styles.planPeriod}>/Year</Text>
+                </View>
+                <Text style={styles.planDescription}>
+                  Premium couple membership with exclusive benefits and unlimited access to all partner stores.
+                </Text>
+                <TouchableOpacity
+                  style={[styles.purchaseButton, styles.purchaseButtonPrimary]}
+                  onPress={() => router.push('/register-member')}
+                >
+                  <Text style={styles.purchaseButtonText}>Purchase Now</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+
+          {/* Merchant Tab Content */}
+          {activeTab === 'merchant' && (
+            <View style={styles.tabContent}>
+              <View style={styles.merchantContent}>
+                <Text style={styles.merchantTagline}>"Local. Trusted. Rewarding."</Text>
+                <Text style={styles.merchantDescription}>
+                  Grow your business with our merchant friendly platform that puts you in your control.
+                </Text>
+                
+                <View style={styles.featuresList}>
+                  <View style={styles.featureItem}>
+                    <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+                    <Text style={styles.featureText}>Zero Commissions</Text>
+                  </View>
+                  <View style={styles.featureItem}>
+                    <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+                    <Text style={styles.featureText}>No Joining Fee</Text>
+                  </View>
+                  <View style={styles.featureItem}>
+                    <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+                    <Text style={styles.featureText}>Boost Walk-ins</Text>
+                  </View>
+                  <View style={styles.featureItem}>
+                    <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+                    <Text style={styles.featureText}>Control Your Offers</Text>
+                  </View>
+                  <View style={styles.featureItem}>
+                    <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+                    <Text style={styles.featureText}>Free Promotion</Text>
+                  </View>
+                  <View style={styles.featureItem}>
+                    <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+                    <Text style={styles.featureText}>Customer Loyalty</Text>
+                  </View>
+                </View>
+
+                <TouchableOpacity
+                  style={styles.registerMerchantButton}
+                  onPress={() => router.push('/register-merchant')}
+                >
+                  <Text style={styles.registerMerchantButtonText}>Register as Merchant</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
         </View>
 
         {/* Nearby Shops Section */}
@@ -347,7 +490,7 @@ export default function UserDashboard() {
               }}
             >
               <Ionicons name="person" size={24} color="#FF6600" />
-              <Text style={styles.modalButtonText}>Register as Member</Text>
+              <Text style={styles.modalButtonText}>Register as Customer</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.modalButton}
@@ -470,6 +613,68 @@ const styles = StyleSheet.create({
     marginTop: 8,
     textAlign: 'center',
   },
+  searchDropdownContainer: {
+    position: 'relative',
+    zIndex: 1000,
+  },
+  searchDropdown: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    marginHorizontal: 16,
+    marginTop: 4,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+    maxHeight: 200,
+  },
+  searchDropdownItem: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#F5F5F5',
+  },
+  searchDropdownItemContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  searchDropdownItemLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  searchDropdownItemText: {
+    ...FontStylesWithFallback.body,
+    color: '#1A1A1A',
+    marginLeft: 12,
+    fontWeight: '500',
+  },
+  viewButton: {
+    backgroundColor: '#FF6600',
+    borderRadius: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    display: 'flex',
+    flexDirection: 'row',
+    marginRight: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  viewButtonText: {
+    ...FontStylesWithFallback.caption,
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  viewButtonNavigate: {
+    ...FontStylesWithFallback.caption,
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
   section: {
     padding: 16,
   },
@@ -477,6 +682,86 @@ const styles = StyleSheet.create({
     ...FontStylesWithFallback.h4,
     color: '#1A1A1A',
     marginBottom: 16,
+  },
+  tabContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#F5F5F5',
+    borderRadius: 8,
+    padding: 4,
+    marginBottom: 20,
+    gap: 10,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 6,
+    alignItems: 'center',
+    backgroundColor: '#e6e6e6',
+  },
+  activeTab: {
+    backgroundColor: '#FF6600',
+  },
+  tabText: {
+    ...FontStylesWithFallback.bodyMedium,
+    color: '#666666',
+    fontWeight: '500',
+  },
+  activeTabText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  tabContent: {
+    marginTop: 8,
+  },
+  merchantContent: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 20,
+    alignItems: 'center',
+  },
+  merchantTagline: {
+    ...FontStylesWithFallback.h3,
+    color: '#FF6600',
+    textAlign: 'center',
+    marginBottom: 12,
+    fontWeight: '700',
+  },
+  merchantDescription: {
+    ...FontStylesWithFallback.body,
+    color: '#666666',
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 24,
+  },
+  featuresList: {
+    width: '100%',
+    marginBottom: 24,
+  },
+  featureItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    paddingHorizontal: 8,
+  },
+  featureText: {
+    ...FontStylesWithFallback.body,
+    color: '#1A1A1A',
+    marginLeft: 12,
+    fontWeight: '500',
+  },
+  registerMerchantButton: {
+    backgroundColor: '#FF6600',
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    alignItems: 'center',
+    minWidth: 200,
+  },
+  registerMerchantButtonText: {
+    ...FontStylesWithFallback.buttonLarge,
+    color: '#FFFFFF',
+    fontWeight: '600',
   },
   categoriesGrid: {
     flexDirection: 'row',
@@ -501,6 +786,12 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontWeight: '600',
     fontSize: 16,
+  },
+  noCategoriesText: {
+    ...FontStylesWithFallback.body,
+    color: '#666666',
+    textAlign: 'center',
+    padding: 20,
   },
   themeSection: {
     backgroundColor: '#e6e6e6',
@@ -546,6 +837,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     paddingHorizontal: 8,
     minWidth: 100,
+    maxWidth: 110,
     textAlign: 'right',
   },
   calculatorValue: {
@@ -611,7 +903,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   purchaseButton: {
-    backgroundColor: '#EEEEEE',
+    backgroundColor: '#f2b949',
     borderRadius: 8,
     paddingVertical: 14,
     alignItems: 'center',
