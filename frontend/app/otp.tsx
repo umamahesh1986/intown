@@ -76,7 +76,7 @@ export default function OTPScreen() {
         <View style={styles.form}>
           <TextInput
             style={styles.input}
-            placeholder="Enter 4-digit OTP"
+            placeholder="----"
             keyboardType="number-pad"
             value={otp}
             onChangeText={setOtp}
