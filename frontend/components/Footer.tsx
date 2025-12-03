@@ -22,9 +22,175 @@ const SOCIAL_LINKS = {
   youtube: 'https://youtube.com/@intownprivilege?si=dpk7wf9bffUWmFFA',
 };
 
-const LEGAL_LINKS = {
-  terms: 'https://docs.google.com/document/d/1jQllU196uZcFhAj92OuXSOrobSGXg-oyaof5k2HB3nw/preview',
-  privacy: 'https://YOUR_WEBSITE.com/privacy'
+// --- LEGAL CONTENT HTML ---
+const LEGAL_CONTENT = {
+  terms: `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; padding: 20px; line-height: 1.6; color: #333; }
+        h1 { color: #FF6600; font-size: 24px; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 20px; }
+        h2 { color: #1A1A1A; font-size: 18px; margin-top: 25px; margin-bottom: 10px; font-weight: bold; }
+        p { margin-bottom: 12px; font-size: 14px; }
+        ul { margin-bottom: 15px; padding-left: 20px; }
+        li { margin-bottom: 5px; font-size: 14px; }
+        strong { color: #000; }
+        .contact-box { background-color: #f9f9f9; padding: 15px; border-radius: 8px; border: 1px solid #eee; }
+      </style>
+    </head>
+    <body>
+      <p><strong>Effective Date:</strong> November 03, 2025</p>
+      
+      <p>Welcome to INtown. By accessing, browsing, or using our website, mobile application, or services, you acknowledge that you have read, understood, and agreed to be bound by these Terms of Use ("Terms"). If you do not agree, please discontinue use of our services immediately.</p>
+      
+      <h2>1. Definitions</h2>
+      <p><strong>"Platform"</strong> refers to the INtown website, mobile application, and related services.</p>
+      <p><strong>"User"</strong> refers to any individual who accesses or uses the Platform.</p>
+      <p><strong>"Merchant"</strong> refers to local offline stores offering discounts or deals through INtown.</p>
+      <p><strong>"Services"</strong> refers to the benefits, privileges, discount offers, and related digital features provided by INtown.</p>
+      
+      <h2>2. Eligibility</h2>
+      <p>Users must be at least 18 years old and capable of entering into legally binding contracts under applicable law. By using the Platform, you confirm your eligibility.</p>
+      
+      <h2>3. Account Registration</h2>
+      <p>Users may be required to register an account using a valid mobile number and OTP verification. You are responsible for maintaining account confidentiality and all activities under your account.</p>
+      
+      <h2>4. Service Description</h2>
+      <p>INtown facilitates access to merchant-provided discounts and privileges at partnered offline stores. INtown acts solely as an aggregator and technology facilitator. All products, services, pricing, and offers are owned, controlled, and fulfilled by the respective merchants.</p>
+      <p>INtown does not guarantee availability, service levels, or specific discount values at any time.</p>
+      
+      <h2>5. Use of the Platform</h2>
+      <p>You agree not to:</p>
+      <ul>
+        <li>Misuse, hack, or breach the Platform’s security.</li>
+        <li>Create fraudulent accounts.</li>
+        <li>Misrepresent information to merchants or INtown.</li>
+        <li>Exploit offers in bad faith.</li>
+      </ul>
+      <p>INtown reserves the right to suspend or terminate accounts for misuse.</p>
+      
+      <h2>6. Merchant Offers & Pricing</h2>
+      <p>All offers, discounts, and prices are solely determined by the merchant and may change without prior notice. INtown does not set, influence, or regulate merchant pricing.</p>
+      <p>In case of disputes, users must first attempt resolution with the concerned merchant.</p>
+      
+      <h2>7. Payments</h2>
+      <p>Some services may require subscription payment. Fees once paid are non-refundable unless otherwise stated. Payments within stores are processed via UPI or other supported methods.</p>
+      
+      <h2>8. User Obligations</h2>
+      <p>Users must:</p>
+      <ul>
+        <li>Follow store policies.</li>
+        <li>Provide accurate information.</li>
+        <li>Respect merchant staff and premises.</li>
+      </ul>
+      <p>Abusive behaviour may result in permanent account and card cancellation.</p>
+      
+      <h2>9. Limitation of Liability</h2>
+      <p>To the maximum extent permitted under applicable law, INtown shall not be liable for:</p>
+      <ul>
+        <li>Product/service defects</li>
+        <li>Merchant behaviour or service quality</li>
+        <li>Unavailability of offers or stores</li>
+        <li>Financial losses, indirect damages, or reputational harm</li>
+      </ul>
+      <p>INtown’s total liability for any claim shall not exceed the subscription amount paid in the preceding 12 months.</p>
+      
+      <h2>10. Merchant Responsibility</h2>
+      <p>Merchants are solely responsible for:</p>
+      <ul>
+        <li>Product quality</li>
+        <li>Service standards</li>
+        <li>Pricing and discounts provided</li>
+      </ul>
+      <p>Disputes should be addressed directly with the respective merchant first.</p>
+      
+      <h2>11. Intellectual Property</h2>
+      <p>All content, logos, branding, designs, and software are the exclusive property of INtown. Reproduction without permission is prohibited.</p>
+      
+      <h2>12. Privacy Policy</h2>
+      <p>By using the Platform, you consent to collection and usage of information as outlined in our Privacy Policy. INtown does not share personal information with unauthorized third parties.</p>
+      
+      <h2>13. Suspension & Termination</h2>
+      <p>INtown reserves the right to suspend or terminate accounts due to:</p>
+      <ul>
+        <li>Misuse</li>
+        <li>Fraudulent activity</li>
+        <li>Terms violation</li>
+        <li>Legal requests from authorities</li>
+      </ul>
+      
+      <h2>14. Refunds & Cancellations</h2>
+      <p>Purchases of INtown Access and subscriptions are final and non-refundable, except where required under applicable consumer protection laws or in cases of proven technical failures directly attributable to INtown.</p>
+      
+      <h2>15. Third‑Party Links</h2>
+      <p>The Platform may contain external links. INtown is not responsible for content, policies, or services on third‑party websites.</p>
+      
+      <h2>16. Modification of Terms</h2>
+      <p>INtown may update Terms at any time without prior notice. Continued use implies acceptance of modifications.</p>
+      
+      <h2>17. Disclaimers</h2>
+      <p>Services are provided on an "AS IS" and "AS AVAILABLE" basis. INtown does not guarantee:</p>
+      <ul>
+        <li>Continuous Platform availability</li>
+        <li>Offer accuracy or merchant participation</li>
+        <li>Absence of technical interruptions</li>
+      </ul>
+      <p>Users acknowledge that merchant participation may vary based on independent business decisions.</p>
+      
+      <h2>18. Indemnification</h2>
+      <p>Users agree to indemnify and hold INtown harmless from claims, damages, legal disputes, and expenses arising from misuse or violation of these Terms.</p>
+      
+      <h2>19. Governing Law & Jurisdiction</h2>
+      <p>These Terms are governed by the laws of India. Any legal disputes shall be subject exclusively to the courts of Hyderabad, Telangana.</p>
+      
+      <h2>20. Contact Information</h2>
+      <div class="contact-box">
+        <p>For support, queries, or complaints:</p>
+        <p><strong>Email:</strong> support@intownlocal.com<br>
+        <strong>Phone:</strong> +91-9052263555<br>
+        <strong>Address:</strong> Hyderabad, Telangana, India</p>
+      </div>
+      <br/><br/>
+    </body>
+    </html>
+  `,
+  // NOTE: You did not provide the full text for Privacy Policy, so this is a placeholder. 
+  // Please replace this string with your specific Privacy Policy text when ready.
+  privacy: `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; padding: 20px; line-height: 1.6; color: #333; }
+        h1 { color: #FF6600; font-size: 24px; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 20px; }
+        h2 { color: #1A1A1A; font-size: 18px; margin-top: 25px; margin-bottom: 10px; font-weight: bold; }
+        p { margin-bottom: 12px; font-size: 14px; }
+      </style>
+    </head>
+    <body>
+      <p><strong>Last Updated:</strong> November 2025</p>
+      
+      <p>Welcome to INtown's Privacy Policy. We are committed to protecting your personal information and your right to privacy.</p>
+
+      <h2>1. Information We Collect</h2>
+      <p>We collect personal information that you voluntarily provide to us when you register on the Platform, express an interest in obtaining information about us or our products and Services, when you participate in activities on the Platform or otherwise when you contact us.</p>
+      
+      <h2>2. How We Use Your Information</h2>
+      <p>We use personal information collected via our Platform for a variety of business purposes described below. We process your personal information for these purposes in reliance on our legitimate business interests, in order to enter into or perform a contract with you, with your consent, and/or for compliance with our legal obligations.</p>
+      
+      <h2>3. Contact Us</h2>
+       <div class="contact-box">
+        <p>For support, queries, or complaints:</p>
+        <p><strong>Email:</strong> support@intownlocal.com<br>
+        <strong>Phone:</strong> +91-9052263555<br>
+        <strong>Address:</strong> Hyderabad, Telangana, India</p>
+      </div>
+    </body>
+    </html>
+  `
 };
 
 const openExternalURL = async (url: string) => {
@@ -37,36 +203,17 @@ const openExternalURL = async (url: string) => {
   }
 };
 
-// --- MAGIC SCRIPT ---
-const INJECTED_JAVASCRIPT = `
-  const meta = document.createElement('meta');
-  meta.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
-  meta.setAttribute('name', 'viewport');
-  document.getElementsByTagName('head')[0].appendChild(meta);
-
-  const style = document.createElement('style');
-  style.innerHTML = \`
-    .fp-h { display: none !important; }
-    .hp-h { display: none !important; }
-    .docs-ml-header-item { display: none !important; }
-    #docs-header { display: none !important; }
-    .ndfHFb-c4YZDc-Wrql6b { display: none !important; }
-  \`;
-  document.head.appendChild(style);
-  true;
-`;
-
 export default function Footer() {
   const iconSize = 18;
   const { width: screenWidth } = useWindowDimensions();
   const isLargeScreen = Platform.OS === 'web' || screenWidth > 768;
 
   const [modalVisible, setModalVisible] = useState(false);
-  const [currentUrl, setCurrentUrl] = useState('');
+  const [currentHtml, setCurrentHtml] = useState('');
   const [modalTitle, setModalTitle] = useState('');
 
-  const openInApp = (url: string, title: string) => {
-    setCurrentUrl(url);
+  const openInApp = (htmlContent: string, title: string) => {
+    setCurrentHtml(htmlContent);
     setModalTitle(title);
     setModalVisible(true);
   };
@@ -99,11 +246,11 @@ export default function Footer() {
 
       {/* --- Legal Links --- */}
       <View style={styles.linksContainer}>
-        <TouchableOpacity onPress={() => openInApp(LEGAL_LINKS.terms, 'Terms of Use')}>
+        <TouchableOpacity onPress={() => openInApp(LEGAL_CONTENT.terms, 'Terms of Use')}>
           <Text style={styles.linkText}>Terms of Use</Text>
         </TouchableOpacity>
         <Text style={styles.separator}>|</Text>
-        <TouchableOpacity onPress={() => openInApp(LEGAL_LINKS.privacy, 'Privacy Policy')}>
+        <TouchableOpacity onPress={() => openInApp(LEGAL_CONTENT.privacy, 'Privacy Policy')}>
           <Text style={styles.linkText}>Privacy Policy</Text>
         </TouchableOpacity>
       </View>
@@ -125,8 +272,8 @@ export default function Footer() {
             style={[
               styles.modalContainer,
               { 
-                width: isLargeScreen ? '80%' : '90%', 
-                height: isLargeScreen ? '80%' : '80%' 
+                width: isLargeScreen ? '95%' : '90%', 
+                height: isLargeScreen ? '95%' : '80%' 
               }
             ]}
             onPress={(e) => {
@@ -136,14 +283,10 @@ export default function Footer() {
             
             {/* Header */}
             <View style={styles.modalHeader}>
-              {/* Left spacer to balance layout */}
               <View style={{ width: 30 }} /> 
-              
-              {/* Show Title ONLY if NOT Android */}
               {Platform.OS === 'android' ? null : (
                 <Text style={styles.modalTitle}>{modalTitle}</Text>
               )}
-              
               <TouchableOpacity onPress={() => setModalVisible(false)} style={styles.closeButton}>
                 <Ionicons name="close" size={24} color="#333" />
               </TouchableOpacity>
@@ -153,21 +296,20 @@ export default function Footer() {
             <View style={styles.contentContainer}>
               {Platform.OS === 'web' ? (
                   <iframe 
-                    src={currentUrl} 
+                    srcDoc={currentHtml} 
                     style={{ width: '100%', height: '100%', border: 'none' }}
                     title="Legal Document"
                   />
               ) : (
                   <WebView 
-                    source={{ uri: currentUrl }} 
+                    source={{ html: currentHtml }} 
                     style={{ flex: 1, backgroundColor: 'white' }}
                     nestedScrollEnabled={true} 
                     startInLoadingState={true}
                     javaScriptEnabled={true}
                     domStorageEnabled={true}
                     scalesPageToFit={Platform.OS === 'ios'}
-                    injectedJavaScript={INJECTED_JAVASCRIPT}
-                    onMessage={() => {}} 
+                    originWhitelist={['*']}
                   />
               )}
             </View>
