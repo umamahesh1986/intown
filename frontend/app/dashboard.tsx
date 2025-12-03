@@ -16,6 +16,7 @@ import { useAuthStore } from '../store/authStore';
 import { useLocationStore } from '../store/locationStore';
 import { getPlans, getCategories, getShops } from '../utils/api';
 import { FontStylesWithFallback } from '../utils/fonts';
+import Footer from '@/components/Footer';
 
 interface Plan {
   id: string;
@@ -185,6 +186,7 @@ export default function DashboardScreen() {
         </TouchableOpacity>
 
         <View style={styles.bottomSpacer} />
+        <Footer />
       </ScrollView>
     </SafeAreaView>
   );

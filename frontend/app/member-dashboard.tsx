@@ -9,6 +9,9 @@ import {
   Dimensions,
   Alert,
   Image,
+  Pressable, // 1. ADDED
+  Platform,  // 2. ADDED
+  Easing,    // 3. ADDED
 } from 'react-native';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'expo-router';
@@ -18,6 +21,7 @@ import { useAuthStore } from '../store/authStore';
 import { getCategories } from '../utils/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { FontStylesWithFallback } from '../utils/fonts';
+import Footer from '../components/Footer';
 
 const { width } = Dimensions.get('window');
 
@@ -36,6 +40,77 @@ interface Category {
   icon: string;
 }
 
+// --- SMART SHOP CARD COMPONENT (Matches User Dashboard) ---
+const ShopCard = ({ 
+  shop, 
+  onPress, 
+  onInteractionChange 
+}: { 
+  shop: any, 
+  onPress: () => void,
+  onInteractionChange: (isInteracting: boolean) => void 
+}) => {
+  const scaleValue = useRef(new Animated.Value(1)).current;
+  const [zIndex, setZIndex] = useState(0); 
+
+  const animateScale = (toValue: number) => {
+    Animated.timing(scaleValue, {
+      toValue: toValue,
+      duration: 300, 
+      useNativeDriver: Platform.OS !== 'web',
+      easing: Easing.out(Easing.ease), 
+    }).start();
+  };
+
+  const handleIn = () => {
+    setZIndex(100); // Bring to front
+    onInteractionChange(true);
+    animateScale(1.1); // Scale to 1.1
+  };
+
+  const handleOut = () => {
+    onInteractionChange(false);
+    animateScale(1);
+    setTimeout(() => setZIndex(0), 300);
+  };
+
+  return (
+    <Pressable
+      onPress={onPress}
+      onPressIn={handleIn}
+      onPressOut={handleOut}
+      onHoverIn={handleIn}
+      onHoverOut={handleOut}
+      style={{ zIndex: zIndex }} 
+    >
+      <Animated.View 
+        style={[
+          styles.shopCard, 
+          { transform: [{ scale: scaleValue }] }
+        ]}
+      >
+        <View style={styles.shopImagePlaceholder}>
+          <Ionicons name="storefront" size={40} color="#FF6600" />
+        </View>
+        <Text style={styles.shopCardName} numberOfLines={1}>
+          {shop.name}
+        </Text>
+        <Text style={styles.shopCardCategory}>{shop.category}</Text>
+        <View style={styles.shopCardFooter}>
+          <View style={styles.ratingContainer}>
+            <Ionicons name="star" size={14} color="#FFA500" />
+            <Text style={styles.ratingText}>{shop.rating}</Text>
+          </View>
+          <View style={styles.distanceContainer}>
+            <Ionicons name="location" size={14} color="#666666" />
+            <Text style={styles.distanceText}>{shop.distance} km</Text>
+          </View>
+        </View>
+      </Animated.View>
+    </Pressable>
+  );
+};
+
 export default function MemberDashboard() {
   const router = useRouter();
   const { user, logout } = useAuthStore();
@@ -44,14 +119,20 @@ export default function MemberDashboard() {
   const [monthlySpend, setMonthlySpend] = useState('10000');
   const [showDropdown, setShowDropdown] = useState(false);
 
-  // Auto-scroll animation
+  // --- ADVANCED SCROLL STATE ---
   const scrollX = useRef(new Animated.Value(0)).current;
+  const scrollAnimation = useRef<Animated.CompositeAnimation | null>(null);
+  const isHovering = useRef(false);
+  
   const CARD_WIDTH = 172;
   const TOTAL_WIDTH = DUMMY_NEARBY_SHOPS.length * CARD_WIDTH;
 
   useEffect(() => {
     loadCategories();
-    startAutoScroll();
+    startScrolling(0); // Start the advanced scroll
+    return () => {
+      scrollAnimation.current?.stop();
+    };
   }, []);
 
   const loadCategories = async () => {
@@ -63,15 +144,44 @@ export default function MemberDashboard() {
     }
   };
 
-  const startAutoScroll = () => {
-    const animationDuration = TOTAL_WIDTH * 50;
-    Animated.loop(
-      Animated.timing(scrollX, {
-        toValue: -TOTAL_WIDTH,
-        duration: animationDuration,
-        useNativeDriver: true,
-      })
-    ).start();
+  // --- PAUSABLE SCROLL LOGIC ---
+  const startScrolling = (startValue: number) => {
+    if (isHovering.current) return;
+
+    if (startValue <= -TOTAL_WIDTH) {
+      startValue = 0;
+      scrollX.setValue(0);
+    }
+
+    const BASE_DURATION = 10000; // 10 seconds for full loop
+    const remainingDistance = TOTAL_WIDTH + startValue;
+    const duration = (remainingDistance / TOTAL_WIDTH) * BASE_DURATION;
+
+    const animation = Animated.timing(scrollX, {
+      toValue: -TOTAL_WIDTH,
+      duration: duration,
+      easing: Easing.linear,
+      useNativeDriver: true,
+    });
+
+    scrollAnimation.current = animation;
+
+    animation.start(({ finished }) => {
+      if (finished) {
+        startScrolling(0);
+      }
+    });
+  };
+
+  const handleInteractionChange = (interacting: boolean) => {
+    isHovering.current = interacting;
+    if (interacting) {
+      scrollAnimation.current?.stop();
+    } else {
+      scrollX.stopAnimation((currentValue) => {
+        startScrolling(currentValue);
+      });
+    }
   };
 
   const calculateSavings = () => {
@@ -84,35 +194,16 @@ export default function MemberDashboard() {
   const { monthlySavings, annualSavings } = calculateSavings();
 
   const handleLogout = async () => {
-    // Close dropdown first
     setShowDropdown(false);
-    
     try {
-      console.log('🔴 LOGOUT STEP 1: Clearing AsyncStorage...');
       await AsyncStorage.clear();
-      console.log('🔴 LOGOUT STEP 2: AsyncStorage cleared');
-      
-      console.log('🔴 LOGOUT STEP 3: Calling store logout...');
       await logout();
-      console.log('🔴 LOGOUT STEP 4: Store logout complete');
-      
-      // Wait a bit for state to update
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      console.log('🔴 LOGOUT STEP 5: Navigating to splash...');
-      // Navigate to splash screen first to reset everything
       router.replace('/');
-      console.log('🔴 LOGOUT STEP 6: Navigation to splash complete');
-      
-      // Then immediately to login
       setTimeout(() => {
-        console.log('🔴 LOGOUT STEP 7: Redirecting to login...');
         router.replace('/login');
       }, 500);
-      
     } catch (error) {
       console.error('🔴 LOGOUT ERROR:', error);
-      // Force navigation on error
       router.replace('/login');
     }
   };
@@ -125,17 +216,25 @@ export default function MemberDashboard() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <TouchableOpacity 
+        style={styles.container} 
+        activeOpacity={1} 
+        onPress={() => setShowDropdown(false)}
+      >
+        <ScrollView showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
-          <Image 
-            source={require('../assets/images/intown-logo.jpg')} 
+          <Image
+            source={require('../assets/images/intown-logo.jpg')}
             style={styles.logo}
             resizeMode="contain"
           />
           <TouchableOpacity
             style={styles.profileButton}
-            onPress={() => setShowDropdown(!showDropdown)}
+            onPress={(e) => {
+              e.stopPropagation();
+              setShowDropdown(!showDropdown);
+            }}
           >
             <View style={styles.profileInfo}>
               <Text style={styles.userName}>{user?.name}</Text>
@@ -143,26 +242,22 @@ export default function MemberDashboard() {
                 <Text style={styles.memberBadgeText}>Member</Text>
               </View>
             </View>
-            <Ionicons name="person" size={20} color="#ffffff" />
+            <Ionicons name="person" size={20} color="#ffffff" style={styles.profileIconButton} />
           </TouchableOpacity>
         </View>
 
         {/* Dropdown Menu */}
         {showDropdown && (
-          <View style={styles.dropdown}>
-            <TouchableOpacity style={styles.dropdownItem} onPress={() => {setShowDropdown(false);}}>
-              <Ionicons name="person-outline" size={20} color="#666666" />
-              <Text style={styles.dropdownText}>Account Details</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.dropdownItem} onPress={() => {setShowDropdown(false);}}>
-              <Ionicons name="card-outline" size={20} color="#666666" />
-              <Text style={styles.dropdownText}>Membership Plan</Text>
-            </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.dropdownMenu}
+            onPress={(e) => e.stopPropagation()}
+            activeOpacity={1}
+          >
             <TouchableOpacity style={styles.dropdownItem} onPress={handleLogout}>
               <Ionicons name="log-out-outline" size={20} color="#FF0000" />
-              <Text style={[styles.dropdownText, {color: '#FF0000'}]}>Logout</Text>
+              <Text style={[styles.dropdownText, { color: '#FF0000' }]}>Logout</Text>
             </TouchableOpacity>
-          </View>
+          </TouchableOpacity>
         )}
 
         {/* Search Box */}
@@ -235,6 +330,7 @@ export default function MemberDashboard() {
         {/* Nearby Shops Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Nearby Shops</Text>
+          {/* --- UPDATE: Visible overflow for scaling --- */}
           <View style={styles.autoScrollContainer}>
             <Animated.View
               style={[
@@ -242,48 +338,23 @@ export default function MemberDashboard() {
                 { transform: [{ translateX: scrollX }] },
               ]}
             >
+              {/* --- UPDATE: Using ShopCard --- */}
               {[...DUMMY_NEARBY_SHOPS, ...DUMMY_NEARBY_SHOPS].map((shop, index) => (
-                <TouchableOpacity
+                <ShopCard
                   key={`${shop.id}-${index}`}
-                  style={styles.shopCard}
+                  shop={shop}
+                  onInteractionChange={handleInteractionChange}
                   onPress={() => router.push({ pathname: '/member-shop-details', params: { shopId: shop.id } })}
-                >
-                  <View style={styles.shopImagePlaceholder}>
-                    <Ionicons name="storefront" size={40} color="#FF6600" />
-                  </View>
-                  <Text style={styles.shopCardName} numberOfLines={1}>
-                    {shop.name}
-                  </Text>
-                  <Text style={styles.shopCardCategory}>{shop.category}</Text>
-                  <View style={styles.shopCardFooter}>
-                    <View style={styles.ratingContainer}>
-                      <Ionicons name="star" size={14} color="#FFA500" />
-                      <Text style={styles.ratingText}>{shop.rating}</Text>
-                    </View>
-                    <View style={styles.distanceContainer}>
-                      <Ionicons name="location" size={14} color="#666666" />
-                      <Text style={styles.distanceText}>{shop.distance} km</Text>
-                    </View>
-                  </View>
-                </TouchableOpacity>
+                />
               ))}
             </Animated.View>
           </View>
         </View>
 
-        {/* Footer */}
-        <View style={styles.footer}>
-          <Text style={styles.footerTagline}>
-            Shop Local, Save Instantly! Connecting Communities Through Personal Bond.
-          </Text>
-          <Text style={styles.footerDescription}>
-            India's most trusted local savings network, helping customers save instantly while enabling small businesses to thrive.
-          </Text>
-          <Text style={styles.footerCopyright}>
-            Copyright © 2025, Yagnavihar Lifestyle Pvt. Ltd.
-          </Text>
-        </View>
-      </ScrollView>
+        <Footer />
+
+        </ScrollView>
+      </TouchableOpacity>
     </SafeAreaView>
   );
 }
@@ -293,15 +364,16 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#EEEEEE' },
   logo: { width: 140, height: 50 },
   profileButton: { flexDirection: 'row', alignItems: 'center' },
+  profileIconButton: { borderWidth: 2, borderColor: '#fff', padding: 4, borderRadius: 30 },
   profileInfo: { alignItems: 'flex-end', marginRight: 8 },
   userName: { fontSize: 14, fontWeight: '600', color: '#1A1A1A' },
   memberBadge: { backgroundColor: '#4CAF50', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4, marginTop: 2 },
   memberBadgeText: { fontSize: 10, color: '#FFFFFF', fontWeight: '600' },
-  dropdown: { backgroundColor: '#FFFFFF', marginHorizontal: 16, marginTop: 8, borderRadius: 8, borderWidth: 1, borderColor: '#EEEEEE', overflow: 'hidden' },
-  dropdownItem: { flexDirection: 'row', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: '#F5F5F5' },
-  dropdownText: { fontSize: 14, color: '#666666', marginLeft: 12 },
+  dropdownMenu: { position: 'absolute', top: 70, right: 16, backgroundColor: '#FFFFFF', borderRadius: 8, paddingVertical: 8, paddingHorizontal: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 3.84, elevation: 5, zIndex: 1000, minWidth: 120 },
+  dropdownItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, paddingHorizontal: 12 },
+  dropdownText: { ...FontStylesWithFallback.body, marginLeft: 12, fontWeight: '500' },
   searchContainer: { padding: 16, backgroundColor: '#FFFFFF' },
-  searchBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F5F5F5', borderRadius: 12, paddingHorizontal: 16, height: 56 },
+  searchBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F5F5FA', borderRadius: 12, paddingHorizontal: 16, height: 56 },
   searchIcon: { marginRight: 12 },
   searchInput: { flex: 1, fontSize: 16, color: '#1A1A1A' },
   section: { padding: 16 },
@@ -319,9 +391,27 @@ const styles = StyleSheet.create({
   calculatorInput: { fontSize: 18, fontWeight: '600', color: '#FF6600', borderBottomWidth: 1, borderBottomColor: '#FF6600', paddingVertical: 4, paddingHorizontal: 8, minWidth: 100, textAlign: 'right' },
   calculatorValue: { fontSize: 18, fontWeight: '600', color: '#4CAF50' },
   calculatorValueLarge: { fontSize: 24, fontWeight: 'bold', color: '#4CAF50' },
-  autoScrollContainer: { overflow: 'hidden' },
+  
+  // --- UPDATED FOR SCALING ---
+  autoScrollContainer: { 
+    overflow: 'visible',
+    paddingVertical: 40, // Added padding for scale
+  },
   autoScrollContent: { flexDirection: 'row' },
-  shopCard: { width: 160, backgroundColor: '#FFFFFF', borderRadius: 12, padding: 12, marginRight: 12, borderWidth: 1, borderColor: '#EEEEEE' },
+  shopCard: { 
+    width: 160, 
+    backgroundColor: '#FFFFFF', 
+    borderRadius: 12, 
+    padding: 12, 
+    marginRight: 12, 
+    borderWidth: 1, 
+    borderColor: '#EEEEEE',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
   shopImagePlaceholder: { width: '100%', height: 100, backgroundColor: '#FFF3E0', borderRadius: 8, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
   shopCardName: { fontSize: 14, fontWeight: '600', color: '#1A1A1A', marginBottom: 4 },
   shopCardCategory: { fontSize: 12, color: '#666666', marginBottom: 6 },
@@ -330,8 +420,4 @@ const styles = StyleSheet.create({
   ratingText: { fontSize: 12, color: '#666666', marginLeft: 4, fontWeight: '600' },
   distanceContainer: { flexDirection: 'row', alignItems: 'center' },
   distanceText: { fontSize: 12, color: '#666666', marginLeft: 4 },
-  footer: { backgroundColor: '#1A1A1A', padding: 24, alignItems: 'center' },
-  footerTagline: { fontSize: 18, fontWeight: 'bold', color: '#FF6600', textAlign: 'center', marginBottom: 16 },
-  footerDescription: { fontSize: 14, color: '#CCCCCC', textAlign: 'center', lineHeight: 22, marginBottom: 16 },
-  footerCopyright: { fontSize: 12, color: '#999999', textAlign: 'center' },
 });

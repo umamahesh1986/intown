@@ -2,9 +2,12 @@
 
 # dependencies
 node_modules/
+.metro-cache/
 
 # Expo
 .expo/
+.metro/
+.metro-cache/
 dist/
 web-build/
 expo-env.d.ts
