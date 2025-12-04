@@ -168,3 +168,4 @@ Look for font loading errors in the Metro bundler console.
 4. **Try alternative solutions** if fonts still don't load
 
 The updated configuration should resolve the Inter font loading issues. If problems persist, the fallback system fonts will ensure the app remains functional while we troubleshoot further.
+

@@ -8,7 +8,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { verifyOTP } from '../utils/api';
@@ -20,20 +20,22 @@ export default function OTPScreen() {
   const params = useLocalSearchParams();
   const phone = params.phone as string;
   const { setUser, setToken } = useAuthStore();
-  const [otp, setOtp] = useState('');
+  const [otp, setOtp] = useState(['', '', '', '']);
   const [isLoading, setIsLoading] = useState(false);
+  const inputRefs = useRef<(TextInput | null)[]>([]);
 
   console.log('OTP Screen loaded with phone:', phone);
 
   const handleVerifyOTP = async () => {
-    if (!otp || otp.length !== 4) {
+    const otpString = otp.join('');
+    if (!otpString || otpString.length !== 4) {
       Alert.alert('Invalid OTP', 'Please enter the 4-digit OTP');
       return;
     }
 
     setIsLoading(true);
     try {
-      const response = await verifyOTP(phone, otp);
+      const response = await verifyOTP(phone, otpString);
       if (response.success) {
         // Save user data and token
         setUser(response.user);
@@ -51,6 +53,35 @@ export default function OTPScreen() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleOtpChange = (value: string, index: number) => {
+    const newOtp = [...otp];
+    newOtp[index] = value;
+    setOtp(newOtp);
+
+    // Auto-focus next input
+    if (value && index < 3) {
+      inputRefs.current[index + 1]?.focus();
+    }
+
+    // Auto-submit when all 4 digits are entered
+    if (newOtp.every(digit => digit !== '') && newOtp.join('').length === 4) {
+      setTimeout(() => {
+        handleVerifyOTP();
+      }, 100);
+    }
+  };
+
+  const handleKeyPress = (key: string, index: number) => {
+    if (key === 'Backspace' && !otp[index] && index > 0) {
+      inputRefs.current[index - 1]?.focus();
+    }
+  };
+
+  const clearOtp = () => {
+    setOtp(['', '', '', '']);
+    inputRefs.current[0]?.focus();
   };
 
   return (
@@ -74,17 +105,26 @@ export default function OTPScreen() {
         </View>
 
         <View style={styles.form}>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter 4-digit OTP"
-            keyboardType="number-pad"
-            value={otp}
-            onChangeText={setOtp}
-            maxLength={4}
-            placeholderTextColor="#999999"
-            textAlign="center"
-            autoFocus
-          />
+          <View style={styles.otpContainer}>
+            {otp.map((digit, index) => (
+              <TextInput
+                key={index}
+                ref={(ref) => {
+                  inputRefs.current[index] = ref;
+                }}
+                style={styles.otpInput}
+                placeholder="0"
+                keyboardType="number-pad"
+                value={digit}
+                onChangeText={(value) => handleOtpChange(value, index)}
+                onKeyPress={({ nativeEvent }) => handleKeyPress(nativeEvent.key, index)}
+                maxLength={1}
+                placeholderTextColor="#999999"
+                textAlign="center"
+                autoFocus={index === 0}
+              />
+            ))}
+          </View>
 
           <Text style={styles.hint}>
             For testing, use OTP: 1234
@@ -141,17 +181,24 @@ const styles = StyleSheet.create({
   form: {
     width: '100%',
   },
-  input: {
-    height: 64,
-    fontSize: 32,
+  otpContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 10,
+    marginBottom: 16,
+    paddingHorizontal: 20,
+  },
+  otpInput: {
+    width: 60,
+    height: 60,
+    fontSize: 24,
     fontWeight: 'bold',
     borderWidth: 2,
     borderColor: '#FF6600',
     borderRadius: 8,
-    paddingHorizontal: 16,
-    marginBottom: 16,
+    textAlign: 'center',
     color: '#1A1A1A',
-    letterSpacing: 8,
+    backgroundColor: '#FFFFFF',
   },
   hint: {
     fontSize: 14,
