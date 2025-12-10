@@ -37,7 +37,6 @@ const LEGAL_CONTENT = {
         ul { margin-bottom: 15px; padding-left: 20px; }
         li { margin-bottom: 5px; font-size: 14px; }
         strong { color: #000; }
-        .contact-box { background-color: #f9f9f9; padding: 15px; border-radius: 8px; border: 1px solid #eee; }
       </style>
     </head>
     <body>
@@ -108,50 +107,6 @@ const LEGAL_CONTENT = {
       
       <h2>11. Intellectual Property</h2>
       <p>All content, logos, branding, designs, and software are the exclusive property of INtown. Reproduction without permission is prohibited.</p>
-      
-      <h2>12. Privacy Policy</h2>
-      <p>By using the Platform, you consent to collection and usage of information as outlined in our Privacy Policy. INtown does not share personal information with unauthorized third parties.</p>
-      
-      <h2>13. Suspension & Termination</h2>
-      <p>INtown reserves the right to suspend or terminate accounts due to:</p>
-      <ul>
-        <li>Misuse</li>
-        <li>Fraudulent activity</li>
-        <li>Terms violation</li>
-        <li>Legal requests from authorities</li>
-      </ul>
-      
-      <h2>14. Refunds & Cancellations</h2>
-      <p>Purchases of INtown Access and subscriptions are final and non-refundable, except where required under applicable consumer protection laws or in cases of proven technical failures directly attributable to INtown.</p>
-      
-      <h2>15. Third‑Party Links</h2>
-      <p>The Platform may contain external links. INtown is not responsible for content, policies, or services on third‑party websites.</p>
-      
-      <h2>16. Modification of Terms</h2>
-      <p>INtown may update Terms at any time without prior notice. Continued use implies acceptance of modifications.</p>
-      
-      <h2>17. Disclaimers</h2>
-      <p>Services are provided on an "AS IS" and "AS AVAILABLE" basis. INtown does not guarantee:</p>
-      <ul>
-        <li>Continuous Platform availability</li>
-        <li>Offer accuracy or merchant participation</li>
-        <li>Absence of technical interruptions</li>
-      </ul>
-      <p>Users acknowledge that merchant participation may vary based on independent business decisions.</p>
-      
-      <h2>18. Indemnification</h2>
-      <p>Users agree to indemnify and hold INtown harmless from claims, damages, legal disputes, and expenses arising from misuse or violation of these Terms.</p>
-      
-      <h2>19. Governing Law & Jurisdiction</h2>
-      <p>These Terms are governed by the laws of India. Any legal disputes shall be subject exclusively to the courts of Hyderabad, Telangana.</p>
-      
-      <h2>20. Contact Information</h2>
-      <div class="contact-box">
-        <p>For support, queries, or complaints:</p>
-        <p><strong>Email:</strong> support@intownlocal.com<br>
-        <strong>Phone:</strong> +91-9052263555<br>
-        <strong>Address:</strong> Hyderabad, Telangana, India</p>
-      </div>
       <br/><br/>
     </body>
     </html>
@@ -168,6 +123,7 @@ const LEGAL_CONTENT = {
         h1 { color: #FF6600; font-size: 24px; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 20px; }
         h2 { color: #1A1A1A; font-size: 18px; margin-top: 25px; margin-bottom: 10px; font-weight: bold; }
         p { margin-bottom: 12px; font-size: 14px; }
+        .contact-box { background-color: #f9f9f9; padding: 15px; border-radius: 8px; border: 1px solid #eee; }
       </style>
     </head>
     <body>
@@ -175,14 +131,44 @@ const LEGAL_CONTENT = {
       
       <p>Welcome to INtown's Privacy Policy. We are committed to protecting your personal information and your right to privacy.</p>
 
-      <h2>1. Information We Collect</h2>
-      <p>We collect personal information that you voluntarily provide to us when you register on the Platform, express an interest in obtaining information about us or our products and Services, when you participate in activities on the Platform or otherwise when you contact us.</p>
+       <h2>1. Privacy Policy</h2>
+      <p>By using the Platform, you consent to collection and usage of information as outlined in our Privacy Policy. INtown does not share personal information with unauthorized third parties.</p>
       
-      <h2>2. How We Use Your Information</h2>
-      <p>We use personal information collected via our Platform for a variety of business purposes described below. We process your personal information for these purposes in reliance on our legitimate business interests, in order to enter into or perform a contract with you, with your consent, and/or for compliance with our legal obligations.</p>
+      <h2>2. Suspension & Termination</h2>
+      <p>INtown reserves the right to suspend or terminate accounts due to:</p>
+      <ul>
+        <li>Misuse</li>
+        <li>Fraudulent activity</li>
+        <li>Terms violation</li>
+        <li>Legal requests from authorities</li>
+      </ul>
       
-      <h2>3. Contact Us</h2>
-       <div class="contact-box">
+      <h2>3. Refunds & Cancellations</h2>
+      <p>Purchases of INtown Access and subscriptions are final and non-refundable, except where required under applicable consumer protection laws or in cases of proven technical failures directly attributable to INtown.</p>
+      
+      <h2>4. Third‑Party Links</h2>
+      <p>The Platform may contain external links. INtown is not responsible for content, policies, or services on third‑party websites.</p>
+      
+      <h2>5. Modification of Terms</h2>
+      <p>INtown may update Terms at any time without prior notice. Continued use implies acceptance of modifications.</p>
+      
+      <h2>6. Disclaimers</h2>
+      <p>Services are provided on an "AS IS" and "AS AVAILABLE" basis. INtown does not guarantee:</p>
+      <ul>
+        <li>Continuous Platform availability</li>
+        <li>Offer accuracy or merchant participation</li>
+        <li>Absence of technical interruptions</li>
+      </ul>
+      <p>Users acknowledge that merchant participation may vary based on independent business decisions.</p>
+      
+      <h2>7. Indemnification</h2>
+      <p>Users agree to indemnify and hold INtown harmless from claims, damages, legal disputes, and expenses arising from misuse or violation of these Terms.</p>
+      
+      <h2>8. Governing Law & Jurisdiction</h2>
+      <p>These Terms are governed by the laws of India. Any legal disputes shall be subject exclusively to the courts of Hyderabad, Telangana.</p>
+      
+      <h2>9. Contact Information</h2>
+      <div class="contact-box">
         <p>For support, queries, or complaints:</p>
         <p><strong>Email:</strong> support@intownlocal.com<br>
         <strong>Phone:</strong> +91-9052263555<br>
