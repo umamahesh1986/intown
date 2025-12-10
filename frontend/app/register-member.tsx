@@ -34,10 +34,10 @@ export default function RegisterMember() {
   const [isLoading, setIsLoading] = useState(false);
 
   // Validation errors
-  const [errors, setErrors] = useState<any>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const validateForm = () => {
-    const newErrors: any = {};
+    const newErrors: Record<string, string> = {};
 
     // Contact Name validation (min 2 characters)
     if (!contactName || contactName.trim().length < 2) {
@@ -379,7 +379,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 16,
     color: '#1A1A1A',
-    outlineStyle: 'none',
+    // removed 'outlineStyle' since it's not a valid React Native TextStyle
   },
   inputError: {
     borderColor: '#FF0000',
