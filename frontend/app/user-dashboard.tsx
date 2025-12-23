@@ -167,6 +167,7 @@ export default function UserDashboard() {
             style={styles.logo}
             resizeMode="contain"
           />
+
           <TouchableOpacity 
             onPress={(e) => {
               e.stopPropagation();
@@ -174,6 +175,7 @@ export default function UserDashboard() {
             }} 
             style={styles.profileButton}
           >
+
             <View style={styles.profileInfo}>
               <Text style={styles.userName}>{user?.name}</Text>
               <Text style={styles.userPhone}>{user?.phone}</Text>
@@ -254,6 +256,7 @@ export default function UserDashboard() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Popular Categories</Text>
           <View style={styles.categoriesGrid}>
+
             {categories.length > 0 ? (
               categories.map((category) => (
                 <TouchableOpacity
@@ -270,6 +273,7 @@ export default function UserDashboard() {
             ) : (
               <Text style={styles.noCategoriesText}>No categories available</Text>
             )}
+
           </View>
         </View>
 
@@ -786,12 +790,14 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontWeight: '600',
     fontSize: 16,
+
   },
   noCategoriesText: {
     ...FontStylesWithFallback.body,
     color: '#666666',
     textAlign: 'center',
     padding: 20,
+
   },
   themeSection: {
     backgroundColor: '#e6e6e6',
