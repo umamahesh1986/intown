@@ -18,6 +18,7 @@ interface AuthState {
   setUserType: (userType: 'user' | 'member' | 'merchant') => void;
   logout: () => Promise<void>;
   loadAuth: () => Promise<void>;
+   updateProfile: (data: { name: string }) => void;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -74,4 +75,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       console.error('Error loading auth:', error);
     }
   },
+ updateProfile: (data) =>
+  set((state) => ({
+    user: state.user
+      ? { ...state.user, ...data }
+      : state.user,
+  })),
+
+
 }));

@@ -1,3 +1,4 @@
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -8,12 +9,15 @@ import {
   KeyboardAvoidingView,
   Platform,
   Image,
+  StyleSheet as RNStyleSheet,
 } from 'react-native';
-import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { sendOTP } from '../utils/api';
 import { Ionicons } from '@expo/vector-icons';
-import { Fonts, FontStylesWithFallback } from '../utils/fonts';
+import { Video, ResizeMode } from 'expo-av';
+
+const CARD_WIDTH = 520; // same width for header & form
+const RADIUS = 12;
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -28,72 +32,109 @@ export default function LoginScreen() {
 
     setIsLoading(true);
     try {
-      console.log('Sending OTP to:', phone);
       const response = await sendOTP(phone);
-      console.log('OTP Response:', response);
-      
-      if (response.success) {
-        // Direct navigation for testing
-        console.log('Navigating to OTP screen with phone:', phone);
+      if (response?.success) {
         router.push(`/otp?phone=${phone}`);
-        
-        // Optional: Show alert after navigation
-        // Alert.alert('OTP Sent', 'Please check your phone for the OTP');
       } else {
-        Alert.alert('Error', response.message || 'Failed to send OTP');
+        Alert.alert('Error', response?.message || 'Failed to send OTP');
       }
     } catch (error) {
-      console.error('Error sending OTP:', error);
+      console.error(error);
       Alert.alert('Error', 'Failed to send OTP. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
+  const inputWebStyle: any =
+    Platform.OS === 'web'
+      ? {
+          outlineStyle: 'none',
+          outlineWidth: 0,
+          outlineColor: 'transparent',
+        }
+      : null;
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
+      {Platform.OS === 'web' ? (
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          style={{
+            position: 'absolute',
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            top: 0,
+            left: 0,
+            zIndex: -1,
+          }}
+        >
+          <source src="/videos/intown-video.mp4" type="video/mp4" />
+        </video>
+      ) : (
+        <Video
+          source={require('../assets/images/intown-video.mp4')}
+          style={RNStyleSheet.absoluteFill}
+          resizeMode={ResizeMode.COVER}
+          shouldPlay
+          isLooping
+          isMuted
+        />
+      )}
 
-      <View style={styles.content}>
-      <View style={styles.header}>
-            <Image 
-              source={require('../assets/images/intown-logo.jpg')} 
-              style={styles.logo}
-              resizeMode="contain"
-
-            />
-          </View>
-        <View style={styles.mainContentContainer}>
-
-          <View style={styles.form}>
-            <View style={styles.inputContainer}>
-              <Ionicons name="call" size={20} color="#666666" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="Enter mobile number"
-                keyboardType="phone-pad"
-                value={phone}
-                onChangeText={setPhone}
-                maxLength={10}
-                placeholderTextColor="#999999"
+      <View style={styles.overlay}>
+        <View style={styles.centerWrap}>
+          {/* ORANGE HEADER CARD */}
+          <View style={styles.headerCard}>
+            <View style={styles.logoBox}>
+              <Image
+                source={require('../assets/images/intown-logo.jpg')}
+                style={styles.logo}
+                resizeMode="contain"
               />
             </View>
+           
+          </View>
 
-            <TouchableOpacity
-              style={[styles.button, isLoading && styles.buttonDisabled]}
-              onPress={handleSendOTP}
-              disabled={isLoading}
-            >
-              <Text style={styles.buttonText}>
-                {isLoading ? 'Sending OTP...' : 'Send OTP'}
+          {/* WHITE FORM CARD */}
+          <View style={styles.formWrap}>
+            <View style={styles.formCard}>
+              <View className="input-row" style={styles.inputRow}>
+                <View style={styles.iconCircle}>
+                  <Ionicons name="call" size={18} color="#666" />
+                </View>
+                <TextInput
+                  style={[styles.input, inputWebStyle]}
+                  placeholder="Enter mobile number"
+                  placeholderTextColor="#9b9b9b"
+                  keyboardType="phone-pad"
+                  value={phone}
+                  onChangeText={setPhone}
+                  maxLength={10}
+                />
+              </View>
+
+              <TouchableOpacity
+                style={[styles.button, isLoading && styles.buttonDisabled]}
+                onPress={handleSendOTP}
+                disabled={isLoading}
+              >
+                <Text style={styles.buttonText}>
+                  {isLoading ? 'Sending OTP...' : 'Send OTP'}
+                </Text>
+              </TouchableOpacity>
+
+              <Text style={styles.smallNote}>
+                You will receive a one-time password on this number
               </Text>
-            </TouchableOpacity>
-
-            <Text style={styles.infoText}>
-              You will receive a one-time password on this number
-            </Text>
+            </View>
           </View>
         </View>
       </View>
@@ -102,96 +143,147 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
+  container: { flex: 1 },
+
+  overlay: {
     flex: 1,
-    backgroundColor: '#fe6f09',
+    backgroundColor: 'rgba(0,0,0,0.45)',
   },
-  bannerContainer: {
-    height: 400,
-    position: 'relative',
-  },
-  bannerImage: {
-    width: '100%',
-    height: '100%',
-  },
-  bannerOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+
+  centerWrap: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    paddingHorizontal: 20,
   },
-  content: {
-    flex: 1,
-    padding: 24,
-    justifyContent: 'center',
-  },
-  mainContentContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    paddingTop: 24,
+
+  /* HEADER (orange) */
+  headerCard: {
+    width: CARD_WIDTH,
+    maxWidth: CARD_WIDTH,
+    alignSelf: 'center',
+    backgroundColor: '#F26522',
+
+    // 12px 12px 0 0
+    borderTopLeftRadius: RADIUS,
+    borderTopRightRadius: RADIUS,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+
+    alignItems: 'center',
+    paddingTop: 28,
     paddingBottom: 24,
-    paddingLeft: 16,
-    paddingRight: 16,
+
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.18,
+    shadowRadius: 20,
+    elevation: 8,
+    overflow: 'hidden',
   },
-  header: {
-    marginBottom: 24,
-    alignItems: 'center',
-    
+
+  logoBox: {
+    backgroundColor: '#F26522',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    marginBottom: 10,
+    alignSelf: 'center',
   },
+
   logo: {
+    width: 220,
+    height: 48,
+  },
 
-    maxWidth: 300,
-    height: 120,
-    marginBottom: 8,
+  tagline: {
+    color: '#fff',
+    marginTop: 4,
+    fontSize: 14,
+    fontWeight: '600',
+    opacity: 0.95,
+  },
 
+  /* WRAP FOR FORM (no padding so widths match) */
+  formWrap: {
+    width: CARD_WIDTH,
+    maxWidth: CARD_WIDTH,
+    alignSelf: 'center',
+    marginTop: -18, // slight overlap; adjust if you want a gap
   },
-  subtitle: {
-    ...FontStylesWithFallback.h5,
-    color: '#666666',
+
+  /* WHITE FORM CARD */
+  formCard: {
+    width: CARD_WIDTH,
+    maxWidth: CARD_WIDTH,
+    alignSelf: 'center',
+    backgroundColor:  '#F26522',
+
+    // 0 0 12px 12px
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
+    borderBottomLeftRadius: RADIUS,
+    borderBottomRightRadius: RADIUS,
+
+    paddingVertical: 20,
+    paddingHorizontal: 18,
+
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.10,
+    shadowRadius: 12,
+    elevation: 6,
   },
-  form: {
-    width: '100%',
-  },
-  inputContainer: {
+
+  inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#F7F7F7',
+    borderRadius: 10,
+    height: 56,
+    paddingHorizontal: 12,
+    marginBottom: 18,
+    borderColor: '#ececec',
     borderWidth: 1,
-    borderColor: '#DDDDDD',
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    marginBottom: 24,
-    backgroundColor: '#F9F9F9',
   },
-  inputIcon: {
-    marginRight: 12,
+
+  iconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
   },
+
   input: {
     flex: 1,
-    height: 56,
-    ...FontStylesWithFallback.body,
-    color: '#1A1A1A',
+    fontSize: 16,
+    color: '#000',
+    height: '100%',
   },
+
   button: {
-    backgroundColor: '#FF6600',
-    paddingVertical: 16,
-    borderRadius: 8,
+    backgroundColor: '#E85B1A',
+    height: 54,
+    borderRadius: 10,
     alignItems: 'center',
-    marginBottom: 16,
+    justifyContent: 'center',
+    marginBottom: 12,
   },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
+
+  buttonDisabled: { opacity: 0.65 },
+
   buttonText: {
-    color: '#FFFFFF',
-    ...FontStylesWithFallback.buttonLarge,
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '700',
   },
-  infoText: {
-    ...FontStylesWithFallback.bodySmall,
-    color: '#999999',
+
+  smallNote: {
+    color: '#FFE0CC',
+    fontSize: 13,
     textAlign: 'center',
+    marginTop: 6,
   },
 });
