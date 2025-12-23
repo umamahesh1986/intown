@@ -9,6 +9,9 @@ import {
   Dimensions,
   Animated,
   Image,
+  Pressable,
+  Platform,
+  Easing,
 } from 'react-native';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'expo-router';
@@ -18,6 +21,7 @@ import { useAuthStore } from '../store/authStore';
 import { useLocationStore } from '../store/locationStore';
 import { getPlans, getCategories, getShops } from '../utils/api';
 import { FontStylesWithFallback } from '../utils/fonts';
+import Footer from '../components/Footer';
 
 interface Plan {
   id: string;
@@ -35,12 +39,12 @@ interface Category {
 const { width } = Dimensions.get('window');
 
 const DUMMY_NEARBY_SHOPS = [
-  { id: '1', name: 'Fresh Mart Grocery', category: 'Grocery', distance: 0.5 },
-  { id: '2', name: 'Style Salon & Spa', category: 'Salon', distance: 0.8 },
-  { id: '3', name: 'Quick Bites Restaurant', category: 'Restaurant', distance: 1.2 },
-  { id: '4', name: 'Wellness Pharmacy', category: 'Pharmacy', distance: 0.3 },
-  { id: '5', name: 'Fashion Hub', category: 'Fashion', distance: 1.5 },
-  { id: '6', name: 'Tech Store', category: 'Electronics', distance: 2.0 },
+  { id: '1', name: 'Fresh Mart Grocery', category: 'Grocery', distance: 0.5, rating: 4.5 },
+  { id: '2', name: 'Style Salon & Spa', category: 'Salon', distance: 0.8, rating: 4.7 },
+  { id: '3', name: 'Quick Bites Restaurant', category: 'Restaurant', distance: 1.2, rating: 4.3 },
+  { id: '4', name: 'Wellness Pharmacy', category: 'Pharmacy', distance: 0.3, rating: 4.8 },
+  { id: '5', name: 'Fashion Hub', category: 'Fashion', distance: 1.5, rating: 4.2 },
+  { id: '6', name: 'Tech Store', category: 'Electronics', distance: 2.0, rating: 4.6 },
 ];
 
 const DUMMY_CATEGORIES = [
@@ -51,6 +55,72 @@ const DUMMY_CATEGORIES = [
   { id: '5', name: 'Fashion', icon: 'shirt' },
   { id: '6', name: 'Electronics', icon: 'phone-portrait' },
 ];
+
+// --- SMART SHOP CARD COMPONENT ---
+const ShopCard = ({ 
+  shop, 
+  onPress, 
+  onInteractionChange 
+}: { 
+  shop: any, 
+  onPress: () => void,
+  onInteractionChange: (isInteracting: boolean) => void 
+}) => {
+  const scaleValue = useRef(new Animated.Value(1)).current;
+  const [zIndex, setZIndex] = useState(0); 
+
+  const animateScale = (toValue: number) => {
+    Animated.timing(scaleValue, {
+      toValue: toValue,
+      duration: 300, 
+      useNativeDriver: Platform.OS !== 'web',
+      easing: Easing.out(Easing.ease), 
+    }).start();
+  };
+
+  const handleIn = () => {
+    setZIndex(100); // Bring to front
+    onInteractionChange(true);
+    // --- UPDATED: Reduced scale from 1.35 to 1.1 ---
+    animateScale(1.1);
+  };
+
+  const handleOut = () => {
+    onInteractionChange(false);
+    animateScale(1);
+    setTimeout(() => setZIndex(0), 300);
+  };
+
+  return (
+    <Pressable
+      onPress={onPress}
+      onPressIn={handleIn}
+      onPressOut={handleOut}
+      onHoverIn={handleIn}
+      onHoverOut={handleOut}
+      style={{ zIndex: zIndex }} 
+    >
+      <Animated.View 
+        style={[
+          styles.shopCard, 
+          { transform: [{ scale: scaleValue }] }
+        ]}
+      >
+        <View style={styles.shopImagePlaceholder}>
+          <Ionicons name="storefront" size={40} color="#FF6600" />
+        </View>
+        <Text style={styles.shopCardName} numberOfLines={1}>
+          {shop.name}
+        </Text>
+        <Text style={styles.shopCardCategory}>{shop.category}</Text>
+        <View style={styles.shopCardDistance}>
+          <Ionicons name="location" size={14} color="#666666" />
+          <Text style={styles.shopCardDistanceText}>{shop.distance} km</Text>
+        </View>
+      </Animated.View>
+    </Pressable>
+  );
+};
 
 export default function UserDashboard() {
   const router = useRouter();
@@ -66,14 +136,20 @@ export default function UserDashboard() {
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
   const [filteredCategories, setFilteredCategories] = useState<Category[]>([]);
   
-  // Animation for auto-scrolling shops
+  // --- ADVANCED SCROLL STATE ---
   const scrollX = useRef(new Animated.Value(0)).current;
-  const CARD_WIDTH = 172; // 160 + 12 (margin)
+  const scrollAnimation = useRef<Animated.CompositeAnimation | null>(null);
+  const isHovering = useRef(false);
+  
+  const CARD_WIDTH = 172; 
   const TOTAL_WIDTH = DUMMY_NEARBY_SHOPS.length * CARD_WIDTH;
 
   useEffect(() => {
     loadData();
-    startAutoScroll();
+    startScrolling(0);
+    return () => {
+      scrollAnimation.current?.stop();
+    };
   }, []);
 
   useEffect(() => {
@@ -81,17 +157,43 @@ export default function UserDashboard() {
     setShowDropdown(false);
   }, [user]);
 
-  const startAutoScroll = () => {
-    // Duplicate shops for seamless loop
-    const animationDuration = TOTAL_WIDTH * 50; // Speed: lower = faster
-    
-    Animated.loop(
-      Animated.timing(scrollX, {
-        toValue: -TOTAL_WIDTH,
-        duration: animationDuration,
-        useNativeDriver: true,
-      })
-    ).start();
+  const startScrolling = (startValue: number) => {
+    if (isHovering.current) return;
+
+    if (startValue <= -TOTAL_WIDTH) {
+      startValue = 0;
+      scrollX.setValue(0);
+    }
+
+    const BASE_DURATION = 10000; // 10 seconds for full loop
+    const remainingDistance = TOTAL_WIDTH + startValue;
+    const duration = (remainingDistance / TOTAL_WIDTH) * BASE_DURATION;
+
+    const animation = Animated.timing(scrollX, {
+      toValue: -TOTAL_WIDTH,
+      duration: duration,
+      easing: Easing.linear,
+      useNativeDriver: true,
+    });
+
+    scrollAnimation.current = animation;
+
+    animation.start(({ finished }) => {
+      if (finished) {
+        startScrolling(0);
+      }
+    });
+  };
+
+  const handleInteractionChange = (interacting: boolean) => {
+    isHovering.current = interacting;
+    if (interacting) {
+      scrollAnimation.current?.stop();
+    } else {
+      scrollX.stopAnimation((currentValue) => {
+        startScrolling(currentValue);
+      });
+    }
   };
 
   const loadData = async () => {
@@ -432,47 +534,24 @@ export default function UserDashboard() {
             <Animated.View
               style={[
                 styles.autoScrollContent,
-                {
-                  transform: [{ translateX: scrollX }],
-                },
+                { transform: [{ translateX: scrollX }] },
               ]}
             >
               {/* Render shops twice for seamless loop */}
               {[...DUMMY_NEARBY_SHOPS, ...DUMMY_NEARBY_SHOPS].map((shop, index) => (
-                <TouchableOpacity
+                <ShopCard
                   key={`${shop.id}-${index}`}
-                  style={styles.shopCard}
+                  shop={shop}
+                  onInteractionChange={handleInteractionChange}
                   onPress={() => setShowRegistrationModal(true)}
-                >
-                  <View style={styles.shopImagePlaceholder}>
-                    <Ionicons name="storefront" size={40} color="#FF6600" />
-                  </View>
-                  <Text style={styles.shopCardName} numberOfLines={1}>
-                    {shop.name}
-                  </Text>
-                  <Text style={styles.shopCardCategory}>{shop.category}</Text>
-                  <View style={styles.shopCardDistance}>
-                    <Ionicons name="location" size={14} color="#666666" />
-                    <Text style={styles.shopCardDistanceText}>{shop.distance} km</Text>
-                  </View>
-                </TouchableOpacity>
+                />
               ))}
             </Animated.View>
           </View>
         </View>
 
-        {/* Footer */}
-        <View style={styles.footer}>
-          <Text style={styles.footerTagline}>
-            Shop Local, Save Instantly! Connecting Communities Through Personal Bond.
-          </Text>
-          <Text style={styles.footerDescription}>
-            India's most trusted local savings network, helping customers save instantly while enabling small businesses to thrive.
-          </Text>
-          <Text style={styles.footerCopyright}>
-            Copyright © 2025, Yagnavihar Lifestyle Pvt. Ltd.
-          </Text>
-        </View>
+        <Footer />
+
         </ScrollView>
       </TouchableOpacity>
 
@@ -937,7 +1016,8 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   autoScrollContainer: {
-    overflow: 'hidden',
+    overflow: 'visible',
+    paddingVertical: 40, // Room to scale
   },
   autoScrollContent: {
     flexDirection: 'row',
@@ -950,6 +1030,14 @@ const styles = StyleSheet.create({
     marginRight: 12,
     borderWidth: 1,
     borderColor: '#EEEEEE',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   shopImagePlaceholder: {
     width: '100%',
@@ -980,30 +1068,7 @@ const styles = StyleSheet.create({
     color: '#666666',
     marginLeft: 4,
   },
-  footer: {
-    backgroundColor: '#1A1A1A',
-    padding: 24,
-    alignItems: 'center',
-  },
-  footerTagline: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#FF6600',
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  footerDescription: {
-    fontSize: 14,
-    color: '#CCCCCC',
-    textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: 16,
-  },
-  footerCopyright: {
-    fontSize: 12,
-    color: '#999999',
-    textAlign: 'center',
-  },
+  
   modalContainer: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
