@@ -1,3 +1,6 @@
+// user-dashboard.tsx
+import { useState, useEffect, useRef } from 'react';
+
 import {
   View,
   Text,
@@ -9,19 +12,19 @@ import {
   Dimensions,
   Animated,
   Image,
-  Pressable,
+  
   Platform,
-  Easing,
+  
 } from 'react-native';
-import { useState, useEffect, useRef } from 'react';
+
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
 import { useLocationStore } from '../store/locationStore';
-import { getPlans, getCategories, getShops } from '../utils/api';
+import { getPlans, getCategories } from '../utils/api';
+
 import { FontStylesWithFallback } from '../utils/fonts';
-import Footer from '../components/Footer';
 
 interface Plan {
   id: string;
@@ -35,16 +38,39 @@ interface Category {
   name: string;
   icon: string;
 }
-
 const { width } = Dimensions.get('window');
+// ------------------- RESPONSIVE CAROUSEL DIMENSION ADJUSTMENT -------------------
+const slideWidth = Math.round(width);
+
+
+const CAROUSEL_NATIVE_HEIGHT = 160;
+
+const CAROUSEL_ASPECT_RATIO = width > 800 ? 3 / 1 : 4 / 3;
+
+
+
+const CAROUSEL_HEIGHT =
+  Platform.OS === 'web'
+    ? slideWidth / CAROUSEL_ASPECT_RATIO
+    : CAROUSEL_NATIVE_HEIGHT;
+
+// ---------------------------------------------------------------------------------
+
+export default function UserDashboard() {
+  const router = useRouter();
+  const { user, logout } = useAuthStore();
+
+
+
+
 
 const DUMMY_NEARBY_SHOPS = [
-  { id: '1', name: 'Fresh Mart Grocery', category: 'Grocery', distance: 0.5, rating: 4.5 },
-  { id: '2', name: 'Style Salon & Spa', category: 'Salon', distance: 0.8, rating: 4.7 },
-  { id: '3', name: 'Quick Bites Restaurant', category: 'Restaurant', distance: 1.2, rating: 4.3 },
-  { id: '4', name: 'Wellness Pharmacy', category: 'Pharmacy', distance: 0.3, rating: 4.8 },
-  { id: '5', name: 'Fashion Hub', category: 'Fashion', distance: 1.5, rating: 4.2 },
-  { id: '6', name: 'Tech Store', category: 'Electronics', distance: 2.0, rating: 4.6 },
+  { id: '1', name: 'Fresh Mart Grocery', category: 'Grocery', distance: 0.5 },
+  { id: '2', name: 'Style Salon & Spa', category: 'Salon', distance: 0.8 },
+  { id: '3', name: 'Quick Bites Restaurant', category: 'Restaurant', distance: 1.2 },
+  { id: '4', name: 'Wellness Pharmacy', category: 'Pharmacy', distance: 0.3 },
+  { id: '5', name: 'Fashion Hub', category: 'Fashion', distance: 1.5 },
+  { id: '6', name: 'Tech Store', category: 'Electronics', distance: 2.0 },
 ];
 
 const DUMMY_CATEGORIES = [
@@ -56,76 +82,24 @@ const DUMMY_CATEGORIES = [
   { id: '6', name: 'Electronics', icon: 'phone-portrait' },
 ];
 
-// --- SMART SHOP CARD COMPONENT ---
-const ShopCard = ({ 
-  shop, 
-  onPress, 
-  onInteractionChange 
-}: { 
-  shop: any, 
-  onPress: () => void,
-  onInteractionChange: (isInteracting: boolean) => void 
-}) => {
-  const scaleValue = useRef(new Animated.Value(1)).current;
-  const [zIndex, setZIndex] = useState(0); 
+// ----------------- CAROUSEL IMAGES (FIXED for Web compatibility) -----------------
+const CAROUSEL_IMAGES_RAW = [
+  require('../assets/images/1.jpg'),
+  require('../assets/images/2.jpg'),
+  require('../assets/images/3.jpg'),
+  require('../assets/images/4.jpg'),
+  require('../assets/images/5.jpg'),
+  require('../assets/images/6.jpg'),
+];
 
-  const animateScale = (toValue: number) => {
-    Animated.timing(scaleValue, {
-      toValue: toValue,
-      duration: 300, 
-      useNativeDriver: Platform.OS !== 'web',
-      easing: Easing.out(Easing.ease), 
-    }).start();
-  };
+const CAROUSEL_IMAGES = CAROUSEL_IMAGES_RAW.map(image =>
+  Platform.OS === 'web' && (image as any).default ? (image as any).default : image
+);
+// ---------------------------------------------------------------------------------
 
-  const handleIn = () => {
-    setZIndex(100); // Bring to front
-    onInteractionChange(true);
-    // --- UPDATED: Reduced scale from 1.35 to 1.1 ---
-    animateScale(1.1);
-  };
 
-  const handleOut = () => {
-    onInteractionChange(false);
-    animateScale(1);
-    setTimeout(() => setZIndex(0), 300);
-  };
+  const location = useLocationStore((state) => state.location);
 
-  return (
-    <Pressable
-      onPress={onPress}
-      onPressIn={handleIn}
-      onPressOut={handleOut}
-      onHoverIn={handleIn}
-      onHoverOut={handleOut}
-      style={{ zIndex: zIndex }} 
-    >
-      <Animated.View 
-        style={[
-          styles.shopCard, 
-          { transform: [{ scale: scaleValue }] }
-        ]}
-      >
-        <View style={styles.shopImagePlaceholder}>
-          <Ionicons name="storefront" size={40} color="#FF6600" />
-        </View>
-        <Text style={styles.shopCardName} numberOfLines={1}>
-          {shop.name}
-        </Text>
-        <Text style={styles.shopCardCategory}>{shop.category}</Text>
-        <View style={styles.shopCardDistance}>
-          <Ionicons name="location" size={14} color="#666666" />
-          <Text style={styles.shopCardDistanceText}>{shop.distance} km</Text>
-        </View>
-      </Animated.View>
-    </Pressable>
-  );
-};
-
-export default function UserDashboard() {
-  const router = useRouter();
-  const { user, logout } = useAuthStore();
-  const { location } = useLocationStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [plans, setPlans] = useState<Plan[]>([]);
   const [categories, setCategories] = useState<Category[]>(DUMMY_CATEGORIES);
@@ -135,78 +109,64 @@ export default function UserDashboard() {
   const [activeTab, setActiveTab] = useState<'customer' | 'merchant'>('customer');
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
   const [filteredCategories, setFilteredCategories] = useState<Category[]>([]);
+
+  // Dropdown animation value
+  const dropdownAnim = useRef(new Animated.Value(0)).current;
+
+ 
+
+  // Carousel state
+  const [carouselIndex, setCarouselIndex] = useState(0);
+  const carouselRef = useRef<ScrollView | null>(null);
+  const autoPlayTimer = useRef<number | null>(null);
   
-  // --- ADVANCED SCROLL STATE ---
+
+
+  // Animation for auto-scrolling shops
   const scrollX = useRef(new Animated.Value(0)).current;
-  const scrollAnimation = useRef<Animated.CompositeAnimation | null>(null);
-  const isHovering = useRef(false);
-  
-  const CARD_WIDTH = 172; 
+  const CARD_WIDTH = 172; // 160 + 12 (margin)
   const TOTAL_WIDTH = DUMMY_NEARBY_SHOPS.length * CARD_WIDTH;
 
+  
+
+ 
   useEffect(() => {
     loadData();
-    startScrolling(0);
+    startAutoScroll();
+    startCarouselAutoplay();
+
+    
+
     return () => {
-      scrollAnimation.current?.stop();
+      stopCarouselAutoplay();
     };
   }, []);
 
   useEffect(() => {
-    // Close dropdown when user changes
+    // if user changes, hide dropdown
     setShowDropdown(false);
+    dropdownAnim.setValue(0);
   }, [user]);
 
-  const startScrolling = (startValue: number) => {
-    if (isHovering.current) return;
+  const startAutoScroll = () => {
+    const animationDuration = TOTAL_WIDTH * 50;
 
-    if (startValue <= -TOTAL_WIDTH) {
-      startValue = 0;
-      scrollX.setValue(0);
-    }
-
-    const BASE_DURATION = 10000; // 10 seconds for full loop
-    const remainingDistance = TOTAL_WIDTH + startValue;
-    const duration = (remainingDistance / TOTAL_WIDTH) * BASE_DURATION;
-
-    const animation = Animated.timing(scrollX, {
-      toValue: -TOTAL_WIDTH,
-      duration: duration,
-      easing: Easing.linear,
-      useNativeDriver: true,
-    });
-
-    scrollAnimation.current = animation;
-
-    animation.start(({ finished }) => {
-      if (finished) {
-        startScrolling(0);
-      }
-    });
-  };
-
-  const handleInteractionChange = (interacting: boolean) => {
-    isHovering.current = interacting;
-    if (interacting) {
-      scrollAnimation.current?.stop();
-    } else {
-      scrollX.stopAnimation((currentValue) => {
-        startScrolling(currentValue);
-      });
-    }
+    Animated.loop(
+      Animated.timing(scrollX, {
+        toValue: -TOTAL_WIDTH,
+        duration: animationDuration,
+        useNativeDriver: true,
+      })
+    ).start();
   };
 
   const loadData = async () => {
     try {
-      const [plansData, categoriesData] = await Promise.all([
-        getPlans(),
-        getCategories(),
-      ]);
+      const [plansData, categoriesData] = await Promise.all([getPlans(), getCategories()]);
       setPlans(plansData || []);
       setCategories(categoriesData && categoriesData.length > 0 ? categoriesData : DUMMY_CATEGORIES);
     } catch (error) {
       console.error('Error loading data:', error);
-      // Use dummy data as fallback
       setPlans([]);
       setCategories(DUMMY_CATEGORIES);
     }
@@ -223,14 +183,36 @@ export default function UserDashboard() {
 
   const handleLogout = () => {
     logout();
-    setShowDropdown(false);
-    router.replace('/login');
+    // close dropdown with animation
+    Animated.timing(dropdownAnim, { toValue: 0, duration: 160, useNativeDriver: true }).start(() => {
+      setShowDropdown(false);
+      router.replace('/login');
+    });
+  };
+
+  const toggleDropdown = (e?: any) => {
+    // prevent parent touch handlers
+    e?.stopPropagation?.();
+    if (!showDropdown) {
+      setShowDropdown(true);
+      Animated.timing(dropdownAnim, {
+        toValue: 1,
+        duration: 180,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      Animated.timing(dropdownAnim, {
+        toValue: 0,
+        duration: 160,
+        useNativeDriver: true,
+      }).start(() => setShowDropdown(false));
+    }
   };
 
   const handleSearchChange = (text: string) => {
     setSearchQuery(text);
     if (text.length > 0) {
-      const filtered = categories.filter(category =>
+      const filtered = categories.filter((category) =>
         category.name.toLowerCase().includes(text.toLowerCase())
       );
       setFilteredCategories(filtered);
@@ -248,310 +230,461 @@ export default function UserDashboard() {
   };
 
   const handleSearchBlur = () => {
-    // Delay hiding to allow for button clicks
     setTimeout(() => {
       setShowSearchDropdown(false);
     }, 200);
   };
 
+  // ----------------- CAROUSEL AUTOPLAY -----------------
+  const startCarouselAutoplay = () => {
+    stopCarouselAutoplay();
+    autoPlayTimer.current = (setInterval(() => {
+      setCarouselIndex((prevIndex) => {
+        const next = (prevIndex + 1) % CAROUSEL_IMAGES.length;
+        scrollToIndex(next);
+        return next;
+      });
+    }, 3500) as unknown) as number;
+  };
+
+  const stopCarouselAutoplay = () => {
+if (autoPlayTimer.current) {
+      clearInterval(autoPlayTimer.current);
+      autoPlayTimer.current = null;
+    }
+  };
+
+  const scrollToIndex = (index: number) => {
+    setCarouselIndex(index);
+    if (carouselRef.current) {
+      carouselRef.current.scrollTo({ x: index * slideWidth, animated: true });
+    }
+  };
+
+  const onCarouselScrollEnd = (e: any) => {
+  const x = e.nativeEvent.contentOffset.x;
+  const idx = Math.round(x / slideWidth);
+  setCarouselIndex(idx);
+};
+
+  // -----------------------------------------------------
+
+  
+
+  
+
   return (
     <SafeAreaView style={styles.container}>
-      <TouchableOpacity 
-        style={styles.container} 
-        activeOpacity={1} 
-        onPress={() => setShowDropdown(false)}
-      >
+      <TouchableOpacity style={styles.container} activeOpacity={1} onPress={() => {
+        // close dropdown on outside press
+        if (showDropdown) {
+          toggleDropdown();
+        }
+      }}>
         <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Image 
-            source={require('../assets/images/intown-logo.jpg')} 
-            style={styles.logo}
-            resizeMode="contain"
-          />
-
-          <TouchableOpacity 
-            onPress={(e) => {
-              e.stopPropagation();
-              setShowDropdown(!showDropdown);
-            }} 
-            style={styles.profileButton}
-          >
-
-            <View style={styles.profileInfo}>
-              <Text style={styles.userName}>{user?.name}</Text>
-              <Text style={styles.userPhone}>{user?.phone}</Text>
-            </View>
-            <Ionicons name="person" size={20} color="#ffffff" style={styles.profileIconButton} />
-          </TouchableOpacity>
-        </View>
-
-        {/* Dropdown Menu */}
-        {showDropdown && (
-          <TouchableOpacity 
-            style={styles.dropdownMenu}
-            onPress={(e) => e.stopPropagation()}
-            activeOpacity={1}
-          >
-            <TouchableOpacity style={styles.dropdownItem} onPress={handleLogout}>
-              <Ionicons name="log-out-outline" size={20} color="#FF0000" />
-              <Text style={[styles.dropdownText, {color: '#FF0000'}]}>Logout</Text>
-            </TouchableOpacity>
-          </TouchableOpacity>
-        )}
-
-        {/* Search Box */}
-        <View style={styles.searchContainer}>
-          <View style={styles.searchBox}>
-            <Ionicons name="search" size={24} color="#999999" style={styles.searchIcon} />
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search for Grocery, Salon, Fashion..."
-              value={searchQuery}
-              onChangeText={handleSearchChange}
-              onFocus={handleSearchFocus}
-              onBlur={handleSearchBlur}
-              placeholderTextColor="#999999"
-            />
-          </View>
-        </View>
-
-        {/* Search Dropdown */}
-        {showSearchDropdown && filteredCategories.length > 0 && (
-          <TouchableOpacity 
-            style={styles.searchDropdownContainer}
-            activeOpacity={1}
-            onPress={(e) => e.stopPropagation()}
-          >
-            <View style={styles.searchDropdown}>
-              {filteredCategories.map((category) => (
-                <TouchableOpacity
-                  key={category.id}
-                  style={styles.searchDropdownItem}
-                  onPress={() => setShowRegistrationModal(true)}
-                >
-                  <View style={styles.searchDropdownItemContent}>
-                    <View style={styles.searchDropdownItemLeft}>
-                      <Ionicons name={category.icon as any} size={20} color="#FF6600" />
-                      <Text style={styles.searchDropdownItemText}>{category.name}</Text>
-                    </View>
-                    <TouchableOpacity
-                      style={styles.viewButton}
-                      onPress={() => setShowRegistrationModal(true)}
-                    >
-                      <Text style={styles.viewButtonText}>View</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.viewButton}
-                      onPress={() => setShowRegistrationModal(true)}
-                    >
-                      <Text style={styles.viewButtonNavigate}>Navigate</Text>
-                    </TouchableOpacity>
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </TouchableOpacity>
-        )}
-
-        {/* Popular Categories */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Popular Categories</Text>
-          <View style={styles.categoriesGrid}>
-
-            {categories.length > 0 ? (
-              categories.map((category) => (
-                <TouchableOpacity
-                  key={category.id}
-                  style={styles.categoryCard}
-                  onPress={() => setShowRegistrationModal(true)}
-                >
-                  <View style={styles.categoryIcon}>
-                    <Ionicons name={category.icon as any} size={32} color="#FF6600" />
-                    <Text style={styles.categoryName}>{category.name}</Text>
-                  </View>
-                </TouchableOpacity>
-              ))
-            ) : (
-              <Text style={styles.noCategoriesText}>No categories available</Text>
-            )}
-
-          </View>
-        </View>
-
-        {/* Theme Section */}
-        <View style={styles.themeSection}>
-          <Text style={styles.themeTitle}>Transform Local Retail</Text>
-          <Text style={styles.themeSubtitle}>
-            Present Local Retail Shops to Digital Presence
-          </Text>
-        </View>
-
-        {/* Savings Calculator */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Savings Calculator</Text>
-          <View style={styles.calculatorCard}>
-            <View style={styles.calculatorRow}>
-              <Text style={styles.calculatorLabel}>Estimated Monthly Spend</Text>
-              <TextInput
-                style={styles.calculatorInput}
-                value={monthlySpend}
-                onChangeText={setMonthlySpend}
-                keyboardType="numeric"
-                placeholder="10000"
-              />
-            </View>
-            <View style={styles.calculatorRow}>
-              <Text style={styles.calculatorLabel}>Estimated Monthly Savings (10%)</Text>
-              <Text style={styles.calculatorValue}>₹{monthlySavings.toFixed(0)}</Text>
-            </View>
-            <View style={styles.calculatorRow}>
-              <Text style={styles.calculatorLabel}>Estimated Annual Savings</Text>
-              <Text style={styles.calculatorValueLarge}>₹{annualSavings.toFixed(0)}</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Membership Plans */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Membership Plans</Text>
-          
-          {/* Tab Navigation */}
-          <View style={styles.tabContainer}>
+          {/* Header */}
+          <View style={styles.header}>
+            <Image source={require('../assets/images/intown-logo.jpg')} style={styles.logo} resizeMode="contain" />
             <TouchableOpacity
-              style={[styles.tab, activeTab === 'customer' && styles.activeTab]}
-              onPress={() => setActiveTab('customer')}
+              onPress={(e) => {
+                e.stopPropagation();
+                toggleDropdown(e);
+              }}
+              style={styles.profileButton}
             >
-              <Text style={[styles.tabText, activeTab === 'customer' && styles.activeTabText]}>
-                Customer
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.tab, activeTab === 'merchant' && styles.activeTab]}
-              onPress={() => setActiveTab('merchant')}
-            >
-              <Text style={[styles.tabText, activeTab === 'merchant' && styles.activeTabText]}>
-                Merchant
-              </Text>
+              <View style={styles.profileInfo}>
+                <Text style={styles.userName}>{user?.name}</Text>
+                <Text style={styles.userPhone}>{user?.phone}</Text>
+              </View>
+            <Ionicons name="person" size={20} color="#ffffff" />
+
+ 
+
             </TouchableOpacity>
           </View>
 
-          {/* Customer Tab Content */}
-          {activeTab === 'customer' && (
-            <View style={styles.tabContent}>
-              {/* IT Max Plan */}
-              <View style={styles.planCard}>
-                <Text style={styles.planName}>IT Max</Text>
-                <View style={styles.planPriceRow}>
-                  <Text style={styles.planPrice}>₹999</Text>
-                  <Text style={styles.planPeriod}>/Year</Text>
-                </View>
-                <Text style={styles.planDescription}>
-                  Premium individual membership with exclusive benefits and unlimited access to all partner stores.
-                </Text>
-                <TouchableOpacity
-                  style={styles.purchaseButton}
-                  onPress={() => router.push('/register-member')}
-                >
-                  <Text style={styles.purchaseButtonText}>Purchase Now</Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* IT Max Plus Plan */}
-              <View style={[styles.planCard, styles.popularPlan]}>
-                <View style={styles.popularBadge}>
-                  <Text style={styles.popularBadgeText}>Most Popular</Text>
-                </View>
-                <Text style={styles.planName}>IT Max Plus</Text>
-                <View style={styles.planPriceRow}>
-                  <Text style={styles.planPrice}>₹1499</Text>
-                  <Text style={styles.planPeriod}>/Year</Text>
-                </View>
-                <Text style={styles.planDescription}>
-                  Premium couple membership with exclusive benefits and unlimited access to all partner stores.
-                </Text>
-                <TouchableOpacity
-                  style={[styles.purchaseButton, styles.purchaseButtonPrimary]}
-                  onPress={() => router.push('/register-member')}
-                >
-                  <Text style={styles.purchaseButtonText}>Purchase Now</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          )}
-
-          {/* Merchant Tab Content */}
-          {activeTab === 'merchant' && (
-            <View style={styles.tabContent}>
-              <View style={styles.merchantContent}>
-                <Text style={styles.merchantTagline}>"Local. Trusted. Rewarding."</Text>
-                <Text style={styles.merchantDescription}>
-                  Grow your business with our merchant friendly platform that puts you in your control.
-                </Text>
-                
-                <View style={styles.featuresList}>
-                  <View style={styles.featureItem}>
-                    <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
-                    <Text style={styles.featureText}>Zero Commissions</Text>
-                  </View>
-                  <View style={styles.featureItem}>
-                    <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
-                    <Text style={styles.featureText}>No Joining Fee</Text>
-                  </View>
-                  <View style={styles.featureItem}>
-                    <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
-                    <Text style={styles.featureText}>Boost Walk-ins</Text>
-                  </View>
-                  <View style={styles.featureItem}>
-                    <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
-                    <Text style={styles.featureText}>Control Your Offers</Text>
-                  </View>
-                  <View style={styles.featureItem}>
-                    <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
-                    <Text style={styles.featureText}>Free Promotion</Text>
-                  </View>
-                  <View style={styles.featureItem}>
-                    <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
-                    <Text style={styles.featureText}>Customer Loyalty</Text>
-                  </View>
-                </View>
-
-                <TouchableOpacity
-                  style={styles.registerMerchantButton}
-                  onPress={() => router.push('/register-merchant')}
-                >
-                  <Text style={styles.registerMerchantButtonText}>Register as Merchant</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          )}
-        </View>
-
-        {/* Nearby Shops Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Nearby Shops</Text>
-          <View style={styles.autoScrollContainer}>
+          {/* Animated User Panel (Swiggy-style) */}
+          {showDropdown && (
             <Animated.View
               style={[
-                styles.autoScrollContent,
-                { transform: [{ translateX: scrollX }] },
+                styles.userPanel,
+                {
+                  opacity: dropdownAnim,
+                  transform: [
+                    {
+                      translateY: dropdownAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [-8, 0],
+                      }),
+                    },
+                    {
+                      scale: dropdownAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0.98, 1],
+                      }),
+                    },
+                  ],
+                },
               ]}
             >
-              {/* Render shops twice for seamless loop */}
-              {[...DUMMY_NEARBY_SHOPS, ...DUMMY_NEARBY_SHOPS].map((shop, index) => (
-                <ShopCard
-                  key={`${shop.id}-${index}`}
-                  shop={shop}
-                  onInteractionChange={handleInteractionChange}
-                  onPress={() => setShowRegistrationModal(true)}
-                />
-              ))}
+              {/* USER HEADER */}
+              <View style={styles.userPanelHeader}>
+                <Ionicons name="person-circle" size={48} color="#FF6600" />
+                <View style={{ marginLeft: 10 }}>
+                  <Text style={styles.userPanelName}>{user?.name ?? 'Guest User'}</Text>
+                 <Text style={styles.userPanelPhone}>
+  {user?.phone ?? ''}
+</Text>
+
+                </View>
+              </View>
+{/* MY ACCOUNT */}
+<TouchableOpacity
+  style={styles.userPanelItem}
+  onPress={() => {
+    toggleDropdown();
+    router.push('/account');
+  }}
+>
+  <Ionicons name="person-outline" size={20} color="#333" />
+  <Text style={styles.userPanelText}>My Account</Text>
+</TouchableOpacity>
+
+
+
+{/* BECOME A MEMBER */}
+<TouchableOpacity
+  style={styles.userPanelItem}
+  onPress={() => {
+    toggleDropdown();
+    router.push('/register-member');
+  }}
+>
+  <Ionicons name="star-outline" size={20} color="#333" />
+  <Text style={styles.userPanelText}>Become a Member</Text>
+</TouchableOpacity>
+
+{/* BECOME A MERCHANT */}
+<TouchableOpacity
+  style={styles.userPanelItem}
+  onPress={() => {
+    toggleDropdown();
+    router.push('/register-merchant');
+  }}
+>
+  <Ionicons name="storefront-outline" size={20} color="#333" />
+  <Text style={styles.userPanelText}>Become a Merchant</Text>
+</TouchableOpacity>
+
+             
+
+              <TouchableOpacity style={[styles.userPanelItem, { marginTop: 6 }]} onPress={handleLogout}>
+                <Ionicons name="log-out-outline" size={22} color="#FF0000" />
+                <Text style={[styles.userPanelText, { color: '#FF0000' }]}>Logout</Text>
+              </TouchableOpacity>
             </Animated.View>
+          )}
+
+        
+
+          {/* Search Box */}
+          <View style={styles.searchContainer}>
+            <View style={styles.searchBox}>
+              <Ionicons name="search" size={24} color="#999999" style={styles.searchIcon} />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search for Grocery, Salon, Fashion..."
+                value={searchQuery}
+                onChangeText={handleSearchChange}
+                onFocus={handleSearchFocus}
+                onBlur={handleSearchBlur}
+                placeholderTextColor="#999999"
+              />
+            </View>
           </View>
-        </View>
 
-        <Footer />
+          {/* Search Dropdown */}
+          {showSearchDropdown && filteredCategories.length > 0 && (
+            <TouchableOpacity style={styles.searchDropdownContainer} activeOpacity={1} onPress={(e) => e.stopPropagation()}>
+              <View style={styles.searchDropdown}>
+                {filteredCategories.map((category) => (
+                  <TouchableOpacity
+                    key={category.id}
+                    style={styles.searchDropdownItem}
+                    onPress={() => setShowRegistrationModal(true)}
+                  >
+                    <View style={styles.searchDropdownItemContent}>
+                      <View style={styles.searchDropdownItemLeft}>
+                        <Ionicons name={category.icon as any} size={20} color="#FF6600" />
+                        <Text style={styles.searchDropdownItemText}>{category.name}</Text>
+                      </View>
+                      <TouchableOpacity style={styles.viewButton} onPress={() => setShowRegistrationModal(true)}>
+                        <Text style={styles.viewButtonText}>View</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.viewButton} onPress={() => setShowRegistrationModal(true)}>
+                        <Text style={styles.viewButtonNavigate}>Navigate</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </TouchableOpacity>
+          )}
 
+          {/* ===================== CAROUSEL ===================== */}
+          <View style={styles.carouselWrapper}>
+            <ScrollView
+              ref={carouselRef}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              pagingEnabled
+              snapToInterval={slideWidth}
+              decelerationRate="fast"
+              onMomentumScrollEnd={(e) => {
+                onCarouselScrollEnd(e);
+                startCarouselAutoplay();
+              }}
+              contentContainerStyle={{}}
+              onScrollBeginDrag={stopCarouselAutoplay}
+            >
+              {CAROUSEL_IMAGES.map((imgSrc, idx) => (
+                <View key={idx} style={styles.carouselSlide}>
+                  <TouchableOpacity
+                    activeOpacity={0.9}
+                    style={styles.carouselTouchable}
+                    onPress={() => {
+                      /* handle click if needed */
+                    }}
+                  >
+                    <Image
+                      source={imgSrc}
+                      style={styles.carouselImage}
+                      resizeMode="cover"
+                    />
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </ScrollView>
+
+            {/* Dots */}
+            <View style={styles.dotsRow}>
+              {CAROUSEL_IMAGES.map((_, i) => (
+                <View key={i} style={[styles.dot, carouselIndex === i ? styles.dotActive : null]} />
+              ))}
+            </View>
+          </View>
+          {/* =================== End Carousel =================== */}
+
+          {/* Popular Categories */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Popular Categories</Text>
+            <View style={styles.categoriesGrid}>
+              {categories.length > 0 ? (
+                categories.map((category) => (
+                  <TouchableOpacity key={category.id} style={styles.categoryCard} onPress={() => setShowRegistrationModal(true)}>
+                    <View style={styles.categoryIcon}>
+                      <Ionicons name={category.icon as any} size={32} color="#FF6600" />
+                      <Text style={styles.categoryName}>{category.name}</Text>
+                    </View>
+                  </TouchableOpacity>
+                ))
+              ) : (
+                <Text style={styles.noCategoriesText}>No categories available</Text>
+              )}
+            </View>
+          </View>
+
+          {/* Theme Section */}
+          <View style={styles.themeSection}>
+            <Text style={styles.themeTitle}>Transform Local Retail</Text>
+            <Text style={styles.themeSubtitle}>Present Local Retail Shops to Digital Presence</Text>
+          </View>
+
+{/* Savings Calculator */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Savings Calculator</Text>
+            <View style={styles.calculatorCard}>
+              <View style={styles.calculatorRow}>
+                <Text style={styles.calculatorLabel}>Estimated Monthly Spend</Text>
+                <TextInput
+                  style={styles.calculatorInput}
+                  value={monthlySpend}
+                  onChangeText={setMonthlySpend}
+                  keyboardType="numeric"
+                  placeholder="10000"
+                />
+              </View>
+              <View style={styles.calculatorRow}>
+                <Text style={styles.calculatorLabel}>Estimated Monthly Savings (10%)</Text>
+                <Text style={styles.calculatorValue}>₹{monthlySavings.toFixed(0)}</Text>
+              </View>
+              <View style={styles.calculatorRow}>
+                <Text style={styles.calculatorLabel}>Estimated Annual Savings</Text>
+                <Text style={styles.calculatorValueLarge}>₹{annualSavings.toFixed(0)}</Text>
+              </View>
+            </View>
+          </View>
+
+        
+
+          
+
+          {/* Membership Plans */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Membership Plans</Text>
+
+            {/* Tab Navigation */}
+            <View style={styles.tabContainer}>
+              <TouchableOpacity
+                style={[styles.tab, activeTab === 'customer' && styles.activeTab]}
+                onPress={() => setActiveTab('customer')}
+              >
+                <Text style={[styles.tabText, activeTab === 'customer' && styles.activeTabText]}>Customer</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.tab, activeTab === 'merchant' && styles.activeTab]}
+                onPress={() => setActiveTab('merchant')}
+              >
+                <Text style={[styles.tabText, activeTab === 'merchant' && styles.activeTabText]}>Merchant</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Customer Tab Content */}
+            {activeTab === 'customer' && (
+              <View style={styles.tabContent}>
+                {/* IT Max Plan */}
+                <View style={styles.planCard}>
+                  <Text style={styles.planName}>IT Max</Text>
+                  <View style={styles.planPriceRow}>
+                    <Text style={styles.planPrice}>₹999</Text>
+                    <Text style={styles.planPeriod}>/Year</Text>
+                  </View>
+                  <Text style={styles.planDescription}>
+                    Premium individual membership with exclusive benefits and unlimited access to all partner stores.
+                  </Text>
+                  <TouchableOpacity style={styles.purchaseButton} onPress={() => router.push('/register-member')}>
+                    <Text style={styles.purchaseButtonText}>Purchase Now</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* IT Max Plus Plan */}
+                <View style={[styles.planCard, styles.popularPlan]}>
+                  <View style={styles.popularBadge}>
+                    <Text style={styles.popularBadgeText}>Most Popular</Text>
+                  </View>
+                  <Text style={styles.planName}>IT Max Plus</Text>
+                  <View style={styles.planPriceRow}>
+                    <Text style={styles.planPrice}>₹1499</Text>
+                    <Text style={styles.planPeriod}>/Year</Text>
+                  </View>
+                  <Text style={styles.planDescription}>
+                    Premium couple membership with exclusive benefits and unlimited access to all partner stores.
+                  </Text>
+                  <TouchableOpacity
+                    style={[styles.purchaseButton, styles.purchaseButtonPrimary]}
+                    onPress={() => router.push('/register-member')}
+                  >
+                    <Text style={styles.purchaseButtonText}>Purchase Now</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+
+            {/* Merchant Tab Content */}
+            {activeTab === 'merchant' && (
+              <View style={styles.tabContent}>
+                <View style={styles.merchantContent}>
+                  <Text style={styles.merchantTagline}>"Local. Trusted. Rewarding."</Text>
+                  <Text style={styles.merchantDescription}>
+                    Grow your business with our merchant friendly platform that puts you in your control.
+                  </Text>
+
+                  <View style={styles.featuresList}>
+                    <View style={styles.featureItem}>
+                      <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+                      <Text style={styles.featureText}>Zero Commissions</Text>
+                    </View>
+                    <View style={styles.featureItem}>
+                      <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+                      <Text style={styles.featureText}>No Joining Fee</Text>
+                    </View>
+                    <View style={styles.featureItem}>
+                      <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+                      <Text style={styles.featureText}>Boost Walk-ins</Text>
+                    </View>
+                    <View style={styles.featureItem}>
+                      <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+                      <Text style={styles.featureText}>Control Your Offers</Text>
+                    </View>
+                    <View style={styles.featureItem}>
+                      <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+                      <Text style={styles.featureText}>Free Promotion</Text>
+                    </View>
+                    <View style={styles.featureItem}>
+                      <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+                      <Text style={styles.featureText}>Customer Loyalty</Text>
+                    </View>
+                  </View>
+
+                  <TouchableOpacity
+                    style={styles.registerMerchantButton}
+                    onPress={() => router.push('/register-merchant')}
+                  >
+                    <Text style={styles.registerMerchantButtonText}>Register as Merchant</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+          </View>
+
+          {/* Nearby Shops Section */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Nearby Shops</Text>
+            <View style={styles.autoScrollContainer}>
+              <Animated.View
+                style={[
+                  styles.autoScrollContent,
+                  {
+                    transform: [{ translateX: scrollX }],
+                  },
+                ]}
+              >
+                {[...DUMMY_NEARBY_SHOPS, ...DUMMY_NEARBY_SHOPS].map((shop, index) => (
+                  <TouchableOpacity
+                    key={${shop.id}-${index}}
+                    style={styles.shopCard}
+                    onPress={() => setShowRegistrationModal(true)}
+                  >
+                    <View style={styles.shopImagePlaceholder}>
+                      <Ionicons name="storefront" size={40} color="#FF6600" />
+                    </View>
+                    <Text style={styles.shopCardName} numberOfLines={1}>
+                      {shop.name}
+                    </Text>
+                    <Text style={styles.shopCardCategory}>{shop.category}</Text>
+                    <View style={styles.shopCardDistance}>
+                      <Ionicons name="location" size={14} color="#666666" />
+                      <Text style={styles.shopCardDistanceText}>{shop.distance} km</Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </Animated.View>
+            </View>
+          </View>
+
+          {/* Footer */}
+          <View style={styles.footer}>
+            <Text style={styles.footerTagline}>
+              Shop Local, Save Instantly! Connecting Communities Through Personal Bond.
+            </Text>
+            <Text style={styles.footerDescription}>
+              India's most trusted local savings network, helping customers save instantly while enabling small
+              businesses to thrive.
+            </Text>
+            <Text style={styles.footerCopyright}>
+              Copyright © 2025, Yagnavihar Lifestyle Pvt. Ltd.
+            </Text>
+          </View>
         </ScrollView>
       </TouchableOpacity>
 
@@ -615,7 +748,7 @@ const styles = StyleSheet.create({
   logo: {
     width: 140,
     height: 50,
-  },
+ },
   profileButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -635,10 +768,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 12,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
@@ -670,6 +800,59 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 10,
   },
+
+  /* --- New userPanel styles (Swiggy-like) --- */
+  userPanel: {
+    position: 'absolute',
+    top: 70,
+    right: 16,
+    width: 260,
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowOffset: { width: 0, height: 6 },
+    shadowRadius: 12,
+    elevation: 10,
+    zIndex: 2000,
+  },
+
+  userPanelHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F2F2F2',
+  },
+
+  userPanelName: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1A1A1A',
+  },
+
+  userPanelPhone: {
+    fontSize: 12,
+    color: '#777',
+    marginTop: 2,
+  },
+
+  userPanelItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+
+  userPanelText: {
+    fontSize: 15,
+    marginLeft: 12,
+    color: '#333',
+    fontWeight: '500',
+  },
+  /* --- end new userPanel styles --- */
+
   searchContainer: {
     padding: 16,
     backgroundColor: '#FFFFFF',
@@ -706,10 +889,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginTop: 4,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
@@ -758,14 +938,74 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '600',
   },
+
+  
+ 
+ 
+
+ 
+ 
+
+  // ---------- CAROUSEL STYLES ----------
+  carouselWrapper: {
+marginTop: 12,
+  marginBottom: 8,
+  height: CAROUSEL_HEIGHT + 16,
+},
+
+  // each slide is one full "page"
+  carouselSlide: {
+    width: slideWidth,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  carouselTouchable: {
+    width: '100%',
+    alignItems: 'center',
+  },
+  carouselImage: {
+    width: slideWidth - 32, // small gap left/right
+    ...Platform.select({
+      web: {
+        aspectRatio: CAROUSEL_ASPECT_RATIO,
+        maxHeight: 260,
+      },
+      default: {
+        height: CAROUSEL_NATIVE_HEIGHT,
+        maxHeight: 180,
+      },
+    }),
+    borderRadius: 12,
+    backgroundColor: '#eee',
+  },
+  dotsRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 8,
+    gap: 8,
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 8,
+    backgroundColor: '#ddd',
+    marginHorizontal: 4,
+  },
+  dotActive: {
+    backgroundColor: '#FF6600',
+  },
+  // -------------------------------------
+
   section: {
     padding: 16,
   },
   sectionTitle: {
-    ...FontStylesWithFallback.h4,
-    color: '#1A1A1A',
-    marginBottom: 16,
-  },
+  fontSize: 18,
+  fontWeight: '700',
+  color: '#1A1A1A',
+  marginBottom: 16,
+},
+
   tabContainer: {
     flexDirection: 'row',
     backgroundColor: '#F5F5F5',
@@ -846,6 +1086,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '600',
   },
+
   categoriesGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -857,7 +1098,7 @@ const styles = StyleSheet.create({
   },
   categoryIcon: {
     backgroundColor: '#ebd7d7',
-    borderRadius: 12,
+borderRadius: 12,
     padding: 16,
     alignItems: 'center',
     marginBottom: 8,
@@ -869,15 +1110,15 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontWeight: '600',
     fontSize: 16,
-
   },
+
   noCategoriesText: {
     ...FontStylesWithFallback.body,
     color: '#666666',
     textAlign: 'center',
     padding: 20,
-
   },
+
   themeSection: {
     backgroundColor: '#e6e6e6',
     padding: 24,
@@ -897,6 +1138,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 16,
   },
+
   calculatorCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
@@ -935,6 +1177,16 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#4CAF50',
   },
+
+ 
+
+
+  
+  
+ 
+
+  
+
   planCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
@@ -1016,8 +1268,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   autoScrollContainer: {
-    overflow: 'visible',
-    paddingVertical: 40, // Room to scale
+    overflow: 'hidden',
   },
   autoScrollContent: {
     flexDirection: 'row',
@@ -1030,14 +1281,6 @@ const styles = StyleSheet.create({
     marginRight: 12,
     borderWidth: 1,
     borderColor: '#EEEEEE',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
   shopImagePlaceholder: {
     width: '100%',
@@ -1068,7 +1311,30 @@ const styles = StyleSheet.create({
     color: '#666666',
     marginLeft: 4,
   },
-  
+  footer: {
+    backgroundColor: '#1A1A1A',
+    padding: 24,
+    alignItems: 'center',
+  },
+  footerTagline: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#FF6600',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  footerDescription: {
+    fontSize: 14,
+    color: '#CCCCCC',
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 16,
+  },
+  footerCopyright: {
+    fontSize: 12,
+    color: '#999999',
+    textAlign: 'center',
+  },
   modalContainer: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
@@ -1109,4 +1375,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666666',
   },
+ 
+
 });

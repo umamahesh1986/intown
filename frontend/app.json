@@ -20,6 +20,7 @@
         "backgroundColor": "#FF6600"
       },
       "edgeToEdgeEnabled": true,
+      "permissions": ["ACCESS_FINE_LOCATION"],
       "config": {
         "googleMaps": {
           "apiKey": "AIzaSyBo3BuGtZ92gvUzyEDIWp4SXVbIxT28LNY"

@@ -76,13 +76,7 @@ export default function MemberShopList() {
               >
                 <Text style={styles.viewButtonText}>View</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.navigateButton}
-                onPress={() => handleNavigate(item.id)}
-              >
-                <Ionicons name="navigate" size={16} color="#FFF" />
-                <Text style={styles.navigateButtonText}>Navigate</Text>
-              </TouchableOpacity>
+              
             </View>
           </View>
         )}

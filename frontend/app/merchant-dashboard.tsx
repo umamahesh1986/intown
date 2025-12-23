@@ -113,29 +113,22 @@ export default function MerchantDashboard() {
 
   const stats = getTotalStats();
 
-  const handleLogout = async () => {
-    Alert.alert('Logout', 'Are you sure you want to logout?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Logout',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            // Clear all storage
-            await AsyncStorage.clear();
-            // Call logout from store
-            await logout();
-            // Force navigation to login
-            router.replace('/login');
-          } catch (error) {
-            console.error('Logout error:', error);
-            // Force navigation even on error
-            router.replace('/login');
-          }
-        },
-      },
-    ]);
-  };
+ const handleLogout = async () => {
+  try {
+    // 1️⃣ Clear local storage
+    await AsyncStorage.clear();
+
+    // 2️⃣ Clear auth store
+    logout();
+
+    // 3️⃣ Force redirect
+    router.replace('/login');
+  } catch (error) {
+    console.error('Logout error:', error);
+    router.replace('/login');
+  }
+};
+
 
   return (
     <SafeAreaView style={styles.container}>
