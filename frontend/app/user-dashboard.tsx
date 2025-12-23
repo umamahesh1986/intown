@@ -248,7 +248,7 @@ const CAROUSEL_IMAGES = CAROUSEL_IMAGES_RAW.map(image =>
   };
 
   const stopCarouselAutoplay = () => {
-    if (autoPlayTimer.current) {
+if (autoPlayTimer.current) {
       clearInterval(autoPlayTimer.current);
       autoPlayTimer.current = null;
     }
@@ -500,7 +500,7 @@ const CAROUSEL_IMAGES = CAROUSEL_IMAGES_RAW.map(image =>
             <Text style={styles.themeSubtitle}>Present Local Retail Shops to Digital Presence</Text>
           </View>
 
-          {/* Savings Calculator */}
+{/* Savings Calculator */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Savings Calculator</Text>
             <View style={styles.calculatorCard}>
@@ -651,7 +651,7 @@ const CAROUSEL_IMAGES = CAROUSEL_IMAGES_RAW.map(image =>
               >
                 {[...DUMMY_NEARBY_SHOPS, ...DUMMY_NEARBY_SHOPS].map((shop, index) => (
                   <TouchableOpacity
-                    key={`${shop.id}-${index}`}
+                    key={${shop.id}-${index}}
                     style={styles.shopCard}
                     onPress={() => setShowRegistrationModal(true)}
                   >
@@ -748,7 +748,7 @@ const styles = StyleSheet.create({
   logo: {
     width: 140,
     height: 50,
-  },
+ },
   profileButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -948,7 +948,7 @@ const styles = StyleSheet.create({
 
   // ---------- CAROUSEL STYLES ----------
   carouselWrapper: {
-  marginTop: 12,
+marginTop: 12,
   marginBottom: 8,
   height: CAROUSEL_HEIGHT + 16,
 },
@@ -1098,7 +1098,7 @@ const styles = StyleSheet.create({
   },
   categoryIcon: {
     backgroundColor: '#ebd7d7',
-    borderRadius: 12,
+borderRadius: 12,
     padding: 16,
     alignItems: 'center',
     marginBottom: 8,

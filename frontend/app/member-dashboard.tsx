@@ -1,4 +1,3 @@
-// member-dashboard.tsx — Expo + Image Picker + Member Photo
 import {
   View,
   Text,
@@ -198,7 +197,7 @@ const [isSearchFocused, setIsSearchFocused] = useState(false);
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         quality: 0.7,
         allowsEditing: true,
-        aspect: [1, 1],
+aspect: [1, 1],
       });
 
       // handle new expo result shape (assets)
@@ -222,9 +221,9 @@ const [isSearchFocused, setIsSearchFocused] = useState(false);
     setUploading(true);
     try {
       const form = new FormData();
-      const filename = uri.split('/').pop() ?? `photo.jpg`;
+      const filename = uri.split('/').pop() ?? photo.jpg;
       const match = /\.(\w+)$/.exec(filename);
-      const type = match ? `image/${match[1]}` : 'image/jpeg';
+      const type = match ? image/${match[1]} : 'image/jpeg';
 
       // @ts-ignore — FormData file object
       form.append('photo', {
@@ -336,7 +335,7 @@ const [isSearchFocused, setIsSearchFocused] = useState(false);
       <View style={styles.suggestionBox}>
         {suggestions.map((item, index) => (
           <TouchableOpacity
-            key={`${item}-${index}`}
+            key={${item}-${index}}
             style={styles.suggestionItem}
             onPress={() => {
               setSearchQuery(item);
@@ -398,7 +397,7 @@ const [isSearchFocused, setIsSearchFocused] = useState(false);
             <View style={styles.calculatorCard}>
               <View style={styles.calculatorRow}>
                 <Text style={styles.calculatorLabel}>Estimated Monthly Spend</Text>
-                <TextInput
+<TextInput
                   style={styles.calculatorInput}
                   value={monthlySpend}
                   onChangeText={setMonthlySpend}
@@ -435,7 +434,7 @@ const [isSearchFocused, setIsSearchFocused] = useState(false);
               >
                 {[...DUMMY_NEARBY_SHOPS, ...DUMMY_NEARBY_SHOPS].map((shop, index) => (
                   <TouchableOpacity
-                    key={`${shop.id}-${index}`}
+                    key={${shop.id}-${index}}
                     style={styles.shopCard}
                     onPress={() =>
                       router.push({
@@ -598,7 +597,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#EEEEEE',
   },
   logo: { width: 140, height: 50 },
-  profileButton: { flexDirection: 'row', alignItems: 'center' },
+profileButton: { flexDirection: 'row', alignItems: 'center' },
   profileInfo: { alignItems: 'flex-end', marginRight: 8 },
   userName: { fontSize: 14, fontWeight: '600', color: '#1A1A1A' },
   memberBadge: {
@@ -798,8 +797,7 @@ const styles = StyleSheet.create({
   paddingHorizontal: 6,
   borderRadius: 8,
 },
-
-  userPanelText: { fontSize: 15, marginLeft: 12, color: '#333' },
+ userPanelText: { fontSize: 15, marginLeft: 12, color: '#333' },
   suggestionBox: {
   backgroundColor: '#fff',
   borderRadius: 10,
