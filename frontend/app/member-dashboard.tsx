@@ -223,7 +223,7 @@ aspect: [1, 1],
       const form = new FormData();
       const filename = uri.split('/').pop() ?? photo.jpg;
       const match = /\.(\w+)$/.exec(filename);
-      const type = match ? image/${match[1]} : 'image/jpeg';
+      const type = match ? `image/${match[1]}` : 'image/jpeg';
 
       // @ts-ignore — FormData file object
       form.append('photo', {
@@ -335,7 +335,7 @@ aspect: [1, 1],
       <View style={styles.suggestionBox}>
         {suggestions.map((item, index) => (
           <TouchableOpacity
-            key={${item}-${index}}
+            key={`${item}-${index}`}
             style={styles.suggestionItem}
             onPress={() => {
               setSearchQuery(item);
@@ -434,7 +434,7 @@ aspect: [1, 1],
               >
                 {[...DUMMY_NEARBY_SHOPS, ...DUMMY_NEARBY_SHOPS].map((shop, index) => (
                   <TouchableOpacity
-                    key={${shop.id}-${index}}
+                    key={`${shop.id}-${index}`}
                     style={styles.shopCard}
                     onPress={() =>
                       router.push({

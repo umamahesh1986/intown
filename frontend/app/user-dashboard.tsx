@@ -651,7 +651,7 @@ if (autoPlayTimer.current) {
               >
                 {[...DUMMY_NEARBY_SHOPS, ...DUMMY_NEARBY_SHOPS].map((shop, index) => (
                   <TouchableOpacity
-                    key={${shop.id}-${index}}
+                    key={`${shop.id}-${index}`}
                     style={styles.shopCard}
                     onPress={() => setShowRegistrationModal(true)}
                   >
