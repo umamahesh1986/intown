@@ -121,4 +121,39 @@ export const processPayment = async (paymentData: any) => {
     message: 'Payment successful',
     savings: paymentData.amount * 0.1,
   };
+  
 };
+// 🔐 Check role after OTP verification
+export const checkUserRole = async (phone: string) => {
+  const response = await fetch('http://localhost:8080/auth/check-role', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ phone }),
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to check user role');
+  }
+
+  return response.json();
+};
+// 👤 Auto-register new user
+export const autoRegisterUser = async (phone: string) => {
+  const response = await fetch('http://localhost:8080/auth/auto-register-user', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ phone }),
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to auto-register user');
+  }
+
+  return response.json();
+};
+
+

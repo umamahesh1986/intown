@@ -11,7 +11,9 @@ import {
 import { useState, useRef } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { verifyOTP } from '../utils/api';
+import { verifyOTP, checkUserRole, autoRegisterUser } from '../utils/api';
+
+
 import { useAuthStore } from '../store/authStore';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -43,7 +45,29 @@ export default function OTPScreen() {
         await setToken(response.token);
         
         Alert.alert('Success', 'Login successful!');
-        router.replace('/user-dashboard');
+       if (response.success) {
+  // Save user & token
+  setUser(response.user);
+  await AsyncStorage.setItem('user_data', JSON.stringify(response.user));
+  await setToken(response.token);
+
+  // 🔥 NEW STEP: get role from backend
+  const roleResponse = await checkUserRole(phone);
+
+ if (roleResponse.role === 'MERCHANT') {
+  router.replace('/merchant-dashboard');
+
+} else if (roleResponse.role === 'MEMBER') {
+  router.replace('/member-dashboard');
+
+} else {
+  // 👤 NEW USER → auto-register
+  await autoRegisterUser(phone);
+  router.replace('/user-dashboard');
+}
+
+}
+
       } else {
         Alert.alert('Error', response.message || 'Invalid OTP');
       }

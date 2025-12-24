@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { FontStylesWithFallback } from '../utils/fonts';
+import Footer from '../components/Footer'
 
 interface Payment {
   id: string;
@@ -288,14 +289,7 @@ export default function MerchantDashboard() {
         </View>
 
         {/* Footer */}
-        <View style={styles.footer}>
-          <Text style={styles.footerTagline}>
-            Growing Your Business Through Digital Presence
-          </Text>
-          <Text style={styles.footerDescription}>
-            IntownLocal helps you reach more customers and grow your business.
-          </Text>
-        </View>
+        <Footer/>
       </ScrollView>
     </SafeAreaView>
   );
