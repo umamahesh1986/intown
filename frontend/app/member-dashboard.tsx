@@ -20,6 +20,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useAuthStore } from '../store/authStore';
 import { getCategories } from '../utils/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Footer from '../components/Footer'
 
 const { width } = Dimensions.get('window');
 
@@ -221,7 +222,8 @@ aspect: [1, 1],
     setUploading(true);
     try {
       const form = new FormData();
-      const filename = uri.split('/').pop() ?? photo.jpg;
+      const filename = uri.split('/').pop() ?? 'photo.jpg';
+
       const match = /\.(\w+)$/.exec(filename);
       const type = match ? `image/${match[1]}` : 'image/jpeg';
 
@@ -471,18 +473,7 @@ aspect: [1, 1],
           </View>
 
           {/* FOOTER */}
-          <View style={styles.footer}>
-            <Text style={styles.footerTagline}>
-              Shop Local, Save Instantly! Connecting Communities Through Personal Bond.
-            </Text>
-            <Text style={styles.footerDescription}>
-              India's most trusted local savings network, helping customers save instantly
-              while enabling small businesses to thrive.
-            </Text>
-            <Text style={styles.footerCopyright}>
-              Copyright © 2025, Yagnavihar Lifestyle Pvt. Ltd.
-            </Text>
-          </View>
+         <Footer/>
         </ScrollView>
 
         {/* BACKDROP */}
@@ -523,7 +514,7 @@ aspect: [1, 1],
 
               <View style={{ marginLeft: 10 }}>
                 <Text style={styles.userPanelName}>{user?.name ?? 'Member'}</Text>
-                <Text style={styles.userPanelPhone}>}{(user as any)?.phone ?? (user as any)?.email ?? ''}
+                <Text style={styles.userPanelPhone}>{(user as any)?.phone ?? (user as any)?.email ?? ''}
 </Text>
                 <Text style={styles.userPanelTag}>Plan: {currentPlan}</Text>
               </View>
