@@ -1,124 +1,187 @@
-import axios from 'axios';
+import axios from "axios";
+import { Platform } from "react-native";
 
-const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL || 'http://localhost:8001';
-const EXTERNAL_API = 'http://intownlocal.us-east-1.elasticbeanstalk.com/it';
+/* ===============================
+   BASE URL RESOLUTION
+================================ */
+
+// Android emulator → 10.0.2.2
+// iOS simulator / web → localhost
+const LOCAL_BACKEND =
+  Platform.OS === "android"
+    ? "http://10.0.2.2:8001"
+    : "http://localhost:8001";
+
+const BACKEND_URL =
+  process.env.EXPO_PUBLIC_BACKEND_URL || LOCAL_BACKEND;
+
+const EXTERNAL_API =
+  "http://intownlocal.us-east-1.elasticbeanstalk.com/it";
+
+/* ===============================
+   AXIOS INSTANCES
+================================ */
 
 export const api = axios.create({
   baseURL: `${BACKEND_URL}/api`,
+  timeout: 10000, // 10 seconds
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
 });
 
 export const externalApi = axios.create({
   baseURL: EXTERNAL_API,
+  timeout: 10000,
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
 });
 
-// Auth APIs
+/* ===============================
+   HELPER: NETWORK ERROR CHECK
+================================ */
+const isNetworkError = (error: any) => {
+  return (
+    !error.response &&
+    (error.message === "Network Error" ||
+      error.code === "ECONNABORTED")
+  );
+};
+
+/* ===============================
+   AUTH APIs
+================================ */
+
 export const sendOTP = async (phone: string) => {
   try {
-    const response = await api.post('/send-otp', { phone });
+    const response = await api.post("/send-otp", { phone });
     return response.data;
-  } catch (error) {
-    console.error('API Error:', error);
-    // Fallback for development/testing
-    return {
-      success: true,
-      message: 'OTP sent successfully (offline mode)',
-      otp: '1234' // For testing
-    };
+  } catch (error: any) {
+    console.warn("sendOTP API failed:", error.message);
+
+    // ✅ Offline / backend-down fallback
+    if (isNetworkError(error)) {
+      return {
+        success: true,
+        message: "OTP sent successfully (offline mode)",
+        otp: "1234",
+      };
+    }
+
+    throw error;
   }
 };
 
 export const verifyOTP = async (phone: string, otp: string) => {
   try {
-    const response = await api.post('/verify-otp', { phone, otp });
+    const response = await api.post("/verify-otp", { phone, otp });
     return response.data;
-  } catch (error) {
-    console.error('API Error:', error);
-    // Fallback for development/testing
-    if (otp === '1234') {
-      return {
-        success: true,
-        message: 'OTP verified successfully (offline mode)',
-        user: {
-          id: `user_${Date.now()}`,
-          name: 'Test User',
-          phone: phone,
-          email: `${phone}@test.com`,
-          userType: 'user'
-        },
-        token: `token_${Date.now()}`
-      };
-    } else {
+  } catch (error: any) {
+    console.warn("verifyOTP API failed:", error.message);
+
+    // ✅ Offline fallback
+    if (isNetworkError(error)) {
+      if (otp === "1234") {
+        return {
+          success: true,
+          message: "OTP verified successfully (offline mode)",
+          user: {
+            id: `user_${Date.now()}`,
+            name: "Test User",
+            phone,
+            email: `${phone}@test.com`,
+            userType: "user",
+          },
+          token: `token_${Date.now()}`,
+        };
+      }
+
       return {
         success: false,
-        message: 'Invalid OTP'
+        message: "Invalid OTP",
       };
     }
+
+    throw error;
   }
 };
 
-// Shop APIs
-export const getShops = async (lat: number, lng: number, category?: string) => {
+/* ===============================
+   SHOPS & MASTER DATA
+================================ */
+
+export const getShops = async (
+  lat: number,
+  lng: number,
+  category?: string
+) => {
   const params: any = { lat, lng };
   if (category) params.category = category;
-  const response = await api.get('/shops', { params });
+
+  const response = await api.get("/shops", { params });
   return response.data;
 };
 
 export const getPlans = async () => {
-  const response = await api.get('/plans');
+  const response = await api.get("/plans");
   return response.data;
 };
 
 export const getCategories = async () => {
-  const response = await api.get('/categories');
+  const response = await api.get("/categories");
   return response.data;
 };
 
-// Member Registration (External API - Mocked for now)
+/* ===============================
+   MEMBER REGISTRATION (MOCK)
+================================ */
+
 export const registerMember = async (memberData: any) => {
-  // Mock response for now
-  console.log('Registering member:', memberData);
+  console.log("Registering member (mock):", memberData);
+
   return {
     success: true,
-    message: 'Member registered successfully',
+    message: "Member registered successfully",
     memberId: `MEM${Date.now()}`,
     data: memberData,
   };
-  
-  // Real API call (uncomment when ready):
-  // const response = await externalApi.post('/customer/', memberData);
+
+  // Real API (enable later)
+  // const response = await externalApi.post("/customer/", memberData);
   // return response.data;
 };
 
-// Merchant Registration (External API - Mocked for now)
+/* ===============================
+   MERCHANT REGISTRATION (MOCK)
+================================ */
+
 export const registerMerchant = async (merchantData: any) => {
-  // Mock response for now
-  console.log('Registering merchant:', merchantData);
+  console.log("Registering merchant (mock):", merchantData);
+
   return {
     success: true,
-    message: 'Merchant registered successfully',
+    message: "Merchant registered successfully",
     merchantId: `MER${Date.now()}`,
     data: merchantData,
   };
-  
-  // Real API call (uncomment when ready):
-  // const response = await externalApi.post('/merchant/', merchantData);
+
+  // Real API (enable later)
+  // const response = await externalApi.post("/merchant/", merchantData);
   // return response.data;
 };
 
-// Payment API (Mocked)
+/* ===============================
+   PAYMENT (MOCK)
+================================ */
+
 export const processPayment = async (paymentData: any) => {
-  console.log('Processing payment:', paymentData);
+  console.log("Processing payment (mock):", paymentData);
+
   return {
     success: true,
     transactionId: `TXN${Date.now()}`,
-    message: 'Payment successful',
+    message: "Payment successful",
     savings: paymentData.amount * 0.1,
   };
 };
