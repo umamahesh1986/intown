@@ -4,15 +4,28 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
-// Only import MapView on native platforms
-let MapView: any;
-let Marker: any;
+// Web-safe placeholder components
+const WebMapPlaceholder = () => null;
+const WebMarkerPlaceholder = () => null;
 
-if (Platform.OS !== 'web') {
-  const maps = require('react-native-maps');
-  MapView = maps.default;
-  Marker = maps.Marker;
-}
+// Only import MapView on native platforms using lazy loading
+const getMapComponents = () => {
+  if (Platform.OS === 'web') {
+    return { MapView: WebMapPlaceholder, Marker: WebMarkerPlaceholder };
+  }
+  // Dynamic import only on native
+  try {
+    const maps = require('react-native-maps');
+    return { MapView: maps.default, Marker: maps.Marker };
+  } catch (e) {
+    console.warn('react-native-maps not available');
+    return { MapView: WebMapPlaceholder, Marker: WebMarkerPlaceholder };
+  }
+};
+
+const { MapView, Marker } = Platform.OS === 'web' 
+  ? { MapView: WebMapPlaceholder, Marker: WebMarkerPlaceholder }
+  : getMapComponents();
 
 export default function LocationPickerScreen() {
   const router = useRouter();
