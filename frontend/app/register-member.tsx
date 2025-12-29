@@ -11,19 +11,17 @@ import {
   Switch,
   ActivityIndicator,
 } from 'react-native';
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { registerMember } from '../utils/api';
 import { useAuthStore } from '../store/authStore';
-import { auth, PhoneAuthProvider, signInWithCredential, isFirebaseConfigured } from '../utils/firebase';
-import { FirebaseRecaptchaVerifierModal } from 'expo-firebase-recaptcha';
 
 export default function RegisterMember() {
   const router = useRouter();
-  const { setUserType, setUser } = useAuthStore();
+  const { setUserType } = useAuthStore();
   
   // Form state
   const [contactName, setContactName] = useState('');
@@ -34,15 +32,6 @@ export default function RegisterMember() {
   const [images, setImages] = useState<string[]>([]);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-
-  // OTP state
-  const [otpSent, setOtpSent] = useState(false);
-  const [otp, setOtp] = useState(['', '', '', '', '', '']);
-  const [verificationId, setVerificationId] = useState<string | null>(null);
-  const [isSendingOtp, setIsSendingOtp] = useState(false);
-  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
-  const recaptchaVerifier = useRef<FirebaseRecaptchaVerifierModal | null>(null);
-  const otpInputRefs = useRef<(TextInput | null)[]>([]);
 
   // Validation errors
   const [errors, setErrors] = useState<any>({});
@@ -127,204 +116,6 @@ export default function RegisterMember() {
     setImages(images.filter((_, i) => i !== index));
   };
 
-  // Firebase OTP Functions
-  const handleSendOTP = async () => {
-    // Validate phone number first
-    const phoneRegex = /^\d{10}$/;
-    if (!phoneNumber || !phoneRegex.test(phoneNumber)) {
-      Alert.alert('Invalid Phone', 'Please enter a valid 10-digit phone number');
-      setErrors({ ...errors, phoneNumber: 'Phone number must be exactly 10 digits' });
-      return;
-    }
-
-    setIsSendingOtp(true);
-    try {
-      // Format phone number with country code (India: +91)
-      const formattedPhone = `+91${phoneNumber}`;
-      
-      // Check if Firebase is configured and available
-      if (!isFirebaseConfigured || !auth || !recaptchaVerifier.current) {
-        // Use test mode if Firebase is not configured
-        setVerificationId('test-verification-id');
-        setOtpSent(true);
-        Alert.alert('Test Mode', 'Firebase is not configured. Using test mode. Use OTP: 123456');
-        setIsSendingOtp(false);
-        return;
-      }
-
-      // Create phone auth provider
-      const phoneAuthProvider = new PhoneAuthProvider(auth);
-      
-      // Get the verifier from the modal
-      const verifier = recaptchaVerifier.current;
-      
-      // Request verification code using reCAPTCHA verifier
-      const verificationId = await phoneAuthProvider.verifyPhoneNumber(
-        formattedPhone,
-        verifier
-      );
-
-      setVerificationId(verificationId);
-      setOtpSent(true);
-      Alert.alert('OTP Sent', 'Please check your phone for the verification code');
-    } catch (error: any) {
-      console.error('Error sending OTP:', error);
-      
-      // For testing purposes, if Firebase is not configured, use a mock flow
-      if (error.code === 'auth/invalid-api-key' || 
-          error.code === 'auth/configuration-not-found' || 
-          error.message?.includes('API key') ||
-          error.code === 'auth/missing-phone-number' ||
-          error.message?.includes('No Firebase App')) {
-        // Fallback to test mode
-        setVerificationId('test-verification-id');
-        setOtpSent(true);
-        Alert.alert('Test Mode', 'Firebase not configured. Using test mode. Use OTP: 123456');
-      } else {
-        Alert.alert('Error', error.message || 'Failed to send OTP. Please try again.');
-      }
-    } finally {
-      setIsSendingOtp(false);
-    }
-  };
-
-  const handleVerifyOTP = async () => {
-    const otpString = otp.join('');
-    if (!otpString || otpString.length !== 6) {
-      Alert.alert('Invalid OTP', 'Please enter the 6-digit OTP');
-      return;
-    }
-
-    if (!verificationId) {
-      Alert.alert('Error', 'Verification ID not found. Please request OTP again.');
-      return;
-    }
-
-    setIsVerifyingOtp(true);
-    try {
-      // For test mode, accept 123456
-      if (verificationId === 'test-verification-id' && otpString === '123456') {
-        // Mock successful verification
-        await handleRegistrationSuccess();
-        return;
-      }
-
-      // Real Firebase verification (only if Firebase is configured)
-      if (!isFirebaseConfigured || !auth) {
-        Alert.alert('Error', 'Firebase is not configured. Please use test OTP: 123456');
-        setIsVerifyingOtp(false);
-        return;
-      }
-
-      const credential = PhoneAuthProvider.credential(verificationId, otpString);
-      const userCredential = await signInWithCredential(auth, credential);
-      
-      if (userCredential.user) {
-        await handleRegistrationSuccess();
-      }
-    } catch (error: any) {
-      console.error('Error verifying OTP:', error);
-      
-      // If it's a test verification ID but wrong OTP, show specific message
-      if (verificationId === 'test-verification-id') {
-        Alert.alert('Invalid OTP', 'Please use test OTP: 123456');
-      } else {
-        Alert.alert('Error', error.message || 'Invalid OTP. Please try again.');
-      }
-    } finally {
-      setIsVerifyingOtp(false);
-    }
-  };
-
-  const handleRegistrationSuccess = async () => {
-    // Validate other form fields
-    if (!validateForm()) {
-      Alert.alert('Validation Error', 'Please fill all required fields correctly');
-      return;
-    }
-
-    setIsLoading(true);
-    
-    try {
-      const memberData = {
-        contactName,
-        location,
-        email,
-        phoneNumber,
-        pincode,
-        images,
-        agreedToTerms,
-      };
-
-      // Try to call API but don't worry about errors
-      await registerMember(memberData).catch(() => {
-        console.log('API call failed, but continuing anyway');
-      });
-      
-      // Set user data in auth store
-      setUser({
-        id: phoneNumber, // Using phone as ID
-        name: contactName,
-        phone: phoneNumber,
-        userType: 'member',
-      });
-      
-      // Set user type
-      await setUserType('member');
-      
-      // Navigate to user dashboard
-      console.log('Navigating to user dashboard...');
-      router.replace('/user-dashboard');
-      
-    } catch (error) {
-      console.log('Error during registration, but continuing anyway', error);
-      
-      // Set user data even on error
-      setUser({
-        id: phoneNumber, // Using phone as ID
-        name: contactName,
-        phone: phoneNumber,
-        userType: 'member',
-      });
-      
-      // Set user type even on error
-      await setUserType('member');
-      
-      // Navigate anyway
-      router.replace('/user-dashboard');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleOtpChange = (value: string, index: number) => {
-    // Only allow digits
-    const digit = value.replace(/[^0-9]/g, '');
-    if (digit.length > 1) return;
-
-    const newOtp = [...otp];
-    newOtp[index] = digit;
-    setOtp(newOtp);
-
-    // Auto-focus next input
-    if (digit && index < 5) {
-      otpInputRefs.current[index + 1]?.focus();
-    }
-
-    // Auto-verify when all 6 digits are entered
-    if (newOtp.every(d => d !== '') && newOtp.join('').length === 6) {
-      setTimeout(() => {
-        handleVerifyOTP();
-      }, 100);
-    }
-  };
-
-  const handleOtpKeyPress = (key: string, index: number) => {
-    if (key === 'Backspace' && !otp[index] && index > 0) {
-      otpInputRefs.current[index - 1]?.focus();
-    }
-  };
-
   const handleRegister = async () => {
     if (!validateForm()) {
       Alert.alert('Validation Error', 'Please fill all required fields correctly');
@@ -371,14 +162,6 @@ export default function RegisterMember() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Firebase reCAPTCHA Modal - Only render if Firebase is configured */}
-      {isFirebaseConfigured && auth ? (
-        <FirebaseRecaptchaVerifierModal
-          ref={recaptchaVerifier}
-          firebaseConfig={auth.app.options}
-          attemptInvisibleVerification={true}
-        />
-      ) : null}
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
@@ -441,81 +224,16 @@ export default function RegisterMember() {
           {/* Phone Number */}
           <View style={styles.formGroup}>
             <Text style={styles.label}>Phone Number *</Text>
-            <View style={styles.phoneInputContainer}>
-              <TextInput
-                style={[styles.input, styles.phoneInput, errors.phoneNumber && styles.inputError]}
-                value={phoneNumber}
-                onChangeText={(text) => {
-                  setPhoneNumber(text);
-                  setOtpSent(false);
-                  setOtp(['', '', '', '', '', '']);
-                  setVerificationId(null);
-                }}
-                placeholder="10-digit phone number"
-                placeholderTextColor="#999999"
-                keyboardType="phone-pad"
-                maxLength={10}
-                editable={!otpSent}
-              />
-              <TouchableOpacity
-                style={[styles.sendOtpButton, isSendingOtp && styles.buttonDisabled]}
-                onPress={handleSendOTP}
-                disabled={isSendingOtp || otpSent}
-              >
-                {isSendingOtp ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                ) : (
-                  <Text style={styles.sendOtpButtonText}>
-                    {otpSent ? 'OTP Sent' : 'Send OTP'}
-                  </Text>
-                )}
-              </TouchableOpacity>
-            </View>
+            <TextInput
+              style={[styles.input, errors.phoneNumber && styles.inputError]}
+              value={phoneNumber}
+              onChangeText={setPhoneNumber}
+              placeholder="10-digit phone number"
+              placeholderTextColor="#999999"
+              keyboardType="phone-pad"
+              maxLength={10}
+            />
             {errors.phoneNumber && <Text style={styles.errorText}>{errors.phoneNumber}</Text>}
-            
-            {/* OTP Input Section */}
-            {otpSent && (
-              <View style={styles.otpContainer}>
-                <Text style={styles.otpLabel}>Enter OTP *</Text>
-                <View style={styles.otpInputContainer}>
-                  {otp.map((digit, index) => (
-                    <TextInput
-                      key={index}
-                      ref={(ref) => {
-                        otpInputRefs.current[index] = ref;
-                      }}
-                      style={[styles.otpInput, errors.otp && styles.inputError]}
-                      value={digit}
-                      onChangeText={(value) => handleOtpChange(value, index)}
-                      onKeyPress={({ nativeEvent }) => handleOtpKeyPress(nativeEvent.key, index)}
-                      keyboardType="number-pad"
-                      maxLength={1}
-                      selectTextOnFocus
-                      editable={!isVerifyingOtp}
-                    />
-                  ))}
-                </View>
-                {errors.otp && <Text style={styles.errorText}>{errors.otp}</Text>}
-                <TouchableOpacity
-                  style={[styles.verifyOtpButton, isVerifyingOtp && styles.buttonDisabled]}
-                  onPress={handleVerifyOTP}
-                  disabled={isVerifyingOtp}
-                >
-                  {isVerifyingOtp ? (
-                    <ActivityIndicator size="small" color="#FFFFFF" />
-                  ) : (
-                    <Text style={styles.verifyOtpButtonText}>Verify OTP</Text>
-                  )}
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.resendOtpButton}
-                  onPress={handleSendOTP}
-                  disabled={isSendingOtp}
-                >
-                  <Text style={styles.resendOtpText}>Resend OTP</Text>
-                </TouchableOpacity>
-              </View>
-            )}
           </View>
 
           {/* Pincode */}
@@ -590,16 +308,14 @@ export default function RegisterMember() {
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.registerButton, (isLoading || !otpSent) && styles.buttonDisabled]}
+              style={[styles.registerButton, isLoading && styles.buttonDisabled]}
               onPress={handleRegister}
-              disabled={isLoading || !otpSent}
+              disabled={isLoading}
             >
               {isLoading ? (
                 <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
-                <Text style={styles.registerButtonText}>
-                  {otpSent ? 'Register Customer' : 'Verify OTP First'}
-                </Text>
+                <Text style={styles.registerButtonText}>Register Customer</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -789,79 +505,5 @@ const styles = StyleSheet.create({
   },
   bottomSpacer: {
     height: 32,
-  },
-  phoneInputContainer: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  phoneInput: {
-    flex: 1,
-  },
-  sendOtpButton: {
-    backgroundColor: '#FF6600',
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    minWidth: 100,
-  },
-  sendOtpButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  otpContainer: {
-    marginTop: 16,
-    padding: 16,
-    backgroundColor: '#F9F9F9',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#DDDDDD',
-  },
-  otpLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1A1A1A',
-    marginBottom: 12,
-  },
-  otpInputContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-    gap: 8,
-  },
-  otpInput: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#DDDDDD',
-    borderRadius: 8,
-    paddingVertical: 12,
-    fontSize: 18,
-    fontWeight: '600',
-    textAlign: 'center',
-    color: '#1A1A1A',
-  },
-  verifyOtpButton: {
-    backgroundColor: '#4CAF50',
-    borderRadius: 8,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  verifyOtpButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  resendOtpButton: {
-    paddingVertical: 8,
-    alignItems: 'center',
-  },
-  resendOtpText: {
-    color: '#FF6600',
-    fontSize: 14,
-    fontWeight: '500',
   },
 });
