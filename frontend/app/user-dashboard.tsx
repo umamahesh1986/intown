@@ -1,5 +1,7 @@
 // user-dashboard.tsx
 import { useState, useEffect, useRef } from 'react';
+import Footer from '../components/Footer';
+
 
 import {
   View,
@@ -673,18 +675,7 @@ if (autoPlayTimer.current) {
           </View>
 
           {/* Footer */}
-          <View style={styles.footer}>
-            <Text style={styles.footerTagline}>
-              Shop Local, Save Instantly! Connecting Communities Through Personal Bond.
-            </Text>
-            <Text style={styles.footerDescription}>
-              India's most trusted local savings network, helping customers save instantly while enabling small
-              businesses to thrive.
-            </Text>
-            <Text style={styles.footerCopyright}>
-              Copyright © 2025, Yagnavihar Lifestyle Pvt. Ltd.
-            </Text>
-          </View>
+        <Footer/>
         </ScrollView>
       </TouchableOpacity>
 
