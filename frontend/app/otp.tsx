@@ -138,6 +138,7 @@ export default function OTPScreen() {
   const sendOtp = async () => {
     try {
       const formattedPhone = formatPhoneNumber(phone);
+      console.log("Sending OTP to:", formattedPhone);
 
       setCanResend(false);
       setTimer(RESEND_SECONDS);
@@ -146,31 +147,53 @@ export default function OTPScreen() {
       if (Platform.OS === 'web') {
         // Web: Use signInWithPhoneNumber
         if (!webRecaptchaVerifier.current) {
+          console.error("reCAPTCHA verifier not initialized");
           Alert.alert("Error", "reCAPTCHA not initialized. Please refresh the page.");
           return;
         }
 
+        console.log("Calling signInWithPhoneNumber...");
         const result = await signInWithPhoneNumber(auth, formattedPhone, webRecaptchaVerifier.current);
+        console.log("OTP sent successfully, confirmation result:", result);
         setConfirmationResult(result);
         Alert.alert("OTP Sent", "Please check your phone for the OTP");
       } else {
         // Native: Use PhoneAuthProvider with FirebaseRecaptchaVerifierModal
-        if (!recaptchaVerifier.current) return;
+        if (!recaptchaVerifier.current) {
+          console.error("Native reCAPTCHA verifier not initialized");
+          return;
+        }
 
+        console.log("Using PhoneAuthProvider for native...");
         const provider = new PhoneAuthProvider(auth);
         const id = await provider.verifyPhoneNumber(
           formattedPhone,
           recaptchaVerifier.current
         );
-
+        console.log("Verification ID received:", id);
         setVerificationId(id);
+        Alert.alert("OTP Sent", "Please check your phone for the OTP");
       }
     } catch (err: any) {
       console.error('Send OTP error:', err);
-      Alert.alert(
-        "Error",
-        err.message || "Failed to send OTP. Please try again."
-      );
+      console.error('Error code:', err.code);
+      console.error('Error message:', err.message);
+      
+      let errorMessage = "Failed to send OTP. Please try again.";
+      
+      if (err.code === 'auth/invalid-phone-number') {
+        errorMessage = "Invalid phone number format. Please check and try again.";
+      } else if (err.code === 'auth/too-many-requests') {
+        errorMessage = "Too many requests. Please try again later.";
+      } else if (err.code === 'auth/captcha-check-failed') {
+        errorMessage = "reCAPTCHA verification failed. Please try again.";
+      } else if (err.code === 'auth/quota-exceeded') {
+        errorMessage = "SMS quota exceeded. Please try again later.";
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      Alert.alert("Error", errorMessage);
     }
   };
 
