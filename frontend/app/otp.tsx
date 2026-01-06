@@ -366,8 +366,8 @@ export default function OTPScreen() {
         />
       )}
 
-      {/* Web-only: Hidden recaptcha container */}
-      {Platform.OS === 'web' && (
+      {/* Web-only: Hidden recaptcha container (only if not in test mode) */}
+      {Platform.OS === 'web' && !WEB_TEST_MODE && (
         <div id="recaptcha-container" style={{ display: 'none' }} />
       )}
 
@@ -378,6 +378,14 @@ export default function OTPScreen() {
 
         <Text style={styles.title}>Enter OTP</Text>
         <Text style={styles.subtitle}>Sent to +91 {phone}</Text>
+        
+        {/* Test Mode Indicator for Web */}
+        {Platform.OS === 'web' && WEB_TEST_MODE && (
+          <View style={styles.testModeContainer}>
+            <Ionicons name="flask" size={16} color="#FF9800" />
+            <Text style={styles.testModeText}>Test Mode - Use OTP: {TEST_OTP}</Text>
+          </View>
+        )}
 
         <Animated.View style={{ transform: [{ translateX: shakeAnim }] }}>
           <View style={styles.otpContainer}>
