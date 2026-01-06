@@ -67,12 +67,14 @@ export default function OTPScreen() {
   const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(""));
   const [verificationId, setVerificationId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [confirmationResult, setConfirmationResult] = useState<any>(null);
 
   const [timer, setTimer] = useState(RESEND_SECONDS);
   const [canResend, setCanResend] = useState(false);
 
   const inputRefs = useRef<(TextInput | null)[]>([]);
-  const recaptchaVerifier = useRef<FirebaseRecaptchaVerifierModal>(null);
+  const recaptchaVerifier = useRef<any>(null);
+  const webRecaptchaVerifier = useRef<RecaptchaVerifier | null>(null);
   const shakeAnim = useRef(new Animated.Value(0)).current;
 
   /* ===============================
@@ -94,11 +96,45 @@ export default function OTPScreen() {
   }, [timer, canResend]);
 
   /* ===============================
+     SETUP WEB RECAPTCHA
+  ================================ */
+  useEffect(() => {
+    if (Platform.OS === 'web') {
+      // Create invisible recaptcha container
+      const containerId = 'recaptcha-container';
+      let container = document.getElementById(containerId);
+      if (!container) {
+        container = document.createElement('div');
+        container.id = containerId;
+        document.body.appendChild(container);
+      }
+
+      try {
+        webRecaptchaVerifier.current = new RecaptchaVerifier(auth, containerId, {
+          size: 'invisible',
+          callback: () => {
+            console.log('reCAPTCHA verified');
+          },
+        });
+      } catch (error) {
+        console.error('Error setting up recaptcha:', error);
+      }
+    }
+
+    return () => {
+      if (Platform.OS === 'web') {
+        const container = document.getElementById('recaptcha-container');
+        if (container) {
+          container.remove();
+        }
+      }
+    };
+  }, []);
+
+  /* ===============================
      SEND OTP
   ================================ */
   const sendOtp = async () => {
-    if (!recaptchaVerifier.current) return;
-
     try {
       const formattedPhone = formatPhoneNumber(phone);
 
@@ -106,17 +142,33 @@ export default function OTPScreen() {
       setTimer(RESEND_SECONDS);
       setOtp(Array(OTP_LENGTH).fill(""));
 
-      const provider = new PhoneAuthProvider(auth);
-      const id = await provider.verifyPhoneNumber(
-        formattedPhone,
-        recaptchaVerifier.current
-      );
+      if (Platform.OS === 'web') {
+        // Web: Use signInWithPhoneNumber
+        if (!webRecaptchaVerifier.current) {
+          Alert.alert("Error", "reCAPTCHA not initialized. Please refresh the page.");
+          return;
+        }
 
-      setVerificationId(id);
+        const result = await signInWithPhoneNumber(auth, formattedPhone, webRecaptchaVerifier.current);
+        setConfirmationResult(result);
+        Alert.alert("OTP Sent", "Please check your phone for the OTP");
+      } else {
+        // Native: Use PhoneAuthProvider with FirebaseRecaptchaVerifierModal
+        if (!recaptchaVerifier.current) return;
+
+        const provider = new PhoneAuthProvider(auth);
+        const id = await provider.verifyPhoneNumber(
+          formattedPhone,
+          recaptchaVerifier.current
+        );
+
+        setVerificationId(id);
+      }
     } catch (err: any) {
+      console.error('Send OTP error:', err);
       Alert.alert(
-        "Invalid Number",
-        err.message || "Enter valid mobile number"
+        "Error",
+        err.message || "Failed to send OTP. Please try again."
       );
     }
   };
@@ -125,7 +177,7 @@ export default function OTPScreen() {
      AUTO SEND OTP
   ================================ */
   useEffect(() => {
-    const t = setTimeout(sendOtp, 300);
+    const t = setTimeout(sendOtp, 500);
     return () => clearTimeout(t);
   }, []);
 
@@ -148,7 +200,7 @@ export default function OTPScreen() {
 
     const code = otp.join("");
 
-    if (!verificationId || code.length !== OTP_LENGTH) {
+    if (code.length !== OTP_LENGTH) {
       shake();
       Alert.alert("Invalid OTP", "Please enter 6-digit OTP");
       return;
@@ -157,12 +209,27 @@ export default function OTPScreen() {
     setIsLoading(true);
 
     try {
-      const credential = PhoneAuthProvider.credential(
-        verificationId,
-        code
-      );
+      let result;
 
-      const result = await signInWithCredential(auth, credential);
+      if (Platform.OS === 'web') {
+        // Web: Use confirmationResult
+        if (!confirmationResult) {
+          Alert.alert("Error", "Please request OTP first");
+          setIsLoading(false);
+          return;
+        }
+        result = await confirmationResult.confirm(code);
+      } else {
+        // Native: Use credential
+        if (!verificationId) {
+          Alert.alert("Error", "Please request OTP first");
+          setIsLoading(false);
+          return;
+        }
+        const credential = PhoneAuthProvider.credential(verificationId, code);
+        result = await signInWithCredential(auth, credential);
+      }
+
       const token = await result.user.getIdToken();
 
       const user = {
@@ -175,9 +242,10 @@ export default function OTPScreen() {
       setToken(token);
 
       router.replace("/user-dashboard");
-    } catch {
+    } catch (err: any) {
+      console.error('Verify OTP error:', err);
       shake();
-      Alert.alert("Error", "Invalid or expired OTP");
+      Alert.alert("Error", err.message || "Invalid or expired OTP");
     } finally {
       setIsLoading(false);
     }
