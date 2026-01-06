@@ -284,10 +284,18 @@ export default function OTPScreen() {
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      <FirebaseRecaptchaVerifierModal
-        ref={recaptchaVerifier}
-        firebaseConfig={auth.app.options}
-      />
+      {/* Native-only: Firebase Recaptcha Modal */}
+      {Platform.OS !== 'web' && FirebaseRecaptchaVerifierModal && (
+        <FirebaseRecaptchaVerifierModal
+          ref={recaptchaVerifier}
+          firebaseConfig={firebaseConfig}
+        />
+      )}
+
+      {/* Web-only: Hidden recaptcha container */}
+      {Platform.OS === 'web' && (
+        <div id="recaptcha-container" style={{ display: 'none' }} />
+      )}
 
       <View style={styles.content}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
@@ -295,7 +303,7 @@ export default function OTPScreen() {
         </TouchableOpacity>
 
         <Text style={styles.title}>Enter OTP</Text>
-        <Text style={styles.subtitle}>Sent to {phone}</Text>
+        <Text style={styles.subtitle}>Sent to +91 {phone}</Text>
 
         <Animated.View style={{ transform: [{ translateX: shakeAnim }] }}>
           <View style={styles.otpContainer}>
@@ -318,6 +326,7 @@ export default function OTPScreen() {
         <TouchableOpacity
           style={[styles.button, isLoading && styles.buttonDisabled]}
           onPress={handleVerifyOTP}
+          disabled={isLoading}
         >
           <Text style={styles.buttonText}>
             {isLoading ? "Verifying..." : "Verify & Continue"}
