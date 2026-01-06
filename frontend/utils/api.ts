@@ -185,3 +185,107 @@ export const processPayment = async (paymentData: any) => {
     savings: paymentData.amount * 0.1,
   };
 };
+
+/* ===============================
+   USER SEARCH API (After OTP Verification)
+================================ */
+
+const INTOWN_API_BASE = "https://devapi.intownlocal.com/IN";
+
+export interface UserSearchResponse {
+  user?: any;
+  customer?: any;
+  merchant?: any;
+}
+
+export const searchUserByPhone = async (phoneNumber: string): Promise<UserSearchResponse> => {
+  try {
+    // Clean phone number - remove +91 or 91 prefix if present
+    let cleanPhone = phoneNumber.replace(/\D/g, "");
+    if (cleanPhone.startsWith("91") && cleanPhone.length > 10) {
+      cleanPhone = cleanPhone.substring(2);
+    }
+    
+    console.log("Searching user by phone:", cleanPhone);
+    
+    const response = await axios.get(`${INTOWN_API_BASE}/search/${cleanPhone}`, {
+      timeout: 15000,
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+    
+    console.log("User search response:", response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error("User search error:", error.message);
+    
+    // Return empty response on error - user will be treated as new user
+    return {
+      user: null,
+      customer: null,
+      merchant: null,
+    };
+  }
+};
+
+/* ===============================
+   DETERMINE USER ROLE & DASHBOARD
+================================ */
+
+export type UserRole = 'user' | 'customer' | 'merchant' | 'dual' | 'new';
+
+export interface RoleInfo {
+  role: UserRole;
+  dashboard: string;
+  userData: UserSearchResponse;
+}
+
+export const determineUserRole = (response: UserSearchResponse): RoleInfo => {
+  const hasUser = response.user && Object.keys(response.user).length > 0;
+  const hasCustomer = response.customer && Object.keys(response.customer).length > 0;
+  const hasMerchant = response.merchant && Object.keys(response.merchant).length > 0;
+  
+  console.log("Role check - User:", hasUser, "Customer:", hasCustomer, "Merchant:", hasMerchant);
+  
+  // Check for dual role (customer + merchant)
+  if (hasCustomer && hasMerchant) {
+    return {
+      role: 'dual',
+      dashboard: '/dual-dashboard',
+      userData: response,
+    };
+  }
+  
+  // Single role checks
+  if (hasMerchant) {
+    return {
+      role: 'merchant',
+      dashboard: '/merchant-dashboard',
+      userData: response,
+    };
+  }
+  
+  if (hasCustomer) {
+    return {
+      role: 'customer',
+      dashboard: '/member-dashboard',
+      userData: response,
+    };
+  }
+  
+  if (hasUser) {
+    return {
+      role: 'user',
+      dashboard: '/user-dashboard',
+      userData: response,
+    };
+  }
+  
+  // New user - no data found
+  return {
+    role: 'new',
+    dashboard: '/user-dashboard',
+    userData: response,
+  };
+};
