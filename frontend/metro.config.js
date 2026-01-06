@@ -17,4 +17,15 @@ config.resolver.assetExts.push('ttf', 'otf');
 // Reduce the number of workers to decrease resource usage
 config.maxWorkers = 2;
 
+// Block react-native-maps on web platform
+config.resolver.resolveRequest = (context, moduleName, platform) => {
+  if (platform === 'web' && moduleName === 'react-native-maps') {
+    return {
+      type: 'empty',
+    };
+  }
+  // Let Metro handle other modules normally
+  return context.resolveRequest(context, moduleName, platform);
+};
+
 module.exports = config;

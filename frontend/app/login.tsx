@@ -12,7 +12,6 @@ import {
   StyleSheet as RNStyleSheet,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { sendOTP } from '../utils/api';
 import { Ionicons } from '@expo/vector-icons';
 import { Video, ResizeMode } from 'expo-av';
 
@@ -30,20 +29,8 @@ export default function LoginScreen() {
       return;
     }
 
-    setIsLoading(true);
-    try {
-      const response = await sendOTP(phone);
-      if (response?.success) {
-        router.push(`/otp?phone=${phone}`);
-      } else {
-        Alert.alert('Error', response?.message || 'Failed to send OTP');
-      }
-    } catch (error) {
-      console.error(error);
-      Alert.alert('Error', 'Failed to send OTP. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
+    // Navigate to OTP screen - Firebase OTP will be sent there
+    router.push(`/otp?phone=${phone}`);
   };
 
   const inputWebStyle: any =

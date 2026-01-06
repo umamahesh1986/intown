@@ -1,10 +1,12 @@
-import { initializeApp, getApps } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { initializeApp, getApps, getApp } from "firebase/app";
+import { getAuth, initializeAuth, getReactNativePersistence } from "firebase/auth";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Platform } from "react-native";
 
 /* ===============================
    FIREBASE CONFIG
 ================================ */
-const firebaseConfig = {
+export const firebaseConfig = {
   apiKey: "AIzaSyBCaGJ3dq0Hrbsj32hy8c3R-jred8R9caU",
   authDomain: "intown-dev-d4661.firebaseapp.com",
   projectId: "intown-dev-d4661",
@@ -16,12 +18,29 @@ const firebaseConfig = {
 /* ===============================
    INITIALIZE FIREBASE APP
 ================================ */
-const app =
-  getApps().length === 0
-    ? initializeApp(firebaseConfig)
-    : getApps()[0];
+let app;
+if (getApps().length === 0) {
+  app = initializeApp(firebaseConfig);
+} else {
+  app = getApp();
+}
 
 /* ===============================
-   FIREBASE AUTH (EXPO-SAFE)
+   FIREBASE AUTH (PLATFORM-SPECIFIC)
 ================================ */
-export const auth = getAuth(app);
+let auth;
+if (Platform.OS === 'web') {
+  auth = getAuth(app);
+} else {
+  // For React Native, use persistence with AsyncStorage
+  try {
+    auth = initializeAuth(app, {
+      persistence: getReactNativePersistence(AsyncStorage)
+    });
+  } catch (error) {
+    // Auth already initialized
+    auth = getAuth(app);
+  }
+}
+
+export { auth };
