@@ -250,29 +250,45 @@ export default function OTPScreen() {
     setIsLoading(true);
 
     try {
-      let result;
+      let phoneNumber = phone;
+      let userId = `user_${Date.now()}`;
 
-      if (Platform.OS === 'web') {
-        // Web: Use confirmationResult
-        if (!confirmationResult) {
+      // Check if web test mode
+      if (Platform.OS === 'web' && WEB_TEST_MODE) {
+        // Verify test OTP
+        if (code !== TEST_OTP) {
+          shake();
+          Alert.alert("Invalid OTP", `Please enter the test OTP: ${TEST_OTP}`);
+          setIsLoading(false);
+          return;
+        }
+        
+        console.log("Web Test Mode: OTP verified successfully");
+        phoneNumber = formatPhoneNumber(phone);
+        
+      } else if (Platform.OS === 'web') {
+        // Real Firebase OTP verification for web
+        if (!confirmationResult || confirmationResult.testMode) {
           Alert.alert("Error", "Please request OTP first");
           setIsLoading(false);
           return;
         }
-        result = await confirmationResult.confirm(code);
+        const result = await confirmationResult.confirm(code);
+        phoneNumber = result.user.phoneNumber || phone;
+        userId = result.user.uid;
+        
       } else {
-        // Native: Use credential
+        // Native: Use credential for real Firebase verification
         if (!verificationId) {
           Alert.alert("Error", "Please request OTP first");
           setIsLoading(false);
           return;
         }
         const credential = PhoneAuthProvider.credential(verificationId, code);
-        result = await signInWithCredential(auth, credential);
+        const result = await signInWithCredential(auth, credential);
+        phoneNumber = result.user.phoneNumber || phone;
+        userId = result.user.uid;
       }
-
-      const token = await result.user.getIdToken();
-      const phoneNumber = result.user.phoneNumber || phone;
 
       // Call the search API to get user role
       console.log("Searching user data for phone:", phoneNumber);
@@ -284,7 +300,7 @@ export default function OTPScreen() {
 
       // Prepare user data based on role
       const userData = {
-        uid: result.user.uid,
+        uid: userId,
         phone: phoneNumber,
         role: roleInfo.role,
         ...roleInfo.userData,
@@ -296,7 +312,7 @@ export default function OTPScreen() {
       await AsyncStorage.setItem("user_search_response", JSON.stringify(searchResponse));
       
       setUser(userData);
-      setToken(token);
+      setToken(`token_${userId}`);
 
       // Navigate to appropriate dashboard
       router.replace(roleInfo.dashboard as any);
