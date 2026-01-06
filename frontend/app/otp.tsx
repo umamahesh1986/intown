@@ -14,11 +14,21 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
 
-import { FirebaseRecaptchaVerifierModal } from "expo-firebase-recaptcha";
-import { PhoneAuthProvider, signInWithCredential } from "firebase/auth";
+import { 
+  PhoneAuthProvider, 
+  signInWithCredential,
+  signInWithPhoneNumber,
+  RecaptchaVerifier
+} from "firebase/auth";
 
-import { auth } from "../firebase/firebaseConfig";
+import { auth, firebaseConfig } from "../firebase/firebaseConfig";
 import { useAuthStore } from "../store/authStore";
+
+// Conditionally import FirebaseRecaptchaVerifierModal for native only
+let FirebaseRecaptchaVerifierModal: any = null;
+if (Platform.OS !== 'web') {
+  FirebaseRecaptchaVerifierModal = require('expo-firebase-recaptcha').FirebaseRecaptchaVerifierModal;
+}
 
 /* ===============================
    CONFIG
