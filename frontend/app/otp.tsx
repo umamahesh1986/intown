@@ -232,17 +232,34 @@ export default function OTPScreen() {
       }
 
       const token = await result.user.getIdToken();
+      const phoneNumber = result.user.phoneNumber || phone;
 
-      const user = {
+      // Call the search API to get user role
+      console.log("Searching user data for phone:", phoneNumber);
+      const searchResponse = await searchUserByPhone(phoneNumber);
+      
+      // Determine user role and dashboard
+      const roleInfo = determineUserRole(searchResponse);
+      console.log("User role determined:", roleInfo.role, "Dashboard:", roleInfo.dashboard);
+
+      // Prepare user data based on role
+      const userData = {
         uid: result.user.uid,
-        phone: result.user.phoneNumber,
+        phone: phoneNumber,
+        role: roleInfo.role,
+        ...roleInfo.userData,
       };
 
-      await AsyncStorage.setItem("user_data", JSON.stringify(user));
-      setUser(user);
+      // Save user data
+      await AsyncStorage.setItem("user_data", JSON.stringify(userData));
+      await AsyncStorage.setItem("user_role", roleInfo.role);
+      await AsyncStorage.setItem("user_search_response", JSON.stringify(searchResponse));
+      
+      setUser(userData);
       setToken(token);
 
-      router.replace("/user-dashboard");
+      // Navigate to appropriate dashboard
+      router.replace(roleInfo.dashboard as any);
     } catch (err: any) {
       console.error('Verify OTP error:', err);
       shake();
