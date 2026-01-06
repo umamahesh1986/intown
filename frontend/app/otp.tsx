@@ -37,6 +37,11 @@ if (Platform.OS !== 'web') {
 const OTP_LENGTH = 6;
 const RESEND_SECONDS = 30;
 
+// Web Test Mode - Bypass reCAPTCHA for web testing
+// Set to false to enable real Firebase OTP on web
+const WEB_TEST_MODE = true;
+const TEST_OTP = "123456";
+
 /* ===============================
    PHONE FORMATTER (CRITICAL FIX)
 ================================ */
