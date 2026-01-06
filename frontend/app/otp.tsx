@@ -102,10 +102,10 @@ export default function OTPScreen() {
   }, [timer, canResend]);
 
   /* ===============================
-     SETUP WEB RECAPTCHA
+     SETUP WEB RECAPTCHA (only if not in test mode)
   ================================ */
   useEffect(() => {
-    if (Platform.OS === 'web') {
+    if (Platform.OS === 'web' && !WEB_TEST_MODE) {
       // Create invisible recaptcha container
       const containerId = 'recaptcha-container';
       let container = document.getElementById(containerId);
@@ -128,7 +128,7 @@ export default function OTPScreen() {
     }
 
     return () => {
-      if (Platform.OS === 'web') {
+      if (Platform.OS === 'web' && !WEB_TEST_MODE) {
         const container = document.getElementById('recaptcha-container');
         if (container) {
           container.remove();
@@ -150,7 +150,18 @@ export default function OTPScreen() {
       setOtp(Array(OTP_LENGTH).fill(""));
 
       if (Platform.OS === 'web') {
-        // Web: Use signInWithPhoneNumber
+        if (WEB_TEST_MODE) {
+          // Web Test Mode - No real OTP, use test code
+          console.log("Web Test Mode: Using test OTP:", TEST_OTP);
+          setConfirmationResult({ testMode: true });
+          Alert.alert(
+            "Test Mode", 
+            `OTP sent to +91 ${phone}\n\nFor testing, use OTP: ${TEST_OTP}`
+          );
+          return;
+        }
+
+        // Real Firebase OTP for web (if test mode disabled)
         if (!webRecaptchaVerifier.current) {
           console.error("reCAPTCHA verifier not initialized");
           Alert.alert("Error", "reCAPTCHA not initialized. Please refresh the page.");
@@ -164,6 +175,7 @@ export default function OTPScreen() {
         Alert.alert("OTP Sent", "Please check your phone for the OTP");
       } else {
         // Native: Use PhoneAuthProvider with FirebaseRecaptchaVerifierModal
+        // This will send REAL SMS OTP on mobile devices
         if (!recaptchaVerifier.current) {
           console.error("Native reCAPTCHA verifier not initialized");
           return;
