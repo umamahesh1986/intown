@@ -15,6 +15,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { registerMerchant } from '../utils/api';
 import { useAuthStore } from '../store/authStore';
 import * as Location from 'expo-location';
@@ -29,7 +30,7 @@ export default function RegisterMerchant() {
   ];
 
   const router = useRouter();
-  const { setUserType } = useAuthStore();
+  const { setUserType, user } = useAuthStore();
 
   /* ================= ORIGINAL STATES (UNCHANGED) ================= */
 
@@ -72,6 +73,49 @@ export default function RegisterMerchant() {
   const [customProductsCsv, setCustomProductsCsv] = useState('');
   const [customProducts, setCustomProducts] =
     useState<{ id: number; name: string }[]>([]);
+
+  /* ================= AUTO-POPULATE PHONE NUMBER ================= */
+
+  useEffect(() => {
+    const loadPhoneNumber = async () => {
+      try {
+        // Try to get from authStore first
+        if (user?.phone) {
+          let phone = user.phone;
+          // Clean phone number: remove +91 or 91 prefix, keep only 10 digits
+          phone = phone.replace(/\D/g, '');
+          if (phone.startsWith('91') && phone.length > 10) {
+            phone = phone.substring(2);
+          }
+          if (phone.length === 10) {
+            setPhoneNumber(phone);
+            return;
+          }
+        }
+        
+        // Fallback: get from AsyncStorage
+        const userData = await AsyncStorage.getItem('user_data');
+        if (userData) {
+          const parsed = JSON.parse(userData);
+          if (parsed.phone) {
+            let phone = parsed.phone;
+            // Clean phone number: remove +91 or 91 prefix, keep only 10 digits
+            phone = phone.replace(/\D/g, '');
+            if (phone.startsWith('91') && phone.length > 10) {
+              phone = phone.substring(2);
+            }
+            if (phone.length === 10) {
+              setPhoneNumber(phone);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error loading phone number:', error);
+      }
+    };
+
+    loadPhoneNumber();
+  }, [user]);
 
   /* ================= FETCH CATEGORIES ================= */
 
@@ -356,15 +400,33 @@ export default function RegisterMerchant() {
       };
 
       try {
-        const res = await registerMerchant(payload);
-        console.log('REGISTER SUCCESS:', res);
+        const response = await registerMerchant(payload);
+        console.log('Merchant registration success:', response);
 
-        setUserType('merchant');
-
-        router.replace('/merchant-dashboard');
-      } catch (error) {
-        console.error('REGISTER FAILED:', error);
-        Alert.alert('Registration failed', 'Please try again');
+        // Show success message
+        Alert.alert(
+          'Registration Successful',
+          'Your merchant account has been created successfully!',
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                setUserType('merchant');
+                router.replace('/merchant-dashboard');
+              },
+            },
+          ]
+        );
+      } catch (error: any) {
+        console.error('Merchant registration error:', error);
+        
+        // Show error message with details
+        const errorMessage = error.message || 'Registration failed. Please try again.';
+        Alert.alert(
+          'Registration Failed',
+          errorMessage,
+          [{ text: 'OK' }]
+        );
       } finally {
         setIsLoading(false);
       }
@@ -376,7 +438,16 @@ export default function RegisterMerchant() {
     return (
       <SafeAreaView style={styles.container}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
-          <ScrollView style={styles.content}>
+          {/* Header */}
+          <View style={styles.header}>
+            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+              <Ionicons name="arrow-back" size={24} color="#1A1A1A" />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Merchant Registration</Text>
+            <View style={styles.placeholder} />
+          </View>
+
+          <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
 
             {/* BUSINESS NAME */}
             <View style={styles.formGroup}>
@@ -474,7 +545,7 @@ export default function RegisterMerchant() {
   <Text style={styles.label}>Phone Number *</Text>
 
   <TextInput
-    style={styles.input}
+    style={[styles.input, styles.disabledInput]}
     value={phoneNumber}
     onChangeText={t =>
       setPhoneNumber(t.replace(/[^0-9]/g, '').slice(0, 10))
@@ -482,11 +553,12 @@ export default function RegisterMerchant() {
     keyboardType="number-pad"
     maxLength={10}
     placeholder="Enter 10-digit mobile number"
+    editable={false}
   />
 
   {/* HELPER TEXT */}
   <Text style={styles.helperText}>
-    Must be 10 digits (starts with 6–9)
+    This is your logged-in phone number
   </Text>
 
   {/* ERROR TEXT */}
@@ -595,6 +667,28 @@ export default function RegisterMerchant() {
 
   const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#F5F5F5' },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: 16,
+      backgroundColor: '#FFFFFF',
+      borderBottomWidth: 1,
+      borderBottomColor: '#EEEEEE',
+    },
+    backButton: {
+      width: 40,
+      height: 40,
+      justifyContent: 'center',
+    },
+    headerTitle: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: '#1A1A1A',
+    },
+    placeholder: {
+      width: 40,
+    },
     content: { padding: 16 },
     formGroup: { marginBottom: 16 },
     label: { fontSize: 14, fontWeight: '600', marginBottom: 6 },
@@ -627,8 +721,12 @@ export default function RegisterMerchant() {
   fontSize: 12,
   color: '#777',
   marginTop: 4,
+  fontStyle: 'italic',
 },
-
+disabledInput: {
+  backgroundColor: '#F5F5F5',
+  color: '#666666',
+},
 errorText: {
   fontSize: 12,
   color: 'red',

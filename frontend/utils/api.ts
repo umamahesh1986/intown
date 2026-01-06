@@ -134,41 +134,141 @@ export const getCategories = async () => {
 };
 
 /* ===============================
-   MEMBER REGISTRATION (MOCK)
+   CUSTOMER REGISTRATION API
 ================================ */
 
+const INTOWN_API_BASE = "https://devapi.intownlocal.com/IN";
+
 export const registerMember = async (memberData: any) => {
-  console.log("Registering member (mock):", memberData);
-
-  return {
-    success: true,
-    message: "Member registered successfully",
-    memberId: `MEM${Date.now()}`,
-    data: memberData,
-  };
-
-  // Real API (enable later)
-  // const response = await externalApi.post("/customer/", memberData);
-  // return response.data;
+  try {
+    console.log("Registering customer:", memberData);
+    
+    // Prepare payload - ensure phone number is clean
+    let cleanPhone = memberData.phoneNumber?.replace(/\D/g, "") || "";
+    if (cleanPhone.startsWith("91") && cleanPhone.length > 10) {
+      cleanPhone = cleanPhone.substring(2);
+    }
+    
+    const payload = {
+      contactName: memberData.contactName,
+      email: memberData.email,
+      phoneNumber: cleanPhone,
+      pincode: memberData.pincode,
+      address: memberData.address || '',
+      latitude: memberData.location?.latitude,
+      longitude: memberData.location?.longitude,
+      images: memberData.images || [],
+      isPrivileged: true,
+      userType: "IN_CUSTOMER",
+    };
+    
+    console.log("Customer registration payload:", payload);
+    
+    const response = await axios.post(`${INTOWN_API_BASE}/customer/`, payload, {
+      timeout: 30000,
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+    
+    console.log("Customer registration response:", response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error("Customer registration error:", error);
+    
+    // Return error details for proper handling
+    if (error.response) {
+      // Server responded with error status
+      throw {
+        message: error.response.data?.message || error.response.data?.error || "Registration failed",
+        status: error.response.status,
+        data: error.response.data,
+      };
+    } else if (error.request) {
+      // Request made but no response
+      throw {
+        message: "Network error. Please check your connection and try again.",
+        networkError: true,
+      };
+    } else {
+      // Something else happened
+      throw {
+        message: error.message || "An unexpected error occurred",
+      };
+    }
+  }
 };
 
 /* ===============================
-   MERCHANT REGISTRATION (MOCK)
+   MERCHANT REGISTRATION API
 ================================ */
 
 export const registerMerchant = async (merchantData: any) => {
-  console.log("Registering merchant (mock):", merchantData);
-
-  return {
-    success: true,
-    message: "Merchant registered successfully",
-    merchantId: `MER${Date.now()}`,
-    data: merchantData,
-  };
-
-  // Real API (enable later)
-  // const response = await externalApi.post("/merchant/", merchantData);
-  // return response.data;
+  try {
+    console.log("Registering merchant:", merchantData);
+    
+    // Prepare payload - ensure phone number is clean
+    let cleanPhone = merchantData.phoneNumber?.replace(/\D/g, "") || "";
+    if (cleanPhone.startsWith("91") && cleanPhone.length > 10) {
+      cleanPhone = cleanPhone.substring(2);
+    }
+    
+    const payload = {
+      businessName: merchantData.businessName,
+      contactName: merchantData.contactName,
+      businessCategory: merchantData.businessCategory,
+      description: merchantData.description,
+      yearsInBusiness: merchantData.yearsInBusiness,
+      branches: merchantData.branches,
+      email: merchantData.email,
+      phoneNumber: cleanPhone,
+      pincode: merchantData.pincode,
+      latitude: merchantData.location?.latitude,
+      longitude: merchantData.location?.longitude,
+      address: merchantData.address,
+      introducedBy: merchantData.introducedBy,
+      images: merchantData.images || [],
+      agreedToTerms: merchantData.agreedToTerms,
+      categoryIds: merchantData.categoryIds || [],
+      productIds: merchantData.productIds || [],
+      customProducts: merchantData.customProducts || [],
+    };
+    
+    console.log("Merchant registration payload:", payload);
+    
+    const response = await axios.post(`${INTOWN_API_BASE}/merchant/`, payload, {
+      timeout: 30000,
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+    
+    console.log("Merchant registration response:", response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error("Merchant registration error:", error);
+    
+    // Return error details for proper handling
+    if (error.response) {
+      // Server responded with error status
+      throw {
+        message: error.response.data?.message || error.response.data?.error || "Registration failed",
+        status: error.response.status,
+        data: error.response.data,
+      };
+    } else if (error.request) {
+      // Request made but no response
+      throw {
+        message: "Network error. Please check your connection and try again.",
+        networkError: true,
+      };
+    } else {
+      // Something else happened
+      throw {
+        message: error.message || "An unexpected error occurred",
+      };
+    }
+  }
 };
 
 /* ===============================
@@ -189,8 +289,6 @@ export const processPayment = async (paymentData: any) => {
 /* ===============================
    USER SEARCH API (After OTP Verification)
 ================================ */
-
-const INTOWN_API_BASE = "https://devapi.intownlocal.com/IN";
 
 export interface UserSearchResponse {
   user?: any;

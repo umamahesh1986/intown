@@ -11,17 +11,18 @@ import {
   Switch,
   ActivityIndicator,
 } from 'react-native';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { registerMember } from '../utils/api';
 import { useAuthStore } from '../store/authStore';
 
 export default function RegisterMember() {
   const router = useRouter();
-  const { setUserType } = useAuthStore();
+  const { setUserType, user } = useAuthStore();
   
   // Form state
   const [contactName, setContactName] = useState('');
@@ -29,12 +30,55 @@ export default function RegisterMember() {
   const [email, setEmail] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [pincode, setPincode] = useState('');
+  const [address, setAddress] = useState('');
   const [images, setImages] = useState<string[]>([]);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   // Validation errors
   const [errors, setErrors] = useState<any>({});
+
+  // Auto-populate phone number from logged-in user
+  useEffect(() => {
+    const loadPhoneNumber = async () => {
+      try {
+        // Try to get from authStore first
+        if (user?.phone) {
+          let phone = user.phone;
+          // Clean phone number: remove +91 or 91 prefix, keep only 10 digits
+          phone = phone.replace(/\D/g, '');
+          if (phone.startsWith('91') && phone.length > 10) {
+            phone = phone.substring(2);
+          }
+          if (phone.length === 10) {
+            setPhoneNumber(phone);
+            return;
+          }
+        }
+        
+        // Fallback: get from AsyncStorage
+        const userData = await AsyncStorage.getItem('user_data');
+        if (userData) {
+          const parsed = JSON.parse(userData);
+          if (parsed.phone) {
+            let phone = parsed.phone;
+            // Clean phone number: remove +91 or 91 prefix, keep only 10 digits
+            phone = phone.replace(/\D/g, '');
+            if (phone.startsWith('91') && phone.length > 10) {
+              phone = phone.substring(2);
+            }
+            if (phone.length === 10) {
+              setPhoneNumber(phone);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error loading phone number:', error);
+      }
+    };
+
+    loadPhoneNumber();
+  }, [user]);
 
   const validateForm = () => {
     const newErrors: any = {};
@@ -131,30 +175,41 @@ export default function RegisterMember() {
         email,
         phoneNumber,
         pincode,
+        address,
         images,
         agreedToTerms,
       };
 
-      // Try to call API but don't worry about errors
-      await registerMember(memberData).catch(() => {
-        console.log('API call failed, but continuing anyway');
-      });
+      const response = await registerMember(memberData);
+      console.log('Customer registration success:', response);
       
-      // Set user type
-      await setUserType('member');
+      // Show success message
+      Alert.alert(
+        'Registration Successful',
+        'Your customer account has been created successfully!',
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              // Set user type
+              setUserType('member');
+              // Navigate to dashboard
+              router.replace('/member-dashboard');
+            },
+          },
+        ]
+      );
       
-      // Direct navigation without alert
-      console.log('Navigating to member dashboard...');
-      router.replace('/member-dashboard');
+    } catch (error: any) {
+      console.error('Customer registration error:', error);
       
-    } catch (error) {
-      console.log('Error during registration, but continuing anyway', error);
-      
-      // Set user type even on error
-      await setUserType('member');
-      
-      // Navigate anyway
-      router.replace('/member-dashboard');
+      // Show error message
+      const errorMessage = error.message || 'Registration failed. Please try again.';
+      Alert.alert(
+        'Registration Failed',
+        errorMessage,
+        [{ text: 'OK' }]
+      );
     } finally {
       setIsLoading(false);
     }
@@ -225,14 +280,16 @@ export default function RegisterMember() {
           <View style={styles.formGroup}>
             <Text style={styles.label}>Phone Number *</Text>
             <TextInput
-              style={[styles.input, errors.phoneNumber && styles.inputError]}
+              style={[styles.input, errors.phoneNumber && styles.inputError, styles.disabledInput]}
               value={phoneNumber}
               onChangeText={setPhoneNumber}
               placeholder="10-digit phone number"
               placeholderTextColor="#999999"
               keyboardType="phone-pad"
               maxLength={10}
+              editable={false}
             />
+            <Text style={styles.helperText}>This is your logged-in phone number</Text>
             {errors.phoneNumber && <Text style={styles.errorText}>{errors.phoneNumber}</Text>}
           </View>
 
@@ -249,6 +306,21 @@ export default function RegisterMember() {
               maxLength={6}
             />
             {errors.pincode && <Text style={styles.errorText}>{errors.pincode}</Text>}
+          </View>
+
+          {/* Address */}
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>Address</Text>
+            <TextInput
+              style={[styles.textArea, errors.address && styles.inputError]}
+              value={address}
+              onChangeText={setAddress}
+              placeholder="Enter your address"
+              placeholderTextColor="#999999"
+              multiline
+              numberOfLines={3}
+            />
+            {errors.address && <Text style={styles.errorText}>{errors.address}</Text>}
           </View>
 
           {/* Upload Images */}
@@ -383,10 +455,32 @@ const styles = StyleSheet.create({
   inputError: {
     borderColor: '#FF0000',
   },
+  disabledInput: {
+    backgroundColor: '#F5F5F5',
+    color: '#666666',
+  },
+  helperText: {
+    fontSize: 12,
+    color: '#999999',
+    marginTop: 4,
+    fontStyle: 'italic',
+  },
   errorText: {
     fontSize: 12,
     color: '#FF0000',
     marginTop: 4,
+  },
+  textArea: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#DDDDDD',
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: '#1A1A1A',
+    minHeight: 80,
+    textAlignVertical: 'top',
   },
   locationButton: {
     flexDirection: 'row',

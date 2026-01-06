@@ -354,7 +354,7 @@ if (autoPlayTimer.current) {
 
 
 
-{/* BECOME A MEMBER */}
+{/* BECOME A Customer */}
 <TouchableOpacity
   style={styles.userPanelItem}
   onPress={() => {
@@ -363,7 +363,7 @@ if (autoPlayTimer.current) {
   }}
 >
   <Ionicons name="star-outline" size={20} color="#333" />
-  <Text style={styles.userPanelText}>Become a Member</Text>
+  <Text style={styles.userPanelText}>Become a Customer</Text>
 </TouchableOpacity>
 
 {/* BECOME A MERCHANT */}
