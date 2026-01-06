@@ -23,6 +23,7 @@ import {
 
 import { auth, firebaseConfig } from "../firebase/firebaseConfig";
 import { useAuthStore } from "../store/authStore";
+import { searchUserByPhone, determineUserRole } from "../utils/api";
 
 // Conditionally import FirebaseRecaptchaVerifierModal for native only
 let FirebaseRecaptchaVerifierModal: any = null;
