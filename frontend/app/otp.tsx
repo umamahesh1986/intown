@@ -37,6 +37,11 @@ if (Platform.OS !== 'web') {
 const OTP_LENGTH = 6;
 const RESEND_SECONDS = 30;
 
+// Web Test Mode - Bypass reCAPTCHA for web testing
+// Set to false to enable real Firebase OTP on web
+const WEB_TEST_MODE = true;
+const TEST_OTP = "123456";
+
 /* ===============================
    PHONE FORMATTER (CRITICAL FIX)
 ================================ */
@@ -97,10 +102,10 @@ export default function OTPScreen() {
   }, [timer, canResend]);
 
   /* ===============================
-     SETUP WEB RECAPTCHA
+     SETUP WEB RECAPTCHA (only if not in test mode)
   ================================ */
   useEffect(() => {
-    if (Platform.OS === 'web') {
+    if (Platform.OS === 'web' && !WEB_TEST_MODE) {
       // Create invisible recaptcha container
       const containerId = 'recaptcha-container';
       let container = document.getElementById(containerId);
@@ -123,7 +128,7 @@ export default function OTPScreen() {
     }
 
     return () => {
-      if (Platform.OS === 'web') {
+      if (Platform.OS === 'web' && !WEB_TEST_MODE) {
         const container = document.getElementById('recaptcha-container');
         if (container) {
           container.remove();
@@ -145,7 +150,18 @@ export default function OTPScreen() {
       setOtp(Array(OTP_LENGTH).fill(""));
 
       if (Platform.OS === 'web') {
-        // Web: Use signInWithPhoneNumber
+        if (WEB_TEST_MODE) {
+          // Web Test Mode - No real OTP, use test code
+          console.log("Web Test Mode: Using test OTP:", TEST_OTP);
+          setConfirmationResult({ testMode: true });
+          Alert.alert(
+            "Test Mode", 
+            `OTP sent to +91 ${phone}\n\nFor testing, use OTP: ${TEST_OTP}`
+          );
+          return;
+        }
+
+        // Real Firebase OTP for web (if test mode disabled)
         if (!webRecaptchaVerifier.current) {
           console.error("reCAPTCHA verifier not initialized");
           Alert.alert("Error", "reCAPTCHA not initialized. Please refresh the page.");
@@ -159,6 +175,7 @@ export default function OTPScreen() {
         Alert.alert("OTP Sent", "Please check your phone for the OTP");
       } else {
         // Native: Use PhoneAuthProvider with FirebaseRecaptchaVerifierModal
+        // This will send REAL SMS OTP on mobile devices
         if (!recaptchaVerifier.current) {
           console.error("Native reCAPTCHA verifier not initialized");
           return;
@@ -233,29 +250,45 @@ export default function OTPScreen() {
     setIsLoading(true);
 
     try {
-      let result;
+      let phoneNumber = phone;
+      let userId = `user_${Date.now()}`;
 
-      if (Platform.OS === 'web') {
-        // Web: Use confirmationResult
-        if (!confirmationResult) {
+      // Check if web test mode
+      if (Platform.OS === 'web' && WEB_TEST_MODE) {
+        // Verify test OTP
+        if (code !== TEST_OTP) {
+          shake();
+          Alert.alert("Invalid OTP", `Please enter the test OTP: ${TEST_OTP}`);
+          setIsLoading(false);
+          return;
+        }
+        
+        console.log("Web Test Mode: OTP verified successfully");
+        phoneNumber = formatPhoneNumber(phone);
+        
+      } else if (Platform.OS === 'web') {
+        // Real Firebase OTP verification for web
+        if (!confirmationResult || confirmationResult.testMode) {
           Alert.alert("Error", "Please request OTP first");
           setIsLoading(false);
           return;
         }
-        result = await confirmationResult.confirm(code);
+        const result = await confirmationResult.confirm(code);
+        phoneNumber = result.user.phoneNumber || phone;
+        userId = result.user.uid;
+        
       } else {
-        // Native: Use credential
+        // Native: Use credential for real Firebase verification
         if (!verificationId) {
           Alert.alert("Error", "Please request OTP first");
           setIsLoading(false);
           return;
         }
         const credential = PhoneAuthProvider.credential(verificationId, code);
-        result = await signInWithCredential(auth, credential);
+        const result = await signInWithCredential(auth, credential);
+        phoneNumber = result.user.phoneNumber || phone;
+        userId = result.user.uid;
       }
-
-      const token = await result.user.getIdToken();
-      const phoneNumber = result.user.phoneNumber || phone;
 
       // Call the search API to get user role
       console.log("Searching user data for phone:", phoneNumber);
@@ -267,7 +300,7 @@ export default function OTPScreen() {
 
       // Prepare user data based on role
       const userData = {
-        uid: result.user.uid,
+        uid: userId,
         phone: phoneNumber,
         role: roleInfo.role,
         ...roleInfo.userData,
@@ -279,7 +312,7 @@ export default function OTPScreen() {
       await AsyncStorage.setItem("user_search_response", JSON.stringify(searchResponse));
       
       setUser(userData);
-      setToken(token);
+      setToken(`token_${userId}`);
 
       // Navigate to appropriate dashboard
       router.replace(roleInfo.dashboard as any);
@@ -333,8 +366,8 @@ export default function OTPScreen() {
         />
       )}
 
-      {/* Web-only: Hidden recaptcha container */}
-      {Platform.OS === 'web' && (
+      {/* Web-only: Hidden recaptcha container (only if not in test mode) */}
+      {Platform.OS === 'web' && !WEB_TEST_MODE && (
         <div id="recaptcha-container" style={{ display: 'none' }} />
       )}
 
@@ -345,6 +378,14 @@ export default function OTPScreen() {
 
         <Text style={styles.title}>Enter OTP</Text>
         <Text style={styles.subtitle}>Sent to +91 {phone}</Text>
+        
+        {/* Test Mode Indicator for Web */}
+        {Platform.OS === 'web' && WEB_TEST_MODE && (
+          <View style={styles.testModeContainer}>
+            <Ionicons name="flask" size={16} color="#FF9800" />
+            <Text style={styles.testModeText}>Test Mode - Use OTP: {TEST_OTP}</Text>
+          </View>
+        )}
 
         <Animated.View style={{ transform: [{ translateX: shakeAnim }] }}>
           <View style={styles.otpContainer}>
@@ -392,8 +433,23 @@ const styles = StyleSheet.create({
   content: { flex: 1, padding: 24 },
   backButton: { marginTop: 40, marginBottom: 24 },
   title: { fontSize: 32, fontWeight: "bold" },
-  subtitle: { color: "#666", marginBottom: 40 },
-  otpContainer: { flexDirection: "row", justifyContent: "center", gap: 8 },
+  subtitle: { color: "#666", marginBottom: 8 },
+  testModeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF3E0',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  testModeText: {
+    marginLeft: 8,
+    fontSize: 13,
+    color: '#FF9800',
+    fontWeight: '600',
+  },
+  otpContainer: { flexDirection: "row", justifyContent: "center", gap: 8, marginVertical: 24 },
   otpInput: {
     width: 48,
     height: 56,
