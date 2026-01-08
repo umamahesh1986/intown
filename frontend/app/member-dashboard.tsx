@@ -21,8 +21,26 @@ import { useAuthStore } from '../store/authStore';
 import { getCategories } from '../utils/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Footer from '../components/Footer'
+import { CATEGORY_ICON_MAP } from '../utils/categoryIconMap';
+
+
 
 const { width } = Dimensions.get('window');
+
+// ===== MEMBER CAROUSEL CONFIG =====
+const SLIDE_WIDTH = Math.round(width);
+const CAROUSEL_HEIGHT = 160;
+
+const MEMBER_CAROUSEL_IMAGES = [
+  require('../assets/images/1.jpg'),
+  require('../assets/images/2.jpg'),
+  require('../assets/images/3.jpg'),
+  require('../assets/images/4.jpg'),
+  require('../assets/images/5.jpg'),
+  require('../assets/images/6.jpg'),
+];
+// =================================
+
 
 const DUMMY_NEARBY_SHOPS = [
   { id: '1', name: 'Fresh Mart Grocery', category: 'Grocery', distance: 0.5, rating: 4.5 },
@@ -88,6 +106,12 @@ const [isSearchFocused, setIsSearchFocused] = useState(false);
 
   const dropdownAnim = useRef(new Animated.Value(0)).current;
 
+  // ===== MEMBER CAROUSEL STATE =====
+const [carouselIndex, setCarouselIndex] = useState(0);
+const carouselRef = useRef<ScrollView | null>(null);
+// ================================
+
+
   useEffect(() => {
     loadCategories();
     startAutoScroll();
@@ -101,8 +125,24 @@ const [isSearchFocused, setIsSearchFocused] = useState(false);
       }
       
     })();
+
+    // ===== MEMBER CAROUSEL AUTO SLIDE =====
+  const timer = setInterval(() => {
+    setCarouselIndex(prev => {
+      const next = (prev + 1) % MEMBER_CAROUSEL_IMAGES.length;
+      carouselRef.current?.scrollTo({
+        x: next * SLIDE_WIDTH,
+        animated: true,
+      });
+      return next;
+    });
+  }, 3500);
+
+  return () => clearInterval(timer);
+}, []);
  
-  }, []);
+ 
+  
 
   const loadCategories = async () => {
     try {
@@ -358,6 +398,44 @@ aspect: [1, 1],
   </View>
 </TouchableWithoutFeedback>
 
+{/* ===== MEMBER CAROUSEL ===== */}
+<View style={styles.carouselWrapper}>
+  <ScrollView
+    ref={carouselRef}
+    horizontal
+    pagingEnabled
+    showsHorizontalScrollIndicator={false}
+    snapToInterval={SLIDE_WIDTH}
+    decelerationRate="fast"
+    onMomentumScrollEnd={(e) => {
+      const index = Math.round(
+        e.nativeEvent.contentOffset.x / SLIDE_WIDTH
+      );
+      setCarouselIndex(index);
+    }}
+  >
+    {MEMBER_CAROUSEL_IMAGES.map((img, index) => (
+      <View key={index} style={styles.carouselSlide}>
+        <Image source={img} style={styles.carouselImage} />
+      </View>
+    ))}
+  </ScrollView>
+
+  <View style={styles.carouselDots}>
+    {MEMBER_CAROUSEL_IMAGES.map((_, i) => (
+      <View
+        key={i}
+        style={[
+          styles.dot,
+          carouselIndex === i && styles.dotActive,
+        ]}
+      />
+    ))}
+  </View>
+</View>
+{/* === END MEMBER CAROUSEL === */}
+
+
 
 
           {/* CATEGORIES */}
@@ -376,7 +454,8 @@ aspect: [1, 1],
                   }
                 >
                   <View style={styles.categoryIcon}>
-                    <Ionicons name={category.icon as any} size={32} color="#FF6600" />
+                    <Ionicons name={
+    (CATEGORY_ICON_MAP[category.name] || 'grid-outline') as any} size={32} color="#FF6600" />
                   </View>
                   <Text style={styles.categoryName}>{category.name}</Text>
                 </TouchableOpacity>
@@ -848,6 +927,43 @@ panelAvatarPlaceholder: {
   alignItems: 'center',
   justifyContent: 'center',
 },
+
+// ===== MEMBER CAROUSEL STYLES =====
+carouselWrapper: {
+  marginTop: 12,
+  marginBottom: 8,
+},
+
+carouselSlide: {
+  width: SLIDE_WIDTH,
+  alignItems: 'center',
+},
+
+carouselImage: {
+  width: SLIDE_WIDTH - 32,
+  height: 160,
+  borderRadius: 12,
+  backgroundColor: '#eee',
+},
+
+carouselDots: {
+  flexDirection: 'row',
+  justifyContent: 'center',
+  marginTop: 8,
+},
+
+dot: {
+  width: 8,
+  height: 8,
+  borderRadius: 8,
+  backgroundColor: '#ddd',
+  marginHorizontal: 4,
+},
+
+dotActive: {
+  backgroundColor: '#FF6600',
+},
+// =================================
 
 
 

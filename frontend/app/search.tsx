@@ -2,6 +2,9 @@ import { View, Text, TextInput, StyleSheet, TouchableOpacity, Pressable } from '
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { searchByProductNames } from '../utils/api';
+
 
 const DUMMY_SEARCH_ITEMS: {
   id: string;
@@ -27,31 +30,49 @@ export default function Search() {
   const router = useRouter();
   const [searchText, setSearchText] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [apiResults, setApiResults] = useState<
-  { id: string; name: string }[]
->([]);
+  type SearchResult = {
+  id?: string;
+  name?: string;
+  productName?: string;
+};
+
+const [apiResults, setApiResults] = useState<SearchResult[]>([]);
+
 
 
  
     const fetchSearchResults = async (text: string) => {
-    if (!text.trim()) {
-      setApiResults([]);
+  if (!text.trim()) {
+    setApiResults([]);
+    return;
+  }
+
+  try {
+    // 1️⃣ Get member location (already saved during registration)
+    const locationString = await AsyncStorage.getItem('member_location');
+
+    if (!locationString) {
+      console.warn('Member location not found');
       return;
     }
 
-    try {
-      const res = await fetch(
-        `https://YOUR_API_URL/search?q=${encodeURIComponent(text)}`
-      );
-      const data = await res.json();
+    const { latitude, longitude } = JSON.parse(locationString);
 
-      // expected format: [{ id: "1", name: "Milk" }]
-      setApiResults(data);
-    } catch (error) {
-      console.log('API error, falling back to dummy data');
-      setApiResults([]);
-    }
-  };
+    // 2️⃣ Call REAL search API from utils/api.ts
+    const data = await searchByProductNames(
+      text,
+      latitude,
+      longitude
+    );
+
+    // 3️⃣ Store API response
+    setApiResults(data || []);
+  } catch (error) {
+    console.error('Search API error:', error);
+    setApiResults([]);
+  }
+};
+
     const filteredDummyResults = DUMMY_SEARCH_ITEMS.filter(item =>
     item.name.toLowerCase().includes(searchText.toLowerCase())
   );
@@ -85,11 +106,11 @@ export default function Search() {
         </View>
 
         {/* SUGGESTIONS */}
-        {showSuggestions && combinedResults.length > 0 && (
+       {showSuggestions && apiResults.length > 0 && (
   <View style={styles.suggestionBox}>
-    {combinedResults.map(item => (
+    {apiResults.map((item, index) => (
       <TouchableOpacity
-        key={item.id}
+        key={item.id ?? index}
         style={styles.suggestionItem}
         onPress={() => {
           setSearchText('');
@@ -97,16 +118,21 @@ export default function Search() {
 
           router.push({
             pathname: '/member-shop-list',
-            params: { query: item.name },
+            params: {
+              query: item.name || item.productName,
+            },
           });
         }}
       >
         <Ionicons name="search" size={16} color="#666" />
-        <Text style={styles.suggestionText}>{item.name}</Text>
+        <Text style={styles.suggestionText}>
+          {item.name || item.productName}
+        </Text>
       </TouchableOpacity>
     ))}
   </View>
 )}
+
 
         
       </View>

@@ -19,6 +19,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { registerMerchant } from '../utils/api';
 import { useAuthStore } from '../store/authStore';
 import * as Location from 'expo-location';
+import {
+  getCategories,
+  getProductsByCategory,
+} from '../utils/api';
+
 
 
 export default function RegisterMerchant() {
@@ -36,7 +41,10 @@ export default function RegisterMerchant() {
 
   const [businessName, setBusinessName] = useState('');
   const [contactName, setContactName] = useState('');
+  const [shopName, setShopName] = useState('');
+
   const [businessCategory, setBusinessCategory] = useState('');
+  const [categorySearch, setCategorySearch] = useState('');
   const [description, setDescription] = useState('');
   const [yearsInBusiness, setYearsInBusiness] = useState('');
   const [branches, setBranches] = useState('');
@@ -125,8 +133,8 @@ export default function RegisterMerchant() {
 
   const fetchCategories = async () => {
     try {
-      const res = await fetch('http://localhost:8080/IN/categories');
-      const data = await res.json();
+      const data = await getCategories();
+
 
       let finalCategories: { id: number; name: string }[] = [];
 
@@ -162,10 +170,8 @@ export default function RegisterMerchant() {
 
         if (!productsByCategory[cat.id]) {
           try {
-            const res = await fetch(
-              `http://localhost:8080/IN/products?categoryId=${cat.id}`
-            );
-            const prodData = await res.json();
+            const prodData = await getProductsByCategory(cat.id);
+
 
             if (Array.isArray(prodData)) {
               setProductsByCategory(prev => ({
@@ -378,25 +384,33 @@ export default function RegisterMerchant() {
       }
 
       setIsLoading(true);
+      const productNames = products
+  .filter(p => selectedProductIds.includes(p.id))
+  .map(p => p.name);
+
 
       const payload = {
         businessName,
         contactName,
+        shopName,
         businessCategory,
         description,
-        yearsInBusiness: Number(yearsInBusiness),
-        branches: Number(branches),
+        fromYears: yearsInBusiness,
+        branchesOfBusiness: branches,
         email,
         phoneNumber,
-        pincode,
-        location,
+        pincode: Number(pincode),
+        userType: 'IN_MERCHANT',
+        latitude: location.latitude,
+        longitude: location.longitude,
         address,
         introducedBy,
         images,
         agreedToTerms,
-        categoryIds: selectedCategoryIds,
-        productIds: selectedProductIds,
-        customProducts: customProducts.map(p => p.name),
+        categoryList: selectedCategoryIds,
+        productNames,
+
+        
       };
 
       try {
@@ -433,6 +447,11 @@ export default function RegisterMerchant() {
 
     };
 
+    const filteredCategories = categories.filter(cat =>
+  cat.name.toLowerCase().includes(categorySearch.toLowerCase())
+);
+
+
     /* ================= UI (UNCHANGED) ================= */
 
     return (
@@ -454,6 +473,16 @@ export default function RegisterMerchant() {
               <Text style={styles.label}>Business Name *</Text>
               <TextInput style={styles.input} value={businessName} onChangeText={setBusinessName} />
             </View>
+{/* SHOP NAME */}
+            <View style={styles.formGroup}>
+  <Text style={styles.label}>Shop Name *</Text>
+  <TextInput
+    style={styles.input}
+    value={shopName}
+    onChangeText={setShopName}
+  />
+</View>
+
 
             {/* CONTACT NAME */}
             <View style={styles.formGroup}>
@@ -468,32 +497,40 @@ export default function RegisterMerchant() {
             </View>
 
             <Text style={styles.label}>Select Categories</Text>
-            {categories.map(cat => (
-              <TouchableOpacity key={cat.id} style={styles.row} onPress={() => toggleCategory(cat)}>
-                <Ionicons
-                  name={selectedCategoryIds.includes(cat.id) ? 'checkbox' : 'square-outline'}
-                  size={22}
-                  color="#2196F3"
-                />
-                <Text style={styles.rowText}>{cat.name}</Text>
-              </TouchableOpacity>
-            ))}
+            <TextInput
+  placeholder="Search categories..."
+  style={styles.input}
+  value={categorySearch}
+  onChangeText={setCategorySearch}
+/>
 
-            {products.length > 0 && (
-              <>
-                <Text style={styles.label}>Select Products</Text>
-                {products.map(prod => (
-                  <TouchableOpacity key={prod.id} style={styles.row} onPress={() => toggleProduct(prod.id)}>
-                    <Ionicons
-                      name={selectedProductIds.includes(prod.id) ? 'checkbox' : 'square-outline'}
-                      size={22}
-                      color="#4CAF50"
-                    />
-                    <Text style={styles.rowText}>{prod.name}</Text>
-                  </TouchableOpacity>
-                ))}
-              </>
-            )}
+            <View style={styles.categoryGrid}>
+  {filteredCategories.map(cat => {
+    const isSelected = selectedCategoryIds.includes(cat.id);
+
+    return (
+      <TouchableOpacity
+        key={cat.id}
+        style={[
+          styles.categoryCard,
+          isSelected && styles.categoryCardSelected,
+        ]}
+        onPress={() => toggleCategory(cat)}
+      >
+        <Text
+          style={[
+            styles.categoryText,
+            isSelected && styles.categoryTextSelected,
+          ]}
+        >
+          {cat.name}
+        </Text>
+      </TouchableOpacity>
+    );
+  })}
+</View>
+
+        
 
             {/* DESCRIPTION */}
             <View style={styles.formGroup}>
@@ -733,5 +770,42 @@ errorText: {
   marginTop: 4,
 },
 
+categoryGrid: {
+  flexDirection: 'row',
+  flexWrap: 'wrap',
+  justifyContent: 'space-between',
+  marginTop: 10,
+},
+
+categoryCard: {
+  width: '48%',       // 2 columns
+  padding: 14,
+  marginBottom: 12,
+  borderRadius: 10,
+  borderWidth: 1,
+  borderColor: '#DDD',
+  backgroundColor: '#FFF',
+  alignItems: 'center',
+},
+
+categoryCardSelected: {
+  backgroundColor: '#E3F2FD',
+  borderColor: '#2196F3',
+},
+
+categoryText: {
+  fontSize: 14,
+  color: '#333',
+  fontWeight: '500',
+  textAlign: 'center',
+},
+
+categoryTextSelected: {
+  color: '#2196F3',
+  fontWeight: '700',
+},
+
+
   });
+  
 

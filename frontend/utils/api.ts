@@ -1,5 +1,7 @@
 import axios from "axios";
 import { Platform } from "react-native";
+const BASE_URL = 'https://devapi.intownlocal.com';
+
 
 /* ===============================
    BASE URL RESOLUTION
@@ -128,10 +130,7 @@ export const getPlans = async () => {
   return response.data;
 };
 
-export const getCategories = async () => {
-  const response = await api.get("/categories");
-  return response.data;
-};
+
 
 /* ===============================
    CUSTOMER REGISTRATION API
@@ -386,4 +385,60 @@ export const determineUserRole = (response: UserSearchResponse): RoleInfo => {
     dashboard: '/user-dashboard',
     userData: response,
   };
+};
+
+/* ===============================
+   MEMBER SEARCH  API
+================================ */
+
+// 🔍 SEARCH PRODUCTS / CATEGORIES (REAL API)
+export const searchByProductNames = async (
+  productName: string,
+  latitude: number,
+  longitude: number
+) => {
+  const url =
+    `https://devapi.intownlocal.com/IN/search/by-product-names` +
+    `?productNames=${encodeURIComponent(productName)}` +
+    `&customerLatitude=${latitude}` +
+    `&customerLongitude=${longitude}`;
+
+  const response = await fetch(url);
+
+  if (!response.ok) {
+    throw new Error('Search API failed');
+  }
+
+  return response.json();
+};
+
+
+/* ===============================
+   MERCHANT CATEGORY  API
+================================ */
+
+export const getCategories = async () => {
+  const response = await fetch(`${BASE_URL}/IN/categories`);
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch categories');
+  }
+
+  return response.json();
+};
+
+
+/* ===============================
+   MERCHANT CATEGORY-PRODUCT  API
+================================ */
+export const getProductsByCategory = async (categoryId: number) => {
+  const response = await fetch(
+    `${BASE_URL}/IN/products/by-category/${categoryId}`
+  );
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch products');
+  }
+
+  return response.json();
 };
