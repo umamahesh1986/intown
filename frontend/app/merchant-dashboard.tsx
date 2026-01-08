@@ -6,6 +6,8 @@ import {
   TouchableOpacity,
   Alert,
   Image,
+  Dimensions,
+  Animated,
 } from 'react-native';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'expo-router';
@@ -15,6 +17,25 @@ import { useAuthStore } from '../store/authStore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { FontStylesWithFallback } from '../utils/fonts';
 import Footer from '../components/Footer'
+import { useRef } from 'react';
+
+const { width } = Dimensions.get('window');
+
+// ===== MERCHANT CAROUSEL CONFIG (SAME AS MEMBER) =====
+const SLIDE_WIDTH = Math.round(width);
+const CAROUSEL_HEIGHT = 160;
+
+const MERCHANT_CAROUSEL_IMAGES = [
+  require('../assets/images/1.jpg'),
+  require('../assets/images/2.jpg'),
+  require('../assets/images/3.jpg'),
+  require('../assets/images/4.jpg'),
+  require('../assets/images/5.jpg'),
+  require('../assets/images/6.jpg'),
+];
+// =================================
+
+
 
 interface Payment {
   id: string;
@@ -30,6 +51,11 @@ export default function MerchantDashboard() {
   const { user, logout } = useAuthStore();
   const [showDropdown, setShowDropdown] = useState(false);
   const [payments, setPayments] = useState<Payment[]>([]);
+  // ===== MERCHANT CAROUSEL STATE =====
+const [carouselIndex, setCarouselIndex] = useState(0);
+const carouselRef = useRef<ScrollView | null>(null);
+// =================================
+
 
   // Merchant shop details (would come from registration)
   const merchantShop = {
@@ -41,6 +67,20 @@ export default function MerchantDashboard() {
 
   useEffect(() => {
     loadPayments();
+    // ===== MERCHANT CAROUSEL AUTO SLIDE =====
+  const timer = setInterval(() => {
+    setCarouselIndex(prev => {
+      const next = (prev + 1) % MERCHANT_CAROUSEL_IMAGES.length;
+      carouselRef.current?.scrollTo({
+        x: next * SLIDE_WIDTH,
+        animated: true,
+      });
+      return next;
+    });
+  }, 3500);
+
+  return () => clearInterval(timer);
+  // =====================================
   }, []);
 
   const loadPayments = async () => {
@@ -182,6 +222,44 @@ export default function MerchantDashboard() {
             </TouchableOpacity>
           </View>
         )}
+
+        {/* ===== MERCHANT CAROUSEL ===== */}
+<View style={styles.carouselWrapper}>
+  <ScrollView
+    ref={carouselRef}
+    horizontal
+    pagingEnabled
+    showsHorizontalScrollIndicator={false}
+    snapToInterval={SLIDE_WIDTH}
+    decelerationRate="fast"
+    onMomentumScrollEnd={(e) => {
+      const index = Math.round(
+        e.nativeEvent.contentOffset.x / SLIDE_WIDTH
+      );
+      setCarouselIndex(index);
+    }}
+  >
+    {MERCHANT_CAROUSEL_IMAGES.map((img, index) => (
+      <View key={index} style={styles.carouselSlide}>
+        <Image source={img} style={styles.carouselImage} />
+      </View>
+    ))}
+  </ScrollView>
+
+  <View style={styles.carouselDots}>
+    {MERCHANT_CAROUSEL_IMAGES.map((_, i) => (
+      <View
+        key={i}
+        style={[
+          styles.dot,
+          carouselIndex === i && styles.dotActive,
+        ]}
+      />
+    ))}
+  </View>
+</View>
+{/* === END MERCHANT CAROUSEL === */}
+
 
         {/* Shop Details Card */}
         <View style={styles.shopCard}>
@@ -416,4 +494,44 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 20,
   },
+  // ===== MERCHANT CAROUSEL STYLES =====
+carouselWrapper: {
+  marginTop: 12,
+  marginBottom: 8,
+},
+
+carouselSlide: {
+  width: SLIDE_WIDTH,
+  height: 160,
+  paddingHorizontal: 16,
+},
+
+
+carouselImage: {
+  width: '100%',
+  height: '100%',
+  borderRadius: 12,
+  resizeMode: 'cover',
+},
+
+
+carouselDots: {
+  flexDirection: 'row',
+  justifyContent: 'center',
+  marginTop: 8,
+},
+
+dot: {
+  width: 8,
+  height: 8,
+  borderRadius: 8,
+  backgroundColor: '#ddd',
+  marginHorizontal: 4,
+},
+
+dotActive: {
+  backgroundColor: '#FF6600',
+},
+// ===================================
+
 });
