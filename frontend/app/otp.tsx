@@ -15,13 +15,11 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
 
 import { PhoneAuthProvider, signInWithCredential } from "firebase/auth";
+import { FirebaseRecaptchaVerifierModal } from 'expo-firebase-recaptcha';
 
 import { auth, firebaseConfig } from "../firebase/firebaseConfig";
 import { useAuthStore } from "../store/authStore";
 import { searchUserByPhone, determineUserRole } from "../utils/api";
-
-// Import expo-firebase-recaptcha for native platforms
-import { FirebaseRecaptchaVerifierModal } from 'expo-firebase-recaptcha';
 
 /* ===============================
    CONFIG
@@ -29,18 +27,17 @@ import { FirebaseRecaptchaVerifierModal } from 'expo-firebase-recaptcha';
 const OTP_LENGTH = 6;
 const RESEND_SECONDS = 30;
 
-// Web Test Mode - Bypass reCAPTCHA for web testing
-// Set to false to enable real Firebase OTP on web
-const WEB_TEST_MODE = true;
+// Test Mode - Use test OTP instead of real Firebase OTP
+// Set to false to enable real Firebase OTP
+const TEST_MODE = true;
 const TEST_OTP = "123456";
 
 /* ===============================
-   PHONE FORMATTER (CRITICAL FIX)
+   PHONE FORMATTER
 ================================ */
 const formatPhoneNumber = (phone: string) => {
   const cleaned = phone.replace(/\D/g, "");
 
-  // India default
   if (cleaned.length === 10) {
     return `+91${cleaned}`;
   }
@@ -65,14 +62,12 @@ export default function OTPScreen() {
   const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(""));
   const [verificationId, setVerificationId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [confirmationResult, setConfirmationResult] = useState<any>(null);
 
   const [timer, setTimer] = useState(RESEND_SECONDS);
   const [canResend, setCanResend] = useState(false);
 
   const inputRefs = useRef<(TextInput | null)[]>([]);
   const recaptchaVerifier = useRef<any>(null);
-  const webRecaptchaVerifier = useRef<any>(null);
   const shakeAnim = useRef(new Animated.Value(0)).current;
 
   /* ===============================
@@ -94,42 +89,6 @@ export default function OTPScreen() {
   }, [timer, canResend]);
 
   /* ===============================
-     SETUP WEB RECAPTCHA (only if not in test mode)
-  ================================ */
-  useEffect(() => {
-    if (Platform.OS === 'web' && !WEB_TEST_MODE) {
-      // Create invisible recaptcha container
-      const containerId = 'recaptcha-container';
-      let container = document.getElementById(containerId);
-      if (!container) {
-        container = document.createElement('div');
-        container.id = containerId;
-        document.body.appendChild(container);
-      }
-
-      try {
-        webRecaptchaVerifier.current = new RecaptchaVerifier(auth, containerId, {
-          size: 'invisible',
-          callback: () => {
-            console.log('reCAPTCHA verified');
-          },
-        });
-      } catch (error) {
-        console.error('Error setting up recaptcha:', error);
-      }
-    }
-
-    return () => {
-      if (Platform.OS === 'web' && !WEB_TEST_MODE) {
-        const container = document.getElementById('recaptcha-container');
-        if (container) {
-          container.remove();
-        }
-      }
-    };
-  }, []);
-
-  /* ===============================
      SEND OTP
   ================================ */
   const sendOtp = async () => {
@@ -141,38 +100,18 @@ export default function OTPScreen() {
       setTimer(RESEND_SECONDS);
       setOtp(Array(OTP_LENGTH).fill(""));
 
-      if (Platform.OS === 'web') {
-        if (WEB_TEST_MODE) {
-          // Web Test Mode - No real OTP, use test code
-          console.log("Web Test Mode: Using test OTP:", TEST_OTP);
-          setConfirmationResult({ testMode: true });
-          Alert.alert(
-            "Test Mode", 
-            `OTP sent to +91 ${phone}\n\nFor testing, use OTP: ${TEST_OTP}`
-          );
-          return;
-        }
+      if (TEST_MODE) {
+        // Test Mode - No real OTP, use test code
+        console.log("Test Mode: Using test OTP:", TEST_OTP);
+        Alert.alert(
+          "Test Mode", 
+          `OTP sent to ${formattedPhone}\n\nFor testing, use OTP: ${TEST_OTP}`
+        );
+        return;
+      }
 
-        // Real Firebase OTP for web (if test mode disabled)
-        if (!webRecaptchaVerifier.current) {
-          console.error("reCAPTCHA verifier not initialized");
-          Alert.alert("Error", "reCAPTCHA not initialized. Please refresh the page.");
-          return;
-        }
-
-        console.log("Calling signInWithPhoneNumber...");
-        const result = await signInWithPhoneNumber(auth, formattedPhone, webRecaptchaVerifier.current);
-        console.log("OTP sent successfully, confirmation result:", result);
-        setConfirmationResult(result);
-        Alert.alert("OTP Sent", "Please check your phone for the OTP");
-      } else {
-        // Native: Use PhoneAuthProvider with FirebaseRecaptchaVerifierModal
-        // This will send REAL SMS OTP on mobile devices
-        if (!recaptchaVerifier.current) {
-          console.error("Native reCAPTCHA verifier not initialized");
-          return;
-        }
-
+      // Real Firebase OTP (only for native when TEST_MODE is false)
+      if (Platform.OS !== 'web' && recaptchaVerifier.current) {
         console.log("Using PhoneAuthProvider for native...");
         const provider = new PhoneAuthProvider(auth);
         const id = await provider.verifyPhoneNumber(
@@ -182,11 +121,12 @@ export default function OTPScreen() {
         console.log("Verification ID received:", id);
         setVerificationId(id);
         Alert.alert("OTP Sent", "Please check your phone for the OTP");
+      } else {
+        // Web without test mode - show error
+        Alert.alert("Error", "Real Firebase OTP is not supported on web. Please use Test Mode.");
       }
     } catch (err: any) {
       console.error('Send OTP error:', err);
-      console.error('Error code:', err.code);
-      console.error('Error message:', err.message);
       
       let errorMessage = "Failed to send OTP. Please try again.";
       
@@ -245,9 +185,8 @@ export default function OTPScreen() {
       let phoneNumber = phone;
       let userId = `user_${Date.now()}`;
 
-      // Check if web test mode
-      if (Platform.OS === 'web' && WEB_TEST_MODE) {
-        // Verify test OTP
+      if (TEST_MODE) {
+        // Test Mode - Verify test OTP
         if (code !== TEST_OTP) {
           shake();
           Alert.alert("Invalid OTP", `Please enter the test OTP: ${TEST_OTP}`);
@@ -255,22 +194,11 @@ export default function OTPScreen() {
           return;
         }
         
-        console.log("Web Test Mode: OTP verified successfully");
+        console.log("Test Mode: OTP verified successfully");
         phoneNumber = formatPhoneNumber(phone);
         
-      } else if (Platform.OS === 'web') {
-        // Real Firebase OTP verification for web
-        if (!confirmationResult || confirmationResult.testMode) {
-          Alert.alert("Error", "Please request OTP first");
-          setIsLoading(false);
-          return;
-        }
-        const result = await confirmationResult.confirm(code);
-        phoneNumber = result.user.phoneNumber || phone;
-        userId = result.user.uid;
-        
       } else {
-        // Native: Use credential for real Firebase verification
+        // Real Firebase OTP verification (native only)
         if (!verificationId) {
           Alert.alert("Error", "Please request OTP first");
           setIsLoading(false);
@@ -350,29 +278,24 @@ export default function OTPScreen() {
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      {/* Native-only: Firebase Recaptcha Modal */}
-      {Platform.OS !== 'web' && FirebaseRecaptchaVerifierModal && (
+      {/* Firebase Recaptcha Modal - Only for native and non-test mode */}
+      {Platform.OS !== 'web' && !TEST_MODE && (
         <FirebaseRecaptchaVerifierModal
           ref={recaptchaVerifier}
           firebaseConfig={firebaseConfig}
         />
       )}
 
-      {/* Web-only: Hidden recaptcha container (only if not in test mode) */}
-      {Platform.OS === 'web' && !WEB_TEST_MODE && (
-        <div id="recaptcha-container" style={{ display: 'none' }} />
-      )}
-
       <View style={styles.content}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} />
+          <Ionicons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
 
         <Text style={styles.title}>Enter OTP</Text>
         <Text style={styles.subtitle}>Sent to +91 {phone}</Text>
         
-        {/* Test Mode Indicator for Web */}
-        {Platform.OS === 'web' && WEB_TEST_MODE && (
+        {/* Test Mode Indicator */}
+        {TEST_MODE && (
           <View style={styles.testModeContainer}>
             <Ionicons name="flask" size={16} color="#FF9800" />
             <Text style={styles.testModeText}>Test Mode - Use OTP: {TEST_OTP}</Text>
@@ -424,7 +347,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff" },
   content: { flex: 1, padding: 24 },
   backButton: { marginTop: 40, marginBottom: 24 },
-  title: { fontSize: 32, fontWeight: "bold" },
+  title: { fontSize: 32, fontWeight: "bold", color: "#000" },
   subtitle: { color: "#666", marginBottom: 8 },
   testModeContainer: {
     flexDirection: 'row',
@@ -441,15 +364,22 @@ const styles = StyleSheet.create({
     color: '#FF9800',
     fontWeight: '600',
   },
-  otpContainer: { flexDirection: "row", justifyContent: "center", gap: 8, marginVertical: 24 },
+  otpContainer: { 
+    flexDirection: "row", 
+    justifyContent: "center", 
+    marginVertical: 24,
+  },
   otpInput: {
     width: 48,
     height: 56,
     fontSize: 22,
+    fontWeight: 'bold',
     borderWidth: 2,
     borderColor: "#FF6600",
     borderRadius: 8,
     textAlign: "center",
+    marginHorizontal: 4,
+    color: "#000",
   },
   button: {
     backgroundColor: "#FF6600",
@@ -459,6 +389,6 @@ const styles = StyleSheet.create({
     marginTop: 30,
   },
   buttonDisabled: { opacity: 0.6 },
-  buttonText: { color: "#fff", fontSize: 18 },
-  resendText: { textAlign: "center", marginTop: 16, color: "#FF6600" },
+  buttonText: { color: "#fff", fontSize: 18, fontWeight: '600' },
+  resendText: { textAlign: "center", marginTop: 16, color: "#FF6600", fontWeight: '600' },
 });
