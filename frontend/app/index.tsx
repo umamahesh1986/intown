@@ -2,24 +2,21 @@ import { View, Text, StyleSheet, Image } from 'react-native';
 import { useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../store/authStore';
-import { FontStylesWithFallback } from '../utils/fonts';
 
 export default function SplashScreen() {
   const router = useRouter();
   const { isAuthenticated, user } = useAuthStore();
 
   useEffect(() => {
-    // Simulate splash screen for 2 seconds
     const timer = setTimeout(() => {
       if (isAuthenticated) {
-        // Redirect based on user type
         const userType = user?.userType;
         if (userType === 'member') {
-          router.replace('/member-dashboard'); // Member dashboard
+          router.replace('/member-dashboard');
         } else if (userType === 'merchant') {
-          router.replace('/merchant-dashboard'); // Merchant dashboard
+          router.replace('/merchant-dashboard');
         } else {
-          router.replace('/user-dashboard'); // User dashboard
+          router.replace('/user-dashboard');
         }
       } else {
         router.replace('/location');
@@ -59,7 +56,8 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   tagline: {
-    ...FontStylesWithFallback.h5,
+    fontSize: 18,
+    fontWeight: '500',
     color: '#FFFFFF',
     opacity: 0.9,
   },
