@@ -14,21 +14,29 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
 
-import { 
-  PhoneAuthProvider, 
-  signInWithCredential,
-  signInWithPhoneNumber,
-  RecaptchaVerifier
-} from "firebase/auth";
+import { PhoneAuthProvider, signInWithCredential } from "firebase/auth";
 
 import { auth, firebaseConfig } from "../firebase/firebaseConfig";
 import { useAuthStore } from "../store/authStore";
 import { searchUserByPhone, determineUserRole } from "../utils/api";
 
+// Import RecaptchaVerifier and signInWithPhoneNumber for web only
+let RecaptchaVerifier: any = null;
+let signInWithPhoneNumber: any = null;
+if (Platform.OS === 'web') {
+  const firebaseAuth = require("firebase/auth");
+  RecaptchaVerifier = firebaseAuth.RecaptchaVerifier;
+  signInWithPhoneNumber = firebaseAuth.signInWithPhoneNumber;
+}
+
 // Conditionally import FirebaseRecaptchaVerifierModal for native only
 let FirebaseRecaptchaVerifierModal: any = null;
 if (Platform.OS !== 'web') {
-  FirebaseRecaptchaVerifierModal = require('expo-firebase-recaptcha').FirebaseRecaptchaVerifierModal;
+  try {
+    FirebaseRecaptchaVerifierModal = require('expo-firebase-recaptcha').FirebaseRecaptchaVerifierModal;
+  } catch (e) {
+    console.warn('expo-firebase-recaptcha not available:', e);
+  }
 }
 
 /* ===============================
