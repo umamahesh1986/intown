@@ -88,7 +88,7 @@ export default function OTPScreen() {
 
   const inputRefs = useRef<(TextInput | null)[]>([]);
   const recaptchaVerifier = useRef<any>(null);
-  const webRecaptchaVerifier = useRef<RecaptchaVerifier | null>(null);
+  const webRecaptchaVerifier = useRef<any>(null);
   const shakeAnim = useRef(new Animated.Value(0)).current;
 
   /* ===============================
