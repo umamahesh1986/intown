@@ -14,9 +14,6 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
 
-import { PhoneAuthProvider, signInWithCredential } from "firebase/auth";
-import { FirebaseRecaptchaVerifierModal } from 'expo-firebase-recaptcha';
-
 import { auth, firebaseConfig } from "../firebase/firebaseConfig";
 import { useAuthStore } from "../store/authStore";
 import { searchUserByPhone, determineUserRole } from "../utils/api";
@@ -28,7 +25,6 @@ const OTP_LENGTH = 6;
 const RESEND_SECONDS = 30;
 
 // Test Mode - Use test OTP instead of real Firebase OTP
-// Set to false to enable real Firebase OTP
 const TEST_MODE = true;
 const TEST_OTP = "123456";
 
@@ -50,7 +46,7 @@ const formatPhoneNumber = (phone: string) => {
     return phone;
   }
 
-  throw new Error("Invalid phone number");
+  return `+91${cleaned}`;
 };
 
 export default function OTPScreen() {
@@ -60,14 +56,12 @@ export default function OTPScreen() {
   const { setUser, setToken } = useAuthStore();
 
   const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(""));
-  const [verificationId, setVerificationId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const [timer, setTimer] = useState(RESEND_SECONDS);
   const [canResend, setCanResend] = useState(false);
 
   const inputRefs = useRef<(TextInput | null)[]>([]);
-  const recaptchaVerifier = useRef<any>(null);
   const shakeAnim = useRef(new Animated.Value(0)).current;
 
   /* ===============================
@@ -93,56 +87,21 @@ export default function OTPScreen() {
   ================================ */
   const sendOtp = async () => {
     try {
-      const formattedPhone = formatPhoneNumber(phone);
+      const formattedPhone = formatPhoneNumber(phone || "");
       console.log("Sending OTP to:", formattedPhone);
 
       setCanResend(false);
       setTimer(RESEND_SECONDS);
       setOtp(Array(OTP_LENGTH).fill(""));
 
-      if (TEST_MODE) {
-        // Test Mode - No real OTP, use test code
-        console.log("Test Mode: Using test OTP:", TEST_OTP);
-        Alert.alert(
-          "Test Mode", 
-          `OTP sent to ${formattedPhone}\n\nFor testing, use OTP: ${TEST_OTP}`
-        );
-        return;
-      }
-
-      // Real Firebase OTP (only for native when TEST_MODE is false)
-      if (Platform.OS !== 'web' && recaptchaVerifier.current) {
-        console.log("Using PhoneAuthProvider for native...");
-        const provider = new PhoneAuthProvider(auth);
-        const id = await provider.verifyPhoneNumber(
-          formattedPhone,
-          recaptchaVerifier.current
-        );
-        console.log("Verification ID received:", id);
-        setVerificationId(id);
-        Alert.alert("OTP Sent", "Please check your phone for the OTP");
-      } else {
-        // Web without test mode - show error
-        Alert.alert("Error", "Real Firebase OTP is not supported on web. Please use Test Mode.");
-      }
+      // Test Mode - Show alert with test OTP
+      Alert.alert(
+        "Test Mode", 
+        `OTP sent to ${formattedPhone}\n\nFor testing, use OTP: ${TEST_OTP}`
+      );
     } catch (err: any) {
       console.error('Send OTP error:', err);
-      
-      let errorMessage = "Failed to send OTP. Please try again.";
-      
-      if (err.code === 'auth/invalid-phone-number') {
-        errorMessage = "Invalid phone number format. Please check and try again.";
-      } else if (err.code === 'auth/too-many-requests') {
-        errorMessage = "Too many requests. Please try again later.";
-      } else if (err.code === 'auth/captcha-check-failed') {
-        errorMessage = "reCAPTCHA verification failed. Please try again.";
-      } else if (err.code === 'auth/quota-exceeded') {
-        errorMessage = "SMS quota exceeded. Please try again later.";
-      } else if (err.message) {
-        errorMessage = err.message;
-      }
-      
-      Alert.alert("Error", errorMessage);
+      Alert.alert("Error", "Failed to send OTP. Please try again.");
     }
   };
 
@@ -182,33 +141,17 @@ export default function OTPScreen() {
     setIsLoading(true);
 
     try {
-      let phoneNumber = phone;
-      let userId = `user_${Date.now()}`;
-
-      if (TEST_MODE) {
-        // Test Mode - Verify test OTP
-        if (code !== TEST_OTP) {
-          shake();
-          Alert.alert("Invalid OTP", `Please enter the test OTP: ${TEST_OTP}`);
-          setIsLoading(false);
-          return;
-        }
-        
-        console.log("Test Mode: OTP verified successfully");
-        phoneNumber = formatPhoneNumber(phone);
-        
-      } else {
-        // Real Firebase OTP verification (native only)
-        if (!verificationId) {
-          Alert.alert("Error", "Please request OTP first");
-          setIsLoading(false);
-          return;
-        }
-        const credential = PhoneAuthProvider.credential(verificationId, code);
-        const result = await signInWithCredential(auth, credential);
-        phoneNumber = result.user.phoneNumber || phone;
-        userId = result.user.uid;
+      // Verify test OTP
+      if (code !== TEST_OTP) {
+        shake();
+        Alert.alert("Invalid OTP", `Please enter the test OTP: ${TEST_OTP}`);
+        setIsLoading(false);
+        return;
       }
+      
+      console.log("Test Mode: OTP verified successfully");
+      const phoneNumber = formatPhoneNumber(phone || "");
+      const userId = `user_${Date.now()}`;
 
       // Call the search API to get user role
       console.log("Searching user data for phone:", phoneNumber);
@@ -278,14 +221,6 @@ export default function OTPScreen() {
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      {/* Firebase Recaptcha Modal - Only for native and non-test mode */}
-      {Platform.OS !== 'web' && !TEST_MODE && (
-        <FirebaseRecaptchaVerifierModal
-          ref={recaptchaVerifier}
-          firebaseConfig={firebaseConfig}
-        />
-      )}
-
       <View style={styles.content}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color="#000" />
@@ -295,12 +230,10 @@ export default function OTPScreen() {
         <Text style={styles.subtitle}>Sent to +91 {phone}</Text>
         
         {/* Test Mode Indicator */}
-        {TEST_MODE && (
-          <View style={styles.testModeContainer}>
-            <Ionicons name="flask" size={16} color="#FF9800" />
-            <Text style={styles.testModeText}>Test Mode - Use OTP: {TEST_OTP}</Text>
-          </View>
-        )}
+        <View style={styles.testModeContainer}>
+          <Ionicons name="flask" size={16} color="#FF9800" />
+          <Text style={styles.testModeText}>Test Mode - Use OTP: {TEST_OTP}</Text>
+        </View>
 
         <Animated.View style={{ transform: [{ translateX: shakeAnim }] }}>
           <View style={styles.otpContainer}>
