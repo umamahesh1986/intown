@@ -20,24 +20,8 @@ import { auth, firebaseConfig } from "../firebase/firebaseConfig";
 import { useAuthStore } from "../store/authStore";
 import { searchUserByPhone, determineUserRole } from "../utils/api";
 
-// Import RecaptchaVerifier and signInWithPhoneNumber for web only
-let RecaptchaVerifier: any = null;
-let signInWithPhoneNumber: any = null;
-if (Platform.OS === 'web') {
-  const firebaseAuth = require("firebase/auth");
-  RecaptchaVerifier = firebaseAuth.RecaptchaVerifier;
-  signInWithPhoneNumber = firebaseAuth.signInWithPhoneNumber;
-}
-
-// Conditionally import FirebaseRecaptchaVerifierModal for native only
-let FirebaseRecaptchaVerifierModal: any = null;
-if (Platform.OS !== 'web') {
-  try {
-    FirebaseRecaptchaVerifierModal = require('expo-firebase-recaptcha').FirebaseRecaptchaVerifierModal;
-  } catch (e) {
-    console.warn('expo-firebase-recaptcha not available:', e);
-  }
-}
+// Import expo-firebase-recaptcha for native platforms
+import { FirebaseRecaptchaVerifierModal } from 'expo-firebase-recaptcha';
 
 /* ===============================
    CONFIG
