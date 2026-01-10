@@ -41,6 +41,19 @@ interface Category {
   icon: string;
 }
 const { width } = Dimensions.get('window');
+// ===== MEMBER STYLE CAROUSEL CONFIG =====
+const SLIDE_WIDTH = Math.round(width);
+
+const MEMBER_CAROUSEL_IMAGES = [
+  require('../assets/images/1.jpg'),
+  require('../assets/images/2.jpg'),
+  require('../assets/images/3.jpg'),
+  require('../assets/images/4.jpg'),
+  require('../assets/images/5.jpg'),
+  require('../assets/images/6.jpg'),
+];
+// =====================================
+
 // ------------------- RESPONSIVE CAROUSEL DIMENSION ADJUSTMENT -------------------
 const slideWidth = Math.round(width);
 
@@ -133,16 +146,23 @@ const CAROUSEL_IMAGES = CAROUSEL_IMAGES_RAW.map(image =>
 
  
   useEffect(() => {
-    loadData();
-    startAutoScroll();
-    startCarouselAutoplay();
+  loadData();
+  startAutoScroll();
 
-    
+  const timer = setInterval(() => {
+    setCarouselIndex(prev => {
+      const next = (prev + 1) % MEMBER_CAROUSEL_IMAGES.length;
+      carouselRef.current?.scrollTo({
+        x: next * SLIDE_WIDTH,
+        animated: true,
+      });
+      return next;
+    });
+  }, 3500);
 
-    return () => {
-      stopCarouselAutoplay();
-    };
-  }, []);
+  return () => clearInterval(timer);
+}, []);
+
 
   useEffect(() => {
     // if user changes, hide dropdown
@@ -237,41 +257,6 @@ const CAROUSEL_IMAGES = CAROUSEL_IMAGES_RAW.map(image =>
     }, 200);
   };
 
-  // ----------------- CAROUSEL AUTOPLAY -----------------
-  const startCarouselAutoplay = () => {
-    stopCarouselAutoplay();
-    autoPlayTimer.current = (setInterval(() => {
-      setCarouselIndex((prevIndex) => {
-        const next = (prevIndex + 1) % CAROUSEL_IMAGES.length;
-        scrollToIndex(next);
-        return next;
-      });
-    }, 3500) as unknown) as number;
-  };
-
-  const stopCarouselAutoplay = () => {
-if (autoPlayTimer.current) {
-      clearInterval(autoPlayTimer.current);
-      autoPlayTimer.current = null;
-    }
-  };
-
-  const scrollToIndex = (index: number) => {
-    setCarouselIndex(index);
-    if (carouselRef.current) {
-      carouselRef.current.scrollTo({ x: index * slideWidth, animated: true });
-    }
-  };
-
-  const onCarouselScrollEnd = (e: any) => {
-  const x = e.nativeEvent.contentOffset.x;
-  const idx = Math.round(x / slideWidth);
-  setCarouselIndex(idx);
-};
-
-  // -----------------------------------------------------
-
-  
 
   
 
@@ -433,49 +418,43 @@ if (autoPlayTimer.current) {
             </TouchableOpacity>
           )}
 
-          {/* ===================== CAROUSEL ===================== */}
-          <View style={styles.carouselWrapper}>
-            <ScrollView
-              ref={carouselRef}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              pagingEnabled
-              snapToInterval={slideWidth}
-              decelerationRate="fast"
-              onMomentumScrollEnd={(e) => {
-                onCarouselScrollEnd(e);
-                startCarouselAutoplay();
-              }}
-              contentContainerStyle={{}}
-              onScrollBeginDrag={stopCarouselAutoplay}
-            >
-              {CAROUSEL_IMAGES.map((imgSrc, idx) => (
-                <View key={idx} style={styles.carouselSlide}>
-                  <TouchableOpacity
-                    activeOpacity={0.9}
-                    style={styles.carouselTouchable}
-                    onPress={() => {
-                      /* handle click if needed */
-                    }}
-                  >
-                    <Image
-                      source={imgSrc}
-                      style={styles.carouselImage}
-                      resizeMode="cover"
-                    />
-                  </TouchableOpacity>
-                </View>
-              ))}
-            </ScrollView>
+         {/* ===== MEMBER CAROUSEL ===== */}
+<View style={styles.carouselWrapper}>
+  <ScrollView
+    ref={carouselRef}
+    horizontal
+    pagingEnabled
+    showsHorizontalScrollIndicator={false}
+    snapToInterval={SLIDE_WIDTH}
+    decelerationRate="fast"
+    onMomentumScrollEnd={(e) => {
+      const index = Math.round(
+        e.nativeEvent.contentOffset.x / SLIDE_WIDTH
+      );
+      setCarouselIndex(index);
+    }}
+  >
+    {MEMBER_CAROUSEL_IMAGES.map((img, index) => (
+      <View key={index} style={styles.carouselSlide}>
+        <Image source={img} style={styles.carouselImage} />
+      </View>
+    ))}
+  </ScrollView>
 
-            {/* Dots */}
-            <View style={styles.dotsRow}>
-              {CAROUSEL_IMAGES.map((_, i) => (
-                <View key={i} style={[styles.dot, carouselIndex === i ? styles.dotActive : null]} />
-              ))}
-            </View>
-          </View>
-          {/* =================== End Carousel =================== */}
+  <View style={styles.carouselDots}>
+    {MEMBER_CAROUSEL_IMAGES.map((_, i) => (
+      <View
+        key={i}
+        style={[
+          styles.dot,
+          carouselIndex === i && styles.dotActive,
+        ]}
+      />
+    ))}
+  </View>
+</View>
+{/* === END MEMBER CAROUSEL === */}
+
 
           {/* Popular Categories */}
           <View style={styles.section}>
@@ -938,54 +917,41 @@ const styles = StyleSheet.create({
  
 
   // ---------- CAROUSEL STYLES ----------
-  carouselWrapper: {
-marginTop: 12,
+ carouselWrapper: {
+  marginTop: 12,
   marginBottom: 8,
-  height: CAROUSEL_HEIGHT + 16,
 },
 
-  // each slide is one full "page"
-  carouselSlide: {
-    width: slideWidth,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  carouselTouchable: {
-    width: '100%',
-    alignItems: 'center',
-  },
-  carouselImage: {
-    width: slideWidth - 32, // small gap left/right
-    ...Platform.select({
-      web: {
-        aspectRatio: CAROUSEL_ASPECT_RATIO,
-        maxHeight: 260,
-      },
-      default: {
-        height: CAROUSEL_NATIVE_HEIGHT,
-        maxHeight: 180,
-      },
-    }),
-    borderRadius: 12,
-    backgroundColor: '#eee',
-  },
-  dotsRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 8,
-    gap: 8,
-  },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 8,
-    backgroundColor: '#ddd',
-    marginHorizontal: 4,
-  },
-  dotActive: {
-    backgroundColor: '#FF6600',
-  },
-  // -------------------------------------
+carouselSlide: {
+  width: SLIDE_WIDTH,
+  alignItems: 'center',
+},
+
+carouselImage: {
+  width: SLIDE_WIDTH - 32,
+  height: 160,
+  borderRadius: 12,
+  backgroundColor: '#eee',
+},
+
+carouselDots: {
+  flexDirection: 'row',
+  justifyContent: 'center',
+  marginTop: 8,
+},
+
+dot: {
+  width: 8,
+  height: 8,
+  borderRadius: 8,
+  backgroundColor: '#ddd',
+  marginHorizontal: 4,
+},
+
+dotActive: {
+  backgroundColor: '#FF6600',
+},
+//----------------------------------------------
 
   section: {
     padding: 16,
@@ -1083,25 +1049,37 @@ marginTop: 12,
     flexWrap: 'wrap',
     marginHorizontal: -8,
   },
-  categoryCard: {
-    width: '33.33%',
-    padding: 8,
-  },
-  categoryIcon: {
-    backgroundColor: '#ebd7d7',
-borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-    marginBottom: 8,
-    gap: 12,
-  },
-  categoryName: {
-    ...FontStylesWithFallback.caption,
-    color: '#1A1A1A',
-    textAlign: 'center',
-    fontWeight: '600',
-    fontSize: 16,
-  },
+categoryCard: {
+  width: '33.33%',
+  alignItems: 'center',
+  marginBottom: 16,
+},
+
+categoryIcon: {
+  width: 72,
+  height: 72,
+  borderRadius: 36,        // 👈 makes it a circle
+  backgroundColor: '#FFFFFF', // 👈 white background
+  alignItems: 'center',
+  justifyContent: 'center',
+  marginBottom: 8,
+
+  // subtle shadow
+  shadowColor: '#000',
+  shadowOpacity: 0.08,
+  shadowOffset: { width: 0, height: 2 },
+  shadowRadius: 6,
+  elevation: 3,
+},
+
+categoryName: {
+  ...FontStylesWithFallback.caption,
+  color: '#1A1A1A',
+  textAlign: 'center',
+  fontWeight: '600',
+  fontSize: 14,
+},
+
 
   noCategoriesText: {
     ...FontStylesWithFallback.body,
