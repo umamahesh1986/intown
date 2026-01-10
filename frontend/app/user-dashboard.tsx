@@ -1056,17 +1056,15 @@ categoryCard: {
 },
 
 categoryIcon: {
-  width: 72,
-  height: 72,
-  borderRadius: 36,        // 👈 makes it a circle
-  backgroundColor: '#FFFFFF', // 👈 white background
+  width: 112,
+  height: 112,
+  borderRadius: '50%',
+  backgroundColor: '#FFFFFF',
   alignItems: 'center',
   justifyContent: 'center',
   marginBottom: 8,
-
-  // subtle shadow
   shadowColor: '#000',
-  shadowOpacity: 0.08,
+  shadowOpacity: 0.04,
   shadowOffset: { width: 0, height: 2 },
   shadowRadius: 6,
   elevation: 3,
