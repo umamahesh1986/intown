@@ -9,13 +9,11 @@ import {
   KeyboardAvoidingView,
   Platform,
   Image,
-  StyleSheet as RNStyleSheet,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Video, ResizeMode } from 'expo-av';
 
-const CARD_WIDTH = 520; // same width for header & form
+const CARD_WIDTH = 520;
 const RADIUS = 12;
 
 export default function LoginScreen() {
@@ -28,8 +26,6 @@ export default function LoginScreen() {
       Alert.alert('Invalid Phone', 'Please enter a valid 10-digit phone number');
       return;
     }
-
-    // Navigate to OTP screen - Firebase OTP will be sent there
     router.push(`/otp?phone=${phone}`);
   };
 
@@ -42,12 +38,10 @@ export default function LoginScreen() {
         }
       : null;
 
-  return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      {Platform.OS === 'web' ? (
+  // Background - video for web, solid color for mobile
+  const BackgroundContent = () => {
+    if (Platform.OS === 'web') {
+      return (
         <video
           autoPlay
           loop
@@ -65,20 +59,24 @@ export default function LoginScreen() {
         >
           <source src="/videos/intown-video.mp4" type="video/mp4" />
         </video>
-      ) : (
-        <Video
-          source={require('../assets/images/intown-video.mp4')}
-          style={RNStyleSheet.absoluteFill}
-          resizeMode={ResizeMode.COVER}
-          shouldPlay
-          isLooping
-          isMuted
-        />
-      )}
+      );
+    }
+    return (
+      <View style={StyleSheet.absoluteFill}>
+        <View style={{ flex: 1, backgroundColor: '#1a1a2e' }} />
+      </View>
+    );
+  };
+
+  return (
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <BackgroundContent />
 
       <View style={styles.overlay}>
         <View style={styles.centerWrap}>
-          {/* ORANGE HEADER CARD */}
           <View style={styles.headerCard}>
             <View style={styles.logoBox}>
               <Image
@@ -87,13 +85,11 @@ export default function LoginScreen() {
                 resizeMode="contain"
               />
             </View>
-           
           </View>
 
-          {/* WHITE FORM CARD */}
           <View style={styles.formWrap}>
             <View style={styles.formCard}>
-              <View className="input-row" style={styles.inputRow}>
+              <View style={styles.inputRow}>
                 <View style={styles.iconCircle}>
                   <Ionicons name="call" size={18} color="#666" />
                 </View>
