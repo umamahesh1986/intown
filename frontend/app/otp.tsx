@@ -240,7 +240,7 @@ export default function OTPScreen() {
             {otp.map((d, i) => (
               <TextInput
                 key={i}
-                ref={r => (inputRefs.current[i] = r)}
+                ref={(r) => { inputRefs.current[i] = r; }}
                 style={styles.otpInput}
                 keyboardType="number-pad"
                 maxLength={1}
