@@ -19,7 +19,8 @@ export default function SplashScreen() {
           router.replace('/user-dashboard');
         }
       } else {
-        router.replace('/location');
+        // Go directly to login page, skip location
+        router.replace('/login');
       }
     }, 2000);
 

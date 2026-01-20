@@ -26,6 +26,7 @@ import { CATEGORY_ICON_MAP } from '../utils/categoryIconMap';
 
 
 const { width } = Dimensions.get('window');
+import { Platform } from 'react-native';
 
 // ===== MEMBER CAROUSEL CONFIG =====
 const SLIDE_WIDTH = Math.round(width);
@@ -40,6 +41,28 @@ const MEMBER_CAROUSEL_IMAGES = [
   require('../assets/images/6.jpg'),
 ];
 // =================================
+
+// Category images from Unsplash/Pexels - mapped to API category names
+const CATEGORY_IMAGES: { [key: string]: string } = {
+  // API Categories
+  'Groceries & Kirana': 'https://images.unsplash.com/photo-1609952578538-3d454550301d?w=400&h=300&fit=crop',
+  'Bakery, Sweets & Snacks': 'https://images.unsplash.com/photo-1645597454210-c97f9701257a?w=400&h=300&fit=crop',
+  'Dairy & Milk Products': 'https://images.pexels.com/photos/3735192/pexels-photo-3735192.jpeg?w=400&h=300&fit=crop',
+  'Fruits & Vegetables': 'https://images.unsplash.com/photo-1553799262-a37c45961038?w=400&h=300&fit=crop',
+  'Meat, Chicken & Fish Shops': 'https://images.unsplash.com/photo-1704303923171-d6839e4784c3?w=400&h=300&fit=crop',
+  'Pharmacy / Medical Stores': 'https://images.pexels.com/photos/8657301/pexels-photo-8657301.jpeg?w=400&h=300&fit=crop',
+  'General Stores / Provision Stores': 'https://images.unsplash.com/photo-1739066598279-1297113f5c6a?w=400&h=300&fit=crop',
+  'Water Can Suppliers': 'https://images.unsplash.com/photo-1616118132534-381148898bb4?w=400&h=300&fit=crop',
+  "Men's Salons": 'https://images.unsplash.com/photo-1654097801176-cb1795fd0c5e?w=400&h=300&fit=crop',
+  "Women's Salons / Beauty Parlors": 'https://images.pexels.com/photos/3738340/pexels-photo-3738340.jpeg?w=400&h=300&fit=crop',
+  // Legacy/fallback names
+  'Grocery': 'https://images.unsplash.com/photo-1609952578538-3d454550301d?w=400&h=300&fit=crop',
+  'Salon': 'https://images.unsplash.com/photo-1654097801176-cb1795fd0c5e?w=400&h=300&fit=crop',
+  'Restaurant': 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=300&fit=crop',
+  'Pharmacy': 'https://images.pexels.com/photos/8657301/pexels-photo-8657301.jpeg?w=400&h=300&fit=crop',
+  'Fashion': 'https://images.unsplash.com/photo-1641440615976-d4bc4eb7dab8?w=400&h=300&fit=crop',
+  'Electronics': 'https://images.unsplash.com/photo-1550009158-9ebf69173e03?w=400&h=300&fit=crop',
+};
 
 
 const DUMMY_NEARBY_SHOPS = [
@@ -481,12 +504,17 @@ aspect: [1, 1],
                       params: { category: category.name },
                     })
                   }
+                  activeOpacity={0.8}
                 >
-                  <View style={styles.categoryIcon}>
-                    <Ionicons name={
-    (CATEGORY_ICON_MAP[category.name] || 'grid-outline') as any} size={32} color="#FF6600" />
+                  <View style={styles.categoryImageContainer}>
+                    <Image 
+                      source={{ uri: CATEGORY_IMAGES[category.name] || 'https://images.unsplash.com/photo-1609952578538-3d454550301d?w=400&h=300&fit=crop' }}
+                      style={styles.categoryImage}
+                      resizeMode="cover"
+                    />
+                    <View style={styles.categoryGradient} />
+                    <Text style={styles.categoryName}>{category.name}</Text>
                   </View>
-                  <Text style={styles.categoryName}>{category.name}</Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -791,16 +819,55 @@ profileButton: { flexDirection: 'row', alignItems: 'center' },
   section: { padding: 16 },
   sectionTitle: { fontSize: 20, fontWeight: '700', marginBottom: 16, color: '#1A1A1A' },
 
-  categoriesGrid: { flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -8 },
-  categoryCard: { width: '33%', padding: 8 },
-  categoryIcon: {
-    backgroundColor: '#FFF3E0',
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-    marginBottom: 8,
+  categoriesGrid: { 
+    flexDirection: 'row', 
+    flexWrap: 'wrap', 
+    marginHorizontal: -6,
+    paddingHorizontal: 10,
   },
-  categoryName: { fontSize: 12, textAlign: 'center', color: '#1A1A1A' },
+  categoryCard: { 
+    width: '33.33%', 
+    paddingHorizontal: 6,
+    marginBottom: 12,
+  },
+  categoryImageContainer: {
+    width: '100%',
+    height: Platform.OS === 'web' ? 140 : 110,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#f0f0f0',
+    position: 'relative',
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  categoryImage: {
+    width: '100%',
+    height: '100%',
+  },
+  categoryGradient: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: '50%',
+    backgroundColor: 'rgba(0,0,0,0.4)',
+  },
+  categoryName: { 
+    position: 'absolute',
+    bottom: 10,
+    left: 8,
+    right: 8,
+    color: '#FFFFFF',
+    textAlign: 'center',
+    fontWeight: '700',
+    fontSize: 12,
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
+  },
 
   themeSection: {
     backgroundColor: '#FF6600',
