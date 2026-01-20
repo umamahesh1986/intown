@@ -43,16 +43,16 @@ const MEMBER_CAROUSEL_IMAGES = [
 // =================================
 
 // Category images from Unsplash/Pexels - mapped to API category names
-const CATEGORY_IMAGES: { [key: string]: string } = {
+const CATEGORY_IMAGES: { [key: string]: any } = {
   // API Categories
-  'Groceries & Kirana': 'https://images.unsplash.com/photo-1609952578538-3d454550301d?w=400&h=300&fit=crop',
-  'Bakery, Sweets & Snacks': 'https://images.unsplash.com/photo-1645597454210-c97f9701257a?w=400&h=300&fit=crop',
-  'Dairy & Milk Products': 'https://images.pexels.com/photos/3735192/pexels-photo-3735192.jpeg?w=400&h=300&fit=crop',
-  'Fruits & Vegetables': 'https://images.unsplash.com/photo-1553799262-a37c45961038?w=400&h=300&fit=crop',
+  'Groceries & Kirana': require('../assets/images/grocery-store.jpg'),
+  'Bakery, Sweets & Snacks': require('../assets/images/bakery_sweets_Snacks.jpg'),
+  'Dairy & Milk Products': require('../assets/images/Dairy-By-products.jpg'),
+  'Fruits & Vegetables': require('../assets/images/fruits.jpg'),
   'Meat, Chicken & Fish Shops': 'https://images.unsplash.com/photo-1704303923171-d6839e4784c3?w=400&h=300&fit=crop',
-  'Pharmacy / Medical Stores': 'https://images.pexels.com/photos/8657301/pexels-photo-8657301.jpeg?w=400&h=300&fit=crop',
-  'General Stores / Provision Stores': 'https://images.unsplash.com/photo-1739066598279-1297113f5c6a?w=400&h=300&fit=crop',
-  'Water Can Suppliers': 'https://images.unsplash.com/photo-1616118132534-381148898bb4?w=400&h=300&fit=crop',
+  'Pharmacy / Medical Stores': require('../assets/images/medical.jpg'),
+  'General Stores / Provision Stores': require('../assets/images/General_Stores.jpg'),
+  'Water Can Suppliers': require('../assets/images/Water-Can-Suppliers.jpg'),
   "Men's Salons": 'https://images.unsplash.com/photo-1654097801176-cb1795fd0c5e?w=400&h=300&fit=crop',
   "Women's Salons / Beauty Parlors": 'https://images.pexels.com/photos/3738340/pexels-photo-3738340.jpeg?w=400&h=300&fit=crop',
   // Legacy/fallback names
@@ -62,6 +62,14 @@ const CATEGORY_IMAGES: { [key: string]: string } = {
   'Pharmacy': 'https://images.pexels.com/photos/8657301/pexels-photo-8657301.jpeg?w=400&h=300&fit=crop',
   'Fashion': 'https://images.unsplash.com/photo-1641440615976-d4bc4eb7dab8?w=400&h=300&fit=crop',
   'Electronics': 'https://images.unsplash.com/photo-1550009158-9ebf69173e03?w=400&h=300&fit=crop',
+};
+
+const FALLBACK_CATEGORY_IMAGE =
+  'https://images.unsplash.com/photo-1609952578538-3d454550301d?w=400&h=300&fit=crop';
+
+const getCategoryImageSource = (categoryName: string) => {
+  const image = CATEGORY_IMAGES[categoryName] ?? FALLBACK_CATEGORY_IMAGE;
+  return typeof image === 'string' ? { uri: image } : image;
 };
 
 
@@ -372,7 +380,7 @@ const displayedCategories = showAllCategories
               />
             </View>
 
-           <TouchableOpacity onPress={toggleDropdown} style={styles.avatarButton}>
+           {/* <TouchableOpacity onPress={toggleDropdown} style={styles.avatarButton}>
   {photoUri ? (
     <Image source={{ uri: photoUri }} style={styles.headerAvatar} />
   ) : (
@@ -380,7 +388,19 @@ const displayedCategories = showAllCategories
       <Ionicons name="person" size={20} color="#fff" />
     </View>
   )}
-</TouchableOpacity>
+</TouchableOpacity> */}
+<TouchableOpacity
+            style={styles.profileButton}
+            onPress={toggleDropdown}
+          >
+            <View style={styles.profileInfo}>
+              <Text style={styles.userName}>{user?.name}</Text>
+              <View style={styles.memberBadge}>
+                <Text style={styles.memberBadgeText}>Customer</Text>
+              </View>
+            </View>
+            <Ionicons name="person" size={20} color="#fff" />
+          </TouchableOpacity>
 
           </View>
 
@@ -517,7 +537,7 @@ const displayedCategories = showAllCategories
                 >
                   <View style={styles.categoryImageContainer}>
                     <Image 
-                      source={{ uri: CATEGORY_IMAGES[category.name] || 'https://images.unsplash.com/photo-1609952578538-3d454550301d?w=400&h=300&fit=crop' }}
+                      source={getCategoryImageSource(category.name)}
                       style={styles.categoryImage}
                       resizeMode="cover"
                     />
@@ -754,7 +774,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FF6600',
     borderBottomWidth: 1,
     borderBottomColor: '#EEEEEE',
   },
@@ -777,7 +797,7 @@ const styles = StyleSheet.create({
   },
 profileButton: { flexDirection: 'row', alignItems: 'center' },
   profileInfo: { alignItems: 'flex-end', marginRight: 8 },
-  userName: { fontSize: 14, fontWeight: '600', color: '#1A1A1A' },
+  userName: { fontSize: 14, fontWeight: '600', color: '#fff' },
   memberBadge: {
     backgroundColor: '#4CAF50',
     paddingHorizontal: 8,
@@ -864,6 +884,8 @@ profileButton: { flexDirection: 'row', alignItems: 'center' },
     width: '33.33%', 
     paddingHorizontal: 6,
     marginBottom: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   categoryImageContainer: {
     width: '100%',
@@ -897,11 +919,12 @@ profileButton: { flexDirection: 'row', alignItems: 'center' },
     right: 8,
     color: '#FFFFFF',
     textAlign: 'center',
-    fontWeight: '700',
-    fontSize: 12,
+    fontWeight: '600',
+    fontSize: 16,
     textShadowColor: 'rgba(0, 0, 0, 0.8)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 4,
+    textTransform: 'uppercase',
   },
 
   themeSection: {
