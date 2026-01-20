@@ -10,7 +10,7 @@ import {
   FlatList,
   Platform,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -113,12 +113,14 @@ const TransactionCard = ({ transaction }: { transaction: Transaction }) => (
 ================================ */
 export default function DualDashboard() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ userType?: string }>();
   const { user, logout } = useAuthStore();
   const [activeTab, setActiveTab] = useState<'customer' | 'merchant'>('customer');
   const [refreshing, setRefreshing] = useState(false);
   const [userData, setUserData] = useState<any>(null);
   const [customerTransactions, setCustomerTransactions] = useState<Transaction[]>([]);
   const [merchantTransactions, setMerchantTransactions] = useState<Transaction[]>([]);
+  const [userTypeLabel, setUserTypeLabel] = useState<string>('Dual');
 
   /* ===============================
      LOAD USER DATA
@@ -126,7 +128,23 @@ export default function DualDashboard() {
   useEffect(() => {
     loadUserData();
     loadTransactions();
+    loadUserType();
   }, []);
+
+  const loadUserType = async () => {
+    try {
+      if (params.userType) {
+        setUserTypeLabel('Customer & Merchant');
+      } else {
+        const storedUserType = await AsyncStorage.getItem('user_type');
+        if (storedUserType && storedUserType.toLowerCase() === 'dual') {
+          setUserTypeLabel('Customer & Merchant');
+        }
+      }
+    } catch (error) {
+      console.log('Error loading user type:', error);
+    }
+  };
 
   const loadUserData = async () => {
     try {
@@ -246,8 +264,13 @@ export default function DualDashboard() {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Text style={styles.welcomeText}>Welcome back,</Text>
-          <Text style={styles.userName}>{getWelcomeName()}</Text>
+          <View>
+            <Text style={styles.welcomeText}>Welcome back,</Text>
+            <Text style={styles.userName}>{getWelcomeName()}</Text>
+          </View>
+          <View style={styles.userTypeBadge}>
+            <Text style={styles.userTypeBadgeText}>{userTypeLabel}</Text>
+          </View>
         </View>
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <Ionicons name="log-out-outline" size={24} color="#FF6600" />
@@ -423,6 +446,20 @@ const styles = StyleSheet.create({
   },
   headerLeft: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  userTypeBadge: {
+    backgroundColor: '#9C27B0',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginLeft: 12,
+  },
+  userTypeBadgeText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '700',
   },
   welcomeText: {
     fontSize: 14,
