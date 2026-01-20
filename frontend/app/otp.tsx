@@ -25,11 +25,7 @@ import { searchUserByPhone, determineUserRole } from "../utils/api";
    CONFIG
 ================================ */
 const OTP_LENGTH = 6;
-const RESEND_SECONDS = 30;
-
-// Web uses test mode, Mobile uses real Firebase OTP
-const WEB_TEST_MODE = true;
-const TEST_OTP = "123456";
+const RESEND_SECONDS = 60;
 
 /* ===============================
    PHONE FORMATTER
@@ -63,6 +59,7 @@ export default function OTPScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSendingOtp, setIsSendingOtp] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
+  const [otpSent, setOtpSent] = useState(false);
 
   const [timer, setTimer] = useState(RESEND_SECONDS);
   const [canResend, setCanResend] = useState(false);
@@ -70,8 +67,6 @@ export default function OTPScreen() {
   const inputRefs = useRef<(TextInput | null)[]>([]);
   const recaptchaVerifier = useRef<FirebaseRecaptchaVerifierModal>(null);
   const shakeAnim = useRef(new Animated.Value(0)).current;
-
-  const isWebTestMode = Platform.OS === 'web' && WEB_TEST_MODE;
 
   /* ===============================
      RESEND TIMER
@@ -99,40 +94,35 @@ export default function OTPScreen() {
     
     try {
       const formattedPhone = formatPhoneNumber(phone || "");
-      console.log("Sending OTP to:", formattedPhone);
-      setStatusMessage("Sending OTP...");
-
+      console.log("=== SENDING OTP ===");
+      console.log("Phone:", formattedPhone);
+      
+      setStatusMessage("Initializing...");
       setIsSendingOtp(true);
       setCanResend(false);
       setTimer(RESEND_SECONDS);
       setOtp(Array(OTP_LENGTH).fill(""));
+      setOtpSent(false);
 
-      if (isWebTestMode) {
-        // Web Test Mode
-        console.log("Web Test Mode: Using test OTP:", TEST_OTP);
-        setStatusMessage("");
-        Alert.alert(
-          "Test Mode", 
-          `OTP sent to ${formattedPhone}\n\nFor testing, use OTP: ${TEST_OTP}`
-        );
-        setIsSendingOtp(false);
-        return;
-      }
-
-      // Real Firebase OTP for Mobile
+      // Check if recaptcha is ready
       if (!recaptchaVerifier.current) {
-        setStatusMessage("Waiting for reCAPTCHA...");
-        // Wait a bit for reCAPTCHA to initialize
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        console.log("Waiting for reCAPTCHA...");
+        setStatusMessage("Loading reCAPTCHA...");
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
         if (!recaptchaVerifier.current) {
-          Alert.alert("Error", "Please wait for reCAPTCHA to load and try again");
+          Alert.alert(
+            "Error", 
+            "reCAPTCHA not ready. Please wait a moment and try again.",
+            [{ text: "Retry", onPress: () => sendOtp() }]
+          );
           setIsSendingOtp(false);
           setStatusMessage("");
           return;
         }
       }
 
-      console.log("Sending real Firebase OTP...");
+      console.log("reCAPTCHA ready, sending OTP...");
       setStatusMessage("Sending SMS...");
       
       const provider = new PhoneAuthProvider(auth);
@@ -141,30 +131,41 @@ export default function OTPScreen() {
         recaptchaVerifier.current
       );
       
-      console.log("Verification ID received:", id);
+      console.log("=== OTP SENT SUCCESSFULLY ===");
+      console.log("Verification ID:", id);
+      console.log("ID Length:", id?.length);
+      
       setVerificationId(id);
-      setStatusMessage("OTP sent! Check your phone.");
+      setOtpSent(true);
+      setStatusMessage("OTP sent! Enter the code.");
       
       Alert.alert(
         "OTP Sent ✓", 
-        "Please check your phone for the SMS OTP.\n\nThe OTP will auto-fill when received.",
+        `SMS sent to ${formattedPhone}\n\nPlease enter the 6-digit OTP you receive.`,
         [{ text: "OK" }]
       );
       
     } catch (err: any) {
-      console.error('Send OTP error:', err);
+      console.error("=== SEND OTP ERROR ===");
+      console.error("Error code:", err.code);
+      console.error("Error message:", err.message);
+      console.error("Full error:", JSON.stringify(err, null, 2));
+      
       setStatusMessage("");
+      setOtpSent(false);
       
       let errorMessage = "Failed to send OTP. Please try again.";
       
       if (err.code === 'auth/invalid-phone-number') {
-        errorMessage = "Invalid phone number format.";
+        errorMessage = "Invalid phone number. Please check and try again.";
       } else if (err.code === 'auth/too-many-requests') {
-        errorMessage = "Too many requests. Please try again in a few minutes.";
+        errorMessage = "Too many attempts. Please wait a few minutes and try again.";
       } else if (err.code === 'auth/quota-exceeded') {
-        errorMessage = "SMS quota exceeded. Please try again later.";
+        errorMessage = "SMS limit reached. Please try again later.";
       } else if (err.code === 'auth/network-request-failed') {
         errorMessage = "Network error. Please check your internet connection.";
+      } else if (err.code === 'auth/captcha-check-failed') {
+        errorMessage = "Verification failed. Please try again.";
       } else if (err.message) {
         errorMessage = err.message;
       }
@@ -179,7 +180,8 @@ export default function OTPScreen() {
      AUTO SEND OTP ON MOUNT
   ================================ */
   useEffect(() => {
-    const t = setTimeout(sendOtp, 1000);
+    // Wait for component to fully mount and reCAPTCHA to initialize
+    const t = setTimeout(sendOtp, 1500);
     return () => clearTimeout(t);
   }, []);
 
@@ -195,16 +197,33 @@ export default function OTPScreen() {
   };
 
   /* ===============================
-     VERIFY OTP & DETERMINE USER TYPE
+     VERIFY OTP
   ================================ */
   const handleVerifyOTP = async () => {
     if (isLoading) return;
 
     const code = otp.join("");
+    console.log("=== VERIFYING OTP ===");
+    console.log("Entered OTP:", code);
+    console.log("OTP Length:", code.length);
+    console.log("Has Verification ID:", !!verificationId);
+    console.log("Verification ID:", verificationId?.substring(0, 20) + "...");
 
     if (code.length !== OTP_LENGTH) {
       shake();
-      Alert.alert("Invalid OTP", "Please enter 6-digit OTP");
+      Alert.alert("Invalid OTP", "Please enter the complete 6-digit OTP");
+      return;
+    }
+
+    if (!verificationId) {
+      Alert.alert(
+        "OTP Not Sent", 
+        "Please wait for OTP to be sent first, or click 'Resend OTP'",
+        [
+          { text: "Resend OTP", onPress: () => sendOtp() },
+          { text: "Cancel", style: "cancel" }
+        ]
+      );
       return;
     }
 
@@ -212,49 +231,29 @@ export default function OTPScreen() {
     setStatusMessage("Verifying OTP...");
 
     try {
-      let phoneNumber = phone || "";
-      let userId = `user_${Date.now()}`;
+      console.log("Creating credential...");
+      const credential = PhoneAuthProvider.credential(verificationId, code);
+      
+      console.log("Signing in with credential...");
+      const result = await signInWithCredential(auth, credential);
+      
+      console.log("=== OTP VERIFIED SUCCESSFULLY ===");
+      console.log("User UID:", result.user.uid);
+      console.log("User Phone:", result.user.phoneNumber);
+      
+      const phoneNumber = result.user.phoneNumber || phone || "";
+      const userId = result.user.uid;
 
-      if (isWebTestMode) {
-        // Web Test Mode - Verify test OTP
-        if (code !== TEST_OTP) {
-          shake();
-          Alert.alert("Invalid OTP", `Please enter the test OTP: ${TEST_OTP}`);
-          setIsLoading(false);
-          setStatusMessage("");
-          return;
-        }
-        console.log("Web Test Mode: OTP verified");
-        phoneNumber = formatPhoneNumber(phone || "");
-      } else {
-        // Real Firebase OTP verification for Mobile
-        if (!verificationId) {
-          Alert.alert("Error", "Please request OTP first by clicking 'Resend OTP'");
-          setIsLoading(false);
-          setStatusMessage("");
-          return;
-        }
-        
-        console.log("Verifying Firebase OTP...");
-        const credential = PhoneAuthProvider.credential(verificationId, code);
-        const result = await signInWithCredential(auth, credential);
-        
-        phoneNumber = result.user.phoneNumber || phone || "";
-        userId = result.user.uid;
-        console.log("Firebase OTP verified successfully, UID:", userId);
-      }
-
-      // Call the userType API to determine user role
+      // Call the userType API
       setStatusMessage("Checking user type...");
-      console.log("Calling userType API for phone:", phoneNumber);
+      console.log("Calling userType API for:", phoneNumber);
       
       const searchResponse = await searchUserByPhone(phoneNumber);
       console.log("API Response:", JSON.stringify(searchResponse, null, 2));
       
-      // Determine user role and dashboard based on userType
+      // Determine dashboard based on userType
       const roleInfo = determineUserRole(searchResponse);
       console.log("User Type:", roleInfo.userType);
-      console.log("Role:", roleInfo.role);
       console.log("Dashboard:", roleInfo.dashboard);
 
       // Save user data
@@ -269,36 +268,40 @@ export default function OTPScreen() {
       await AsyncStorage.setItem("user_data", JSON.stringify(userData));
       await AsyncStorage.setItem("user_role", roleInfo.role);
       await AsyncStorage.setItem("user_type", roleInfo.userType);
-      await AsyncStorage.setItem("user_search_response", JSON.stringify(searchResponse));
       
       setUser(userData);
       setToken(`token_${userId}`);
 
-      setStatusMessage("Redirecting...");
+      setStatusMessage("Success! Redirecting...");
       
-      // Navigate to appropriate dashboard based on userType
-      // - new_user → /user-dashboard
-      // - in_Customer → /member-dashboard  
-      // - in_Merchant → /merchant-dashboard
-      // - dual (both) → /dual-dashboard
-      console.log("Navigating to:", roleInfo.dashboard);
+      // Navigate to dashboard
       router.replace(roleInfo.dashboard as any);
       
     } catch (err: any) {
-      console.error('Verify OTP error:', err);
+      console.error("=== VERIFY OTP ERROR ===");
+      console.error("Error code:", err.code);
+      console.error("Error message:", err.message);
+      console.error("Full error:", JSON.stringify(err, null, 2));
+      
       shake();
       setStatusMessage("");
       
-      let errorMessage = "Invalid or expired OTP";
+      let errorMessage = "Verification failed. Please try again.";
+      
       if (err.code === 'auth/invalid-verification-code') {
-        errorMessage = "Invalid OTP. Please check and try again.";
+        errorMessage = "Invalid OTP. Please check the code and try again.";
       } else if (err.code === 'auth/code-expired') {
-        errorMessage = "OTP expired. Please request a new one.";
+        errorMessage = "OTP has expired. Please request a new one.";
+        setCanResend(true);
+      } else if (err.code === 'auth/session-expired') {
+        errorMessage = "Session expired. Please request a new OTP.";
+        setCanResend(true);
+        setVerificationId(null);
       } else if (err.code === 'auth/network-request-failed') {
         errorMessage = "Network error. Please check your connection.";
       }
       
-      Alert.alert("Error", errorMessage);
+      Alert.alert("Verification Failed", errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -308,22 +311,26 @@ export default function OTPScreen() {
      OTP INPUT HANDLERS
   ================================ */
   const handleOtpChange = (value: string, index: number) => {
-    // Handle paste of full OTP (auto-fill from SMS)
+    // Handle paste of full OTP
     if (value.length > 1) {
       const digits = value.replace(/\D/g, '').slice(0, OTP_LENGTH).split('');
-      const newOtp = [...otp];
+      const newOtp = Array(OTP_LENGTH).fill("");
       digits.forEach((digit, i) => {
-        if (i < OTP_LENGTH) newOtp[i] = digit;
+        newOtp[i] = digit;
       });
       setOtp(newOtp);
       
-      // Focus last filled input
-      const lastIndex = Math.min(digits.length - 1, OTP_LENGTH - 1);
-      inputRefs.current[lastIndex]?.focus();
-      
-      // Auto-verify if complete
-      if (newOtp.every(d => d !== "")) {
-        setTimeout(handleVerifyOTP, 300);
+      // Focus appropriate input
+      if (digits.length >= OTP_LENGTH) {
+        inputRefs.current[OTP_LENGTH - 1]?.focus();
+        // Auto verify after paste
+        setTimeout(() => {
+          if (newOtp.every(d => d !== "")) {
+            handleVerifyOTP();
+          }
+        }, 500);
+      } else {
+        inputRefs.current[digits.length]?.focus();
       }
       return;
     }
@@ -336,11 +343,6 @@ export default function OTPScreen() {
 
     if (value && index < OTP_LENGTH - 1) {
       inputRefs.current[index + 1]?.focus();
-    }
-
-    // Auto-verify when all digits entered
-    if (newOtp.every(d => d !== "")) {
-      setTimeout(handleVerifyOTP, 300);
     }
   };
 
@@ -358,37 +360,38 @@ export default function OTPScreen() {
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      {/* Firebase Recaptcha Modal - Only for Mobile */}
-      {Platform.OS !== 'web' && (
-        <FirebaseRecaptchaVerifierModal
-          ref={recaptchaVerifier}
-          firebaseConfig={firebaseConfig}
-          attemptInvisibleVerification={true}
-        />
-      )}
+      {/* Firebase Recaptcha Modal */}
+      <FirebaseRecaptchaVerifierModal
+        ref={recaptchaVerifier}
+        firebaseConfig={firebaseConfig}
+        attemptInvisibleVerification={true}
+        androidHardwareAccelerationDisabled={true}
+        androidLayerType="software"
+      />
 
       <View style={styles.content}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
 
-        <Text style={styles.title}>Enter OTP</Text>
-        <Text style={styles.subtitle}>Sent to +91 {phone}</Text>
+        <Text style={styles.title}>Verify OTP</Text>
+        <Text style={styles.subtitle}>Enter the 6-digit code sent to</Text>
+        <Text style={styles.phoneNumber}>+91 {phone}</Text>
         
-        {/* Mode Indicator */}
-        {isWebTestMode ? (
-          <View style={styles.testModeContainer}>
-            <Ionicons name="flask" size={16} color="#FF9800" />
-            <Text style={styles.testModeText}>Test Mode - Use OTP: {TEST_OTP}</Text>
+        {/* Status Indicator */}
+        {otpSent ? (
+          <View style={styles.successContainer}>
+            <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+            <Text style={styles.successText}>OTP sent successfully</Text>
           </View>
         ) : (
-          <View style={styles.realModeContainer}>
-            <Ionicons name="phone-portrait" size={16} color="#4CAF50" />
-            <Text style={styles.realModeText}>Real SMS OTP - Check your phone</Text>
+          <View style={styles.waitingContainer}>
+            <Ionicons name="time" size={20} color="#FF9800" />
+            <Text style={styles.waitingText}>Waiting for OTP...</Text>
           </View>
         )}
 
-        {/* Status Message */}
+        {/* Loading Status */}
         {statusMessage ? (
           <View style={styles.statusContainer}>
             <ActivityIndicator size="small" color="#FF6600" />
@@ -409,34 +412,52 @@ export default function OTPScreen() {
                 onChangeText={v => handleOtpChange(v, i)}
                 onKeyPress={({ nativeEvent }) => handleKeyPress(nativeEvent.key, i)}
                 autoFocus={i === 0}
-                textContentType={Platform.OS === 'ios' ? 'oneTimeCode' : undefined}
-                autoComplete={Platform.OS === 'android' ? 'sms-otp' : undefined}
+                textContentType="oneTimeCode"
+                autoComplete="sms-otp"
+                importantForAutofill="yes"
               />
             ))}
           </View>
         </Animated.View>
 
         <TouchableOpacity
-          style={[styles.button, (isLoading || isSendingOtp) && styles.buttonDisabled]}
+          style={[styles.button, (isLoading || isSendingOtp || !otpSent) && styles.buttonDisabled]}
           onPress={handleVerifyOTP}
-          disabled={isLoading || isSendingOtp}
+          disabled={isLoading || isSendingOtp || !otpSent}
         >
           {isLoading ? (
-            <ActivityIndicator color="#fff" />
+            <View style={styles.buttonContent}>
+              <ActivityIndicator color="#fff" size="small" />
+              <Text style={styles.buttonText}> Verifying...</Text>
+            </View>
           ) : (
             <Text style={styles.buttonText}>Verify & Continue</Text>
           )}
         </TouchableOpacity>
 
-        <TouchableOpacity 
-          onPress={sendOtp} 
-          disabled={!canResend || isSendingOtp}
-          style={styles.resendButton}
-        >
-          <Text style={[styles.resendText, (!canResend || isSendingOtp) && { opacity: 0.5 }]}>
-            {isSendingOtp ? "Sending..." : canResend ? "Resend OTP" : `Resend in ${timer}s`}
-          </Text>
-        </TouchableOpacity>
+        <View style={styles.resendContainer}>
+          <Text style={styles.resendLabel}>Didn't receive the code? </Text>
+          <TouchableOpacity 
+            onPress={sendOtp} 
+            disabled={!canResend || isSendingOtp}
+          >
+            <Text style={[styles.resendText, (!canResend || isSendingOtp) && styles.resendDisabled]}>
+              {isSendingOtp ? "Sending..." : canResend ? "Resend OTP" : `Resend in ${timer}s`}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Debug Info (remove in production) */}
+        {__DEV__ && (
+          <View style={styles.debugContainer}>
+            <Text style={styles.debugText}>
+              Verification ID: {verificationId ? "✓ Set" : "✗ Not set"}
+            </Text>
+            <Text style={styles.debugText}>
+              OTP Sent: {otpSent ? "✓ Yes" : "✗ No"}
+            </Text>
+          </View>
+        )}
       </View>
     </KeyboardAvoidingView>
   );
@@ -449,43 +470,44 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff" },
   content: { flex: 1, padding: 24 },
   backButton: { marginTop: 40, marginBottom: 24 },
-  title: { fontSize: 32, fontWeight: "bold", color: "#000" },
-  subtitle: { color: "#666", marginBottom: 8 },
-  testModeContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFF3E0',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    marginBottom: 12,
-  },
-  testModeText: {
-    marginLeft: 8,
-    fontSize: 13,
-    color: '#FF9800',
-    fontWeight: '600',
-  },
-  realModeContainer: {
+  title: { fontSize: 28, fontWeight: "bold", color: "#000" },
+  subtitle: { color: "#666", marginTop: 8, fontSize: 16 },
+  phoneNumber: { color: "#000", fontSize: 18, fontWeight: "600", marginTop: 4 },
+  successContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#E8F5E9',
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
-    marginBottom: 12,
+    marginTop: 16,
   },
-  realModeText: {
+  successText: {
     marginLeft: 8,
-    fontSize: 13,
+    fontSize: 14,
     color: '#4CAF50',
-    fontWeight: '600',
+    fontWeight: '500',
+  },
+  waitingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF3E0',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    marginTop: 16,
+  },
+  waitingText: {
+    marginLeft: 8,
+    fontSize: 14,
+    color: '#FF9800',
+    fontWeight: '500',
   },
   statusContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 12,
+    marginTop: 12,
   },
   statusText: {
     marginLeft: 8,
@@ -495,20 +517,21 @@ const styles = StyleSheet.create({
   otpContainer: { 
     flexDirection: "row", 
     justifyContent: "center", 
-    marginVertical: 20,
+    marginTop: 24,
+    marginBottom: 16,
   },
   otpInput: {
-    width: 48,
-    height: 56,
-    fontSize: 22,
+    width: 50,
+    height: 60,
+    fontSize: 24,
     fontWeight: 'bold',
     borderWidth: 2,
-    borderColor: "#ddd",
-    borderRadius: 8,
+    borderColor: "#E0E0E0",
+    borderRadius: 12,
     textAlign: "center",
     marginHorizontal: 4,
     color: "#000",
-    backgroundColor: "#fff",
+    backgroundColor: "#FAFAFA",
   },
   otpInputFilled: {
     borderColor: "#FF6600",
@@ -516,20 +539,50 @@ const styles = StyleSheet.create({
   },
   button: {
     backgroundColor: "#FF6600",
-    padding: 16,
-    borderRadius: 8,
+    padding: 18,
+    borderRadius: 12,
     alignItems: "center",
-    marginTop: 20,
+    marginTop: 24,
   },
-  buttonDisabled: { opacity: 0.6 },
-  buttonText: { color: "#fff", fontSize: 18, fontWeight: '600' },
-  resendButton: {
-    padding: 16,
+  buttonDisabled: { 
+    backgroundColor: "#FFB380",
+  },
+  buttonContent: {
+    flexDirection: 'row',
     alignItems: 'center',
+  },
+  buttonText: { 
+    color: "#fff", 
+    fontSize: 18, 
+    fontWeight: '600' 
+  },
+  resendContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 24,
+  },
+  resendLabel: {
+    color: '#666',
+    fontSize: 14,
   },
   resendText: { 
     color: "#FF6600", 
     fontWeight: '600',
-    fontSize: 16,
+    fontSize: 14,
+  },
+  resendDisabled: {
+    color: '#999',
+  },
+  debugContainer: {
+    marginTop: 40,
+    padding: 12,
+    backgroundColor: '#F5F5F5',
+    borderRadius: 8,
+  },
+  debugText: {
+    fontSize: 12,
+    color: '#666',
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
   },
 });
