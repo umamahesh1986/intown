@@ -42,14 +42,26 @@ const MEMBER_CAROUSEL_IMAGES = [
 ];
 // =================================
 
-// Category images from Unsplash/Pexels
+// Category images from Unsplash/Pexels - mapped to API category names
 const CATEGORY_IMAGES: { [key: string]: string } = {
+  // API Categories
+  'Groceries & Kirana': 'https://images.unsplash.com/photo-1609952578538-3d454550301d?w=400&h=300&fit=crop',
+  'Bakery, Sweets & Snacks': 'https://images.unsplash.com/photo-1645597454210-c97f9701257a?w=400&h=300&fit=crop',
+  'Dairy & Milk Products': 'https://images.pexels.com/photos/3735192/pexels-photo-3735192.jpeg?w=400&h=300&fit=crop',
+  'Fruits & Vegetables': 'https://images.unsplash.com/photo-1553799262-a37c45961038?w=400&h=300&fit=crop',
+  'Meat, Chicken & Fish Shops': 'https://images.unsplash.com/photo-1704303923171-d6839e4784c3?w=400&h=300&fit=crop',
+  'Pharmacy / Medical Stores': 'https://images.pexels.com/photos/8657301/pexels-photo-8657301.jpeg?w=400&h=300&fit=crop',
+  'General Stores / Provision Stores': 'https://images.unsplash.com/photo-1739066598279-1297113f5c6a?w=400&h=300&fit=crop',
+  'Water Can Suppliers': 'https://images.unsplash.com/photo-1616118132534-381148898bb4?w=400&h=300&fit=crop',
+  "Men's Salons": 'https://images.unsplash.com/photo-1654097801176-cb1795fd0c5e?w=400&h=300&fit=crop',
+  "Women's Salons / Beauty Parlors": 'https://images.pexels.com/photos/3738340/pexels-photo-3738340.jpeg?w=400&h=300&fit=crop',
+  // Legacy/fallback names
   'Grocery': 'https://images.unsplash.com/photo-1609952578538-3d454550301d?w=400&h=300&fit=crop',
-  'Salon': 'https://images.unsplash.com/photo-1605980625982-b128a7e7fde2?w=400&h=300&fit=crop',
-  'Restaurant': 'https://images.unsplash.com/photo-1762922425226-8cfe6987e7b0?w=400&h=300&fit=crop',
+  'Salon': 'https://images.unsplash.com/photo-1654097801176-cb1795fd0c5e?w=400&h=300&fit=crop',
+  'Restaurant': 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=300&fit=crop',
   'Pharmacy': 'https://images.pexels.com/photos/8657301/pexels-photo-8657301.jpeg?w=400&h=300&fit=crop',
   'Fashion': 'https://images.unsplash.com/photo-1641440615976-d4bc4eb7dab8?w=400&h=300&fit=crop',
-  'Electronics': 'https://images.unsplash.com/photo-1754761986430-5d0d44d09d00?w=400&h=300&fit=crop',
+  'Electronics': 'https://images.unsplash.com/photo-1550009158-9ebf69173e03?w=400&h=300&fit=crop',
 };
 
 
