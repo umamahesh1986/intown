@@ -19,12 +19,13 @@ import {
   
 } from 'react-native';
 
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
 import { useLocationStore } from '../store/locationStore';
 import { getPlans, getCategories } from '../utils/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { FontStylesWithFallback } from '../utils/fonts';
 
@@ -73,7 +74,9 @@ const CAROUSEL_HEIGHT =
 
 export default function UserDashboard() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ userType?: string }>();
   const { user, logout } = useAuthStore();
+  const [userType, setUserType] = useState<string>('User');
 
 
 
@@ -148,6 +151,7 @@ const CAROUSEL_IMAGES = CAROUSEL_IMAGES_RAW.map(image =>
   useEffect(() => {
   loadData();
   startAutoScroll();
+  loadUserType();
 
   const timer = setInterval(() => {
     setCarouselIndex(prev => {
@@ -162,6 +166,31 @@ const CAROUSEL_IMAGES = CAROUSEL_IMAGES_RAW.map(image =>
 
   return () => clearInterval(timer);
 }, []);
+
+const loadUserType = async () => {
+  try {
+    // First check params, then AsyncStorage
+    if (params.userType) {
+      setUserType(formatUserType(params.userType));
+    } else {
+      const storedUserType = await AsyncStorage.getItem('user_type');
+      if (storedUserType) {
+        setUserType(formatUserType(storedUserType));
+      }
+    }
+  } catch (error) {
+    console.log('Error loading user type:', error);
+  }
+};
+
+const formatUserType = (type: string): string => {
+  const lower = type.toLowerCase();
+  if (lower === 'new_user' || lower === 'new' || lower === 'user') return 'User';
+  if (lower.includes('customer')) return 'Customer';
+  if (lower.includes('merchant')) return 'Merchant';
+  if (lower === 'dual') return 'Customer & Merchant';
+  return 'User';
+};
 
 
   useEffect(() => {
@@ -271,7 +300,12 @@ const CAROUSEL_IMAGES = CAROUSEL_IMAGES_RAW.map(image =>
         <ScrollView showsVerticalScrollIndicator={false}>
           {/* Header */}
           <View style={styles.header}>
-            <Image source={require('../assets/images/intown-logo.jpg')} style={styles.logo} resizeMode="contain" />
+            <View style={styles.headerLeft}>
+              <Image source={require('../assets/images/intown-logo.jpg')} style={styles.logo} resizeMode="contain" />
+              <View style={styles.userTypeBadge}>
+                <Text style={styles.userTypeBadgeText}>{userType}</Text>
+              </View>
+            </View>
             <TouchableOpacity
               onPress={(e) => {
                 e.stopPropagation();
@@ -715,10 +749,26 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#EEEEEE',
   },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   logo: {
     width: 140,
     height: 50,
- },
+  },
+  userTypeBadge: {
+    backgroundColor: '#fff',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginLeft: 10,
+  },
+  userTypeBadgeText: {
+    color: '#fe6f09',
+    fontSize: 12,
+    fontWeight: '700',
+  },
   profileButton: {
     flexDirection: 'row',
     alignItems: 'center',

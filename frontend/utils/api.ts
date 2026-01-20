@@ -305,21 +305,48 @@ export const searchUserByPhone = async (phoneNumber: string): Promise<UserSearch
       cleanPhone = cleanPhone.substring(2);
     }
     
-    console.log("Searching user by phone:", cleanPhone);
-    console.log("API URL:", `${INTOWN_API_BASE}/search/${cleanPhone}`);
+    const apiUrl = `${INTOWN_API_BASE}/search/${cleanPhone}`;
+    console.log("=== SEARCH USER API CALL ===");
+    console.log("Phone (cleaned):", cleanPhone);
+    console.log("API URL:", apiUrl);
+    console.log("Platform:", Platform.OS);
     
-    const response = await axios.get(`${INTOWN_API_BASE}/search/${cleanPhone}`, {
-      timeout: 15000,
+    const response = await axios.get(apiUrl, {
+      timeout: 30000, // Increased timeout for mobile networks
       headers: {
         "Content-Type": "application/json",
+        "Accept": "application/json",
       },
     });
     
+    console.log("=== API SUCCESS ===");
+    console.log("Status:", response.status);
     console.log("User search response:", JSON.stringify(response.data, null, 2));
     return response.data;
   } catch (error: any) {
-    console.error("User search error:", error.message);
-    console.error("Error details:", error.response?.data || error);
+    console.error("=== API ERROR ===");
+    console.error("Error name:", error.name);
+    console.error("Error message:", error.message);
+    console.error("Error code:", error.code);
+    
+    // Detailed error logging for debugging mobile network issues
+    if (error.response) {
+      // Server responded with error status
+      console.error("Response status:", error.response.status);
+      console.error("Response data:", JSON.stringify(error.response.data, null, 2));
+    } else if (error.request) {
+      // Request was made but no response received (Network Error)
+      console.error("No response received - Network Error");
+      console.error("Request URL:", error.config?.url);
+      console.error("Request timeout:", error.config?.timeout);
+      console.error("This may be due to:");
+      console.error("  1. No internet connection on device");
+      console.error("  2. Server unreachable from device network");
+      console.error("  3. SSL/TLS certificate issues");
+      console.error("  4. CORS issues (web only)");
+    } else {
+      console.error("Error setting up request:", error.message);
+    }
     
     // Return empty response on error - user will be treated as new user
     return {
