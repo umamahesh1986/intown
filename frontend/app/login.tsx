@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { Video, ResizeMode } from 'expo-av';
 
 const CARD_WIDTH = 520;
 const RADIUS = 12;
@@ -38,7 +39,7 @@ export default function LoginScreen() {
         }
       : null;
 
-  // Background - video for web, solid color for mobile
+  // Background - video for web, video component for mobile
   const BackgroundContent = () => {
     if (Platform.OS === 'web') {
       return (
@@ -61,9 +62,18 @@ export default function LoginScreen() {
         </video>
       );
     }
+    
+    // Mobile: Use expo-av Video component
     return (
       <View style={StyleSheet.absoluteFill}>
-        <View style={{ flex: 1, backgroundColor: '#1a1a2e' }} />
+        <Video
+          source={require('../assets/videos/intown-video.mp4')}
+          style={StyleSheet.absoluteFill}
+          resizeMode={ResizeMode.COVER}
+          shouldPlay
+          isLooping
+          isMuted
+        />
       </View>
     );
   };
