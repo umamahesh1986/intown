@@ -447,14 +447,6 @@ export const determineUserRole = (response: UserSearchResponse): RoleInfo => {
     userData: response,
   };
 };
-  
-  // New user - no data found
-  return {
-    role: 'new',
-    dashboard: '/user-dashboard',
-    userData: response,
-  };
-};
 
 /* ===============================
    MEMBER SEARCH  API
