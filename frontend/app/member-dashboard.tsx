@@ -13,7 +13,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -84,7 +84,9 @@ interface Category {
 
 export default function MemberDashboard() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ userType?: string }>();
   const { user, logout } = useAuthStore();
+  const [userType, setUserType] = useState<string>('Customer');
 
   const [searchQuery, setSearchQuery] = useState('');
   const [categories, setCategories] = useState<Category[]>([]);
@@ -115,6 +117,7 @@ const carouselRef = useRef<ScrollView | null>(null);
   useEffect(() => {
     loadCategories();
     startAutoScroll();
+    loadUserType();
     // load cached local photo if exists
     (async () => {
       try {
@@ -140,6 +143,30 @@ const carouselRef = useRef<ScrollView | null>(null);
 
   return () => clearInterval(timer);
 }, []);
+
+const loadUserType = async () => {
+  try {
+    if (params.userType) {
+      setUserType(formatUserType(params.userType));
+    } else {
+      const storedUserType = await AsyncStorage.getItem('user_type');
+      if (storedUserType) {
+        setUserType(formatUserType(storedUserType));
+      }
+    }
+  } catch (error) {
+    console.log('Error loading user type:', error);
+  }
+};
+
+const formatUserType = (type: string): string => {
+  const lower = type.toLowerCase();
+  if (lower === 'new_user' || lower === 'new' || lower === 'user') return 'User';
+  if (lower.includes('customer')) return 'Customer';
+  if (lower.includes('merchant')) return 'Merchant';
+  if (lower === 'dual') return 'Customer & Merchant';
+  return 'Customer';
+};
  
  
   
@@ -666,7 +693,23 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#EEEEEE',
   },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   logo: { width: 140, height: 50 },
+  userTypeBadge: {
+    backgroundColor: '#4CAF50',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginLeft: 10,
+  },
+  userTypeBadgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '700',
+  },
 profileButton: { flexDirection: 'row', alignItems: 'center' },
   profileInfo: { alignItems: 'flex-end', marginRight: 8 },
   userName: { fontSize: 14, fontWeight: '600', color: '#1A1A1A' },
