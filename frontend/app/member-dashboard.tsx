@@ -495,12 +495,17 @@ aspect: [1, 1],
                       params: { category: category.name },
                     })
                   }
+                  activeOpacity={0.8}
                 >
-                  <View style={styles.categoryIcon}>
-                    <Ionicons name={
-    (CATEGORY_ICON_MAP[category.name] || 'grid-outline') as any} size={32} color="#FF6600" />
+                  <View style={styles.categoryImageContainer}>
+                    <Image 
+                      source={{ uri: CATEGORY_IMAGES[category.name] || 'https://images.unsplash.com/photo-1609952578538-3d454550301d?w=400&h=300&fit=crop' }}
+                      style={styles.categoryImage}
+                      resizeMode="cover"
+                    />
+                    <View style={styles.categoryGradient} />
+                    <Text style={styles.categoryName}>{category.name}</Text>
                   </View>
-                  <Text style={styles.categoryName}>{category.name}</Text>
                 </TouchableOpacity>
               ))}
             </View>
