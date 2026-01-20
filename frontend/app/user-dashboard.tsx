@@ -1118,37 +1118,47 @@ dotActive: {
   categoriesGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginHorizontal: -8,
+    marginHorizontal: -6,
   },
-categoryCard: {
-  width: '33.33%',
-  alignItems: 'center',
-  marginBottom: 16,
-},
-
-categoryIcon: {
-  width: 112,
-  height: 112,
-  borderRadius: '50%',
-  backgroundColor: '#FFFFFF',
-  alignItems: 'center',
-  justifyContent: 'center',
-  marginBottom: 8,
-  shadowColor: '#000',
-  shadowOpacity: 0.04,
-  shadowOffset: { width: 0, height: 2 },
-  shadowRadius: 6,
-  elevation: 3,
-},
-
-categoryName: {
-  ...FontStylesWithFallback.caption,
-  color: '#1A1A1A',
-  textAlign: 'center',
-  fontWeight: '600',
-  fontSize: 14,
-},
-
+  categoryCard: {
+    width: '33.33%',
+    paddingHorizontal: 6,
+    marginBottom: 12,
+  },
+  categoryImageContainer: {
+    width: '100%',
+    aspectRatio: 1,
+    borderRadius: 16,
+    overflow: 'hidden',
+    backgroundColor: '#f0f0f0',
+    position: 'relative',
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  categoryImage: {
+    width: '100%',
+    height: '100%',
+  },
+  categoryOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.35)',
+  },
+  categoryName: {
+    position: 'absolute',
+    bottom: 12,
+    left: 0,
+    right: 0,
+    color: '#FFFFFF',
+    textAlign: 'center',
+    fontWeight: '700',
+    fontSize: 13,
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+  },
 
   noCategoriesText: {
     ...FontStylesWithFallback.body,
