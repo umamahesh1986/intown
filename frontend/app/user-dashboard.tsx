@@ -302,9 +302,6 @@ const formatUserType = (type: string): string => {
           <View style={styles.header}>
             <View style={styles.headerLeft}>
               <Image source={require('../assets/images/intown-logo.jpg')} style={styles.logo} resizeMode="contain" />
-              <View style={styles.userTypeBadge}>
-                <Text style={styles.userTypeBadgeText}>{userType}</Text>
-              </View>
             </View>
             <TouchableOpacity
               onPress={(e) => {
@@ -314,7 +311,7 @@ const formatUserType = (type: string): string => {
               style={styles.profileButton}
             >
               <View style={styles.profileInfo}>
-                <Text style={styles.userName}>{user?.name}</Text>
+                <Text style={styles.userName}>New User</Text>
                 <Text style={styles.userPhone}>{user?.phone}</Text>
               </View>
             <Ionicons name="person" size={20} color="#ffffff" />
@@ -756,18 +753,6 @@ const styles = StyleSheet.create({
   logo: {
     width: 140,
     height: 50,
-  },
-  userTypeBadge: {
-    backgroundColor: '#fff',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginLeft: 10,
-  },
-  userTypeBadgeText: {
-    color: '#fe6f09',
-    fontSize: 12,
-    fontWeight: '700',
   },
   profileButton: {
     flexDirection: 'row',

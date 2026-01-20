@@ -209,9 +209,6 @@ const carouselRef = useRef<ScrollView | null>(null);
               style={styles.logo}
               resizeMode="contain"
             />
-            <View style={styles.userTypeBadge}>
-              <Text style={styles.userTypeBadgeText}>{userType}</Text>
-            </View>
           </View>
           <TouchableOpacity
             style={styles.profileButton}
