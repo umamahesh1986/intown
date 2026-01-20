@@ -507,9 +507,19 @@ const formatUserType = (type: string): string => {
             <View style={styles.categoriesGrid}>
               {categories.length > 0 ? (
                 categories.map((category) => (
-                  <TouchableOpacity key={category.id} style={styles.categoryCard} onPress={() => setShowRegistrationModal(true)}>
-                    <View style={styles.categoryIcon}>
-                      <Ionicons name={category.icon as any} size={32} color="#FF6600" />
+                  <TouchableOpacity 
+                    key={category.id} 
+                    style={styles.categoryCard} 
+                    onPress={() => setShowRegistrationModal(true)}
+                    activeOpacity={0.8}
+                  >
+                    <View style={styles.categoryImageContainer}>
+                      <Image 
+                        source={{ uri: CATEGORY_IMAGES[category.name] || 'https://images.unsplash.com/photo-1609952578538-3d454550301d?w=400&h=300&fit=crop' }}
+                        style={styles.categoryImage}
+                        resizeMode="cover"
+                      />
+                      <View style={styles.categoryOverlay} />
                       <Text style={styles.categoryName}>{category.name}</Text>
                     </View>
                   </TouchableOpacity>
