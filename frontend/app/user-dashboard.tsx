@@ -519,7 +519,7 @@ const formatUserType = (type: string): string => {
                         style={styles.categoryImage}
                         resizeMode="cover"
                       />
-                      <View style={styles.categoryOverlay} />
+                      <View style={styles.categoryGradient} />
                       <Text style={styles.categoryName}>{category.name}</Text>
                     </View>
                   </TouchableOpacity>
