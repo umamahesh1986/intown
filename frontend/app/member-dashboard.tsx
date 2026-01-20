@@ -333,11 +333,16 @@ aspect: [1, 1],
 
           {/* HEADER */}
           <View style={styles.header}>
-            <Image
-              source={require('../assets/images/intown-logo.jpg')}
-              style={styles.logo}
-              resizeMode="contain"
-            />
+            <View style={styles.headerLeft}>
+              <Image
+                source={require('../assets/images/intown-logo.jpg')}
+                style={styles.logo}
+                resizeMode="contain"
+              />
+              <View style={styles.userTypeBadge}>
+                <Text style={styles.userTypeBadgeText}>{userType}</Text>
+              </View>
+            </View>
 
            <TouchableOpacity onPress={toggleDropdown} style={styles.avatarButton}>
   {photoUri ? (
