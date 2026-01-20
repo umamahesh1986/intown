@@ -113,6 +113,8 @@ export default function MemberDashboard() {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [categories, setCategories] = useState<Category[]>([]);
+  const [showAllCategories, setShowAllCategories] = useState(false);
+
   const [monthlySpend, setMonthlySpend] = useState('10000');
   const [showDropdown, setShowDropdown] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
@@ -348,6 +350,12 @@ aspect: [1, 1],
   };
 
   // -----------------------------------------------------
+  const VISIBLE_COUNT = 8;
+
+const displayedCategories = showAllCategories
+  ? categories
+  : categories.slice(0, VISIBLE_COUNT);
+
 
   return (
     <SafeAreaView style={styles.container}>
@@ -494,7 +502,8 @@ aspect: [1, 1],
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Popular Categories</Text>
             <View style={styles.categoriesGrid}>
-              {categories.map(category => (
+              {displayedCategories.map(category => (
+
                 <TouchableOpacity
                   key={category.id}
                   style={styles.categoryCard}
@@ -517,7 +526,33 @@ aspect: [1, 1],
                   </View>
                 </TouchableOpacity>
               ))}
+                {!showAllCategories && categories.length > VISIBLE_COUNT && (
+    <TouchableOpacity
+      style={styles.categoryCard}
+      onPress={() => setShowAllCategories(true)}
+    >
+      <View style={styles.categoryIcon}>
+        <Ionicons
+          name="ellipsis-horizontal"
+          size={32}
+          color="#FF6600"
+        />
+      </View>
+      <Text style={styles.categoryName}>More</Text>
+    </TouchableOpacity>
+  )}
             </View>
+            {showAllCategories && (
+  <TouchableOpacity
+    onPress={() => setShowAllCategories(false)}
+    style={{ alignSelf: 'center', marginTop: 12 }}
+  >
+    <Text style={{ color: '#FF6600', fontWeight: '600' }}>
+      Show Less
+    </Text>
+  </TouchableOpacity>
+)}
+
           </View>
 
           {/* THEME SECTION */}
