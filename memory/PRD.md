@@ -44,8 +44,8 @@ Build a React Native (Expo) application for InTown Local that enables:
 
 ### Completed Features (Jan 20, 2026)
 - [x] Firebase Phone Authentication setup
-- [x] Web Test Mode with static OTP (123456) for development
-- [x] Mobile real OTP flow with reCAPTCHA
+- [x] **Web Test Mode with static OTP (123456)** - Fixed and working! Bypasses Firebase reCAPTCHA on web
+- [x] Mobile real OTP flow with reCAPTCHA (conditional import)
 - [x] API integration for user search
 - [x] Role determination logic
 - [x] Dashboard screens (User, Member, Merchant, Dual)
@@ -57,6 +57,11 @@ Build a React Native (Expo) application for InTown Local that enables:
 1. **AxiosError: Network Error on Mobile (P0)** - Enhanced logging added; likely device network configuration issue
 2. **OTP Auto-fill verification (P2)** - Implemented but needs mobile testing
 3. **Git history corruption (P3/BLOCKED)** - Cannot fix; recommend fresh clone
+
+### Web Test Mode Details
+- Enter any phone number on login screen
+- Use OTP: `123456` to verify
+- This bypasses Firebase which doesn't work in web preview environment
 
 ## API Endpoints
 - `GET https://devapi.intownlocal.com/IN/search/{phone}` - User lookup
