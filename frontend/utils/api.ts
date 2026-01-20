@@ -290,9 +290,11 @@ export const processPayment = async (paymentData: any) => {
 ================================ */
 
 export interface UserSearchResponse {
+  userType?: string;
   user?: any;
   customer?: any;
   merchant?: any;
+  [key: string]: any;
 }
 
 export const searchUserByPhone = async (phoneNumber: string): Promise<UserSearchResponse> => {
@@ -304,6 +306,7 @@ export const searchUserByPhone = async (phoneNumber: string): Promise<UserSearch
     }
     
     console.log("Searching user by phone:", cleanPhone);
+    console.log("API URL:", `${INTOWN_API_BASE}/search/${cleanPhone}`);
     
     const response = await axios.get(`${INTOWN_API_BASE}/search/${cleanPhone}`, {
       timeout: 15000,
@@ -312,13 +315,15 @@ export const searchUserByPhone = async (phoneNumber: string): Promise<UserSearch
       },
     });
     
-    console.log("User search response:", response.data);
+    console.log("User search response:", JSON.stringify(response.data, null, 2));
     return response.data;
   } catch (error: any) {
     console.error("User search error:", error.message);
+    console.error("Error details:", error.response?.data || error);
     
     // Return empty response on error - user will be treated as new user
     return {
+      userType: 'new_user',
       user: null,
       customer: null,
       merchant: null,
@@ -328,6 +333,11 @@ export const searchUserByPhone = async (phoneNumber: string): Promise<UserSearch
 
 /* ===============================
    DETERMINE USER ROLE & DASHBOARD
+   Based on userType from API response:
+   - "new_user" or empty → /user-dashboard
+   - "in_Customer" → /member-dashboard
+   - "in_Merchant" → /merchant-dashboard
+   - Both customer & merchant → /dual-dashboard
 ================================ */
 
 export type UserRole = 'user' | 'customer' | 'merchant' | 'dual' | 'new';
@@ -335,30 +345,87 @@ export type UserRole = 'user' | 'customer' | 'merchant' | 'dual' | 'new';
 export interface RoleInfo {
   role: UserRole;
   dashboard: string;
+  userType: string;
   userData: UserSearchResponse;
 }
 
 export const determineUserRole = (response: UserSearchResponse): RoleInfo => {
-  const hasUser = response.user && Object.keys(response.user).length > 0;
+  const userType = response.userType || '';
+  
+  console.log("Determining role from userType:", userType);
+  console.log("Full response:", JSON.stringify(response, null, 2));
+  
+  // Check userType field first
+  if (userType) {
+    const lowerUserType = userType.toLowerCase();
+    
+    // Check for merchant
+    if (lowerUserType === 'in_merchant' || lowerUserType.includes('merchant')) {
+      // Check if also customer (dual role)
+      if (response.customer && Object.keys(response.customer).length > 0) {
+        return {
+          role: 'dual',
+          dashboard: '/dual-dashboard',
+          userType: userType,
+          userData: response,
+        };
+      }
+      return {
+        role: 'merchant',
+        dashboard: '/merchant-dashboard',
+        userType: userType,
+        userData: response,
+      };
+    }
+    
+    // Check for customer
+    if (lowerUserType === 'in_customer' || lowerUserType.includes('customer')) {
+      // Check if also merchant (dual role)
+      if (response.merchant && Object.keys(response.merchant).length > 0) {
+        return {
+          role: 'dual',
+          dashboard: '/dual-dashboard',
+          userType: userType,
+          userData: response,
+        };
+      }
+      return {
+        role: 'customer',
+        dashboard: '/member-dashboard',
+        userType: userType,
+        userData: response,
+      };
+    }
+    
+    // New user or unknown type
+    if (lowerUserType === 'new_user' || lowerUserType === 'new' || lowerUserType === 'user') {
+      return {
+        role: 'new',
+        dashboard: '/user-dashboard',
+        userType: userType,
+        userData: response,
+      };
+    }
+  }
+  
+  // Fallback: Check object presence
   const hasCustomer = response.customer && Object.keys(response.customer).length > 0;
   const hasMerchant = response.merchant && Object.keys(response.merchant).length > 0;
   
-  console.log("Role check - User:", hasUser, "Customer:", hasCustomer, "Merchant:", hasMerchant);
-  
-  // Check for dual role (customer + merchant)
   if (hasCustomer && hasMerchant) {
     return {
       role: 'dual',
       dashboard: '/dual-dashboard',
+      userType: 'dual',
       userData: response,
     };
   }
   
-  // Single role checks
   if (hasMerchant) {
     return {
       role: 'merchant',
       dashboard: '/merchant-dashboard',
+      userType: 'in_Merchant',
       userData: response,
     };
   }
@@ -367,16 +434,19 @@ export const determineUserRole = (response: UserSearchResponse): RoleInfo => {
     return {
       role: 'customer',
       dashboard: '/member-dashboard',
+      userType: 'in_Customer',
       userData: response,
     };
   }
   
-  if (hasUser) {
-    return {
-      role: 'user',
-      dashboard: '/user-dashboard',
-      userData: response,
-    };
+  // Default: New user
+  return {
+    role: 'new',
+    dashboard: '/user-dashboard',
+    userType: 'new_user',
+    userData: response,
+  };
+};
   }
   
   // New user - no data found
