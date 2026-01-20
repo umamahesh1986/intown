@@ -1122,23 +1122,25 @@ categoryName: {
   },
 
   themeSection: {
-    backgroundColor: '#e6e6e6',
+    backgroundColor: 'rgba(33, 94, 97, 0.8)',
     padding: 24,
     alignItems: 'center',
   },
   themeTitle: {
     ...FontStylesWithFallback.h2,
-    color: '#fe6f09',
+    color: '#fff',
     marginBottom: 8,
     fontWeight: '800',
-    fontSize: 30,
+    fontSize: 36,
+    textTransform: 'uppercase',
   },
   themeSubtitle: {
     ...FontStylesWithFallback.body,
-    color: '#000',
+    color: '#fff',
     textAlign: 'center',
     fontWeight: '600',
-    fontSize: 16,
+    fontSize: 14,
+    textTransform: 'uppercase',
   },
 
   calculatorCard: {
