@@ -1,5 +1,7 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { getAuth, initializeAuth, getReactNativePersistence } from "firebase/auth";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Platform } from "react-native";
 
 /* ===============================
    FIREBASE CONFIG
@@ -24,8 +26,26 @@ if (getApps().length === 0) {
 }
 
 /* ===============================
-   FIREBASE AUTH
+   FIREBASE AUTH WITH PERSISTENCE
 ================================ */
-const auth = getAuth(app);
+let auth;
+if (Platform.OS === 'web') {
+  auth = getAuth(app);
+} else {
+  // For React Native, use AsyncStorage for persistence
+  try {
+    auth = initializeAuth(app, {
+      persistence: getReactNativePersistence(AsyncStorage)
+    });
+  } catch (error: any) {
+    // If already initialized, just get the existing auth instance
+    if (error.code === 'auth/already-initialized') {
+      auth = getAuth(app);
+    } else {
+      console.warn('Firebase auth initialization error:', error);
+      auth = getAuth(app);
+    }
+  }
+}
 
 export { auth };
