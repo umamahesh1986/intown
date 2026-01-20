@@ -447,7 +447,6 @@ export const determineUserRole = (response: UserSearchResponse): RoleInfo => {
     userData: response,
   };
 };
-  }
   
   // New user - no data found
   return {
