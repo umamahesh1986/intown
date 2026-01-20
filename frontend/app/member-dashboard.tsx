@@ -26,6 +26,7 @@ import { CATEGORY_ICON_MAP } from '../utils/categoryIconMap';
 
 
 const { width } = Dimensions.get('window');
+import { Platform } from 'react-native';
 
 // ===== MEMBER CAROUSEL CONFIG =====
 const SLIDE_WIDTH = Math.round(width);
@@ -40,6 +41,16 @@ const MEMBER_CAROUSEL_IMAGES = [
   require('../assets/images/6.jpg'),
 ];
 // =================================
+
+// Category images from Unsplash/Pexels
+const CATEGORY_IMAGES: { [key: string]: string } = {
+  'Grocery': 'https://images.unsplash.com/photo-1609952578538-3d454550301d?w=400&h=300&fit=crop',
+  'Salon': 'https://images.unsplash.com/photo-1605980625982-b128a7e7fde2?w=400&h=300&fit=crop',
+  'Restaurant': 'https://images.unsplash.com/photo-1762922425226-8cfe6987e7b0?w=400&h=300&fit=crop',
+  'Pharmacy': 'https://images.pexels.com/photos/8657301/pexels-photo-8657301.jpeg?w=400&h=300&fit=crop',
+  'Fashion': 'https://images.unsplash.com/photo-1641440615976-d4bc4eb7dab8?w=400&h=300&fit=crop',
+  'Electronics': 'https://images.unsplash.com/photo-1754761986430-5d0d44d09d00?w=400&h=300&fit=crop',
+};
 
 
 const DUMMY_NEARBY_SHOPS = [
