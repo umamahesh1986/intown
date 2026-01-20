@@ -8,6 +8,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Animated,
+  ActivityIndicator,
 } from "react-native";
 import { useState, useRef, useEffect } from "react";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -61,6 +62,7 @@ export default function OTPScreen() {
   const [verificationId, setVerificationId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [statusMessage, setStatusMessage] = useState("");
 
   const [timer, setTimer] = useState(RESEND_SECONDS);
   const [canResend, setCanResend] = useState(false);
@@ -98,6 +100,7 @@ export default function OTPScreen() {
     try {
       const formattedPhone = formatPhoneNumber(phone || "");
       console.log("Sending OTP to:", formattedPhone);
+      setStatusMessage("Sending OTP...");
 
       setIsSendingOtp(true);
       setCanResend(false);
@@ -107,6 +110,7 @@ export default function OTPScreen() {
       if (isWebTestMode) {
         // Web Test Mode
         console.log("Web Test Mode: Using test OTP:", TEST_OTP);
+        setStatusMessage("");
         Alert.alert(
           "Test Mode", 
           `OTP sent to ${formattedPhone}\n\nFor testing, use OTP: ${TEST_OTP}`
@@ -117,12 +121,20 @@ export default function OTPScreen() {
 
       // Real Firebase OTP for Mobile
       if (!recaptchaVerifier.current) {
-        Alert.alert("Error", "Please wait for reCAPTCHA to load");
-        setIsSendingOtp(false);
-        return;
+        setStatusMessage("Waiting for reCAPTCHA...");
+        // Wait a bit for reCAPTCHA to initialize
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        if (!recaptchaVerifier.current) {
+          Alert.alert("Error", "Please wait for reCAPTCHA to load and try again");
+          setIsSendingOtp(false);
+          setStatusMessage("");
+          return;
+        }
       }
 
       console.log("Sending real Firebase OTP...");
+      setStatusMessage("Sending SMS...");
+      
       const provider = new PhoneAuthProvider(auth);
       const id = await provider.verifyPhoneNumber(
         formattedPhone,
@@ -131,19 +143,28 @@ export default function OTPScreen() {
       
       console.log("Verification ID received:", id);
       setVerificationId(id);
-      Alert.alert("OTP Sent", "Please check your phone for the SMS OTP. It will auto-fill when received.");
+      setStatusMessage("OTP sent! Check your phone.");
+      
+      Alert.alert(
+        "OTP Sent ✓", 
+        "Please check your phone for the SMS OTP.\n\nThe OTP will auto-fill when received.",
+        [{ text: "OK" }]
+      );
       
     } catch (err: any) {
       console.error('Send OTP error:', err);
+      setStatusMessage("");
       
       let errorMessage = "Failed to send OTP. Please try again.";
       
       if (err.code === 'auth/invalid-phone-number') {
         errorMessage = "Invalid phone number format.";
       } else if (err.code === 'auth/too-many-requests') {
-        errorMessage = "Too many requests. Please try again later.";
+        errorMessage = "Too many requests. Please try again in a few minutes.";
       } else if (err.code === 'auth/quota-exceeded') {
         errorMessage = "SMS quota exceeded. Please try again later.";
+      } else if (err.code === 'auth/network-request-failed') {
+        errorMessage = "Network error. Please check your internet connection.";
       } else if (err.message) {
         errorMessage = err.message;
       }
@@ -158,7 +179,7 @@ export default function OTPScreen() {
      AUTO SEND OTP ON MOUNT
   ================================ */
   useEffect(() => {
-    const t = setTimeout(sendOtp, 800);
+    const t = setTimeout(sendOtp, 1000);
     return () => clearTimeout(t);
   }, []);
 
@@ -174,7 +195,7 @@ export default function OTPScreen() {
   };
 
   /* ===============================
-     VERIFY OTP
+     VERIFY OTP & DETERMINE USER TYPE
   ================================ */
   const handleVerifyOTP = async () => {
     if (isLoading) return;
@@ -188,6 +209,7 @@ export default function OTPScreen() {
     }
 
     setIsLoading(true);
+    setStatusMessage("Verifying OTP...");
 
     try {
       let phoneNumber = phone || "";
@@ -199,6 +221,7 @@ export default function OTPScreen() {
           shake();
           Alert.alert("Invalid OTP", `Please enter the test OTP: ${TEST_OTP}`);
           setIsLoading(false);
+          setStatusMessage("");
           return;
         }
         console.log("Web Test Mode: OTP verified");
@@ -206,8 +229,9 @@ export default function OTPScreen() {
       } else {
         // Real Firebase OTP verification for Mobile
         if (!verificationId) {
-          Alert.alert("Error", "Please request OTP first");
+          Alert.alert("Error", "Please request OTP first by clicking 'Resend OTP'");
           setIsLoading(false);
+          setStatusMessage("");
           return;
         }
         
@@ -217,44 +241,61 @@ export default function OTPScreen() {
         
         phoneNumber = result.user.phoneNumber || phone || "";
         userId = result.user.uid;
-        console.log("Firebase OTP verified successfully");
+        console.log("Firebase OTP verified successfully, UID:", userId);
       }
 
-      // Call the search API to get user role
-      console.log("Searching user data for phone:", phoneNumber);
-      const searchResponse = await searchUserByPhone(phoneNumber);
+      // Call the userType API to determine user role
+      setStatusMessage("Checking user type...");
+      console.log("Calling userType API for phone:", phoneNumber);
       
-      // Determine user role and dashboard
+      const searchResponse = await searchUserByPhone(phoneNumber);
+      console.log("API Response:", JSON.stringify(searchResponse, null, 2));
+      
+      // Determine user role and dashboard based on userType
       const roleInfo = determineUserRole(searchResponse);
-      console.log("User role:", roleInfo.role, "Dashboard:", roleInfo.dashboard);
+      console.log("User Type:", roleInfo.userType);
+      console.log("Role:", roleInfo.role);
+      console.log("Dashboard:", roleInfo.dashboard);
 
       // Save user data
       const userData = {
         uid: userId,
         phone: phoneNumber,
         role: roleInfo.role,
+        userType: roleInfo.userType,
         ...roleInfo.userData,
       };
 
       await AsyncStorage.setItem("user_data", JSON.stringify(userData));
       await AsyncStorage.setItem("user_role", roleInfo.role);
+      await AsyncStorage.setItem("user_type", roleInfo.userType);
       await AsyncStorage.setItem("user_search_response", JSON.stringify(searchResponse));
       
       setUser(userData);
       setToken(`token_${userId}`);
 
-      // Navigate to dashboard
+      setStatusMessage("Redirecting...");
+      
+      // Navigate to appropriate dashboard based on userType
+      // - new_user → /user-dashboard
+      // - in_Customer → /member-dashboard  
+      // - in_Merchant → /merchant-dashboard
+      // - dual (both) → /dual-dashboard
+      console.log("Navigating to:", roleInfo.dashboard);
       router.replace(roleInfo.dashboard as any);
       
     } catch (err: any) {
       console.error('Verify OTP error:', err);
       shake();
+      setStatusMessage("");
       
       let errorMessage = "Invalid or expired OTP";
       if (err.code === 'auth/invalid-verification-code') {
         errorMessage = "Invalid OTP. Please check and try again.";
       } else if (err.code === 'auth/code-expired') {
         errorMessage = "OTP expired. Please request a new one.";
+      } else if (err.code === 'auth/network-request-failed') {
+        errorMessage = "Network error. Please check your connection.";
       }
       
       Alert.alert("Error", errorMessage);
@@ -267,7 +308,7 @@ export default function OTPScreen() {
      OTP INPUT HANDLERS
   ================================ */
   const handleOtpChange = (value: string, index: number) => {
-    // Handle paste of full OTP
+    // Handle paste of full OTP (auto-fill from SMS)
     if (value.length > 1) {
       const digits = value.replace(/\D/g, '').slice(0, OTP_LENGTH).split('');
       const newOtp = [...otp];
@@ -276,12 +317,13 @@ export default function OTPScreen() {
       });
       setOtp(newOtp);
       
-      // Focus last filled input or verify if complete
+      // Focus last filled input
       const lastIndex = Math.min(digits.length - 1, OTP_LENGTH - 1);
       inputRefs.current[lastIndex]?.focus();
       
+      // Auto-verify if complete
       if (newOtp.every(d => d !== "")) {
-        setTimeout(handleVerifyOTP, 200);
+        setTimeout(handleVerifyOTP, 300);
       }
       return;
     }
@@ -296,8 +338,9 @@ export default function OTPScreen() {
       inputRefs.current[index + 1]?.focus();
     }
 
+    // Auto-verify when all digits entered
     if (newOtp.every(d => d !== "")) {
-      setTimeout(handleVerifyOTP, 200);
+      setTimeout(handleVerifyOTP, 300);
     }
   };
 
@@ -345,9 +388,13 @@ export default function OTPScreen() {
           </View>
         )}
 
-        {isSendingOtp && (
-          <Text style={styles.sendingText}>Sending OTP...</Text>
-        )}
+        {/* Status Message */}
+        {statusMessage ? (
+          <View style={styles.statusContainer}>
+            <ActivityIndicator size="small" color="#FF6600" />
+            <Text style={styles.statusText}>{statusMessage}</Text>
+          </View>
+        ) : null}
 
         <Animated.View style={{ transform: [{ translateX: shakeAnim }] }}>
           <View style={styles.otpContainer}>
@@ -355,7 +402,7 @@ export default function OTPScreen() {
               <TextInput
                 key={i}
                 ref={(r) => { inputRefs.current[i] = r; }}
-                style={styles.otpInput}
+                style={[styles.otpInput, d ? styles.otpInputFilled : null]}
                 keyboardType="number-pad"
                 maxLength={1}
                 value={d}
@@ -370,13 +417,15 @@ export default function OTPScreen() {
         </Animated.View>
 
         <TouchableOpacity
-          style={[styles.button, isLoading && styles.buttonDisabled]}
+          style={[styles.button, (isLoading || isSendingOtp) && styles.buttonDisabled]}
           onPress={handleVerifyOTP}
-          disabled={isLoading}
+          disabled={isLoading || isSendingOtp}
         >
-          <Text style={styles.buttonText}>
-            {isLoading ? "Verifying..." : "Verify & Continue"}
-          </Text>
+          {isLoading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.buttonText}>Verify & Continue</Text>
+          )}
         </TouchableOpacity>
 
         <TouchableOpacity 
@@ -409,7 +458,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
-    marginBottom: 16,
+    marginBottom: 12,
   },
   testModeText: {
     marginLeft: 8,
@@ -424,7 +473,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
-    marginBottom: 16,
+    marginBottom: 12,
   },
   realModeText: {
     marginLeft: 8,
@@ -432,16 +481,21 @@ const styles = StyleSheet.create({
     color: '#4CAF50',
     fontWeight: '600',
   },
-  sendingText: {
-    color: '#FF6600',
+  statusContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  statusText: {
+    marginLeft: 8,
     fontSize: 14,
-    marginBottom: 8,
-    textAlign: 'center',
+    color: '#FF6600',
   },
   otpContainer: { 
     flexDirection: "row", 
     justifyContent: "center", 
-    marginVertical: 24,
+    marginVertical: 20,
   },
   otpInput: {
     width: 48,
@@ -449,12 +503,16 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: 'bold',
     borderWidth: 2,
-    borderColor: "#FF6600",
+    borderColor: "#ddd",
     borderRadius: 8,
     textAlign: "center",
     marginHorizontal: 4,
     color: "#000",
     backgroundColor: "#fff",
+  },
+  otpInputFilled: {
+    borderColor: "#FF6600",
+    backgroundColor: "#FFF8F0",
   },
   button: {
     backgroundColor: "#FF6600",
