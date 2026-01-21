@@ -481,24 +481,26 @@ export const determineUserRole = (response: UserSearchResponse): RoleInfo => {
 
 // 🔍 SEARCH PRODUCTS / CATEGORIES (REAL API)
 export const searchByProductNames = async (
-  productName: string,
-  latitude: number,
-  longitude: number
+  productNames: string,
+  customerLatitude: number,
+  customerLongitude: number
 ) => {
-  const url =
-    `https://devapi.intownlocal.com/IN/search/by-product-names` +
-    `?productNames=${encodeURIComponent(productName)}` +
-    `&customerLatitude=${latitude}` +
-    `&customerLongitude=${longitude}`;
+  const url = `https://devapi.intownlocal.com/IN/search/by-product-names` +
+    `?productNames=${encodeURIComponent(productNames)}` +
+    `&customerLatitude=${customerLatitude}` +
+    `&customerLongitude=${customerLongitude}`;
 
-  const response = await fetch(url);
+  const res = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
 
-  if (!response.ok) {
-    throw new Error('Search API failed');
-  }
-
-  return response.json();
+  return res.json();
 };
+
+
 
 
 /* ===============================

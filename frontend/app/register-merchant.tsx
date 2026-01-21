@@ -69,6 +69,9 @@ export default function RegisterMerchant() {
   /* ================= BACKEND CATEGORY FLOW (NEW) ================= */
 
   const [categories, setCategories] = useState<{ id: number; name: string }[]>([]);
+  const VISIBLE_CATEGORY_COUNT = 9;
+const [showAllCategories, setShowAllCategories] = useState(false);
+
   const [productsByCategory, setProductsByCategory] = useState<
     Record<number, { id: number; name: string }[]>
   >({});
@@ -451,6 +454,11 @@ export default function RegisterMerchant() {
   cat.name.toLowerCase().includes(categorySearch.toLowerCase())
 );
 
+const displayedCategories = showAllCategories
+  ? filteredCategories
+  : filteredCategories.slice(0, VISIBLE_CATEGORY_COUNT);
+
+
 
     /* ================= UI (UNCHANGED) ================= */
 
@@ -505,7 +513,7 @@ export default function RegisterMerchant() {
 />
 
             <View style={styles.categoryGrid}>
-  {filteredCategories.map(cat => {
+  {displayedCategories.map(cat => {
     const isSelected = selectedCategoryIds.includes(cat.id);
 
     return (
@@ -529,6 +537,17 @@ export default function RegisterMerchant() {
     );
   })}
 </View>
+{filteredCategories.length > VISIBLE_CATEGORY_COUNT && (
+  <TouchableOpacity
+    onPress={() => setShowAllCategories(prev => !prev)}
+    style={{ alignSelf: 'center', marginTop: 8 }}
+  >
+    <Text style={{ color: '#2196F3', fontWeight: '600' }}>
+      {showAllCategories ? 'Show Less' : 'Show More'}
+    </Text>
+  </TouchableOpacity>
+)}
+
 
         
 
@@ -778,7 +797,7 @@ categoryGrid: {
 },
 
 categoryCard: {
-  width: '48%',       // 2 columns
+  width: '31%',       // 3 columns
   padding: 14,
   marginBottom: 12,
   borderRadius: 10,
