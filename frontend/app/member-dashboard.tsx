@@ -27,6 +27,7 @@ import { CATEGORY_ICON_MAP } from '../utils/categoryIconMap';
 
 const { width } = Dimensions.get('window');
 import { Platform } from 'react-native';
+import * as Location from 'expo-location';
 
 // ===== MEMBER CAROUSEL CONFIG =====
 const SLIDE_WIDTH = Math.round(width);
@@ -151,6 +152,7 @@ const carouselRef = useRef<ScrollView | null>(null);
     loadCategories();
     startAutoScroll();
     loadUserType();
+    saveMemberLocation();
     // load cached local photo if exists
     (async () => {
       try {
@@ -200,10 +202,28 @@ const formatUserType = (type: string): string => {
   if (lower === 'dual') return 'Customer & Merchant';
   return 'Customer';
 };
- 
- 
-  
 
+const saveMemberLocation = async () => {
+  try {
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== 'granted') {
+      console.warn('Location permission denied');
+      return;
+    }
+
+    const location = await Location.getCurrentPositionAsync({});
+    const { latitude, longitude } = location.coords;
+
+    await AsyncStorage.setItem(
+      'member_location',
+      JSON.stringify({ latitude, longitude })
+    );
+
+    console.log('Member location saved:', latitude, longitude);
+  } catch (error) {
+    console.error('Error saving member location:', error);
+  }
+};
   const loadCategories = async () => {
     try {
       const data = await getCategories();
@@ -551,7 +571,7 @@ const displayedCategories = showAllCategories
       style={styles.categoryCard}
       onPress={() => setShowAllCategories(true)}
     >
-      <View style={styles.categoryIcon}>
+      <View style={styles.categoryImageContainer}>
         <Ionicons
           name="ellipsis-horizontal"
           size={32}

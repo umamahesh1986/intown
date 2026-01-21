@@ -10,7 +10,8 @@ import { useState, useEffect } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { getShops } from '../utils/api';
+import { searchByProductNames } from '../utils/api';
+
 import { useLocationStore } from '../store/locationStore';
 
 const DUMMY_SHOPS = [
@@ -28,7 +29,28 @@ export default function MemberShopList() {
   const query = params.query as string;
   const category = params.category as string;
   const { location } = useLocationStore();
-  const [shops, setShops] = useState(DUMMY_SHOPS);
+  const [shops, setShops] = useState<any[]>([]);
+    const fetchRealShops = async () => {
+    try {
+      if (!query || !location) return;
+
+      const data = await searchByProductNames(
+        query,
+        location.latitude,
+        location.longitude
+      );
+
+      setShops(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Failed to fetch shops', error);
+      setShops([]);
+    }
+  };
+  useEffect(() => {
+    fetchRealShops();
+  }, [query]);
+
+
 
   const handleViewShop = (shopId: string) => {
     router.push({ pathname: '/member-shop-details', params: { shopId } });
