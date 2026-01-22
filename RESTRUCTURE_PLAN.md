@@ -42,7 +42,7 @@ Grid of 9 categories:
 #### F. Savings Calculator
 Interactive calculator with:
 - Estimated Monthly Spend input
-- Estimated Monthly Savings (10%)
+- Estimated Monthly Savings
 - Estimated Annual Savings
 
 #### G. Membership Plans

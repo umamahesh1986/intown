@@ -619,7 +619,7 @@ const displayedCategories = showAllCategories
               </View>
 
               <View style={styles.calculatorRow}>
-                <Text style={styles.calculatorLabel}>Estimated Monthly Savings (10%)</Text>
+                <Text style={styles.calculatorLabel}>Estimated Monthly Savings</Text>
                 <Text style={styles.calculatorValue}>
                   ₹{monthlySavings.toFixed(0)}
                 </Text>
@@ -749,7 +749,7 @@ const displayedCategories = showAllCategories
     router.push('/member-card');
   }}
 >
-  <Ionicons name="card-outline" size={22} color="#1A237E" />
+  <Ionicons name="card-outline" size={22} color="#FF6600" />
   <Text style={styles.userPanelText}>Member Card</Text>
 </TouchableOpacity>
 

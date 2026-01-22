@@ -342,12 +342,12 @@ const [showAllCategories, setShowAllCategories] = useState(false);
       }
 
 
-      // EMAIL
-      if (!email) {
-        newErrors.email = 'Email is required';
-      } else if (!emailRegex.test(email)) {
-        newErrors.email = 'Enter a valid email address';
-      }
+      
+    // EMAIL (optional)
+if (email && !emailRegex.test(email)) {
+  newErrors.email = 'Enter a valid email address';
+}
+
 
       // PHONE (India – 10 digits)
       if (!phoneNumber) {
@@ -586,7 +586,7 @@ const displayedCategories = showAllCategories
 
             {/* EMAIL */}
             <View style={styles.formGroup}>
-              <Text style={styles.label}>Email *</Text>
+              <Text style={styles.label}>Email</Text>
               <TextInput
                 style={styles.input}
                 value={email}

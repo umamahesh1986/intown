@@ -1,12 +1,16 @@
-import { View, Text, StyleSheet, Image } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity  } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+
 import { useAuthStore } from '../store/authStore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useState } from 'react';
 
 export default function MemberCardScreen() {
   const { user } = useAuthStore();
+  const router = useRouter();
+
   const [photoUri, setPhotoUri] = useState<string | null>(null);
 
   useEffect(() => {
@@ -26,8 +30,16 @@ export default function MemberCardScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <TouchableOpacity
+  style={styles.backButton}
+  onPress={() => router.back()}
+>
+  <Ionicons name="arrow-back" size={24} color="#1A1A1A" />
+</TouchableOpacity>
+
       <View style={styles.card}>
-        <Text style={styles.title}>INtown Digital Member ID</Text>
+        <Text style={styles.title}>INtown Privilege Access
+</Text>
 
         <View style={styles.avatarWrap}>
           {photoUri ? (
@@ -58,6 +70,7 @@ export default function MemberCardScreen() {
       </View>
     </SafeAreaView>
   );
+  
 }
 
 const styles = StyleSheet.create({
@@ -69,13 +82,13 @@ const styles = StyleSheet.create({
   },
   card: {
     width: '90%',
-    backgroundColor: '#1A237E',
+    backgroundColor: '#FF6600',
     borderRadius: 18,
     padding: 24,
     alignItems: 'center',
   },
   title: {
-    color: '#C5CAE9',
+    color: '#f5f6f9',
     fontSize: 14,
     marginBottom: 16,
   },
@@ -84,7 +97,7 @@ const styles = StyleSheet.create({
     height: 96,
     borderRadius: 48,
     overflow: 'hidden',
-    backgroundColor: '#283593',
+    backgroundColor: '#FF6600',
     marginBottom: 12,
   },
   avatar: {
@@ -108,11 +121,19 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 12,
-    color: '#C5CAE9',
+    color: '#f6f6fb',
   },
   value: {
     fontSize: 15,
     fontWeight: '700',
     color: '#fff',
   },
+  backButton: {
+  position: 'absolute',
+  top: 12,
+  left: 12,
+  zIndex: 10,
+  padding: 6,
+},
+
 });
