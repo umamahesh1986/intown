@@ -772,4 +772,112 @@ dotActive: {
 },
 // ===================================
 
+// Location Modal Styles
+locationModalContainer: {
+  flex: 1,
+  backgroundColor: 'rgba(0,0,0,0.5)',
+  justifyContent: 'flex-end',
+},
+locationModalContent: {
+  backgroundColor: '#FFFFFF',
+  borderTopLeftRadius: 24,
+  borderTopRightRadius: 24,
+  padding: 20,
+  maxHeight: '80%',
+},
+locationModalHeader: {
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  marginBottom: 20,
+},
+locationModalTitle: {
+  fontSize: 20,
+  fontWeight: '700',
+  color: '#1A1A1A',
+},
+useCurrentLocationBtn: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  backgroundColor: '#FFF3E0',
+  padding: 16,
+  borderRadius: 12,
+  marginBottom: 16,
+},
+useCurrentLocationText: {
+  fontSize: 16,
+  fontWeight: '600',
+  color: '#FF6600',
+  marginLeft: 12,
+},
+currentLocationDisplay: {
+  flexDirection: 'row',
+  alignItems: 'flex-start',
+  backgroundColor: '#E8F5E9',
+  padding: 14,
+  borderRadius: 12,
+  marginBottom: 16,
+},
+currentLocationArea: {
+  fontSize: 16,
+  fontWeight: '600',
+  color: '#333',
+},
+currentLocationFull: {
+  fontSize: 12,
+  color: '#666',
+  marginTop: 2,
+},
+locationDivider: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  marginVertical: 16,
+},
+locationDividerLine: {
+  flex: 1,
+  height: 1,
+  backgroundColor: '#E0E0E0',
+},
+locationDividerText: {
+  marginHorizontal: 16,
+  fontSize: 12,
+  color: '#999',
+  fontWeight: '600',
+},
+locationSearchContainer: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  backgroundColor: '#F5F5F5',
+  borderRadius: 12,
+  paddingHorizontal: 16,
+  paddingVertical: 12,
+},
+locationSearchInput: {
+  flex: 1,
+  fontSize: 16,
+  marginLeft: 12,
+  color: '#333',
+},
+locationSearchResults: {
+  maxHeight: 250,
+  marginTop: 8,
+},
+locationSearchItem: {
+  flexDirection: 'row',
+  alignItems: 'flex-start',
+  paddingVertical: 14,
+  borderBottomWidth: 1,
+  borderBottomColor: '#F0F0F0',
+},
+locationSearchItemName: {
+  fontSize: 15,
+  fontWeight: '600',
+  color: '#333',
+},
+locationSearchItemAddress: {
+  fontSize: 12,
+  color: '#666',
+  marginTop: 2,
+},
+
 });
