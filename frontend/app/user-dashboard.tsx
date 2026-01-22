@@ -415,6 +415,24 @@ const formatUserType = (type: string): string => {
             <View style={styles.headerLeft}>
               <Image source={require('../assets/images/intown-logo.jpg')} style={styles.logo} resizeMode="contain" />
             </View>
+            
+            {/* Location Display */}
+            <TouchableOpacity 
+              style={styles.locationButton}
+              onPress={() => setShowLocationModal(true)}
+            >
+              <Ionicons name="location" size={16} color="#FF6600" />
+              <View style={styles.locationTextContainer}>
+                <Text style={styles.locationLabel}>Your Location</Text>
+                <View style={styles.locationRow}>
+                  <Text style={styles.locationText} numberOfLines={1}>
+                    {getLocationDisplayText()}
+                  </Text>
+                  <Ionicons name="chevron-down" size={14} color="#333" />
+                </View>
+              </View>
+            </TouchableOpacity>
+            
             <TouchableOpacity
               onPress={(e) => {
                 e.stopPropagation();
@@ -422,14 +440,7 @@ const formatUserType = (type: string): string => {
               }}
               style={styles.profileButton}
             >
-              <View style={styles.profileInfo}>
-                <Text style={styles.userName}>New User</Text>
-                <Text style={styles.userPhone}>{user?.phone}</Text>
-              </View>
-            <Ionicons name="person" size={20} color="#ffffff" />
-
- 
-
+              <Ionicons name="person" size={20} color="#ffffff" />
             </TouchableOpacity>
           </View>
 
