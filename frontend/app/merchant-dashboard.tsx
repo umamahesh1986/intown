@@ -285,17 +285,29 @@ const carouselRef = useRef<ScrollView | null>(null);
               resizeMode="contain"
             />
           </View>
+          
+          {/* Location Display */}
+          <TouchableOpacity 
+            style={styles.locationButton}
+            onPress={() => setShowLocationModal(true)}
+          >
+            <Ionicons name="location" size={16} color="#FF6600" />
+            <View style={styles.locationTextContainer}>
+              <Text style={styles.locationLabel}>Your Location</Text>
+              <View style={styles.locationRow}>
+                <Text style={styles.locationText} numberOfLines={1}>
+                  {getLocationDisplayText()}
+                </Text>
+                <Ionicons name="chevron-down" size={14} color="#333" />
+              </View>
+            </View>
+          </TouchableOpacity>
+          
           <TouchableOpacity
             style={styles.profileButton}
             onPress={() => setShowDropdown(!showDropdown)}
           >
-            <View style={styles.profileInfo}>
-              <Text style={styles.userName}>{user?.name}</Text>
-              <View style={styles.merchantBadge}>
-                <Text style={styles.merchantBadgeText}>Merchant</Text>
-              </View>
-            </View>
-            <Ionicons name="person" size={20} color="#2196F3" />
+            <Ionicons name="person" size={20} color="#fff" />
           </TouchableOpacity>
         </View>
 
