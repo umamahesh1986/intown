@@ -156,7 +156,55 @@ export default function DualDashboard() {
     loadUserData();
     loadTransactions();
     loadUserType();
+    requestLocationOnMount();
   }, []);
+
+  // Request location permission on mount
+  const requestLocationOnMount = async () => {
+    await loadLocationFromStorage();
+    const storedLocation = useLocationStore.getState().location;
+    if (!storedLocation) {
+      setTimeout(async () => {
+        await getUserLocationWithDetails();
+      }, 1000);
+    }
+  };
+
+  // Location handlers
+  const handleLocationSearch = async (text: string) => {
+    setLocationSearchQuery(text);
+    if (text.length >= 3) {
+      setIsSearchingLocation(true);
+      const results = await searchLocations(text);
+      setLocationSearchResults(results);
+      setIsSearchingLocation(false);
+    } else {
+      setLocationSearchResults([]);
+    }
+  };
+
+  const handleSelectLocation = async (item: { latitude: number; longitude: number }) => {
+    const result = await setManualLocation(item.latitude, item.longitude);
+    if (result) {
+      setShowLocationModal(false);
+      setLocationSearchQuery('');
+      setLocationSearchResults([]);
+    }
+  };
+
+  const handleUseCurrentLocation = async () => {
+    const result = await getUserLocationWithDetails();
+    if (result) {
+      setShowLocationModal(false);
+    }
+  };
+
+  const getLocationDisplayText = () => {
+    if (isLocationLoading) return 'Getting location...';
+    if (location?.area) return location.area;
+    if (location?.city) return location.city;
+    return 'Set Location';
+  };
 
   const loadUserType = async () => {
     try {
