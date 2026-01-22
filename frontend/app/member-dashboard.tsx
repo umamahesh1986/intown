@@ -172,7 +172,7 @@ const carouselRef = useRef<ScrollView | null>(null);
     loadCategories();
     startAutoScroll();
     loadUserType();
-    saveMemberLocation();
+    requestLocationOnMount();
     // load cached local photo if exists
     (async () => {
       try {
@@ -199,6 +199,68 @@ const carouselRef = useRef<ScrollView | null>(null);
   return () => clearInterval(timer);
 }, []);
 
+// Request location permission on mount
+const requestLocationOnMount = async () => {
+  await loadLocationFromStorage();
+  const storedLocation = useLocationStore.getState().location;
+  if (!storedLocation) {
+    setTimeout(async () => {
+      const locationResult = await getUserLocationWithDetails();
+      if (!locationResult) {
+        Alert.alert(
+          'Location Access',
+          'Please enable location access to see nearby shops.',
+          [
+            { text: 'Later', style: 'cancel' },
+            { text: 'Set Manually', onPress: () => setShowLocationModal(true) }
+          ]
+        );
+      }
+    }, 1000);
+  }
+};
+
+// Location search handler
+const handleLocationSearch = async (text: string) => {
+  setLocationSearchQuery(text);
+  if (text.length >= 3) {
+    setIsSearchingLocation(true);
+    const results = await searchLocations(text);
+    setLocationSearchResults(results);
+    setIsSearchingLocation(false);
+  } else {
+    setLocationSearchResults([]);
+  }
+};
+
+// Select location from search results
+const handleSelectLocation = async (item: { latitude: number; longitude: number }) => {
+  const result = await setManualLocation(item.latitude, item.longitude);
+  if (result) {
+    setShowLocationModal(false);
+    setLocationSearchQuery('');
+    setLocationSearchResults([]);
+  }
+};
+
+// Use current location
+const handleUseCurrentLocation = async () => {
+  const result = await getUserLocationWithDetails();
+  if (result) {
+    setShowLocationModal(false);
+  } else {
+    Alert.alert('Error', 'Could not get your current location.');
+  }
+};
+
+// Get display location text
+const getLocationDisplayText = () => {
+  if (isLocationLoading) return 'Getting location...';
+  if (location?.area) return location.area;
+  if (location?.city) return location.city;
+  return 'Set Location';
+};
+
 const loadUserType = async () => {
   try {
     if (params.userType) {
@@ -221,28 +283,6 @@ const formatUserType = (type: string): string => {
   if (lower.includes('merchant')) return 'Merchant';
   if (lower === 'dual') return 'Customer & Merchant';
   return 'Customer';
-};
-
-const saveMemberLocation = async () => {
-  try {
-    const { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== 'granted') {
-      console.warn('Location permission denied');
-      return;
-    }
-
-    const location = await Location.getCurrentPositionAsync({});
-    const { latitude, longitude } = location.coords;
-
-    await AsyncStorage.setItem(
-      'member_location',
-      JSON.stringify({ latitude, longitude })
-    );
-
-    console.log('Member location saved:', latitude, longitude);
-  } catch (error) {
-    console.error('Error saving member location:', error);
-  }
 };
   const loadCategories = async () => {
     try {
