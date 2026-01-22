@@ -8,12 +8,22 @@ import {
   Image,
   Dimensions,
   Animated,
+  Modal,
+  TextInput,
+  ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { useState, useEffect } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
+import { useLocationStore } from '../store/locationStore';
+import { 
+  getUserLocationWithDetails, 
+  searchLocations, 
+  setManualLocation 
+} from '../utils/location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { FontStylesWithFallback } from '../utils/fonts';
 import Footer from '../components/Footer'
