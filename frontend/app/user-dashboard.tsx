@@ -345,6 +345,47 @@ const formatUserType = (type: string): string => {
     }
   };
 
+  // Location search handler
+  const handleLocationSearch = async (text: string) => {
+    setLocationSearchQuery(text);
+    if (text.length >= 3) {
+      setIsSearchingLocation(true);
+      const results = await searchLocations(text);
+      setLocationSearchResults(results);
+      setIsSearchingLocation(false);
+    } else {
+      setLocationSearchResults([]);
+    }
+  };
+
+  // Select location from search results
+  const handleSelectLocation = async (item: { latitude: number; longitude: number }) => {
+    const result = await setManualLocation(item.latitude, item.longitude);
+    if (result) {
+      setShowLocationModal(false);
+      setLocationSearchQuery('');
+      setLocationSearchResults([]);
+    }
+  };
+
+  // Use current location
+  const handleUseCurrentLocation = async () => {
+    const result = await getUserLocationWithDetails();
+    if (result) {
+      setShowLocationModal(false);
+    } else {
+      Alert.alert('Error', 'Could not get your current location. Please try again or enter manually.');
+    }
+  };
+
+  // Get display location text
+  const getLocationDisplayText = () => {
+    if (isLocationLoading) return 'Getting location...';
+    if (location?.area) return location.area;
+    if (location?.city) return location.city;
+    return 'Set Location';
+  };
+
   const handleSearchFocus = () => {
     if (searchQuery.length > 0) {
       setShowSearchDropdown(true);
