@@ -485,6 +485,88 @@ const carouselRef = useRef<ScrollView | null>(null);
         {/* Footer */}
         <Footer/>
       </ScrollView>
+
+      {/* Location Selection Modal */}
+      <Modal
+        visible={showLocationModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowLocationModal(false)}
+      >
+        <View style={styles.locationModalContainer}>
+          <View style={styles.locationModalContent}>
+            <View style={styles.locationModalHeader}>
+              <Text style={styles.locationModalTitle}>Select Location</Text>
+              <TouchableOpacity onPress={() => setShowLocationModal(false)}>
+                <Ionicons name="close" size={24} color="#333" />
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity 
+              style={styles.useCurrentLocationBtn}
+              onPress={handleUseCurrentLocation}
+              disabled={isLocationLoading}
+            >
+              <Ionicons name="locate" size={20} color="#FF6600" />
+              <Text style={styles.useCurrentLocationText}>
+                {isLocationLoading ? 'Getting location...' : 'Use Current Location'}
+              </Text>
+              {isLocationLoading && <ActivityIndicator size="small" color="#FF6600" style={{ marginLeft: 8 }} />}
+            </TouchableOpacity>
+
+            {location && (
+              <View style={styles.currentLocationDisplay}>
+                <Ionicons name="location" size={18} color="#4CAF50" />
+                <View style={{ marginLeft: 10, flex: 1 }}>
+                  <Text style={styles.currentLocationArea}>{location.area || location.city}</Text>
+                  <Text style={styles.currentLocationFull} numberOfLines={2}>
+                    {location.fullAddress}
+                  </Text>
+                </View>
+              </View>
+            )}
+
+            <View style={styles.locationDivider}>
+              <View style={styles.locationDividerLine} />
+              <Text style={styles.locationDividerText}>OR</Text>
+              <View style={styles.locationDividerLine} />
+            </View>
+
+            <View style={styles.locationSearchContainer}>
+              <Ionicons name="search" size={20} color="#999" />
+              <TextInput
+                style={styles.locationSearchInput}
+                placeholder="Search for area, street name..."
+                placeholderTextColor="#999"
+                value={locationSearchQuery}
+                onChangeText={handleLocationSearch}
+              />
+            </View>
+
+            {isSearchingLocation && (
+              <ActivityIndicator size="small" color="#FF6600" style={{ marginTop: 16 }} />
+            )}
+            
+            <ScrollView style={styles.locationSearchResults}>
+              {locationSearchResults.map((item, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={styles.locationSearchItem}
+                  onPress={() => handleSelectLocation(item)}
+                >
+                  <Ionicons name="location-outline" size={20} color="#666" />
+                  <View style={{ marginLeft: 12, flex: 1 }}>
+                    <Text style={styles.locationSearchItemName}>{item.name}</Text>
+                    <Text style={styles.locationSearchItemAddress} numberOfLines={2}>
+                      {item.fullAddress}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
