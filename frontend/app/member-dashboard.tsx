@@ -460,27 +460,29 @@ const displayedCategories = showAllCategories
               />
             </View>
 
-           {/* <TouchableOpacity onPress={toggleDropdown} style={styles.avatarButton}>
-  {photoUri ? (
-    <Image source={{ uri: photoUri }} style={styles.headerAvatar} />
-  ) : (
-    <View style={styles.headerAvatarPlaceholder}>
-      <Ionicons name="person" size={20} color="#fff" />
-    </View>
-  )}
-</TouchableOpacity> */}
-<TouchableOpacity
-            style={styles.profileButton}
-            onPress={toggleDropdown}
-          >
-            <View style={styles.profileInfo}>
-              <Text style={styles.userName}>{user?.name}</Text>
-              <View style={styles.memberBadge}>
-                <Text style={styles.memberBadgeText}>Customer</Text>
+            {/* Location Display */}
+            <TouchableOpacity 
+              style={styles.locationButton}
+              onPress={() => setShowLocationModal(true)}
+            >
+              <Ionicons name="location" size={16} color="#FF6600" />
+              <View style={styles.locationTextContainer}>
+                <Text style={styles.locationLabel}>Your Location</Text>
+                <View style={styles.locationRow}>
+                  <Text style={styles.locationText} numberOfLines={1}>
+                    {getLocationDisplayText()}
+                  </Text>
+                  <Ionicons name="chevron-down" size={14} color="#333" />
+                </View>
               </View>
-            </View>
-            <Ionicons name="person" size={20} color="#fff" />
-          </TouchableOpacity>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.profileButton}
+              onPress={toggleDropdown}
+            >
+              <Ionicons name="person" size={20} color="#fff" />
+            </TouchableOpacity>
 
           </View>
 
