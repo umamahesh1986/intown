@@ -131,6 +131,23 @@ export default function DualDashboard() {
   const [customerTransactions, setCustomerTransactions] = useState<Transaction[]>([]);
   const [merchantTransactions, setMerchantTransactions] = useState<Transaction[]>([]);
   const [userTypeLabel, setUserTypeLabel] = useState<string>('Dual');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Location store
+  const location = useLocationStore((state) => state.location);
+  const isLocationLoading = useLocationStore((state) => state.isLoading);
+  const loadLocationFromStorage = useLocationStore((state) => state.loadFromStorage);
+
+  // Location modal states
+  const [showLocationModal, setShowLocationModal] = useState(false);
+  const [locationSearchQuery, setLocationSearchQuery] = useState('');
+  const [locationSearchResults, setLocationSearchResults] = useState<Array<{
+    name: string;
+    fullAddress: string;
+    latitude: number;
+    longitude: number;
+  }>>([]);
+  const [isSearchingLocation, setIsSearchingLocation] = useState(false);
 
   /* ===============================
      LOAD USER DATA
