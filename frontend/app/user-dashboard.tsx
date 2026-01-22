@@ -196,6 +196,7 @@ const CAROUSEL_IMAGES = CAROUSEL_IMAGES_RAW.map(image =>
   loadData();
   startAutoScroll();
   loadUserType();
+  requestLocationOnMount();
 
   const timer = setInterval(() => {
     setCarouselIndex(prev => {
@@ -210,6 +211,32 @@ const CAROUSEL_IMAGES = CAROUSEL_IMAGES_RAW.map(image =>
 
   return () => clearInterval(timer);
 }, []);
+
+// Request location permission on mount
+const requestLocationOnMount = async () => {
+  // First try to load from storage
+  await loadLocationFromStorage();
+  
+  // If no location in storage, request fresh location
+  const storedLocation = useLocationStore.getState().location;
+  if (!storedLocation) {
+    // Small delay to let the UI render first
+    setTimeout(async () => {
+      const locationResult = await getUserLocationWithDetails();
+      if (!locationResult) {
+        // If permission denied or error, show alert
+        Alert.alert(
+          'Location Access',
+          'Please enable location access to see nearby shops and get personalized recommendations.',
+          [
+            { text: 'Later', style: 'cancel' },
+            { text: 'Set Manually', onPress: () => setShowLocationModal(true) }
+          ]
+        );
+      }
+    }, 1000);
+  }
+};
 
 const loadUserType = async () => {
   try {
