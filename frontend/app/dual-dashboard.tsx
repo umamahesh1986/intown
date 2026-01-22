@@ -364,8 +364,22 @@ export default function DualDashboard() {
         </TouchableOpacity>
         
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <Ionicons name="log-out-outline" size={24} color="#FF6600" />
+          <Ionicons name="log-out-outline" size={24} color="#fff" />
         </TouchableOpacity>
+      </View>
+
+      {/* Search Section */}
+      <View style={styles.searchSection}>
+        <View style={styles.searchContainer}>
+          <Ionicons name="search" size={20} color="#999" />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search for shops, categories..."
+            placeholderTextColor="#999"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+        </View>
       </View>
 
       {/* Tab Switcher */}
