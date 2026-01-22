@@ -977,9 +977,42 @@ const styles = StyleSheet.create({
     width: 140,
     height: 50,
   },
+  locationButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    flex: 1,
+    marginHorizontal: 12,
+    maxWidth: 200,
+  },
+  locationTextContainer: {
+    marginLeft: 8,
+    flex: 1,
+  },
+  locationLabel: {
+    fontSize: 10,
+    color: '#999',
+    textTransform: 'uppercase',
+  },
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  locationText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+    flex: 1,
+  },
   profileButton: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    padding: 10,
+    borderRadius: 20,
   },
   profileIconButton: {
     borderWidth: 2,
