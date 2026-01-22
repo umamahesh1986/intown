@@ -14,7 +14,8 @@ import {
   Dimensions,
   Animated,
   Image,
-  
+  Alert,
+  ActivityIndicator,
   Platform,
   
 } from 'react-native';
@@ -23,8 +24,14 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
-import { useLocationStore } from '../store/locationStore';
+import { useLocationStore, LocationDetails } from '../store/locationStore';
 import { getPlans, getCategories } from '../utils/api';
+import { 
+  getUserLocationWithDetails, 
+  searchLocations, 
+  setManualLocation,
+  DEFAULT_LOCATION 
+} from '../utils/location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { FontStylesWithFallback } from '../utils/fonts';
