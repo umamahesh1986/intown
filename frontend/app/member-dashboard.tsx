@@ -12,6 +12,11 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
+import {
+  CATEGORY_IMAGE_LIST,
+  FALLBACK_CATEGORY_IMAGE,
+} from '../utils/categoryImageList';
+
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -44,34 +49,7 @@ const MEMBER_CAROUSEL_IMAGES = [
 // =================================
 
 // Category images from Unsplash/Pexels - mapped to API category names
-const CATEGORY_IMAGES: { [key: string]: any } = {
-  // API Categories
-  'Groceries & Kirana': require('../assets/images/grocery-store.jpg'),
-  'Bakery, Sweets & Snacks': require('../assets/images/bakery_sweets_Snacks.jpg'),
-  'Dairy & Milk Products': require('../assets/images/Dairy-By-products.jpg'),
-  'Fruits & Vegetables': require('../assets/images/fruits.jpg'),
-  'Meat, Chicken & Fish Shops': 'https://images.unsplash.com/photo-1704303923171-d6839e4784c3?w=400&h=300&fit=crop',
-  'Pharmacy / Medical Stores': require('../assets/images/medical.jpg'),
-  'General Stores / Provision Stores': require('../assets/images/General_Stores.jpg'),
-  'Water Can Suppliers': require('../assets/images/Water-Can-Suppliers.jpg'),
-  "Men's Salons": 'https://images.unsplash.com/photo-1654097801176-cb1795fd0c5e?w=400&h=300&fit=crop',
-  "Women's Salons / Beauty Parlors": 'https://images.pexels.com/photos/3738340/pexels-photo-3738340.jpeg?w=400&h=300&fit=crop',
-  // Legacy/fallback names
-  'Grocery': 'https://images.unsplash.com/photo-1609952578538-3d454550301d?w=400&h=300&fit=crop',
-  'Salon': 'https://images.unsplash.com/photo-1654097801176-cb1795fd0c5e?w=400&h=300&fit=crop',
-  'Restaurant': 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=300&fit=crop',
-  'Pharmacy': 'https://images.pexels.com/photos/8657301/pexels-photo-8657301.jpeg?w=400&h=300&fit=crop',
-  'Fashion': 'https://images.unsplash.com/photo-1641440615976-d4bc4eb7dab8?w=400&h=300&fit=crop',
-  'Electronics': 'https://images.unsplash.com/photo-1550009158-9ebf69173e03?w=400&h=300&fit=crop',
-};
 
-const FALLBACK_CATEGORY_IMAGE =
-  'https://images.unsplash.com/photo-1609952578538-3d454550301d?w=400&h=300&fit=crop';
-
-const getCategoryImageSource = (categoryName: string) => {
-  const image = CATEGORY_IMAGES[categoryName] ?? FALLBACK_CATEGORY_IMAGE;
-  return typeof image === 'string' ? { uri: image } : image;
-};
 
 
 const DUMMY_NEARBY_SHOPS = [
@@ -113,6 +91,9 @@ interface Category {
   name: string;
   icon: string;
 }
+const getCategoryImageByIndex = (index: number) => {
+  return CATEGORY_IMAGE_LIST[index] ?? FALLBACK_CATEGORY_IMAGE;
+};
 
 export default function MemberDashboard() {
   const router = useRouter();
@@ -542,7 +523,8 @@ const displayedCategories = showAllCategories
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Popular Categories</Text>
             <View style={styles.categoriesGrid}>
-              {displayedCategories.map(category => (
+             {displayedCategories.map((category, index) => (
+
 
                 <TouchableOpacity
                   key={category.id}
@@ -556,11 +538,12 @@ const displayedCategories = showAllCategories
                   activeOpacity={0.8}
                 >
                   <View style={styles.categoryImageContainer}>
-                    <Image 
-                      source={getCategoryImageSource(category.name)}
-                      style={styles.categoryImage}
-                      resizeMode="cover"
-                    />
+                    <Image
+  source={getCategoryImageByIndex(index)}
+  style={styles.categoryImage}
+  resizeMode="cover"
+/>
+
                     <View style={styles.categoryGradient} />
                     <Text style={styles.categoryName}>{category.name}</Text>
                   </View>
