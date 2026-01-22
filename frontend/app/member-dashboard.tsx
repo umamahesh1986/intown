@@ -34,8 +34,6 @@ import { CATEGORY_ICON_MAP } from '../utils/categoryIconMap';
 
 
 const { width } = Dimensions.get('window');
-import { Platform } from 'react-native';
-import * as Location from 'expo-location';
 
 // ===== MEMBER CAROUSEL CONFIG =====
 const SLIDE_WIDTH = Math.round(width);
