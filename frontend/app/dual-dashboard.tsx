@@ -339,14 +339,30 @@ export default function DualDashboard() {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <View>
-            <Text style={styles.welcomeText}>Welcome back,</Text>
-            <Text style={styles.userName}>{getWelcomeName()}</Text>
-          </View>
-          <View style={styles.userTypeBadge}>
-            <Text style={styles.userTypeBadgeText}>{userTypeLabel}</Text>
-          </View>
+          <Image 
+            source={require('../assets/images/intown-logo.jpg')} 
+            style={styles.logo}
+            resizeMode="contain"
+          />
         </View>
+        
+        {/* Location Display */}
+        <TouchableOpacity 
+          style={styles.locationButton}
+          onPress={() => setShowLocationModal(true)}
+        >
+          <Ionicons name="location" size={16} color="#FF6600" />
+          <View style={styles.locationTextContainer}>
+            <Text style={styles.locationLabel}>Your Location</Text>
+            <View style={styles.locationRow}>
+              <Text style={styles.locationText} numberOfLines={1}>
+                {getLocationDisplayText()}
+              </Text>
+              <Ionicons name="chevron-down" size={14} color="#333" />
+            </View>
+          </View>
+        </TouchableOpacity>
+        
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <Ionicons name="log-out-outline" size={24} color="#FF6600" />
         </TouchableOpacity>
