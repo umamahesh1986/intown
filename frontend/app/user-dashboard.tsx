@@ -147,6 +147,9 @@ const CAROUSEL_IMAGES = CAROUSEL_IMAGES_RAW.map(image =>
 
 
   const location = useLocationStore((state) => state.location);
+  const isLocationLoading = useLocationStore((state) => state.isLoading);
+  const setLocationInStore = useLocationStore((state) => state.setLocation);
+  const loadLocationFromStorage = useLocationStore((state) => state.loadFromStorage);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [plans, setPlans] = useState<Plan[]>([]);
@@ -157,6 +160,17 @@ const CAROUSEL_IMAGES = CAROUSEL_IMAGES_RAW.map(image =>
   const [activeTab, setActiveTab] = useState<'customer' | 'merchant'>('customer');
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
   const [filteredCategories, setFilteredCategories] = useState<Category[]>([]);
+  
+  // Location modal states
+  const [showLocationModal, setShowLocationModal] = useState(false);
+  const [locationSearchQuery, setLocationSearchQuery] = useState('');
+  const [locationSearchResults, setLocationSearchResults] = useState<Array<{
+    name: string;
+    fullAddress: string;
+    latitude: number;
+    longitude: number;
+  }>>([]);
+  const [isSearchingLocation, setIsSearchingLocation] = useState(false);
 
   // Dropdown animation value
   const dropdownAnim = useRef(new Animated.Value(0)).current;
