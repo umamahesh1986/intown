@@ -63,6 +63,23 @@ export default function MerchantDashboard() {
   const [showDropdown, setShowDropdown] = useState(false);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [userType, setUserType] = useState<string>('Merchant');
+
+  // Location store
+  const location = useLocationStore((state) => state.location);
+  const isLocationLoading = useLocationStore((state) => state.isLoading);
+  const loadLocationFromStorage = useLocationStore((state) => state.loadFromStorage);
+
+  // Location modal states
+  const [showLocationModal, setShowLocationModal] = useState(false);
+  const [locationSearchQuery, setLocationSearchQuery] = useState('');
+  const [locationSearchResults, setLocationSearchResults] = useState<Array<{
+    name: string;
+    fullAddress: string;
+    latitude: number;
+    longitude: number;
+  }>>([]);
+  const [isSearchingLocation, setIsSearchingLocation] = useState(false);
+
   // ===== MERCHANT CAROUSEL STATE =====
 const [carouselIndex, setCarouselIndex] = useState(0);
 const carouselRef = useRef<ScrollView | null>(null);
