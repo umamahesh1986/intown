@@ -60,6 +60,9 @@ Build a React Native (Expo) application for InTown Local that enables:
   - Manual location search using OpenStreetMap Nominatim API
   - Location stored in Zustand store + AsyncStorage for API use
   - Reverse geocoding for address details
+  - **Applied to ALL dashboards** (User, Member, Merchant, Dual)
+- [x] **Consistent Orange Header** - All dashboards now have matching orange (#FF6600) header
+- [x] **Search Section** - Added search input to dual-dashboard matching other dashboards
 
 ### Pending Issues
 1. **AxiosError: Network Error on Mobile (P0)** - Enhanced logging added; likely device network configuration issue
