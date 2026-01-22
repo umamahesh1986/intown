@@ -11,6 +11,8 @@ import {
   Image,
   Alert,
   ActivityIndicator,
+  Modal,
+  Platform,
 } from 'react-native';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -18,7 +20,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuthStore } from '../store/authStore';
+import { useLocationStore } from '../store/locationStore';
 import { getCategories } from '../utils/api';
+import { 
+  getUserLocationWithDetails, 
+  searchLocations, 
+  setManualLocation 
+} from '../utils/location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Footer from '../components/Footer'
 import { CATEGORY_ICON_MAP } from '../utils/categoryIconMap';
