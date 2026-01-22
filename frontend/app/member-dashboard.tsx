@@ -126,6 +126,11 @@ export default function MemberDashboard() {
   const { user, logout } = useAuthStore();
   const [userType, setUserType] = useState<string>('Customer');
 
+  // Location store
+  const location = useLocationStore((state) => state.location);
+  const isLocationLoading = useLocationStore((state) => state.isLoading);
+  const loadLocationFromStorage = useLocationStore((state) => state.loadFromStorage);
+
   const [searchQuery, setSearchQuery] = useState('');
   const [categories, setCategories] = useState<Category[]>([]);
   const [showAllCategories, setShowAllCategories] = useState(false);
@@ -133,10 +138,19 @@ export default function MemberDashboard() {
   const [monthlySpend, setMonthlySpend] = useState('10000');
   const [showDropdown, setShowDropdown] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
-const [showSuggestions, setShowSuggestions] = useState(false);
-const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
 
-
+  // Location modal states
+  const [showLocationModal, setShowLocationModal] = useState(false);
+  const [locationSearchQuery, setLocationSearchQuery] = useState('');
+  const [locationSearchResults, setLocationSearchResults] = useState<Array<{
+    name: string;
+    fullAddress: string;
+    latitude: number;
+    longitude: number;
+  }>>([]);
+  const [isSearchingLocation, setIsSearchingLocation] = useState(false);
 
   // photo state and uploading indicator
   const [photoUri, setPhotoUri] = useState<string | null>(null);
