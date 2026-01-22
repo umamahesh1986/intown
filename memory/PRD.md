@@ -42,16 +42,24 @@ Build a React Native (Expo) application for InTown Local that enables:
 
 ## What's Been Implemented
 
-### Completed Features (Jan 20, 2026)
+### Completed Features (Jan 22, 2026)
 - [x] Firebase Phone Authentication setup
-- [x] **Web Test Mode with static OTP (123456)** - Fixed and working! Bypasses Firebase reCAPTCHA on web
+- [x] **Web Test Mode with static OTP (123456)** - Bypasses Firebase reCAPTCHA on web
 - [x] Mobile real OTP flow with reCAPTCHA (conditional import)
 - [x] API integration for user search
 - [x] Role determination logic
 - [x] Dashboard screens (User, Member, Merchant, Dual)
-- [x] **User Type Label in Headers** - All dashboards now display user role badges
+- [x] User Type Label in Headers
 - [x] Enhanced API error logging for mobile debugging
 - [x] Mobile background video on login screen (expo-av)
+- [x] Popular Categories with image grid design
+- [x] **Location Permission & Display** - Zomato-style location feature:
+  - Requests location permission on dashboard load
+  - Displays current area/city in header
+  - Location selection modal with search
+  - Manual location search using OpenStreetMap Nominatim API
+  - Location stored in Zustand store + AsyncStorage for API use
+  - Reverse geocoding for address details
 
 ### Pending Issues
 1. **AxiosError: Network Error on Mobile (P0)** - Enhanced logging added; likely device network configuration issue
