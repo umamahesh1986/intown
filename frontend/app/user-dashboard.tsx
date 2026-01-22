@@ -560,7 +560,7 @@ const formatUserType = (type: string): string => {
                 />
               </View>
               <View style={styles.calculatorRow}>
-                <Text style={styles.calculatorLabel}>Estimated Monthly Savings (10%)</Text>
+                <Text style={styles.calculatorLabel}>Estimated Monthly Savings</Text>
                 <Text style={styles.calculatorValue}>₹{monthlySavings.toFixed(0)}</Text>
               </View>
               <View style={styles.calculatorRow}>
@@ -600,10 +600,11 @@ const formatUserType = (type: string): string => {
                 {/* IT Max Plan */}
                 <View style={styles.planCard}>
                   <Text style={styles.planName}>IT Max</Text>
-                  <View style={styles.planPriceRow}>
-                    <Text style={styles.planPrice}>₹999</Text>
-                    <Text style={styles.planPeriod}>/Year</Text>
-                  </View>
+              <View style={styles.planPriceRow}>
+  <Text style={styles.freePrice}>FREE</Text>
+  <Text style={styles.strikePrice}>₹999 / Year</Text>
+</View>
+
                   <Text style={styles.planDescription}>
                     Premium individual membership with exclusive benefits and unlimited access to all partner stores.
                   </Text>
@@ -619,9 +620,10 @@ const formatUserType = (type: string): string => {
                   </View>
                   <Text style={styles.planName}>IT Max Plus</Text>
                   <View style={styles.planPriceRow}>
-                    <Text style={styles.planPrice}>₹1499</Text>
-                    <Text style={styles.planPeriod}>/Year</Text>
-                  </View>
+  <Text style={styles.freePrice}>FREE</Text>
+  <Text style={styles.strikePrice}>₹1499 / Year</Text>
+</View>
+
                   <Text style={styles.planDescription}>
                     Premium couple membership with exclusive benefits and unlimited access to all partner stores.
                   </Text>
@@ -1289,6 +1291,19 @@ dotActive: {
     fontWeight: 'bold',
     color: '#1A1A1A',
   },
+  strikePrice: {
+  fontSize: 16,
+  color: '#000000',      // BLACK color
+  textDecorationLine: 'line-through',
+  marginRight: 8,
+},
+
+freePrice: {
+  fontSize: 28,
+  fontWeight: 'bold',
+  color: '#1A1A1A',      // BLACK color
+},
+
   planPeriod: {
     fontSize: 16,
     color: '#666666',
