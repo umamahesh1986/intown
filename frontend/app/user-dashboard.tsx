@@ -651,7 +651,7 @@ export default function UserDashboard() {
 
           {/* Savings Calculator */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Savings Calculator</Text>
+            <Text style={styles.sectionTitle}>Estimated Savings Calculator</Text>
             <View style={styles.calculatorCard}>
               <View style={styles.calculatorRow}>
                 <Text style={styles.calculatorLabel}>Estimated Monthly Spend</Text>

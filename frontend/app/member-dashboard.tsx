@@ -666,7 +666,7 @@ const displayedCategories = showAllCategories
 
           {/* SAVINGS CALCULATOR */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Savings Calculator</Text>
+            <Text style={styles.sectionTitle}>EstimatedSavings Calculator</Text>
 
             <View style={styles.calculatorCard}>
               <View style={styles.calculatorRow}>
