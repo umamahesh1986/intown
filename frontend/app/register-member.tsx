@@ -182,23 +182,41 @@ export default function RegisterMember() {
 
       const response = await registerMember(memberData);
       console.log('Customer registration success:', response);
+
+      const customerId =
+        response?.customerId ??
+        response?.id ??
+        response?.data?.customerId ??
+        response?.data?.id ??
+        null;
+
+      if (customerId) {
+        await AsyncStorage.setItem('customer_id', String(customerId));
+      }
+      if (location?.latitude != null && location?.longitude != null) {
+        await AsyncStorage.setItem('customer_location_lat', String(location.latitude));
+        await AsyncStorage.setItem('customer_location_lng', String(location.longitude));
+      }
       
       // Show success message
-      Alert.alert(
-        'Registration Successful',
-        'Your customer account has been created successfully!',
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              // Set user type
-              setUserType('member');
-              // Navigate to dashboard
-              router.replace('/member-dashboard');
-            },
+      const successMessage = `Your customer account has been created successfully!\nCustomer ID: ${
+        customerId ?? 'N/A'
+      }`;
+
+      Alert.alert('Registration Successful', successMessage, [
+        {
+          text: 'OK',
+          onPress: () => {
+            // Set user type
+            setUserType('member');
+            // Navigate to dashboard with customer id
+            router.replace({
+              pathname: '/member-dashboard',
+              params: customerId ? { customerId: String(customerId) } : {},
+            });
           },
-        ]
-      );
+        },
+      ]);
       
     } catch (error: any) {
       console.error('Customer registration error:', error);

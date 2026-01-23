@@ -419,21 +419,40 @@ if (email && !emailRegex.test(email)) {
       try {
         const response = await registerMerchant(payload);
         console.log('Merchant registration success:', response);
+        const merchantId =
+          response?.merchantId ??
+          response?.id ??
+          response?.data?.merchantId ??
+          response?.data?.id ??
+          null;
+        if (merchantId) {
+          await AsyncStorage.setItem('merchant_id', String(merchantId));
+        }
+        if (shopName) {
+          await AsyncStorage.setItem('merchant_shop_name', shopName);
+        }
+        if (location?.latitude != null && location?.longitude != null) {
+          await AsyncStorage.setItem('merchant_location_lat', String(location.latitude));
+          await AsyncStorage.setItem('merchant_location_lng', String(location.longitude));
+        }
 
         // Show success message
-        Alert.alert(
-          'Registration Successful',
-          'Your merchant account has been created successfully!',
-          [
-            {
-              text: 'OK',
-              onPress: () => {
-                setUserType('merchant');
-                router.replace('/merchant-dashboard');
-              },
+        const successMessage = `Your merchant account has been created successfully!\nMerchant ID: ${
+          merchantId ?? 'N/A'
+        }`;
+
+        Alert.alert('Registration Successful', successMessage, [
+          {
+            text: 'OK',
+            onPress: () => {
+              setUserType('merchant');
+              router.replace({
+                pathname: '/merchant-dashboard',
+                params: merchantId ? { merchantId: String(merchantId) } : {},
+              });
             },
-          ]
-        );
+          },
+        ]);
       } catch (error: any) {
         console.error('Merchant registration error:', error);
         

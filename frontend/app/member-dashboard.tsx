@@ -98,60 +98,55 @@ interface Category {
   name: string;
   icon: string;
 }
-interface Transaction {
-  id: string;
-  date: string;
-  amount: number;
-  description: string;
-  type: 'credit' | 'debit';
-  status: 'completed' | 'pending' | 'failed';
+interface ApiTransaction {
+  transactionId: number;
+  merchantName: string;
+  totalBillAmount: number;
+  savedAmount: number;
+  finalPaidAmount: number;
+  transactionDate: string;
 }
 
-const TransactionCard = ({ transaction }: { transaction: Transaction }) => (
-  <View style={styles.transactionCard}>
+interface ApiSummary {
+  totalBillAmount: number;
+  totalSavedAmount: number;
+  totalPaidAmount: number;
+  transactionCount: number;
+}
+
+const TransactionRow = ({
+  transaction,
+}: {
+  transaction: ApiTransaction;
+}) => (
+  <View style={styles.transactionRow}>
     <View style={styles.transactionLeft}>
-      <View
-        style={[
-          styles.transactionIcon,
-          transaction.type === 'credit'
-            ? styles.creditIcon
-            : styles.debitIcon,
-        ]}
-      >
-        <Ionicons
-          name={transaction.type === 'credit' ? 'arrow-down' : 'arrow-up'}
-          size={16}
-          color={transaction.type === 'credit' ? '#4CAF50' : '#F44336'}
-        />
-      </View>
-      <View style={styles.transactionInfo}>
-        <Text style={styles.transactionDesc}>{transaction.description}</Text>
-        <Text style={styles.transactionDate}>{transaction.date}</Text>
-      </View>
+      <Text style={styles.transactionMerchant} numberOfLines={1}>
+        {transaction.merchantName}
+      </Text>
+      <Text style={styles.transactionDate}>
+        {formatTransactionDate(transaction.transactionDate)}
+      </Text>
     </View>
     <View style={styles.transactionRight}>
-      <Text
-        style={[
-          styles.transactionAmount,
-          transaction.type === 'credit'
-            ? styles.creditAmount
-            : styles.debitAmount,
-        ]}
-      >
-        {transaction.type === 'credit' ? '+' : '-'}₹{transaction.amount.toFixed(2)}
-      </Text>
-      <Text
-        style={[
-          styles.transactionStatus,
-          transaction.status === 'completed'
-            ? styles.statusCompleted
-            : transaction.status === 'pending'
-            ? styles.statusPending
-            : styles.statusFailed,
-        ]}
-      >
-        {transaction.status}
-      </Text>
+      <View style={styles.transactionAmountBlock}>
+        <Text style={styles.transactionAmountLabel}>Bill</Text>
+        <Text style={styles.transactionAmountValue}>
+          ₹{transaction.totalBillAmount.toFixed(2)}
+        </Text>
+      </View>
+      <View style={styles.transactionAmountBlock}>
+        <Text style={styles.transactionAmountLabel}>Saved</Text>
+        <Text style={styles.transactionAmountValue}>
+          ₹{transaction.savedAmount.toFixed(2)}
+        </Text>
+      </View>
+      <View style={styles.transactionAmountBlock}>
+        <Text style={styles.transactionAmountLabel}>Paid</Text>
+        <Text style={styles.transactionAmountValue}>
+          ₹{transaction.finalPaidAmount.toFixed(2)}
+        </Text>
+      </View>
     </View>
   </View>
 );
@@ -159,10 +154,19 @@ const getCategoryImageByIndex = (index: number) => {
   return CATEGORY_IMAGE_LIST[index] ?? FALLBACK_CATEGORY_IMAGE;
 };
 
+const formatTransactionDate = (value: string) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString();
+};
+
 export default function MemberDashboard() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ userType?: string }>();
-  const { user, logout } = useAuthStore();
+  const params = useLocalSearchParams<{
+    userType?: string;
+    customerId?: string;
+  }>();
+  const { user, logout, token } = useAuthStore();
   const [userType, setUserType] = useState<string>('Customer');
 
   // Location store
@@ -172,6 +176,10 @@ export default function MemberDashboard() {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [categories, setCategories] = useState<Category[]>([]);
+  const [transactions, setTransactions] = useState<ApiTransaction[]>([]);
+  const [lifetimeTotals, setLifetimeTotals] = useState<ApiSummary | null>(null);
+  const [isTransactionsLoading, setIsTransactionsLoading] = useState(false);
+  const [customerId, setCustomerId] = useState<string | null>(null);
 
   const [showDropdown, setShowDropdown] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
@@ -257,6 +265,62 @@ const carouselRef = useRef<ScrollView | null>(null);
     animation.start();
     return () => animation.stop();
   }, [categories, CATEGORY_CARD_GAP, CATEGORY_CARD_WIDTH, categoryScrollX]);
+
+  useEffect(() => {
+    const loadCustomerId = async () => {
+      try {
+        if (params.customerId) {
+          setCustomerId(params.customerId);
+          await AsyncStorage.setItem('customer_id', params.customerId);
+          return;
+        }
+        const storedCustomerId = await AsyncStorage.getItem('customer_id');
+        if (storedCustomerId) {
+          setCustomerId(storedCustomerId);
+        }
+      } catch (error) {
+        console.error('Error loading customer id:', error);
+      }
+    };
+
+    loadCustomerId();
+  }, [params.customerId]);
+
+  useEffect(() => {
+    const effectiveCustomerId = customerId ?? user?.id;
+    if (!effectiveCustomerId) return;
+
+    const fetchTransactions = async () => {
+      setIsTransactionsLoading(true);
+      try {
+        const res = await fetch(
+          `https://devapi.intownlocal.com/IN/transactions/customers/${effectiveCustomerId}`,
+          {
+            headers: token
+              ? {
+                  Authorization: `Bearer ${token}`,
+                  Accept: 'application/json',
+                }
+              : { Accept: 'application/json' },
+          }
+        );
+        if (!res.ok) {
+          throw new Error(`Transactions fetch failed: ${res.status}`);
+        }
+        const data = await res.json();
+        setTransactions(data?.transactions ?? []);
+        setLifetimeTotals(data?.lifetime ?? null);
+      } catch (error) {
+        console.error('Error loading transactions:', error);
+        setTransactions([]);
+        setLifetimeTotals(null);
+      } finally {
+        setIsTransactionsLoading(false);
+      }
+    };
+
+    fetchTransactions();
+  }, [customerId, token, user?.id]);
 
 // Request location permission on mount
 const requestLocationOnMount = async () => {
@@ -363,48 +427,9 @@ const formatUserType = (type: string): string => {
     ).start();
   };
 
-  const recentTransactions: Transaction[] = [
-    {
-      id: '1',
-      date: '2025-01-05',
-      amount: 250.0,
-      description: 'Purchase at Fresh Mart',
-      type: 'debit',
-      status: 'completed',
-    },
-    {
-      id: '2',
-      date: '2025-01-04',
-      amount: 50.0,
-      description: 'Cashback Reward',
-      type: 'credit',
-      status: 'completed',
-    },
-    {
-      id: '3',
-      date: '2025-01-03',
-      amount: 1200.0,
-      description: 'Shopping at Fashion Hub',
-      type: 'debit',
-      status: 'completed',
-    },
-    {
-      id: '4',
-      date: '2025-01-02',
-      amount: 100.0,
-      description: 'Referral Bonus',
-      type: 'credit',
-      status: 'pending',
-    },
-  ];
-
-  const totalBillAmount = recentTransactions
-    .filter((transaction) => transaction.type === 'debit')
-    .reduce((sum, transaction) => sum + transaction.amount, 0);
-  const totalPaidAmount = totalBillAmount;
-  const totalSavedAmount = recentTransactions
-    .filter((transaction) => transaction.type === 'credit')
-    .reduce((sum, transaction) => sum + transaction.amount, 0);
+  const totalBillAmount = lifetimeTotals?.totalBillAmount ?? 0;
+  const totalPaidAmount = lifetimeTotals?.totalPaidAmount ?? 0;
+  const totalSavedAmount = lifetimeTotals?.totalSavedAmount ?? 0;
 
   const handleLogout = async () => {
     setShowDropdown(false);
@@ -767,9 +792,16 @@ aspect: [1, 1],
                 <Text style={styles.viewAllText}>View All</Text>
               </TouchableOpacity>
             </View>
-            {recentTransactions.length > 0 ? (
-              recentTransactions.map((transaction) => (
-                <TransactionCard key={transaction.id} transaction={transaction} />
+            {isTransactionsLoading ? (
+              <View style={styles.emptyState}>
+                <ActivityIndicator size="small" color="#FF6600" />
+              </View>
+            ) : transactions.length > 0 ? (
+              transactions.map((transaction) => (
+                <TransactionRow
+                  key={transaction.transactionId}
+                  transaction={transaction}
+                />
               ))
             ) : (
               <View style={styles.emptyState}>
@@ -1247,7 +1279,6 @@ const styles = StyleSheet.create({
     color: '#777777',
     fontSize: 11,
     fontWeight: '700',
-    textTransform: 'uppercase',
   },
   summaryValue: {
     ...FontStylesWithFallback.h3,
@@ -1275,7 +1306,7 @@ const styles = StyleSheet.create({
     color: '#FF6600',
     fontWeight: '600',
   },
-  transactionCard: {
+  transactionRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -1301,13 +1332,9 @@ const styles = StyleSheet.create({
   debitIcon: {
     backgroundColor: '#FFEBEE',
   },
-  transactionInfo: {
-    marginLeft: 12,
-    flex: 1,
-  },
-  transactionDesc: {
+  transactionMerchant: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: '600',
     color: '#1A1A1A',
   },
   transactionDate: {
@@ -1316,31 +1343,24 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   transactionRight: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  transactionAmountBlock: {
     alignItems: 'flex-end',
+    minWidth: 62,
   },
-  transactionAmount: {
-    fontSize: 15,
-    fontWeight: 'bold',
+  transactionAmountLabel: {
+    fontSize: 10,
+    color: '#999999',
+    textTransform: 'uppercase',
   },
-  creditAmount: {
-    color: '#4CAF50',
-  },
-  debitAmount: {
-    color: '#F44336',
-  },
-  transactionStatus: {
-    fontSize: 11,
-    marginTop: 2,
-    textTransform: 'capitalize',
-  },
-  statusCompleted: {
-    color: '#4CAF50',
-  },
-  statusPending: {
-    color: '#FF9800',
-  },
-  statusFailed: {
-    color: '#F44336',
+  transactionAmountValue: {
+    fontSize: 12,
+    color: '#1A1A1A',
+    fontWeight: '600',
+    marginTop: 4,
   },
   emptyState: {
     alignItems: 'center',

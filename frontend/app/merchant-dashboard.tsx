@@ -4,7 +4,7 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert,
+  
   Image,
   Dimensions,
   Animated,
@@ -47,22 +47,40 @@ const MERCHANT_CAROUSEL_IMAGES = [
 
 
 
-interface Payment {
-  id: string;
-  customerAmount: number;
-  discountAmount: number;
-  totalReceived: number;
-  date: string;
-  status: 'pending' | 'completed';
+interface ApiSale {
+  transactionId: number;
+  customerName: string;
+  customerPhone: string;
+  totalSalesValue: number;
+  totalDiscountGiven: number;
+  totalAmountReceived: number;
+  transactionDate: string;
 }
+
+interface ApiSummary {
+  totalSalesValue: number;
+  totalDiscountGiven: number;
+  totalAmountReceived: number;
+  salesCount: number;
+}
+
+const formatTransactionDate = (value: string) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString();
+};
 
 export default function MerchantDashboard() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ userType?: string }>();
-  const { user, logout } = useAuthStore();
+  const params = useLocalSearchParams<{ userType?: string; merchantId?: string }>();
+  const { user, logout, token } = useAuthStore();
   const [showDropdown, setShowDropdown] = useState(false);
-  const [payments, setPayments] = useState<Payment[]>([]);
   const [userType, setUserType] = useState<string>('Merchant');
+  const [merchantId, setMerchantId] = useState<string | null>(null);
+  const [shopName, setShopName] = useState<string | null>(null);
+  const [sales, setSales] = useState<ApiSale[]>([]);
+  const [lifetimeTotals, setLifetimeTotals] = useState<ApiSummary | null>(null);
+  const [isSalesLoading, setIsSalesLoading] = useState(false);
 
   // Location store
   const location = useLocationStore((state) => state.location);
@@ -88,14 +106,13 @@ const carouselRef = useRef<ScrollView | null>(null);
 
   // Merchant shop details (would come from registration)
   const merchantShop = {
-    name: user?.name || 'My Shop',
+    name: shopName || user?.name || 'My Shop',
     category: 'Retail Store',
     rating: 4.5,
-    totalPayments: payments.length,
+    totalPayments: sales.length,
   };
 
   useEffect(() => {
-    loadPayments();
     loadUserType();
     requestLocationOnMount();
     // ===== MERCHANT CAROUSEL AUTO SLIDE =====
@@ -185,76 +202,72 @@ const carouselRef = useRef<ScrollView | null>(null);
     return 'Merchant';
   };
 
-  const loadPayments = async () => {
-    try {
-      const stored = await AsyncStorage.getItem('merchant_payments');
-      if (stored) {
-        setPayments(JSON.parse(stored));
-      } else {
-        // Demo payments
-        const demoPayments: Payment[] = [
-          {
-            id: '1',
-            customerAmount: 1000,
-            discountAmount: 100,
-            totalReceived: 900,
-            date: new Date().toISOString(),
-            status: 'pending',
-          },
-          {
-            id: '2',
-            customerAmount: 500,
-            discountAmount: 50,
-            totalReceived: 450,
-            date: new Date().toISOString(),
-            status: 'pending',
-          },
-        ];
-        setPayments(demoPayments);
+  useEffect(() => {
+    const loadMerchantId = async () => {
+      try {
+        if (params.merchantId) {
+          setMerchantId(params.merchantId);
+          await AsyncStorage.setItem('merchant_id', params.merchantId);
+        } else {
+          const storedMerchantId = await AsyncStorage.getItem('merchant_id');
+          if (storedMerchantId) {
+            setMerchantId(storedMerchantId);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading merchant id:', error);
       }
-    } catch (error) {
-      console.error('Error loading payments:', error);
-    }
-  };
+    };
 
-  const savePayments = async (updatedPayments: Payment[]) => {
-    try {
-      await AsyncStorage.setItem('merchant_payments', JSON.stringify(updatedPayments));
-      setPayments(updatedPayments);
-    } catch (error) {
-      console.error('Error saving payments:', error);
-    }
-  };
+    const loadShopName = async () => {
+      try {
+        const storedShopName = await AsyncStorage.getItem('merchant_shop_name');
+        if (storedShopName) {
+          setShopName(storedShopName);
+        }
+      } catch (error) {
+        console.error('Error loading shop name:', error);
+      }
+    };
 
-  const handlePaymentComplete = (paymentId: string) => {
-    Alert.alert(
-      'Mark as Completed',
-      'Confirm that you have received this payment?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Confirm',
-          onPress: () => {
-            const updated = payments.map((p) =>
-              p.id === paymentId ? { ...p, status: 'completed' as const } : p
-            );
-            savePayments(updated);
-            Alert.alert('Success', 'Payment marked as completed!');
-          },
-        },
-      ]
-    );
-  };
+    loadMerchantId();
+    loadShopName();
+  }, [params.merchantId]);
 
-  const getTotalStats = () => {
-    const completed = payments.filter((p) => p.status === 'completed');
-    const totalCustomerAmount = completed.reduce((sum, p) => sum + p.customerAmount, 0);
-    const totalDiscountAmount = completed.reduce((sum, p) => sum + p.discountAmount, 0);
-    const totalReceived = completed.reduce((sum, p) => sum + p.totalReceived, 0);
-    return { totalCustomerAmount, totalDiscountAmount, totalReceived };
-  };
+  useEffect(() => {
+    if (!merchantId) return;
 
-  const stats = getTotalStats();
+    const fetchSales = async () => {
+      setIsSalesLoading(true);
+      try {
+        const res = await fetch(
+          `https://devapi.intownlocal.com/IN/transactions/merchants/${merchantId}`,
+          {
+            headers: token
+              ? {
+                  Authorization: `Bearer ${token}`,
+                  Accept: 'application/json',
+                }
+              : { Accept: 'application/json' },
+          }
+        );
+        if (!res.ok) {
+          throw new Error(`Sales fetch failed: ${res.status}`);
+        }
+        const data = await res.json();
+        setSales(data?.sales ?? []);
+        setLifetimeTotals(data?.lifetime ?? null);
+      } catch (error) {
+        console.error('Error loading sales:', error);
+        setSales([]);
+        setLifetimeTotals(null);
+      } finally {
+        setIsSalesLoading(false);
+      }
+    };
+
+    fetchSales();
+  }, [merchantId, token]);
 
  const handleLogout = async () => {
   try {
@@ -420,18 +433,24 @@ const carouselRef = useRef<ScrollView | null>(null);
             <View style={styles.summaryRow}>
               <View style={styles.summaryItem}>
                 <Ionicons name="cash" size={32} color="#2196F3" />
-                <Text style={styles.summaryLabel}>Customer Amount</Text>
-                <Text style={styles.summaryValue}>₹{stats.totalCustomerAmount}</Text>
+                <Text style={styles.summaryLabel}>Total Sales</Text>
+                <Text style={styles.summaryValue}>
+                  ₹{(lifetimeTotals?.totalSalesValue ?? 0).toFixed(0)}
+                </Text>
               </View>
               <View style={styles.summaryItem}>
                 <Ionicons name="pricetag" size={32} color="#FF6600" />
-                <Text style={styles.summaryLabel}>Discount Amount</Text>
-                <Text style={styles.summaryValue}>₹{stats.totalDiscountAmount}</Text>
+                <Text style={styles.summaryLabel}>Discount Given</Text>
+                <Text style={styles.summaryValue}>
+                  ₹{(lifetimeTotals?.totalDiscountGiven ?? 0).toFixed(0)}
+                </Text>
               </View>
               <View style={styles.summaryItem}>
                 <Ionicons name="wallet" size={32} color="#4CAF50" />
-                <Text style={styles.summaryLabel}>Total Received</Text>
-                <Text style={styles.summaryValueLarge}>₹{stats.totalReceived}</Text>
+                <Text style={styles.summaryLabel}>Amount Received</Text>
+                <Text style={styles.summaryValueLarge}>
+                  ₹{(lifetimeTotals?.totalAmountReceived ?? 0).toFixed(0)}
+                </Text>
               </View>
             </View>
           </View>
@@ -440,62 +459,52 @@ const carouselRef = useRef<ScrollView | null>(null);
         {/* Payments List */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Recent Payments</Text>
-          {payments.map((payment) => (
-            <View
-              key={payment.id}
-              style={[
-                styles.paymentCard,
-                payment.status === 'completed' && styles.paymentCardCompleted,
-              ]}
-            >
-              <View style={styles.paymentHeader}>
-                <Text style={styles.paymentDate}>
-                  {new Date(payment.date).toLocaleDateString()}
-                </Text>
-                <View
-                  style={[
-                    styles.statusBadge,
-                    payment.status === 'completed' && styles.statusBadgeCompleted,
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.statusText,
-                      payment.status === 'completed' && styles.statusTextCompleted,
-                    ]}
-                  >
-                    {payment.status === 'completed' ? 'Completed' : 'Pending'}
+          {isSalesLoading ? (
+            <View style={styles.emptyState}>
+              <ActivityIndicator size="small" color="#FF6600" />
+            </View>
+          ) : sales.length > 0 ? (
+            sales.map((sale) => (
+              <View key={sale.transactionId} style={styles.transactionRow}>
+                <View style={styles.transactionLeft}>
+                  <Text style={styles.transactionMerchant} numberOfLines={1}>
+                    {sale.customerName}
+                  </Text>
+                  <Text style={styles.transactionDate}>
+                    {sale.customerPhone}
+                  </Text>
+                  <Text style={styles.transactionDate}>
+                    {formatTransactionDate(sale.transactionDate)}
                   </Text>
                 </View>
+                <View style={styles.transactionRight}>
+                  <View style={styles.transactionAmountBlock}>
+                    <Text style={styles.transactionAmountLabel}>Sales</Text>
+                    <Text style={styles.transactionAmountValue}>
+                      ₹{sale.totalSalesValue.toFixed(2)}
+                    </Text>
+                  </View>
+                  <View style={styles.transactionAmountBlock}>
+                    <Text style={styles.transactionAmountLabel}>Discount</Text>
+                    <Text style={styles.transactionAmountValue}>
+                      ₹{sale.totalDiscountGiven.toFixed(2)}
+                    </Text>
+                  </View>
+                  <View style={styles.transactionAmountBlock}>
+                    <Text style={styles.transactionAmountLabel}>Received</Text>
+                    <Text style={styles.transactionAmountValue}>
+                      ₹{sale.totalAmountReceived.toFixed(2)}
+                    </Text>
+                  </View>
+                </View>
               </View>
-
-              <View style={styles.paymentDetails}>
-                <View style={styles.paymentRow}>
-                  <Text style={styles.paymentLabel}>Customer Amount:</Text>
-                  <Text style={styles.paymentAmount}>₹{payment.customerAmount}</Text>
-                </View>
-                <View style={styles.paymentRow}>
-                  <Text style={styles.paymentLabel}>Discount Amount:</Text>
-                  <Text style={styles.paymentDiscount}>-₹{payment.discountAmount}</Text>
-                </View>
-                <View style={styles.divider} />
-                <View style={styles.paymentRow}>
-                  <Text style={styles.paymentLabelBold}>Total Received:</Text>
-                  <Text style={styles.paymentTotal}>₹{payment.totalReceived}</Text>
-                </View>
-              </View>
-
-              {payment.status === 'pending' && (
-                <TouchableOpacity
-                  style={styles.completeButton}
-                  onPress={() => handlePaymentComplete(payment.id)}
-                >
-                  <Ionicons name="checkmark-circle" size={20} color="#FFF" />
-                  <Text style={styles.completeButtonText}>Mark as Completed</Text>
-                </TouchableOpacity>
-              )}
+            ))
+          ) : (
+            <View style={styles.emptyState}>
+              <Ionicons name="receipt-outline" size={48} color="#CCCCCC" />
+              <Text style={styles.emptyText}>No payments yet</Text>
             </View>
-          ))}
+          )}
         </View>
 
         {/* Footer */}
@@ -700,43 +709,57 @@ const styles = StyleSheet.create({
   summaryLabel: { fontSize: 12, color: '#666666', marginTop: 8, textAlign: 'center' },
   summaryValue: { fontSize: 18, fontWeight: 'bold', color: '#1A1A1A', marginTop: 4 },
   summaryValueLarge: { fontSize: 24, fontWeight: 'bold', color: '#4CAF50', marginTop: 4 },
-  paymentCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 2,
-    borderColor: '#FFA500',
-  },
-  paymentCardCompleted: { borderColor: '#4CAF50', opacity: 0.8 },
-  paymentHeader: {
+  transactionRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
-  },
-  paymentDate: { fontSize: 14, color: '#666666', fontWeight: '600' },
-  statusBadge: { backgroundColor: '#FFF3E0', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12 },
-  statusBadgeCompleted: { backgroundColor: '#E8F5E9' },
-  statusText: { fontSize: 12, color: '#FF6600', fontWeight: '600' },
-  statusTextCompleted: { color: '#4CAF50' },
-  paymentDetails: { marginBottom: 12 },
-  paymentRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
-  paymentLabel: { fontSize: 14, color: '#666666' },
-  paymentAmount: { fontSize: 16, fontWeight: '600', color: '#1A1A1A' },
-  paymentDiscount: { fontSize: 16, fontWeight: '600', color: '#FF6600' },
-  divider: { height: 1, backgroundColor: '#EEEEEE', marginVertical: 8 },
-  paymentLabelBold: { fontSize: 16, fontWeight: 'bold', color: '#1A1A1A' },
-  paymentTotal: { fontSize: 20, fontWeight: 'bold', color: '#4CAF50' },
-  completeButton: {
-    flexDirection: 'row',
-    backgroundColor: '#4CAF50',
-    borderRadius: 8,
     paddingVertical: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
   },
-  completeButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '600', marginLeft: 8 },
+  transactionLeft: {
+    flexDirection: 'column',
+    flex: 1,
+  },
+  transactionMerchant: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1A1A1A',
+  },
+  transactionDate: {
+    fontSize: 12,
+    color: '#999999',
+    marginTop: 2,
+  },
+  transactionRight: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  transactionAmountBlock: {
+    alignItems: 'flex-end',
+    minWidth: 70,
+  },
+  transactionAmountLabel: {
+    fontSize: 10,
+    color: '#999999',
+    textTransform: 'uppercase',
+  },
+  transactionAmountValue: {
+    fontSize: 12,
+    color: '#1A1A1A',
+    fontWeight: '600',
+    marginTop: 4,
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 32,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: '#999999',
+    marginTop: 8,
+  },
   footer: { backgroundColor: '#1A1A1A', padding: 24, alignItems: 'center', marginTop: 16 },
   footerTagline: {
     fontSize: 18,
