@@ -17,7 +17,7 @@ import {
   Alert,
   ActivityIndicator,
   Platform,
-  
+
 } from 'react-native';
 
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -26,11 +26,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
 import { useLocationStore, LocationDetails } from '../store/locationStore';
 import { getPlans, getCategories } from '../utils/api';
-import { 
-  getUserLocationWithDetails, 
-  searchLocations, 
+import {
+  getUserLocationWithDetails,
+  searchLocations,
   setManualLocation,
-  DEFAULT_LOCATION 
+  DEFAULT_LOCATION
 } from '../utils/location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -112,38 +112,38 @@ export default function UserDashboard() {
 
 
 
-const DUMMY_NEARBY_SHOPS = [
-  { id: '1', name: 'Fresh Mart Grocery', category: 'Grocery', distance: 0.5 },
-  { id: '2', name: 'Style Salon & Spa', category: 'Salon', distance: 0.8 },
-  { id: '3', name: 'Quick Bites Restaurant', category: 'Restaurant', distance: 1.2 },
-  { id: '4', name: 'Wellness Pharmacy', category: 'Pharmacy', distance: 0.3 },
-  { id: '5', name: 'Fashion Hub', category: 'Fashion', distance: 1.5 },
-  { id: '6', name: 'Tech Store', category: 'Electronics', distance: 2.0 },
-];
+  const DUMMY_NEARBY_SHOPS = [
+    { id: '1', name: 'Fresh Mart Grocery', category: 'Grocery', distance: 0.5 },
+    { id: '2', name: 'Style Salon & Spa', category: 'Salon', distance: 0.8 },
+    { id: '3', name: 'Quick Bites Restaurant', category: 'Restaurant', distance: 1.2 },
+    { id: '4', name: 'Wellness Pharmacy', category: 'Pharmacy', distance: 0.3 },
+    { id: '5', name: 'Fashion Hub', category: 'Fashion', distance: 1.5 },
+    { id: '6', name: 'Tech Store', category: 'Electronics', distance: 2.0 },
+  ];
 
-const DUMMY_CATEGORIES = [
-  { id: '1', name: 'Grocery', icon: 'storefront' },
-  { id: '2', name: 'Salon', icon: 'cut' },
-  { id: '3', name: 'Restaurant', icon: 'restaurant' },
-  { id: '4', name: 'Pharmacy', icon: 'medical' },
-  { id: '5', name: 'Fashion', icon: 'shirt' },
-  { id: '6', name: 'Electronics', icon: 'phone-portrait' },
-];
+  const DUMMY_CATEGORIES = [
+    { id: '1', name: 'Grocery', icon: 'storefront' },
+    { id: '2', name: 'Salon', icon: 'cut' },
+    { id: '3', name: 'Restaurant', icon: 'restaurant' },
+    { id: '4', name: 'Pharmacy', icon: 'medical' },
+    { id: '5', name: 'Fashion', icon: 'shirt' },
+    { id: '6', name: 'Electronics', icon: 'phone-portrait' },
+  ];
 
-// ----------------- CAROUSEL IMAGES (FIXED for Web compatibility) -----------------
-const CAROUSEL_IMAGES_RAW = [
-  require('../assets/images/1.jpg'),
-  require('../assets/images/2.jpg'),
-  require('../assets/images/3.jpg'),
-  require('../assets/images/4.jpg'),
-  require('../assets/images/5.jpg'),
-  require('../assets/images/6.jpg'),
-];
+  // ----------------- CAROUSEL IMAGES (FIXED for Web compatibility) -----------------
+  const CAROUSEL_IMAGES_RAW = [
+    require('../assets/images/1.jpg'),
+    require('../assets/images/2.jpg'),
+    require('../assets/images/3.jpg'),
+    require('../assets/images/4.jpg'),
+    require('../assets/images/5.jpg'),
+    require('../assets/images/6.jpg'),
+  ];
 
-const CAROUSEL_IMAGES = CAROUSEL_IMAGES_RAW.map(image =>
-  Platform.OS === 'web' && (image as any).default ? (image as any).default : image
-);
-// ---------------------------------------------------------------------------------
+  const CAROUSEL_IMAGES = CAROUSEL_IMAGES_RAW.map(image =>
+    Platform.OS === 'web' && (image as any).default ? (image as any).default : image
+  );
+  // ---------------------------------------------------------------------------------
 
 
   const location = useLocationStore((state) => state.location);
@@ -160,7 +160,7 @@ const CAROUSEL_IMAGES = CAROUSEL_IMAGES_RAW.map(image =>
   const [activeTab, setActiveTab] = useState<'customer' | 'merchant'>('customer');
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
   const [filteredCategories, setFilteredCategories] = useState<Category[]>([]);
-  
+
   // Location modal states
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [locationSearchQuery, setLocationSearchQuery] = useState('');
@@ -175,13 +175,13 @@ const CAROUSEL_IMAGES = CAROUSEL_IMAGES_RAW.map(image =>
   // Dropdown animation value
   const dropdownAnim = useRef(new Animated.Value(0)).current;
 
- 
+
 
   // Carousel state
   const [carouselIndex, setCarouselIndex] = useState(0);
   const carouselRef = useRef<ScrollView | null>(null);
   const autoPlayTimer = useRef<number | null>(null);
-  
+
 
 
   // Animation for auto-scrolling shops
@@ -189,79 +189,79 @@ const CAROUSEL_IMAGES = CAROUSEL_IMAGES_RAW.map(image =>
   const CARD_WIDTH = 172; // 160 + 12 (margin)
   const TOTAL_WIDTH = DUMMY_NEARBY_SHOPS.length * CARD_WIDTH;
 
-  
 
- 
+
+
   useEffect(() => {
-  loadData();
-  startAutoScroll();
-  loadUserType();
-  requestLocationOnMount();
+    loadData();
+    startAutoScroll();
+    loadUserType();
+    requestLocationOnMount();
 
-  const timer = setInterval(() => {
-    setCarouselIndex(prev => {
-      const next = (prev + 1) % MEMBER_CAROUSEL_IMAGES.length;
-      carouselRef.current?.scrollTo({
-        x: next * SLIDE_WIDTH,
-        animated: true,
+    const timer = setInterval(() => {
+      setCarouselIndex(prev => {
+        const next = (prev + 1) % MEMBER_CAROUSEL_IMAGES.length;
+        carouselRef.current?.scrollTo({
+          x: next * SLIDE_WIDTH,
+          animated: true,
+        });
+        return next;
       });
-      return next;
-    });
-  }, 3500);
+    }, 3500);
 
-  return () => clearInterval(timer);
-}, []);
+    return () => clearInterval(timer);
+  }, []);
 
-// Request location permission on mount
-const requestLocationOnMount = async () => {
-  // First try to load from storage
-  await loadLocationFromStorage();
-  
-  // If no location in storage, request fresh location
-  const storedLocation = useLocationStore.getState().location;
-  if (!storedLocation) {
-    // Small delay to let the UI render first
-    setTimeout(async () => {
-      const locationResult = await getUserLocationWithDetails();
-      if (!locationResult) {
-        // If permission denied or error, show alert
-        Alert.alert(
-          'Location Access',
-          'Please enable location access to see nearby shops and get personalized recommendations.',
-          [
-            { text: 'Later', style: 'cancel' },
-            { text: 'Set Manually', onPress: () => setShowLocationModal(true) }
-          ]
-        );
-      }
-    }, 1000);
-  }
-};
+  // Request location permission on mount
+  const requestLocationOnMount = async () => {
+    // First try to load from storage
+    await loadLocationFromStorage();
 
-const loadUserType = async () => {
-  try {
-    // First check params, then AsyncStorage
-    if (params.userType) {
-      setUserType(formatUserType(params.userType));
-    } else {
-      const storedUserType = await AsyncStorage.getItem('user_type');
-      if (storedUserType) {
-        setUserType(formatUserType(storedUserType));
-      }
+    // If no location in storage, request fresh location
+    const storedLocation = useLocationStore.getState().location;
+    if (!storedLocation) {
+      // Small delay to let the UI render first
+      setTimeout(async () => {
+        const locationResult = await getUserLocationWithDetails();
+        if (!locationResult) {
+          // If permission denied or error, show alert
+          Alert.alert(
+            'Location Access',
+            'Please enable location access to see nearby shops and get personalized recommendations.',
+            [
+              { text: 'Later', style: 'cancel' },
+              { text: 'Set Manually', onPress: () => setShowLocationModal(true) }
+            ]
+          );
+        }
+      }, 1000);
     }
-  } catch (error) {
-    console.log('Error loading user type:', error);
-  }
-};
+  };
 
-const formatUserType = (type: string): string => {
-  const lower = type.toLowerCase();
-  if (lower === 'new_user' || lower === 'new' || lower === 'user') return 'User';
-  if (lower.includes('customer')) return 'Customer';
-  if (lower.includes('merchant')) return 'Merchant';
-  if (lower === 'dual') return 'Customer & Merchant';
-  return 'User';
-};
+  const loadUserType = async () => {
+    try {
+      // First check params, then AsyncStorage
+      if (params.userType) {
+        setUserType(formatUserType(params.userType));
+      } else {
+        const storedUserType = await AsyncStorage.getItem('user_type');
+        if (storedUserType) {
+          setUserType(formatUserType(storedUserType));
+        }
+      }
+    } catch (error) {
+      console.log('Error loading user type:', error);
+    }
+  };
+
+  const formatUserType = (type: string): string => {
+    const lower = type.toLowerCase();
+    if (lower === 'new_user' || lower === 'new' || lower === 'user') return 'User';
+    if (lower.includes('customer')) return 'Customer';
+    if (lower.includes('merchant')) return 'Merchant';
+    if (lower === 'dual') return 'Customer & Merchant';
+    return 'User';
+  };
 
 
   useEffect(() => {
@@ -399,7 +399,7 @@ const formatUserType = (type: string): string => {
   };
 
 
-  
+
 
   return (
     <SafeAreaView style={styles.container}>
@@ -415,32 +415,37 @@ const formatUserType = (type: string): string => {
             <View style={styles.headerLeft}>
               <Image source={require('../assets/images/intown-logo.jpg')} style={styles.logo} resizeMode="contain" />
             </View>
-            
-            {/* Location Display */}
-            <TouchableOpacity 
-              style={styles.locationButton}
-              onPress={() => setShowLocationModal(true)}
-            >
-              <Ionicons name="location" size={16} color="#FF6600" />
-              <View style={styles.locationTextContainer}>
-                <View style={styles.locationRow}>
-                  <Text style={styles.locationText} numberOfLines={1}>
-                    {getLocationDisplayText()}
-                  </Text>
-                  <Ionicons name="chevron-down" size={14} color="#333" />
+            <View style={styles.rightContainer}>
+
+              <TouchableOpacity
+                onPress={(e) => {
+                  e.stopPropagation();
+                  toggleDropdown(e);
+                }}
+                style={styles.profileButton}
+              >
+                <View style={{ marginLeft: 10 }}>
+                  <Text style={styles.userPanelPhone}>{(user as any)?.phone ?? (user as any)?.email ?? ''}</Text>
+                  {/* Location Display */}
+                  <TouchableOpacity
+                    style={styles.locationButton}
+                    onPress={() => setShowLocationModal(true)}
+                  >
+                    <Ionicons name="location" size={16} color="#FFFFFF" />
+                    <View style={styles.locationTextContainer}>
+                      <View style={styles.locationRow}>
+                        <Text style={styles.locationText} numberOfLines={1}>
+                          {getLocationDisplayText()}
+                        </Text>
+                        <Ionicons name="chevron-down" size={14} color="#FFFFFF" style={styles.locationIconButton} />
+                      </View>
+                    </View>
+                  </TouchableOpacity>
                 </View>
-              </View>
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-              onPress={(e) => {
-                e.stopPropagation();
-                toggleDropdown(e);
-              }}
-              style={styles.profileButton}
-            >
-              <Ionicons name="person" size={20} color="#ffffff" />
-            </TouchableOpacity>
+                <Ionicons name="person" size={20} color="#ffffff" style={styles.profileIconButton} />
+
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* Animated User Panel (Swiggy-style) */}
@@ -472,51 +477,51 @@ const formatUserType = (type: string): string => {
                 <Ionicons name="person-circle" size={48} color="#FF6600" />
                 <View style={{ marginLeft: 10 }}>
                   <Text style={styles.userPanelName}>{user?.name ?? 'Guest User'}</Text>
-                 <Text style={styles.userPanelPhone}>
-  {user?.phone ?? ''}
-</Text>
+                  <Text style={styles.userPanelPhone}>
+                    {user?.phone ?? ''}
+                  </Text>
 
                 </View>
               </View>
-{/* MY ACCOUNT */}
-<TouchableOpacity
-  style={styles.userPanelItem}
-  onPress={() => {
-    toggleDropdown();
-    router.push('/account');
-  }}
->
-  <Ionicons name="person-outline" size={20} color="#333" />
-  <Text style={styles.userPanelText}>My Account</Text>
-</TouchableOpacity>
+              {/* MY ACCOUNT */}
+              <TouchableOpacity
+                style={styles.userPanelItem}
+                onPress={() => {
+                  toggleDropdown();
+                  router.push('/account');
+                }}
+              >
+                <Ionicons name="person-outline" size={20} color="#333" />
+                <Text style={styles.userPanelText}>My Account</Text>
+              </TouchableOpacity>
 
 
 
-{/* BECOME A Customer */}
-<TouchableOpacity
-  style={styles.userPanelItem}
-  onPress={() => {
-    toggleDropdown();
-    router.push('/register-member');
-  }}
->
-  <Ionicons name="star-outline" size={20} color="#333" />
-  <Text style={styles.userPanelText}>Become a Customer</Text>
-</TouchableOpacity>
+              {/* BECOME A Customer */}
+              <TouchableOpacity
+                style={styles.userPanelItem}
+                onPress={() => {
+                  toggleDropdown();
+                  router.push('/register-member');
+                }}
+              >
+                <Ionicons name="star-outline" size={20} color="#333" />
+                <Text style={styles.userPanelText}>Become a Customer</Text>
+              </TouchableOpacity>
 
-{/* BECOME A MERCHANT */}
-<TouchableOpacity
-  style={styles.userPanelItem}
-  onPress={() => {
-    toggleDropdown();
-    router.push('/register-merchant');
-  }}
->
-  <Ionicons name="storefront-outline" size={20} color="#333" />
-  <Text style={styles.userPanelText}>Become a Merchant</Text>
-</TouchableOpacity>
+              {/* BECOME A MERCHANT */}
+              <TouchableOpacity
+                style={styles.userPanelItem}
+                onPress={() => {
+                  toggleDropdown();
+                  router.push('/register-merchant');
+                }}
+              >
+                <Ionicons name="storefront-outline" size={20} color="#333" />
+                <Text style={styles.userPanelText}>Become a Merchant</Text>
+              </TouchableOpacity>
 
-             
+
 
               <TouchableOpacity style={[styles.userPanelItem, { marginTop: 6 }]} onPress={handleLogout}>
                 <Ionicons name="log-out-outline" size={22} color="#FF0000" />
@@ -525,7 +530,7 @@ const formatUserType = (type: string): string => {
             </Animated.View>
           )}
 
-        
+
 
           {/* Search Box */}
           <View style={styles.searchContainer}>
@@ -571,42 +576,42 @@ const formatUserType = (type: string): string => {
             </TouchableOpacity>
           )}
 
-         {/* ===== MEMBER CAROUSEL ===== */}
-<View style={styles.carouselWrapper}>
-  <ScrollView
-    ref={carouselRef}
-    horizontal
-    pagingEnabled
-    showsHorizontalScrollIndicator={false}
-    snapToInterval={SLIDE_WIDTH}
-    decelerationRate="fast"
-    onMomentumScrollEnd={(e) => {
-      const index = Math.round(
-        e.nativeEvent.contentOffset.x / SLIDE_WIDTH
-      );
-      setCarouselIndex(index);
-    }}
-  >
-    {MEMBER_CAROUSEL_IMAGES.map((img, index) => (
-      <View key={index} style={styles.carouselSlide}>
-        <Image source={img} style={styles.carouselImage} />
-      </View>
-    ))}
-  </ScrollView>
+          {/* ===== MEMBER CAROUSEL ===== */}
+          <View style={styles.carouselWrapper}>
+            <ScrollView
+              ref={carouselRef}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              snapToInterval={SLIDE_WIDTH}
+              decelerationRate="fast"
+              onMomentumScrollEnd={(e) => {
+                const index = Math.round(
+                  e.nativeEvent.contentOffset.x / SLIDE_WIDTH
+                );
+                setCarouselIndex(index);
+              }}
+            >
+              {MEMBER_CAROUSEL_IMAGES.map((img, index) => (
+                <View key={index} style={styles.carouselSlide}>
+                  <Image source={img} style={styles.carouselImage} />
+                </View>
+              ))}
+            </ScrollView>
 
-  <View style={styles.carouselDots}>
-    {MEMBER_CAROUSEL_IMAGES.map((_, i) => (
-      <View
-        key={i}
-        style={[
-          styles.dot,
-          carouselIndex === i && styles.dotActive,
-        ]}
-      />
-    ))}
-  </View>
-</View>
-{/* === END MEMBER CAROUSEL === */}
+            <View style={styles.carouselDots}>
+              {MEMBER_CAROUSEL_IMAGES.map((_, i) => (
+                <View
+                  key={i}
+                  style={[
+                    styles.dot,
+                    carouselIndex === i && styles.dotActive,
+                  ]}
+                />
+              ))}
+            </View>
+          </View>
+          {/* === END MEMBER CAROUSEL === */}
 
 
           {/* Popular Categories */}
@@ -615,14 +620,14 @@ const formatUserType = (type: string): string => {
             <View style={styles.categoriesGrid}>
               {categories.length > 0 ? (
                 categories.map((category) => (
-                  <TouchableOpacity 
-                    key={category.id} 
-                    style={styles.categoryCard} 
+                  <TouchableOpacity
+                    key={category.id}
+                    style={styles.categoryCard}
                     onPress={() => setShowRegistrationModal(true)}
                     activeOpacity={0.8}
                   >
                     <View style={styles.categoryImageContainer}>
-                      <Image 
+                      <Image
                         source={{ uri: CATEGORY_IMAGES[category.name] || 'https://images.unsplash.com/photo-1609952578538-3d454550301d?w=400&h=300&fit=crop' }}
                         style={styles.categoryImage}
                         resizeMode="cover"
@@ -640,11 +645,11 @@ const formatUserType = (type: string): string => {
 
           {/* Theme Section */}
           <View style={styles.themeSection}>
-            <Text style={styles.themeTitle}>Instant Savings, Pay less ! </Text>
-            <Text style={styles.themeSubtitle}> No coupons. No cashback. No waiting.</Text>
+            <Text style={styles.themeTitle}>Instant Savings ! </Text>
+            <Text style={styles.themeSubtitle}> Pay less. No coupons. No cashback. No waiting.</Text>
           </View>
 
-{/* Savings Calculator */}
+          {/* Savings Calculator */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Savings Calculator</Text>
             <View style={styles.calculatorCard}>
@@ -669,9 +674,9 @@ const formatUserType = (type: string): string => {
             </View>
           </View>
 
-        
 
-          
+
+
 
           {/* Membership Plans */}
           <View style={styles.section}>
@@ -699,10 +704,10 @@ const formatUserType = (type: string): string => {
                 {/* IT Max Plan */}
                 <View style={styles.planCard}>
                   <Text style={styles.planName}>IT Max</Text>
-              <View style={styles.planPriceRow}>
-  <Text style={styles.freePrice}>FREE</Text>
-  <Text style={styles.strikePrice}>₹999 / Year</Text>
-</View>
+                  <View style={styles.planPriceRow}>
+                    <Text style={styles.freePrice}>FREE</Text>
+                    <Text style={styles.strikePrice}>₹999 / Year</Text>
+                  </View>
 
                   <Text style={styles.planDescription}>
                     Premium individual membership with exclusive benefits and unlimited access to all partner stores.
@@ -719,9 +724,9 @@ const formatUserType = (type: string): string => {
                   </View>
                   <Text style={styles.planName}>IT Max Plus</Text>
                   <View style={styles.planPriceRow}>
-  <Text style={styles.freePrice}>FREE</Text>
-  <Text style={styles.strikePrice}>₹1499 / Year</Text>
-</View>
+                    <Text style={styles.freePrice}>FREE</Text>
+                    <Text style={styles.strikePrice}>₹1499 / Year</Text>
+                  </View>
 
                   <Text style={styles.planDescription}>
                     Premium couple membership with exclusive benefits and unlimited access to all partner stores.
@@ -819,7 +824,7 @@ const formatUserType = (type: string): string => {
           </View>
 
           {/* Footer */}
-        <Footer/>
+          <Footer />
         </ScrollView>
       </TouchableOpacity>
 
@@ -881,7 +886,7 @@ const formatUserType = (type: string): string => {
             </View>
 
             {/* Use Current Location Button */}
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.useCurrentLocationBtn}
               onPress={handleUseCurrentLocation}
               disabled={isLocationLoading}
@@ -929,7 +934,7 @@ const formatUserType = (type: string): string => {
             {isSearchingLocation && (
               <ActivityIndicator size="small" color="#FF6600" style={{ marginTop: 16 }} />
             )}
-            
+
             <ScrollView style={styles.locationSearchResults}>
               {locationSearchResults.map((item, index) => (
                 <TouchableOpacity
@@ -963,7 +968,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
+    paddingTop: 8,
+    paddingBottom: 8,
+    paddingHorizontal: 16,
     backgroundColor: '#fe6f09',
     borderBottomWidth: 1,
     borderBottomColor: '#EEEEEE',
@@ -976,16 +983,15 @@ const styles = StyleSheet.create({
     width: 140,
     height: 50,
   },
+  rightContainer: {
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   locationButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#e85e02',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
     flex: 1,
-    marginHorizontal: 12,
-    maxWidth: 200,
   },
   locationTextContainer: {
     marginLeft: 8,
@@ -998,21 +1004,26 @@ const styles = StyleSheet.create({
   locationText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#333',
+    color: '#fff',
     flex: 1,
+  },
+  locationIconButton: {
+    position: 'relative',
+    top: 3,
   },
   profileButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    padding: 10,
-    borderRadius: 20,
+    padding: 0,
   },
   profileIconButton: {
     borderWidth: 2,
     borderColor: '#fff',
     padding: 4,
     borderRadius: 30,
+    marginLeft: 10,
+    width: 34,
+    textAlign: 'center',
   },
   dropdownMenu: {
     position: 'absolute',
@@ -1083,15 +1094,17 @@ const styles = StyleSheet.create({
   },
 
   userPanelName: {
-    fontSize: 16,
+    fontSize: 12,
     fontWeight: '700',
-    color: '#1A1A1A',
+    color: '#FFFFFF',
+    textAlign: 'right',
   },
 
   userPanelPhone: {
-    fontSize: 12,
-    color: '#777',
+    fontSize: 10,
+    color: '#FFFFFF',
     marginTop: 2,
+    textAlign: 'right',
   },
 
   userPanelItem: {
@@ -1194,59 +1207,59 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 
-  
- 
- 
 
- 
- 
+
+
+
+
+
 
   // ---------- CAROUSEL STYLES ----------
- carouselWrapper: {
-  marginTop: 12,
-  marginBottom: 8,
-},
+  carouselWrapper: {
+    marginTop: 12,
+    marginBottom: 8,
+  },
 
-carouselSlide: {
-  width: SLIDE_WIDTH,
-  alignItems: 'center',
-},
+  carouselSlide: {
+    width: SLIDE_WIDTH,
+    alignItems: 'center',
+  },
 
-carouselImage: {
-  width: SLIDE_WIDTH - 32,
-  height: 160,
-  borderRadius: 12,
-  backgroundColor: '#eee',
-},
+  carouselImage: {
+    width: SLIDE_WIDTH - 32,
+    height: 160,
+    borderRadius: 12,
+    backgroundColor: '#eee',
+  },
 
-carouselDots: {
-  flexDirection: 'row',
-  justifyContent: 'center',
-  marginTop: 8,
-},
+  carouselDots: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 8,
+  },
 
-dot: {
-  width: 8,
-  height: 8,
-  borderRadius: 8,
-  backgroundColor: '#ddd',
-  marginHorizontal: 4,
-},
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 8,
+    backgroundColor: '#ddd',
+    marginHorizontal: 4,
+  },
 
-dotActive: {
-  backgroundColor: '#FF6600',
-},
-//----------------------------------------------
+  dotActive: {
+    backgroundColor: '#FF6600',
+  },
+  //----------------------------------------------
 
   section: {
     padding: 16,
   },
   sectionTitle: {
-  fontSize: 18,
-  fontWeight: '700',
-  color: '#1A1A1A',
-  marginBottom: 16,
-},
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1A1A1A',
+    marginBottom: 16,
+  },
 
   tabContainer: {
     flexDirection: 'row',
@@ -1405,7 +1418,7 @@ dotActive: {
     color: '#fff',
     marginBottom: 8,
     fontWeight: '800',
-    fontSize: 36,
+    fontSize: 32,
     textTransform: 'uppercase',
   },
   themeSubtitle: {
@@ -1456,14 +1469,14 @@ dotActive: {
     color: '#4CAF50',
   },
 
- 
 
 
-  
-  
- 
 
-  
+
+
+
+
+
 
   planCard: {
     backgroundColor: '#FFFFFF',
@@ -1507,17 +1520,17 @@ dotActive: {
     color: '#1A1A1A',
   },
   strikePrice: {
-  fontSize: 16,
-  color: '#000000',      // BLACK color
-  textDecorationLine: 'line-through',
-  marginRight: 8,
-},
+    fontSize: 16,
+    color: '#000000',      // BLACK color
+    textDecorationLine: 'line-through',
+    marginRight: 8,
+  },
 
-freePrice: {
-  fontSize: 28,
-  fontWeight: 'bold',
-  color: '#1A1A1A',      // BLACK color
-},
+  freePrice: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#1A1A1A',      // BLACK color
+  },
 
   planPeriod: {
     fontSize: 16,
@@ -1666,7 +1679,7 @@ freePrice: {
     fontSize: 16,
     color: '#666666',
   },
-  
+
   // Location Modal Styles
   locationModalContainer: {
     flex: 1,

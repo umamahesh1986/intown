@@ -20,6 +20,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuthStore } from '../store/authStore';
 import { useLocationStore } from '../store/locationStore';
+import Footer from '../components/Footer';
 import { 
   getUserLocationWithDetails, 
   searchLocations, 
@@ -46,6 +47,15 @@ interface TabProps {
   icon: string;
   onPress: () => void;
 }
+
+const DUMMY_NEARBY_SHOPS = [
+  { id: '1', name: 'Fresh Mart Grocery', category: 'Grocery', distance: 0.5, rating: 4.5 },
+  { id: '2', name: 'Style Salon & Spa', category: 'Salon', distance: 0.8, rating: 4.7 },
+  { id: '3', name: 'Quick Bites Restaurant', category: 'Restaurant', distance: 1.2, rating: 4.3 },
+  { id: '4', name: 'Wellness Pharmacy', category: 'Pharmacy', distance: 0.3, rating: 4.8 },
+  { id: '5', name: 'Fashion Hub', category: 'Fashion', distance: 1.5, rating: 4.2 },
+  { id: '6', name: 'Tech Store', category: 'Electronics', distance: 2.0, rating: 4.6 },
+];
 
 /* ===============================
    TAB BUTTON COMPONENT
@@ -339,33 +349,52 @@ export default function DualDashboard() {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Image 
-            source={require('../assets/images/intown-logo.jpg')} 
+          <Image
+            source={require('../assets/images/intown-logo.jpg')}
             style={styles.logo}
             resizeMode="contain"
           />
         </View>
-        
-        {/* Location Display */}
-        <TouchableOpacity 
-          style={styles.locationButton}
-          onPress={() => setShowLocationModal(true)}
-        >
-          <Ionicons name="location" size={16} color="#FF6600" />
-          <View style={styles.locationTextContainer}>
-            <Text style={styles.locationLabel}>Your Location</Text>
-            <View style={styles.locationRow}>
-              <Text style={styles.locationText} numberOfLines={1}>
-                {getLocationDisplayText()}
+        <View style={styles.rightContainer}>
+          <TouchableOpacity
+            style={styles.profileButton}
+            onPress={(e) => {
+              e.stopPropagation();
+              handleLogout();
+            }}
+          >
+            <View style={{ marginLeft: 10 }}>
+              <Text style={styles.headerPhone}>
+                {(user as any)?.phone ?? (user as any)?.email ?? ''}
               </Text>
-              <Ionicons name="chevron-down" size={14} color="#333" />
+              <TouchableOpacity
+                style={styles.locationButton}
+                onPress={() => setShowLocationModal(true)}
+              >
+                <Ionicons name="location" size={16} color="#FFFFFF" />
+                <View style={styles.locationTextContainer}>
+                  <View style={styles.locationRow}>
+                    <Text style={styles.locationText} numberOfLines={1}>
+                      {getLocationDisplayText()}
+                    </Text>
+                    <Ionicons
+                      name="chevron-down"
+                      size={14}
+                      color="#FFFFFF"
+                      style={styles.locationIconButton}
+                    />
+                  </View>
+                </View>
+              </TouchableOpacity>
             </View>
-          </View>
-        </TouchableOpacity>
-        
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <Ionicons name="log-out-outline" size={24} color="#fff" />
-        </TouchableOpacity>
+            <Ionicons
+              name="person"
+              size={20}
+              color="#ffffff"
+              style={styles.profileIconButton}
+            />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Search Section */}
@@ -526,6 +555,42 @@ export default function DualDashboard() {
             )}
           </View>
         </View>
+        {/* Nearby Shops */}
+        <View style={styles.nearbyShopsSection}>
+          <Text style={styles.sectionTitle}>Nearby Shops</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.nearbyScroll}
+          >
+            {DUMMY_NEARBY_SHOPS.map((shop) => (
+              <TouchableOpacity
+                key={shop.id}
+                style={styles.nearbyCard}
+                onPress={() => router.push('/user-dashboard')}
+              >
+                <View style={styles.nearbyImagePlaceholder}>
+                  <Ionicons name="storefront" size={36} color="#FF6600" />
+                </View>
+                <Text style={styles.nearbyName} numberOfLines={1}>
+                  {shop.name}
+                </Text>
+                <Text style={styles.nearbyMeta}>{shop.category}</Text>
+                <View style={styles.nearbyFooter}>
+                  <View style={styles.nearbyRating}>
+                    <Ionicons name="star" size={12} color="#FFA500" />
+                    <Text style={styles.nearbyRatingText}>{shop.rating}</Text>
+                  </View>
+                  <View style={styles.nearbyDistance}>
+                    <Ionicons name="location" size={12} color="#666" />
+                    <Text style={styles.nearbyDistanceText}>{shop.distance} km</Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+        <Footer />
       </ScrollView>
 
       {/* Location Selection Modal */}
@@ -625,9 +690,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingTop: 8,
+    paddingBottom: 8,
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#FF6600',
+    backgroundColor: '#fe6f09',
   },
   headerLeft: {
     flexDirection: 'row',
@@ -637,25 +703,19 @@ const styles = StyleSheet.create({
     width: 120,
     height: 45,
   },
+  rightContainer: {
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   locationButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
     flex: 1,
-    marginHorizontal: 12,
-    maxWidth: 180,
   },
   locationTextContainer: {
     marginLeft: 8,
     flex: 1,
-  },
-  locationLabel: {
-    fontSize: 10,
-    color: '#999',
-    textTransform: 'uppercase',
   },
   locationRow: {
     flexDirection: 'row',
@@ -664,13 +724,32 @@ const styles = StyleSheet.create({
   locationText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#333',
+    color: '#fff',
     flex: 1,
   },
-  logoutButton: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    padding: 10,
-    borderRadius: 20,
+  locationIconButton: {
+    position: 'relative',
+    top: 3,
+  },
+  profileButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 0,
+  },
+  profileIconButton: {
+    borderWidth: 2,
+    borderColor: '#fff',
+    padding: 4,
+    borderRadius: 30,
+    marginLeft: 10,
+    width: 34,
+    textAlign: 'center',
+  },
+  headerPhone: {
+    fontSize: 10,
+    color: '#FFFFFF',
+    marginTop: 2,
+    textAlign: 'right',
   },
   searchSection: {
     backgroundColor: '#FF6600',
@@ -805,6 +884,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#1A1A1A',
+    marginBottom: 8,
   },
   viewAllText: {
     fontSize: 14,
@@ -909,6 +989,63 @@ const styles = StyleSheet.create({
     color: '#666666',
     marginTop: 6,
     textAlign: 'center',
+  },
+  nearbyShopsSection: {
+    padding: 16,
+  },
+  nearbyScroll: {
+    paddingRight: 8,
+  },
+  nearbyCard: {
+    width: 160,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 12,
+    marginRight: 12,
+    borderWidth: 1,
+    borderColor: '#EEEEEE',
+  },
+  nearbyImagePlaceholder: {
+    width: '100%',
+    height: 90,
+    backgroundColor: '#FFF3E0',
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  nearbyName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1A1A1A',
+  },
+  nearbyMeta: {
+    fontSize: 12,
+    color: '#666666',
+    marginTop: 2,
+  },
+  nearbyFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 8,
+  },
+  nearbyRating: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  nearbyRatingText: {
+    fontSize: 12,
+    marginLeft: 4,
+    color: '#666666',
+  },
+  nearbyDistance: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  nearbyDistanceText: {
+    fontSize: 12,
+    marginLeft: 4,
+    color: '#666666',
   },
   
   // Location Modal Styles
