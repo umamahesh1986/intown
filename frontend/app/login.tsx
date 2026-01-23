@@ -152,12 +152,13 @@ const styles = StyleSheet.create({
 
   /* HEADER (orange) */
   headerCard: {
-    width: CARD_WIDTH,
-    maxWidth: CARD_WIDTH,
+    width: '100%',
+    maxWidth: '100%',
     alignSelf: 'center',
-    backgroundColor: '#F26522',
+    backgroundColor: '#fe6f09',
 
-    // 12px 12px 0 0
+    marginVertical: 0,     // top & bottom = 0
+    marginHorizontal: 32,
     borderTopLeftRadius: RADIUS,
     borderTopRightRadius: RADIUS,
     borderBottomLeftRadius: 0,
@@ -176,7 +177,7 @@ const styles = StyleSheet.create({
   },
 
   logoBox: {
-    backgroundColor: '#F26522',
+    backgroundColor: '#fe6f09',
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 8,
@@ -199,20 +200,20 @@ const styles = StyleSheet.create({
 
   /* WRAP FOR FORM (no padding so widths match) */
   formWrap: {
-    width: CARD_WIDTH,
-    maxWidth: CARD_WIDTH,
+    width: '100%',
+    maxWidth: '100%',
     alignSelf: 'center',
     marginTop: -18, // slight overlap; adjust if you want a gap
   },
 
   /* WHITE FORM CARD */
   formCard: {
-    width: CARD_WIDTH,
-    maxWidth: CARD_WIDTH,
+    width: '100%',
+    maxWidth: '100%',
     alignSelf: 'center',
-    backgroundColor:  '#F26522',
-
-    // 0 0 12px 12px
+    backgroundColor:  '#fe6f09',
+    marginVertical: 0,
+    marginHorizontal: 32,
     borderTopLeftRadius: 0,
     borderTopRightRadius: 0,
     borderBottomLeftRadius: RADIUS,

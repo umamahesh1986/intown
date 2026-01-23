@@ -98,6 +98,63 @@ interface Category {
   name: string;
   icon: string;
 }
+interface Transaction {
+  id: string;
+  date: string;
+  amount: number;
+  description: string;
+  type: 'credit' | 'debit';
+  status: 'completed' | 'pending' | 'failed';
+}
+
+const TransactionCard = ({ transaction }: { transaction: Transaction }) => (
+  <View style={styles.transactionCard}>
+    <View style={styles.transactionLeft}>
+      <View
+        style={[
+          styles.transactionIcon,
+          transaction.type === 'credit'
+            ? styles.creditIcon
+            : styles.debitIcon,
+        ]}
+      >
+        <Ionicons
+          name={transaction.type === 'credit' ? 'arrow-down' : 'arrow-up'}
+          size={16}
+          color={transaction.type === 'credit' ? '#4CAF50' : '#F44336'}
+        />
+      </View>
+      <View style={styles.transactionInfo}>
+        <Text style={styles.transactionDesc}>{transaction.description}</Text>
+        <Text style={styles.transactionDate}>{transaction.date}</Text>
+      </View>
+    </View>
+    <View style={styles.transactionRight}>
+      <Text
+        style={[
+          styles.transactionAmount,
+          transaction.type === 'credit'
+            ? styles.creditAmount
+            : styles.debitAmount,
+        ]}
+      >
+        {transaction.type === 'credit' ? '+' : '-'}₹{transaction.amount.toFixed(2)}
+      </Text>
+      <Text
+        style={[
+          styles.transactionStatus,
+          transaction.status === 'completed'
+            ? styles.statusCompleted
+            : transaction.status === 'pending'
+            ? styles.statusPending
+            : styles.statusFailed,
+        ]}
+      >
+        {transaction.status}
+      </Text>
+    </View>
+  </View>
+);
 const getCategoryImageByIndex = (index: number) => {
   return CATEGORY_IMAGE_LIST[index] ?? FALLBACK_CATEGORY_IMAGE;
 };
@@ -115,9 +172,7 @@ export default function MemberDashboard() {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [categories, setCategories] = useState<Category[]>([]);
-  const [showAllCategories, setShowAllCategories] = useState(false);
 
-  const [monthlySpend, setMonthlySpend] = useState('10000');
   const [showDropdown, setShowDropdown] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -139,8 +194,11 @@ export default function MemberDashboard() {
   const [uploading, setUploading] = useState(false);
 
   const scrollX = useRef(new Animated.Value(0)).current;
+  const categoryScrollX = useRef(new Animated.Value(0)).current;
   const CARD_WIDTH = 172;
   const TOTAL_WIDTH = DUMMY_NEARBY_SHOPS.length * CARD_WIDTH;
+  const CATEGORY_CARD_WIDTH = 100;
+  const CATEGORY_CARD_GAP = 12;
 
   const dropdownAnim = useRef(new Animated.Value(0)).current;
 
@@ -180,6 +238,25 @@ const carouselRef = useRef<ScrollView | null>(null);
 
   return () => clearInterval(timer);
 }, []);
+
+  useEffect(() => {
+    if (categories.length === 0) return;
+
+    const totalWidth =
+      categories.length * (CATEGORY_CARD_WIDTH + CATEGORY_CARD_GAP);
+
+    categoryScrollX.setValue(0);
+    const animation = Animated.loop(
+      Animated.timing(categoryScrollX, {
+        toValue: -totalWidth,
+        duration: totalWidth * 30,
+        useNativeDriver: true,
+      })
+    );
+
+    animation.start();
+    return () => animation.stop();
+  }, [categories, CATEGORY_CARD_GAP, CATEGORY_CARD_WIDTH, categoryScrollX]);
 
 // Request location permission on mount
 const requestLocationOnMount = async () => {
@@ -286,14 +363,48 @@ const formatUserType = (type: string): string => {
     ).start();
   };
 
-  const calculateSavings = () => {
-    const spend = parseFloat(monthlySpend) || 0;
-    const monthlySavings = spend * 0.1;
-    const annualSavings = monthlySavings * 12;
-    return { monthlySavings, annualSavings };
-  };
+  const recentTransactions: Transaction[] = [
+    {
+      id: '1',
+      date: '2025-01-05',
+      amount: 250.0,
+      description: 'Purchase at Fresh Mart',
+      type: 'debit',
+      status: 'completed',
+    },
+    {
+      id: '2',
+      date: '2025-01-04',
+      amount: 50.0,
+      description: 'Cashback Reward',
+      type: 'credit',
+      status: 'completed',
+    },
+    {
+      id: '3',
+      date: '2025-01-03',
+      amount: 1200.0,
+      description: 'Shopping at Fashion Hub',
+      type: 'debit',
+      status: 'completed',
+    },
+    {
+      id: '4',
+      date: '2025-01-02',
+      amount: 100.0,
+      description: 'Referral Bonus',
+      type: 'credit',
+      status: 'pending',
+    },
+  ];
 
-  const { monthlySavings, annualSavings } = calculateSavings();
+  const totalBillAmount = recentTransactions
+    .filter((transaction) => transaction.type === 'debit')
+    .reduce((sum, transaction) => sum + transaction.amount, 0);
+  const totalPaidAmount = totalBillAmount;
+  const totalSavedAmount = recentTransactions
+    .filter((transaction) => transaction.type === 'credit')
+    .reduce((sum, transaction) => sum + transaction.amount, 0);
 
   const handleLogout = async () => {
     setShowDropdown(false);
@@ -420,11 +531,7 @@ aspect: [1, 1],
   };
 
   // -----------------------------------------------------
-  const VISIBLE_COUNT = 8;
-
-const displayedCategories = showAllCategories
-  ? categories
-  : categories.slice(0, VISIBLE_COUNT);
+  
 
 
   return (
@@ -600,98 +707,101 @@ const displayedCategories = showAllCategories
           {/* CATEGORIES */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Popular Categories</Text>
-            <View style={styles.categoriesGrid}>
-             {displayedCategories.map((category, index) => (
-
-
-                <TouchableOpacity
-                  key={category.id}
-                  style={styles.categoryCard}
-                  onPress={() =>
-                    router.push({
-                      pathname: '/member-shop-list',
-                      params: { category: category.name },
-                    })
-                  }
-                  activeOpacity={0.8}
-                >
-                  <View style={styles.categoryImageContainer}>
-                    <Image
-  source={getCategoryImageByIndex(index)}
-  style={styles.categoryImage}
-  resizeMode="cover"
-/>
-
-                    <View style={styles.categoryGradient} />
-                    <Text style={styles.categoryName}>{category.name}</Text>
-                  </View>
-                </TouchableOpacity>
-              ))}
-                {!showAllCategories && categories.length > VISIBLE_COUNT && (
-    <TouchableOpacity
-      style={styles.categoryCard}
-      onPress={() => setShowAllCategories(true)}
-    >
-      <View style={styles.categoryImageContainer}>
-        <Ionicons
-          name="ellipsis-horizontal"
-          size={32}
-          color="#FF6600"
-        />
-      </View>
-      <Text style={styles.categoryName}>More</Text>
-    </TouchableOpacity>
-  )}
+            <View style={styles.categoriesAutoScrollContainer}>
+              <Animated.View
+                style={[
+                  styles.categoriesAutoScrollContent,
+                  { transform: [{ translateX: categoryScrollX }] },
+                ]}
+              >
+                {[...categories, ...categories].map((category, index) => (
+                  <TouchableOpacity
+                    key={`${category.id}-${index}`}
+                    style={styles.categoryCard}
+                    onPress={() =>
+                      router.push({
+                        pathname: '/member-shop-list',
+                        params: { category: category.name },
+                      })
+                    }
+                    activeOpacity={0.8}
+                  >
+                    <View style={styles.categoryImageContainer}>
+                      <Image
+                        source={getCategoryImageByIndex(index % categories.length)}
+                        style={styles.categoryImage}
+                        resizeMode="cover"
+                      />
+                      <View style={styles.categoryGradient} />
+                      <Text style={styles.categoryName}>{category.name}</Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </Animated.View>
             </View>
-            {showAllCategories && (
-  <TouchableOpacity
-    onPress={() => setShowAllCategories(false)}
-    style={{ alignSelf: 'center', marginTop: 12 }}
-  >
-    <Text style={{ color: '#FF6600', fontWeight: '600' }}>
-      Show Less
-    </Text>
-  </TouchableOpacity>
-)}
-
           </View>
 
-          {/* THEME SECTION */}
-          <View style={styles.themeSection}>
-            <Text style={styles.themeTitle}>Nearby Trusted Stores</Text>
-            <Text style={styles.themeSubtitle}>
-            Use INtown at verified shops you already visit
-            </Text>
+          {/* SUMMARY SECTION */}
+          <View style={styles.summarySection}>
+            <View style={styles.summaryRow}>
+              <View style={styles.summaryItem}>
+                <Text style={styles.summaryLabel}>Total Bill Amount</Text>
+                <Text style={styles.summaryValue}>₹{totalBillAmount.toFixed(0)}</Text>
+              </View>
+              <View style={styles.summaryItem}>
+                <Text style={styles.summaryLabel}>Total Paid Amount</Text>
+                <Text style={styles.summaryValue}>₹{totalPaidAmount.toFixed(0)}</Text>
+              </View>
+              <View style={styles.summaryItem}>
+                <Text style={styles.summaryLabel}>Total Saved Amount</Text>
+                <Text style={styles.summaryValue}>₹{totalSavedAmount.toFixed(0)}</Text>
+              </View>
+            </View>
           </View>
 
-          {/* SAVINGS CALCULATOR */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Estimated Savings Calculator</Text>
-
-            <View style={styles.calculatorCard}>
-              <View style={styles.calculatorRow}>
-                <Text style={styles.calculatorLabel}>Estimated Monthly Spend</Text>
-<TextInput
-                  style={styles.calculatorInput}
-                  value={monthlySpend}
-                  onChangeText={setMonthlySpend}
-                  keyboardType="numeric"
-                />
+          {/* Recent Transactions */}
+          <View style={styles.transactionsSection}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Recent Transactions</Text>
+              <TouchableOpacity>
+                <Text style={styles.viewAllText}>View All</Text>
+              </TouchableOpacity>
+            </View>
+            {recentTransactions.length > 0 ? (
+              recentTransactions.map((transaction) => (
+                <TransactionCard key={transaction.id} transaction={transaction} />
+              ))
+            ) : (
+              <View style={styles.emptyState}>
+                <Ionicons name="receipt-outline" size={48} color="#CCCCCC" />
+                <Text style={styles.emptyText}>No transactions yet</Text>
               </View>
+            )}
+          </View>
 
-              <View style={styles.calculatorRow}>
-                <Text style={styles.calculatorLabel}>Estimated Monthly Savings</Text>
-                <Text style={styles.calculatorValue}>
-                  ₹{monthlySavings.toFixed(0)}
-                </Text>
-              </View>
-
-              <View style={styles.calculatorRow}>
-                <Text style={styles.calculatorLabel}>Estimated Annual Savings</Text>
-                <Text style={styles.calculatorValueLarge}>
-                  ₹{annualSavings.toFixed(0)}
-                </Text>
-              </View>
+          {/* Quick Actions */}
+          <View style={styles.quickActions}>
+            <Text style={styles.sectionTitle}>Quick Actions</Text>
+            <View style={styles.actionsGrid}>
+              <TouchableOpacity
+                style={styles.actionButton}
+                onPress={() => router.push('/member-shop-list')}
+              >
+                <Ionicons name="search" size={24} color="#FF6600" />
+                <Text style={styles.actionText}>Find Shops</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.actionButton}>
+                <Ionicons name="gift" size={24} color="#FF6600" />
+                <Text style={styles.actionText}>My Rewards</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.actionButton}>
+                <Ionicons name="card" size={24} color="#FF6600" />
+                <Text style={styles.actionText}>Payment</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.actionButton}>
+                <Ionicons name="help-circle" size={24} color="#FF6600" />
+                <Text style={styles.actionText}>Support</Text>
+              </TouchableOpacity>
             </View>
           </View>
 
@@ -1063,22 +1173,20 @@ const styles = StyleSheet.create({
   section: { padding: 16 },
   sectionTitle: { fontSize: 20, fontWeight: '700', marginBottom: 16, color: '#1A1A1A' },
 
-  categoriesGrid: { 
-    flexDirection: 'row', 
-    flexWrap: 'wrap', 
-    marginHorizontal: -6,
-    paddingHorizontal: 10,
+  categoriesAutoScrollContainer: {
+    overflow: 'hidden',
   },
-  categoryCard: { 
-    width: '33.33%', 
-    paddingHorizontal: 6,
-    marginBottom: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
+  categoriesAutoScrollContent: {
+    flexDirection: 'row',
+  },
+  categoryCard: {
+    width: 100,
+    height: 100,
+    marginRight: 12,
   },
   categoryImageContainer: {
-    width: '100%',
-    height: Platform.OS === 'web' ? 140 : 110,
+    width: 100,
+    height: 100,
     borderRadius: 12,
     overflow: 'hidden',
     backgroundColor: '#f0f0f0',
@@ -1103,60 +1211,169 @@ const styles = StyleSheet.create({
     height: '50%',
     backgroundColor: 'rgba(0,0,0,0.4)',
   },
-  categoryName: { 
+  categoryName: {
     position: 'absolute',
-    bottom: 10,
-    left: 8,
-    right: 8,
+    bottom: 6,
+    left: 6,
+    right: 6,
     color: '#FFFFFF',
     textAlign: 'center',
     fontWeight: '600',
-    fontSize: 16,
+    fontSize: 11,
     textShadowColor: 'rgba(0, 0, 0, 0.8)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 4,
-    textTransform: 'uppercase',
   },
 
-  themeSection: {
+  summarySection: {
     backgroundColor: 'rgba(33, 94, 97, 0.8)',
-    padding: 24,
-    alignItems: 'center',
+    paddingVertical: 18,
+    paddingHorizontal: 12,
   },
-  themeTitle: {
-    ...FontStylesWithFallback.h2,
-    color: '#fff',
-    marginBottom: 8,
-    fontWeight: '800',
-    fontSize: 32,
-    textTransform: 'uppercase',
-  },
-  themeSubtitle: {
-    ...FontStylesWithFallback.body,
-    color: '#fff',
-    textAlign: 'center',
-    fontWeight: '600',
-    fontSize: 14,
-    textTransform: 'uppercase',
-  },
-
-  calculatorCard: { backgroundColor: '#fff', borderRadius: 12, padding: 16 },
-  calculatorRow: {
+  summaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+  },
+  summaryItem: {
+    flex: 1,
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 12,
+    marginHorizontal: 6,
+    borderRadius: 10,
+  },
+  summaryLabel: {
+    ...FontStylesWithFallback.caption,
+    color: '#777777',
+    fontSize: 11,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+  },
+  summaryValue: {
+    ...FontStylesWithFallback.h3,
+    color: '#fe6f09',
+    fontWeight: '700',
+    marginTop: 6,
+  },
+
+  transactionsSection: {
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 16,
+    marginTop: 16,
+    marginBottom: 16,
+    padding: 16,
+    borderRadius: 12,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 16,
   },
-  calculatorLabel: { fontSize: 14, color: '#555', flex: 1 },
-  calculatorInput: {
-    fontSize: 18,
-    borderBottomWidth: 1,
-    borderBottomColor: '#FF6600',
-    paddingVertical: 4,
-    textAlign: 'right',
-    width: 100,
+  viewAllText: {
+    fontSize: 14,
+    color: '#FF6600',
+    fontWeight: '600',
   },
-  calculatorValue: { fontSize: 18, color: '#4CAF50', fontWeight: '600' },
-  calculatorValueLarge: { fontSize: 24, color: '#4CAF50', fontWeight: '700' },
+  transactionCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  transactionLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  transactionIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  creditIcon: {
+    backgroundColor: '#E8F5E9',
+  },
+  debitIcon: {
+    backgroundColor: '#FFEBEE',
+  },
+  transactionInfo: {
+    marginLeft: 12,
+    flex: 1,
+  },
+  transactionDesc: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#1A1A1A',
+  },
+  transactionDate: {
+    fontSize: 12,
+    color: '#999999',
+    marginTop: 2,
+  },
+  transactionRight: {
+    alignItems: 'flex-end',
+  },
+  transactionAmount: {
+    fontSize: 15,
+    fontWeight: 'bold',
+  },
+  creditAmount: {
+    color: '#4CAF50',
+  },
+  debitAmount: {
+    color: '#F44336',
+  },
+  transactionStatus: {
+    fontSize: 11,
+    marginTop: 2,
+    textTransform: 'capitalize',
+  },
+  statusCompleted: {
+    color: '#4CAF50',
+  },
+  statusPending: {
+    color: '#FF9800',
+  },
+  statusFailed: {
+    color: '#F44336',
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 32,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: '#999999',
+    marginTop: 8,
+  },
+  quickActions: {
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 16,
+    marginBottom: 24,
+    padding: 16,
+    borderRadius: 12,
+  },
+  actionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: 12,
+  },
+  actionButton: {
+    width: '25%',
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  actionText: {
+    fontSize: 12,
+    color: '#666666',
+    marginTop: 6,
+    textAlign: 'center',
+  },
 
   autoScrollContainer: { overflow: 'hidden' },
   autoScrollContent: { flexDirection: 'row' },

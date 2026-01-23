@@ -186,6 +186,9 @@ export default function UserDashboard() {
 
   // Animation for auto-scrolling shops
   const scrollX = useRef(new Animated.Value(0)).current;
+  const categoryScrollX = useRef(new Animated.Value(0)).current;
+  const CATEGORY_CARD_WIDTH = 100;
+  const CATEGORY_CARD_GAP = 12;
   const CARD_WIDTH = 172; // 160 + 12 (margin)
   const TOTAL_WIDTH = DUMMY_NEARBY_SHOPS.length * CARD_WIDTH;
 
@@ -211,6 +214,25 @@ export default function UserDashboard() {
 
     return () => clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    if (categories.length === 0) return;
+
+    const totalWidth =
+      categories.length * (CATEGORY_CARD_WIDTH + CATEGORY_CARD_GAP);
+
+    categoryScrollX.setValue(0);
+    const animation = Animated.loop(
+      Animated.timing(categoryScrollX, {
+        toValue: -totalWidth,
+        duration: totalWidth * 30,
+        useNativeDriver: true,
+      })
+    );
+
+    animation.start();
+    return () => animation.stop();
+  }, [categories, CATEGORY_CARD_GAP, CATEGORY_CARD_WIDTH, categoryScrollX]);
 
   // Request location permission on mount
   const requestLocationOnMount = async () => {
@@ -617,30 +639,41 @@ export default function UserDashboard() {
           {/* Popular Categories */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Popular Categories</Text>
-            <View style={styles.categoriesGrid}>
-              {categories.length > 0 ? (
-                categories.map((category) => (
-                  <TouchableOpacity
-                    key={category.id}
-                    style={styles.categoryCard}
-                    onPress={() => setShowRegistrationModal(true)}
-                    activeOpacity={0.8}
-                  >
-                    <View style={styles.categoryImageContainer}>
-                      <Image
-                        source={{ uri: CATEGORY_IMAGES[category.name] || 'https://images.unsplash.com/photo-1609952578538-3d454550301d?w=400&h=300&fit=crop' }}
-                        style={styles.categoryImage}
-                        resizeMode="cover"
-                      />
-                      <View style={styles.categoryGradient} />
-                      <Text style={styles.categoryName}>{category.name}</Text>
-                    </View>
-                  </TouchableOpacity>
-                ))
-              ) : (
-                <Text style={styles.noCategoriesText}>No categories available</Text>
-              )}
-            </View>
+            {categories.length > 0 ? (
+              <View style={styles.categoriesAutoScrollContainer}>
+                <Animated.View
+                  style={[
+                    styles.categoriesAutoScrollContent,
+                    { transform: [{ translateX: categoryScrollX }] },
+                  ]}
+                >
+                  {[...categories, ...categories].map((category, index) => (
+                    <TouchableOpacity
+                      key={`${category.id}-${index}`}
+                      style={styles.categoryCard}
+                      onPress={() => setShowRegistrationModal(true)}
+                      activeOpacity={0.8}
+                    >
+                      <View style={styles.categoryImageContainer}>
+                        <Image
+                          source={{
+                            uri:
+                              CATEGORY_IMAGES[category.name] ||
+                              'https://images.unsplash.com/photo-1609952578538-3d454550301d?w=400&h=300&fit=crop',
+                          }}
+                          style={styles.categoryImage}
+                          resizeMode="cover"
+                        />
+                        <View style={styles.categoryGradient} />
+                        <Text style={styles.categoryName}>{category.name}</Text>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </Animated.View>
+              </View>
+            ) : (
+              <Text style={styles.noCategoriesText}>No categories available</Text>
+            )}
           </View>
 
           {/* Theme Section */}
@@ -1342,20 +1375,20 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 
-  categoriesGrid: {
+  categoriesAutoScrollContainer: {
+    overflow: 'hidden',
+  },
+  categoriesAutoScrollContent: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginHorizontal: -6,
-    paddingHorizontal: 10,
   },
   categoryCard: {
-    width: '33.33%',
-    paddingHorizontal: 6,
-    marginBottom: 12,
+    width: 100,
+    height: 100,
+    marginRight: 12,
   },
   categoryImageContainer: {
-    width: '100%',
-    height: Platform.OS === 'web' ? 140 : 110,
+    width: 100,
+    height: 100,
     borderRadius: 12,
     overflow: 'hidden',
     backgroundColor: '#f0f0f0',
@@ -1389,13 +1422,13 @@ const styles = StyleSheet.create({
   },
   categoryName: {
     position: 'absolute',
-    bottom: 10,
-    left: 8,
-    right: 8,
+    bottom: 6,
+    left: 6,
+    right: 6,
     color: '#FFFFFF',
     textAlign: 'center',
-    fontWeight: '700',
-    fontSize: 12,
+    fontWeight: '600',
+    fontSize: 11,
     textShadowColor: 'rgba(0, 0, 0, 0.8)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 4,
