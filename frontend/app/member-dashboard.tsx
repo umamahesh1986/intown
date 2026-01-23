@@ -30,6 +30,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Footer from '../components/Footer'
 import { CATEGORY_ICON_MAP } from '../utils/categoryIconMap';
+import { FontStylesWithFallback } from '../utils/fonts';
 
 
 
@@ -659,9 +660,9 @@ const displayedCategories = showAllCategories
 
           {/* THEME SECTION */}
           <View style={styles.themeSection}>
-            <Text style={styles.themeTitle}>Transform Local Retail</Text>
+            <Text style={styles.themeTitle}>Nearby Trusted Stores</Text>
             <Text style={styles.themeSubtitle}>
-              Present Local Retail Shops to Digital Presence
+            Use INtown at verified shops you already visit
             </Text>
           </View>
 
@@ -1116,12 +1117,26 @@ const styles = StyleSheet.create({
   },
 
   themeSection: {
-    backgroundColor: '#FF6600',
+    backgroundColor: 'rgba(33, 94, 97, 0.8)',
     padding: 24,
     alignItems: 'center',
   },
-  themeTitle: { fontSize: 24, fontWeight: '700', color: '#fff' },
-  themeSubtitle: { fontSize: 16, color: '#fff', marginTop: 6 },
+  themeTitle: {
+    ...FontStylesWithFallback.h2,
+    color: '#fff',
+    marginBottom: 8,
+    fontWeight: '800',
+    fontSize: 36,
+    textTransform: 'uppercase',
+  },
+  themeSubtitle: {
+    ...FontStylesWithFallback.body,
+    color: '#fff',
+    textAlign: 'center',
+    fontWeight: '600',
+    fontSize: 14,
+    textTransform: 'uppercase',
+  },
 
   calculatorCard: { backgroundColor: '#fff', borderRadius: 12, padding: 16 },
   calculatorRow: {

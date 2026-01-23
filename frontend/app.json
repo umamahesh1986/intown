@@ -11,7 +11,7 @@
     "ios": {
       "supportsTablet": true,
       "config": {
-        "googleMapsApiKey": "AIzaSyBo3BuGtZ92gvUzyEDIWp4SXVbIxT28LNY"
+        "googleMapsApiKey": "AIzaSyBTPqSDYbyIbJZetJ8Shd_DOqywUJN55AA"
       }
     },
     "android": {
@@ -27,7 +27,7 @@
       ],
       "config": {
         "googleMaps": {
-          "apiKey": "AIzaSyBo3BuGtZ92gvUzyEDIWp4SXVbIxT28LNY"
+          "apiKey": "AIzaSyBTPqSDYbyIbJZetJ8Shd_DOqywUJN55AA"
         }
       },
       "package": "com.vinod_reddy.intownlocal"

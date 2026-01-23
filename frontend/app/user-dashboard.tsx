@@ -423,7 +423,6 @@ const formatUserType = (type: string): string => {
             >
               <Ionicons name="location" size={16} color="#FF6600" />
               <View style={styles.locationTextContainer}>
-                <Text style={styles.locationLabel}>Your Location</Text>
                 <View style={styles.locationRow}>
                   <Text style={styles.locationText} numberOfLines={1}>
                     {getLocationDisplayText()}
@@ -641,8 +640,8 @@ const formatUserType = (type: string): string => {
 
           {/* Theme Section */}
           <View style={styles.themeSection}>
-            <Text style={styles.themeTitle}>Transform Local Retail</Text>
-            <Text style={styles.themeSubtitle}>Present Local Retail Shops to Digital Presence</Text>
+            <Text style={styles.themeTitle}>Instant Savings, Pay less ! </Text>
+            <Text style={styles.themeSubtitle}> No coupons. No cashback. No waiting.</Text>
           </View>
 
 {/* Savings Calculator */}
@@ -980,7 +979,7 @@ const styles = StyleSheet.create({
   locationButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: '#e85e02',
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
@@ -991,11 +990,6 @@ const styles = StyleSheet.create({
   locationTextContainer: {
     marginLeft: 8,
     flex: 1,
-  },
-  locationLabel: {
-    fontSize: 10,
-    color: '#999',
-    textTransform: 'uppercase',
   },
   locationRow: {
     flexDirection: 'row',
