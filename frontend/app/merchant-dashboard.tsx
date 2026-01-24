@@ -291,53 +291,37 @@ const carouselRef = useRef<ScrollView | null>(null);
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
-          <View style={styles.headerLeft}>
-            <Image
-              source={require('../assets/images/intown-logo.jpg')}
-              style={styles.logo}
-              resizeMode="contain"
+          <TouchableOpacity
+            style={styles.locationButton}
+            onPress={() => setShowLocationModal(true)}
+          >
+            <Ionicons name="location" size={16} color="#FF6600" />
+            <View style={styles.locationTextContainer}>
+              <Text style={styles.locationText} numberOfLines={1}>
+                {getLocationDisplayText()}
+              </Text>
+            </View>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.profileButton}
+            onPress={(e) => {
+              e.stopPropagation();
+              setShowDropdown(!showDropdown);
+            }}
+          >
+            <View style={styles.profileInfo}>
+              <Text style={styles.userName}>{user?.name ?? 'Merchant'}</Text>
+              <Text style={styles.userPhone}>
+                {(user as any)?.phone ?? (user as any)?.email ?? ''}
+              </Text>
+            </View>
+            <Ionicons
+              name="person"
+              size={20}
+              color="#ff6600"
+              style={styles.profileIconButton}
             />
-          </View>
-          <View style={styles.rightContainer}>
-            <TouchableOpacity
-              style={styles.profileButton}
-              onPress={(e) => {
-                e.stopPropagation();
-                setShowDropdown(!showDropdown);
-              }}
-            >
-              <View style={{ marginLeft: 10 }}>
-                <Text style={styles.headerPhone}>
-                  {(user as any)?.phone ?? (user as any)?.email ?? ''}
-                </Text>
-                <TouchableOpacity
-                  style={styles.locationButton}
-                  onPress={() => setShowLocationModal(true)}
-                >
-                  <Ionicons name="location" size={16} color="#FFFFFF" />
-                  <View style={styles.locationTextContainer}>
-                    <View style={styles.locationRow}>
-                      <Text style={styles.locationText} numberOfLines={1}>
-                        {getLocationDisplayText()}
-                      </Text>
-                      <Ionicons
-                        name="chevron-down"
-                        size={14}
-                        color="#FFFFFF"
-                        style={styles.locationIconButton}
-                      />
-                    </View>
-                  </View>
-                </TouchableOpacity>
-              </View>
-              <Ionicons
-                name="person"
-                size={20}
-                color="#ffffff"
-                style={styles.profileIconButton}
-              />
-            </TouchableOpacity>
-          </View>
+          </TouchableOpacity>
         </View>
 
         {/* Dropdown Menu */}
@@ -523,7 +507,7 @@ const carouselRef = useRef<ScrollView | null>(null);
             <View style={styles.locationModalHeader}>
               <Text style={styles.locationModalTitle}>Select Location</Text>
               <TouchableOpacity onPress={() => setShowLocationModal(false)}>
-                <Ionicons name="close" size={24} color="#333" />
+                <Ionicons name="close" size={24} color="#ff6600" />
               </TouchableOpacity>
             </View>
 
@@ -605,15 +589,10 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 8,
     paddingHorizontal: 16,
-    backgroundColor: '#fe6f09',
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#EEEEEE',
   },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  logo: { width: 140, height: 50 },
   rightContainer: {
     display: 'flex',
     flexDirection: 'row',
@@ -635,12 +614,8 @@ const styles = StyleSheet.create({
   locationText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#fff',
+    color: '#333',
     flex: 1,
-  },
-  locationIconButton: {
-    position: 'relative',
-    top: 3,
   },
   profileButton: {
     flexDirection: 'row',
@@ -649,19 +624,16 @@ const styles = StyleSheet.create({
   },
   profileIconButton: {
     borderWidth: 2,
-    borderColor: '#fff',
+    borderColor: '#ff6600',
     padding: 4,
     borderRadius: 30,
     marginLeft: 10,
     width: 34,
     textAlign: 'center',
   },
-  headerPhone: {
-    fontSize: 10,
-    color: '#FFFFFF',
-    marginTop: 2,
-    textAlign: 'right',
-  },
+  profileInfo: { alignItems: 'flex-end', marginRight: 8 },
+  userName: { fontSize: 14, fontWeight: '600', color: '#1A1A1A' },
+  userPhone: { fontSize: 10, color: '#666666', marginTop: 2 },
   dropdown: {
     backgroundColor: '#FFFFFF',
     marginHorizontal: 16,

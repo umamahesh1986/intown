@@ -164,6 +164,7 @@ const [nearbyShops, setNearbyShops] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<'customer' | 'merchant'>('customer');
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
   const [filteredCategories, setFilteredCategories] = useState<Category[]>([]);
+  const [placeholderIndex, setPlaceholderIndex] = useState(0);
 
   // Location modal states
   const [showLocationModal, setShowLocationModal] = useState(false);
@@ -191,6 +192,7 @@ const [nearbyShops, setNearbyShops] = useState<any[]>([]);
   // Animation for auto-scrolling shops
   const scrollX = useRef(new Animated.Value(0)).current;
   const categoryScrollX = useRef(new Animated.Value(0)).current;
+  const placeholderAnim = useRef(new Animated.Value(0)).current;
   const CATEGORY_CARD_WIDTH = 100;
   const CATEGORY_CARD_GAP = 12;
   const CARD_WIDTH = 172; // 160 + 12 (margin)
@@ -249,6 +251,52 @@ useEffect(() => {
     animation.start();
     return () => animation.stop();
   }, [categories, CATEGORY_CARD_GAP, CATEGORY_CARD_WIDTH, categoryScrollX]);
+
+  const placeholderItems = [
+    'Grocery', 
+    'Salon', 
+    'Fashion',
+    'Vegetables',
+    'Fruits',
+    'Restaurant',
+    'Pharmacy',
+    'Electronics',];
+  const placeholderOpacity = placeholderAnim.interpolate({
+    inputRange: [-16, 0, 16],
+    outputRange: [0, 1, 0],
+  });
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const animatePlaceholder = () => {
+      placeholderAnim.setValue(16);
+      Animated.sequence([
+        Animated.timing(placeholderAnim, {
+          toValue: 0,
+          duration: 250,
+          useNativeDriver: true,
+        }),
+        Animated.delay(1200),
+        Animated.timing(placeholderAnim, {
+          toValue: -16,
+          duration: 250,
+          useNativeDriver: true,
+        }),
+      ]).start(({ finished }) => {
+        if (!finished || !isMounted) return;
+        setPlaceholderIndex((prev) => (prev + 1) % placeholderItems.length);
+        animatePlaceholder();
+      });
+    };
+
+    animatePlaceholder();
+
+    return () => {
+      isMounted = false;
+      placeholderAnim.stopAnimation();
+    };
+  }, [placeholderAnim, placeholderItems.length]);
 
   // Request location permission on mount
   const requestLocationOnMount = async () => {
@@ -473,40 +521,32 @@ const loadNearbyShops = async () => {
         <ScrollView showsVerticalScrollIndicator={false}>
           {/* Header */}
           <View style={styles.header}>
-            <View style={styles.headerLeft}>
-              <Image source={require('../assets/images/intown-logo.jpg')} style={styles.logo} resizeMode="contain" />
-            </View>
-            <View style={styles.rightContainer}>
-
-              <TouchableOpacity
-                onPress={(e) => {
-                  e.stopPropagation();
-                  toggleDropdown(e);
-                }}
-                style={styles.profileButton}
-              >
-                <View style={{ marginLeft: 10 }}>
-                  <Text style={styles.userPanelPhone}>{(user as any)?.phone ?? (user as any)?.email ?? ''}</Text>
-                  {/* Location Display */}
-                  <TouchableOpacity
-                    style={styles.locationButton}
-                    onPress={() => setShowLocationModal(true)}
-                  >
-                    <Ionicons name="location" size={16} color="#FFFFFF" />
-                    <View style={styles.locationTextContainer}>
-                      <View style={styles.locationRow}>
-                        <Text style={styles.locationText} numberOfLines={1}>
-                          {getLocationDisplayText()}
-                        </Text>
-                        <Ionicons name="chevron-down" size={14} color="#FFFFFF" style={styles.locationIconButton} />
-                      </View>
-                    </View>
-                  </TouchableOpacity>
-                </View>
-                <Ionicons name="person" size={20} color="#ffffff" style={styles.profileIconButton} />
-
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity
+              style={styles.locationButton}
+              onPress={() => setShowLocationModal(true)}
+            >
+              <Ionicons name="location" size={16} color="#FF6600" />
+              <View style={styles.locationTextContainer}>
+                <Text style={styles.locationText} numberOfLines={1}>
+                  {getLocationDisplayText()}
+                </Text>
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={(e) => {
+                e.stopPropagation();
+                toggleDropdown(e);
+              }}
+              style={styles.profileButton}
+            >
+              <View style={styles.profileInfo}>
+                <Text style={styles.userName}>{user?.name ?? 'User'}</Text>
+                <Text style={styles.userPhone}>
+                  {(user as any)?.phone ?? (user as any)?.email ?? ''}
+                </Text>
+              </View>
+              <Ionicons name="person" size={20} color="#ff6600" style={styles.profileIconButton} />
+            </TouchableOpacity>
           </View>
 
           {/* Animated User Panel (Swiggy-style) */}
@@ -552,7 +592,7 @@ const loadNearbyShops = async () => {
                   router.push('/account');
                 }}
               >
-                <Ionicons name="person-outline" size={20} color="#333" />
+                <Ionicons name="person-outline" size={20} color="#ff6600" />
                 <Text style={styles.userPanelText}>My Account</Text>
               </TouchableOpacity>
 
@@ -566,7 +606,7 @@ const loadNearbyShops = async () => {
                   router.push('/register-member');
                 }}
               >
-                <Ionicons name="star-outline" size={20} color="#333" />
+                <Ionicons name="star-outline" size={20} color="#ff6600" />
                 <Text style={styles.userPanelText}>Become a Customer</Text>
               </TouchableOpacity>
 
@@ -578,7 +618,7 @@ const loadNearbyShops = async () => {
                   router.push('/register-merchant');
                 }}
               >
-                <Ionicons name="storefront-outline" size={20} color="#333" />
+                <Ionicons name="storefront-outline" size={20} color="#ff6600" />
                 <Text style={styles.userPanelText}>Become a Merchant</Text>
               </TouchableOpacity>
 
@@ -599,13 +639,26 @@ const loadNearbyShops = async () => {
               <Ionicons name="search" size={24} color="#999999" style={styles.searchIcon} />
               <TextInput
                 style={styles.searchInput}
-                placeholder="Search for Grocery, Salon, Fashion..."
+                placeholder=""
                 value={searchQuery}
                 onChangeText={handleSearchChange}
                 onFocus={handleSearchFocus}
                 onBlur={handleSearchBlur}
                 placeholderTextColor="#999999"
               />
+              {searchQuery.length === 0 && (
+                <View pointerEvents="none" style={styles.animatedPlaceholder}>
+                  <Text style={styles.animatedPlaceholderPrefix}>Search for </Text>
+                  <Animated.Text
+                    style={[
+                      styles.animatedPlaceholderWord,
+                      { opacity: placeholderOpacity, transform: [{ translateY: placeholderAnim }] },
+                    ]}
+                  >
+                    {placeholderItems[placeholderIndex]}
+                  </Animated.Text>
+                </View>
+              )}
             </View>
           </View>
 
@@ -961,7 +1014,7 @@ const loadNearbyShops = async () => {
             <View style={styles.locationModalHeader}>
               <Text style={styles.locationModalTitle}>Select Location</Text>
               <TouchableOpacity onPress={() => setShowLocationModal(false)}>
-                <Ionicons name="close" size={24} color="#333" />
+                <Ionicons name="close" size={24} color="#ff6600" />
               </TouchableOpacity>
             </View>
 
@@ -1051,7 +1104,7 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 8,
     paddingHorizontal: 16,
-    backgroundColor: '#fe6f09',
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#EEEEEE',
   },
@@ -1084,12 +1137,8 @@ const styles = StyleSheet.create({
   locationText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#fff',
+    color: '#333',
     flex: 1,
-  },
-  locationIconButton: {
-    position: 'relative',
-    top: 3,
   },
   profileButton: {
     flexDirection: 'row',
@@ -1098,7 +1147,7 @@ const styles = StyleSheet.create({
   },
   profileIconButton: {
     borderWidth: 2,
-    borderColor: '#fff',
+    borderColor: '#ff6600',
     padding: 4,
     borderRadius: 30,
     marginLeft: 10,
@@ -1138,12 +1187,12 @@ const styles = StyleSheet.create({
   },
   userName: {
     ...FontStylesWithFallback.bodySmall,
-    color: '#fff',
+    color: '#1A1A1A',
     fontWeight: '700',
   },
   userPhone: {
     ...FontStylesWithFallback.caption,
-    color: '#fff',
+    color: '#666666',
     fontSize: 10,
   },
 
@@ -1220,6 +1269,22 @@ const styles = StyleSheet.create({
     flex: 1,
     ...FontStylesWithFallback.body,
     color: '#1A1A1A',
+  },
+  animatedPlaceholder: {
+    position: 'absolute',
+    left: 52,
+    right: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  animatedPlaceholderPrefix: {
+    ...FontStylesWithFallback.body,
+    color: '#999999',
+  },
+  animatedPlaceholderWord: {
+    ...FontStylesWithFallback.body,
+    color: '#FF6600',
+    fontWeight: '700',
   },
   searchHint: {
     ...FontStylesWithFallback.caption,

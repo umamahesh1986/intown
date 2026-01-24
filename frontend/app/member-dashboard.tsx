@@ -28,10 +28,10 @@ import { useAuthStore } from '../store/authStore';
 import { useLocationStore } from '../store/locationStore';
 import { getCategories, getNearbyShops } from '../utils/api';
 
-import { 
-  getUserLocationWithDetails, 
-  searchLocations, 
-  setManualLocation 
+import {
+  getUserLocationWithDetails,
+  searchLocations,
+  setManualLocation
 } from '../utils/location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Footer from '../components/Footer'
@@ -175,14 +175,15 @@ export default function MemberDashboard() {
   const [isTransactionsLoading, setIsTransactionsLoading] = useState(false);
   const [customerId, setCustomerId] = useState<string | null>(null);
   // Nearby shops (REAL API)
-const [nearbyShops, setNearbyShops] = useState<any[]>([]);
-const [isNearbyLoading, setIsNearbyLoading] = useState(false);
+  const [nearbyShops, setNearbyShops] = useState<any[]>([]);
+  const [isNearbyLoading, setIsNearbyLoading] = useState(false);
 
 
   const [showDropdown, setShowDropdown] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [placeholderIndex, setPlaceholderIndex] = useState(0);
 
   // Location modal states
   const [showLocationModal, setShowLocationModal] = useState(false);
@@ -198,12 +199,13 @@ const [isNearbyLoading, setIsNearbyLoading] = useState(false);
   // photo state and uploading indicator
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
-  
+
 
   const scrollX = useRef(new Animated.Value(0)).current;
   const categoryScrollX = useRef(new Animated.Value(0)).current;
+  const placeholderAnim = useRef(new Animated.Value(0)).current;
   const CARD_WIDTH = 172;
-  
+
 
   const CATEGORY_CARD_WIDTH = 100;
   const CATEGORY_CARD_GAP = 12;
@@ -211,14 +213,13 @@ const [isNearbyLoading, setIsNearbyLoading] = useState(false);
   const dropdownAnim = useRef(new Animated.Value(0)).current;
 
   // ===== MEMBER CAROUSEL STATE =====
-const [carouselIndex, setCarouselIndex] = useState(0);
-const carouselRef = useRef<ScrollView | null>(null);
-// ================================
+  const [carouselIndex, setCarouselIndex] = useState(0);
+  const carouselRef = useRef<ScrollView | null>(null);
+  // ================================
 
 
   useEffect(() => {
     loadCategories();
-    startAutoScroll();
     loadUserType();
     requestLocationOnMount();
     // load cached local photo if exists
@@ -229,36 +230,36 @@ const carouselRef = useRef<ScrollView | null>(null);
       } catch (e) {
         // ignore
       }
-      
+
     })();
 
     // ===== MEMBER CAROUSEL AUTO SLIDE =====
-  const timer = setInterval(() => {
-    setCarouselIndex(prev => {
-      const next = (prev + 1) % MEMBER_CAROUSEL_IMAGES.length;
-      carouselRef.current?.scrollTo({
-        x: next * SLIDE_WIDTH,
-        animated: true,
+    const timer = setInterval(() => {
+      setCarouselIndex(prev => {
+        const next = (prev + 1) % MEMBER_CAROUSEL_IMAGES.length;
+        carouselRef.current?.scrollTo({
+          x: next * SLIDE_WIDTH,
+          animated: true,
+        });
+        return next;
       });
-      return next;
-    });
-  }, 3500);
+    }, 3500);
 
-  return () => clearInterval(timer);
-}, []);
+    return () => clearInterval(timer);
+  }, []);
 
-//  Call nearby shops API when location is available
-useEffect(() => {
-  if (location?.latitude && location?.longitude) {
-    loadNearbyShops();
-  }
-}, [location?.latitude, location?.longitude]);
+  //  Call nearby shops API when location is available
+  useEffect(() => {
+    if (location?.latitude && location?.longitude) {
+      loadNearbyShops();
+    }
+  }, [location?.latitude, location?.longitude]);
 
-useEffect(() => {
-  if (nearbyShops.length > 0) {
-    startAutoScroll(nearbyShops.length);
-  }
-}, [nearbyShops.length]);
+  useEffect(() => {
+    if (nearbyShops.length > 0) {
+      startAutoScroll(nearbyShops.length);
+    }
+  }, [nearbyShops.length]);
 
 
 
@@ -280,6 +281,52 @@ useEffect(() => {
     animation.start();
     return () => animation.stop();
   }, [categories, CATEGORY_CARD_GAP, CATEGORY_CARD_WIDTH, categoryScrollX]);
+
+  const placeholderItems = [
+    'Grocery', 
+    'Salon', 
+    'Fashion',
+    'Vegetables',
+    'Fruits',
+    'Restaurant',
+    'Pharmacy',
+    'Electronics',];
+  const placeholderOpacity = placeholderAnim.interpolate({
+    inputRange: [-16, 0, 16],
+    outputRange: [0, 1, 0],
+  });
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const animatePlaceholder = () => {
+      placeholderAnim.setValue(16);
+      Animated.sequence([
+        Animated.timing(placeholderAnim, {
+          toValue: 0,
+          duration: 250,
+          useNativeDriver: true,
+        }),
+        Animated.delay(1200),
+        Animated.timing(placeholderAnim, {
+          toValue: -16,
+          duration: 250,
+          useNativeDriver: true,
+        }),
+      ]).start(({ finished }) => {
+        if (!finished || !isMounted) return;
+        setPlaceholderIndex((prev) => (prev + 1) % placeholderItems.length);
+        animatePlaceholder();
+      });
+    };
+
+    animatePlaceholder();
+
+    return () => {
+      isMounted = false;
+      placeholderAnim.stopAnimation();
+    };
+  }, [placeholderAnim, placeholderItems.length]);
 
   useEffect(() => {
     const loadCustomerId = async () => {
@@ -313,9 +360,9 @@ useEffect(() => {
           {
             headers: token
               ? {
-                  Authorization: `Bearer ${token}`,
-                  Accept: 'application/json',
-                }
+                Authorization: `Bearer ${token}`,
+                Accept: 'application/json',
+              }
               : { Accept: 'application/json' },
           }
         );
@@ -337,91 +384,91 @@ useEffect(() => {
     fetchTransactions();
   }, [customerId, token, user?.id]);
 
-// Request location permission on mount
-const requestLocationOnMount = async () => {
-  await loadLocationFromStorage();
-  const storedLocation = useLocationStore.getState().location;
-  if (!storedLocation) {
-    setTimeout(async () => {
-      const locationResult = await getUserLocationWithDetails();
-      if (!locationResult) {
-        Alert.alert(
-          'Location Access',
-          'Please enable location access to see nearby shops.',
-          [
-            { text: 'Later', style: 'cancel' },
-            { text: 'Set Manually', onPress: () => setShowLocationModal(true) }
-          ]
-        );
-      }
-    }, 1000);
-  }
-};
-
-// Location search handler
-const handleLocationSearch = async (text: string) => {
-  setLocationSearchQuery(text);
-  if (text.length >= 3) {
-    setIsSearchingLocation(true);
-    const results = await searchLocations(text);
-    setLocationSearchResults(results);
-    setIsSearchingLocation(false);
-  } else {
-    setLocationSearchResults([]);
-  }
-};
-
-// Select location from search results
-const handleSelectLocation = async (item: { latitude: number; longitude: number }) => {
-  const result = await setManualLocation(item.latitude, item.longitude);
-  if (result) {
-    setShowLocationModal(false);
-    setLocationSearchQuery('');
-    setLocationSearchResults([]);
-  }
-};
-
-// Use current location
-const handleUseCurrentLocation = async () => {
-  const result = await getUserLocationWithDetails();
-  if (result) {
-    setShowLocationModal(false);
-  } else {
-    Alert.alert('Error', 'Could not get your current location.');
-  }
-};
-
-// Get display location text
-const getLocationDisplayText = () => {
-  if (isLocationLoading) return 'Getting location...';
-  if (location?.area) return location.area;
-  if (location?.city) return location.city;
-  return 'Set Location';
-};
-
-const loadUserType = async () => {
-  try {
-    if (params.userType) {
-      setUserType(formatUserType(params.userType));
-    } else {
-      const storedUserType = await AsyncStorage.getItem('user_type');
-      if (storedUserType) {
-        setUserType(formatUserType(storedUserType));
-      }
+  // Request location permission on mount
+  const requestLocationOnMount = async () => {
+    await loadLocationFromStorage();
+    const storedLocation = useLocationStore.getState().location;
+    if (!storedLocation) {
+      setTimeout(async () => {
+        const locationResult = await getUserLocationWithDetails();
+        if (!locationResult) {
+          Alert.alert(
+            'Location Access',
+            'Please enable location access to see nearby shops.',
+            [
+              { text: 'Later', style: 'cancel' },
+              { text: 'Set Manually', onPress: () => setShowLocationModal(true) }
+            ]
+          );
+        }
+      }, 1000);
     }
-  } catch (error) {
-    console.log('Error loading user type:', error);
-  }
-};
+  };
 
-const formatUserType = (type: string): string => {
-  const lower = type.toLowerCase();
-  if (lower === 'new_user' || lower === 'new' || lower === 'user') return 'User';
-  if (lower.includes('customer')) return 'Customer';
-  if (lower.includes('merchant')) return 'Merchant';
-  if (lower === 'dual') return 'Customer & Merchant';
-  return 'Customer';
-};
+  // Location search handler
+  const handleLocationSearch = async (text: string) => {
+    setLocationSearchQuery(text);
+    if (text.length >= 3) {
+      setIsSearchingLocation(true);
+      const results = await searchLocations(text);
+      setLocationSearchResults(results);
+      setIsSearchingLocation(false);
+    } else {
+      setLocationSearchResults([]);
+    }
+  };
+
+  // Select location from search results
+  const handleSelectLocation = async (item: { latitude: number; longitude: number }) => {
+    const result = await setManualLocation(item.latitude, item.longitude);
+    if (result) {
+      setShowLocationModal(false);
+      setLocationSearchQuery('');
+      setLocationSearchResults([]);
+    }
+  };
+
+  // Use current location
+  const handleUseCurrentLocation = async () => {
+    const result = await getUserLocationWithDetails();
+    if (result) {
+      setShowLocationModal(false);
+    } else {
+      Alert.alert('Error', 'Could not get your current location.');
+    }
+  };
+
+  // Get display location text
+  const getLocationDisplayText = () => {
+    if (isLocationLoading) return 'Getting location...';
+    if (location?.area) return location.area;
+    if (location?.city) return location.city;
+    return 'Set Location';
+  };
+
+  const loadUserType = async () => {
+    try {
+      if (params.userType) {
+        setUserType(formatUserType(params.userType));
+      } else {
+        const storedUserType = await AsyncStorage.getItem('user_type');
+        if (storedUserType) {
+          setUserType(formatUserType(storedUserType));
+        }
+      }
+    } catch (error) {
+      console.log('Error loading user type:', error);
+    }
+  };
+
+  const formatUserType = (type: string): string => {
+    const lower = type.toLowerCase();
+    if (lower === 'new_user' || lower === 'new' || lower === 'user') return 'User';
+    if (lower.includes('customer')) return 'Customer';
+    if (lower.includes('merchant')) return 'Merchant';
+    if (lower === 'dual') return 'Customer & Merchant';
+    return 'Customer';
+  };
   const loadCategories = async () => {
     try {
       const data = await getCategories();
@@ -432,45 +479,45 @@ const formatUserType = (type: string): string => {
   };
 
   //  Load nearby shops using real API
-const loadNearbyShops = async () => {
-  // location comes from useLocationStore (already implemented)
-  if (!location?.latitude || !location?.longitude) return;
+  const loadNearbyShops = async () => {
+    // location comes from useLocationStore (already implemented)
+    if (!location?.latitude || !location?.longitude) return;
 
-  try {
-    setIsNearbyLoading(true);
+    try {
+      setIsNearbyLoading(true);
 
-    const response = await getNearbyShops(
-  location.latitude,
-  location.longitude
-);
-
-
-    // Backend response format: { data: [...] }
-    setNearbyShops(Array.isArray(response) ? response : []);
-
-  } catch (error) {
-    console.error('Failed to load nearby shops:', error);
-    setNearbyShops([]);
-  } finally {
-    setIsNearbyLoading(false);
-  }
-};
+      const response = await getNearbyShops(
+        location.latitude,
+        location.longitude
+      );
 
 
- const startAutoScroll = (count: number) => {
-  if (count <= 1) return;
+      // Backend response format: { data: [...] }
+      setNearbyShops(Array.isArray(response) ? response : []);
 
-  const totalWidth = count * CARD_WIDTH;
-  scrollX.setValue(0);
+    } catch (error) {
+      console.error('Failed to load nearby shops:', error);
+      setNearbyShops([]);
+    } finally {
+      setIsNearbyLoading(false);
+    }
+  };
 
-  Animated.loop(
-    Animated.timing(scrollX, {
-      toValue: -totalWidth,
-      duration: totalWidth * 50,
-      useNativeDriver: true,
-    })
-  ).start();
-};
+
+  const startAutoScroll = (count: number) => {
+    if (count <= 1) return;
+
+    const totalWidth = count * CARD_WIDTH;
+    scrollX.setValue(0);
+
+    Animated.loop(
+      Animated.timing(scrollX, {
+        toValue: -totalWidth,
+        duration: totalWidth * 50,
+        useNativeDriver: true,
+      })
+    ).start();
+  };
 
 
   const totalBillAmount = lifetimeTotals?.totalBillAmount ?? 0;
@@ -542,7 +589,7 @@ const loadNearbyShops = async () => {
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         quality: 0.7,
         allowsEditing: true,
-aspect: [1, 1],
+        aspect: [1, 1],
       });
 
       // handle new expo result shape (assets)
@@ -602,7 +649,7 @@ aspect: [1, 1],
   };
 
   // -----------------------------------------------------
-  
+
 
 
   return (
@@ -612,53 +659,37 @@ aspect: [1, 1],
 
           {/* HEADER */}
           <View style={styles.header}>
-            <View style={styles.headerLeft}>
-              <Image
-                source={require('../assets/images/intown-logo.jpg')}
-                style={styles.logo}
-                resizeMode="contain"
+            <TouchableOpacity
+              style={styles.locationButton}
+              onPress={() => setShowLocationModal(true)}
+            >
+              <Ionicons name="location" size={16} color="#FF6600" />
+              <View style={styles.locationTextContainer}>
+                <Text style={styles.locationText} numberOfLines={1}>
+                  {getLocationDisplayText()}
+                </Text>
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={(e) => {
+                e.stopPropagation();
+                toggleDropdown();
+              }}
+              style={styles.profileButton}
+            >
+              <View style={styles.profileInfo}>
+                <Text style={styles.userName}>{user?.name ?? 'Member'}</Text>
+                <Text style={styles.userPhone}>
+                  {(user as any)?.phone ?? (user as any)?.email ?? ''}
+                </Text>
+              </View>
+              <Ionicons
+                name="person"
+                size={20}
+                color="#ff6600"
+                style={styles.profileIconButton}
               />
-            </View>
-            <View style={styles.rightContainer}>
-              <TouchableOpacity
-                onPress={(e) => {
-                  e.stopPropagation();
-                  toggleDropdown();
-                }}
-                style={styles.profileButton}
-              >
-                <View style={{ marginLeft: 10 }}>
-                  <Text style={styles.headerPhone}>
-                    {(user as any)?.phone ?? (user as any)?.email ?? ''}
-                  </Text>
-                  <TouchableOpacity
-                    style={styles.locationButton}
-                    onPress={() => setShowLocationModal(true)}
-                  >
-                    <Ionicons name="location" size={16} color="#FFFFFF" />
-                    <View style={styles.locationTextContainer}>
-                      <View style={styles.locationRow}>
-                        <Text style={styles.locationText} numberOfLines={1}>
-                          {getLocationDisplayText()}
-                        </Text>
-                        <Ionicons
-                          name="chevron-down"
-                          size={14}
-                          color="#FFFFFF"
-                          style={styles.locationIconButton}
-                        />
-                      </View>
-                    </View>
-                  </TouchableOpacity>
-                </View>
-                <Ionicons
-                  name="person"
-                  size={20}
-                  color="#ffffff"
-                  style={styles.profileIconButton}
-                />
-              </TouchableOpacity>
-            </View>
+            </TouchableOpacity>
           </View>
 
           {/* Membership Banner */}
@@ -672,105 +703,118 @@ aspect: [1, 1],
             </View>
           </View>
 
-          
 
-        {/* SEARCH */}
-<TouchableWithoutFeedback onPress={() => setShowSuggestions(false)}>
-  <View style={styles.searchContainer}>
 
-    <View style={styles.searchBox}>
-      <Ionicons name="search" size={24} color="#999" style={styles.searchIcon} />
-      <TextInput
-        style={styles.searchInput}
-        placeholder="Search for Grocery, Salon, Fashion..."
-        value={searchQuery}
-        onChangeText={(text) => {
-          setSearchQuery(text);
+          {/* SEARCH */}
+          <TouchableWithoutFeedback onPress={() => setShowSuggestions(false)}>
+            <View style={styles.searchContainer}>
 
-          if (text.trim().length > 0) {
-            const combined = [...SEARCH_ITEMS, ...SEARCH_PRODUCTS];
-            const filtered = combined.filter(item =>
-              item.toLowerCase().includes(text.toLowerCase())
-            );
+              <View style={styles.searchBox}>
+                <Ionicons name="search" size={24} color="#999" style={styles.searchIcon} />
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder=""
+                  value={searchQuery}
+                  onChangeText={(text) => {
+                    setSearchQuery(text);
 
-            setSuggestions(filtered);
-            setShowSuggestions(true);
-          } else {
-            setShowSuggestions(false);
-          }
-        }}
-        onFocus={() => {
-  router.push('/search');
-}}
+                    if (text.trim().length > 0) {
+                      const combined = [...SEARCH_ITEMS, ...SEARCH_PRODUCTS];
+                      const filtered = combined.filter(item =>
+                        item.toLowerCase().includes(text.toLowerCase())
+                      );
 
-        onBlur={() => {
-          setIsSearchFocused(false);
-        }}
-        onSubmitEditing={handleSearch}
-        placeholderTextColor="#999"
-      />
-    </View>
-    {showSuggestions && suggestions.length > 0 && (
-      <View style={styles.suggestionBox}>
-        {suggestions.map((item, index) => (
-          <TouchableOpacity
-            key={`${item}-${index}`}
-            style={styles.suggestionItem}
-            onPress={() => {
-              setSearchQuery(item);
-              setShowSuggestions(false);
+                      setSuggestions(filtered);
+                      setShowSuggestions(true);
+                    } else {
+                      setShowSuggestions(false);
+                    }
+                  }}
+                  onFocus={() => {
+                    router.push('/search');
+                  }}
 
-              router.push({
-                pathname: '/member-shop-list',
-                params: { query: item },
-              });
-            }}
-          >
-            <Ionicons name="search" size={16} color="#666" />
-            <Text style={styles.suggestionText}>{item}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-    )}
-  </View>
-</TouchableWithoutFeedback>
+                  onBlur={() => {
+                    setIsSearchFocused(false);
+                  }}
+                  onSubmitEditing={handleSearch}
+                  placeholderTextColor="#999"
+                />
+                {searchQuery.length === 0 && (
+                  <View pointerEvents="none" style={styles.animatedPlaceholder}>
+                    <Text style={styles.animatedPlaceholderPrefix}>Search for </Text>
+                    <Animated.Text
+                      style={[
+                        styles.animatedPlaceholderWord,
+                        { opacity: placeholderOpacity, transform: [{ translateY: placeholderAnim }] },
+                      ]}
+                    >
+                      {placeholderItems[placeholderIndex]}
+                    </Animated.Text>
+                  </View>
+                )}
+              </View>
+              {showSuggestions && suggestions.length > 0 && (
+                <View style={styles.suggestionBox}>
+                  {suggestions.map((item, index) => (
+                    <TouchableOpacity
+                      key={`${item}-${index}`}
+                      style={styles.suggestionItem}
+                      onPress={() => {
+                        setSearchQuery(item);
+                        setShowSuggestions(false);
 
-{/* ===== MEMBER CAROUSEL ===== */}
-<View style={styles.carouselWrapper}>
-  <ScrollView
-    ref={carouselRef}
-    horizontal
-    pagingEnabled
-    showsHorizontalScrollIndicator={false}
-    snapToInterval={SLIDE_WIDTH}
-    decelerationRate="fast"
-    onMomentumScrollEnd={(e) => {
-      const index = Math.round(
-        e.nativeEvent.contentOffset.x / SLIDE_WIDTH
-      );
-      setCarouselIndex(index);
-    }}
-  >
-    {MEMBER_CAROUSEL_IMAGES.map((img, index) => (
-      <View key={index} style={styles.carouselSlide}>
-        <Image source={img} style={styles.carouselImage} />
-      </View>
-    ))}
-  </ScrollView>
+                        router.push({
+                          pathname: '/member-shop-list',
+                          params: { query: item },
+                        });
+                      }}
+                    >
+                      <Ionicons name="search" size={16} color="#666" />
+                      <Text style={styles.suggestionText}>{item}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            </View>
+          </TouchableWithoutFeedback>
 
-  <View style={styles.carouselDots}>
-    {MEMBER_CAROUSEL_IMAGES.map((_, i) => (
-      <View
-        key={i}
-        style={[
-          styles.dot,
-          carouselIndex === i && styles.dotActive,
-        ]}
-      />
-    ))}
-  </View>
-</View>
-{/* === END MEMBER CAROUSEL === */}
+          {/* ===== MEMBER CAROUSEL ===== */}
+          <View style={styles.carouselWrapper}>
+            <ScrollView
+              ref={carouselRef}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              snapToInterval={SLIDE_WIDTH}
+              decelerationRate="fast"
+              onMomentumScrollEnd={(e) => {
+                const index = Math.round(
+                  e.nativeEvent.contentOffset.x / SLIDE_WIDTH
+                );
+                setCarouselIndex(index);
+              }}
+            >
+              {MEMBER_CAROUSEL_IMAGES.map((img, index) => (
+                <View key={index} style={styles.carouselSlide}>
+                  <Image source={img} style={styles.carouselImage} />
+                </View>
+              ))}
+            </ScrollView>
+
+            <View style={styles.carouselDots}>
+              {MEMBER_CAROUSEL_IMAGES.map((_, i) => (
+                <View
+                  key={i}
+                  style={[
+                    styles.dot,
+                    carouselIndex === i && styles.dotActive,
+                  ]}
+                />
+              ))}
+            </View>
+          </View>
+          {/* === END MEMBER CAROUSEL === */}
 
 
 
@@ -911,28 +955,28 @@ aspect: [1, 1],
                     </View>
 
                     <Text style={styles.shopCardName} numberOfLines={1}>
-  {shop.shopName || shop.merchantName || 'Shop'}
-</Text>
+                      {shop.shopName || shop.merchantName || 'Shop'}
+                    </Text>
 
-<Text style={styles.shopCardCategory}>
-  {shop.businessCategory || 'General'}
-</Text>
+                    <Text style={styles.shopCardCategory}>
+                      {shop.businessCategory || 'General'}
+                    </Text>
 
-<View style={styles.shopCardFooter}>
-  <View style={styles.ratingContainer}>
-    <Ionicons name="star" size={14} color="#FFA500" />
-    <Text style={styles.ratingText}>
-      {shop.rating ?? '4.0'}
-    </Text>
-  </View>
+                    <View style={styles.shopCardFooter}>
+                      <View style={styles.ratingContainer}>
+                        <Ionicons name="star" size={14} color="#FFA500" />
+                        <Text style={styles.ratingText}>
+                          {shop.rating ?? '4.0'}
+                        </Text>
+                      </View>
 
-  <View style={styles.distanceContainer}>
-    <Ionicons name="location" size={14} color="#666" />
-    <Text style={styles.distanceText}>
-      {shop.distance ? `${shop.distance} km` : 'Nearby'}
-    </Text>
-  </View>
-</View>
+                      <View style={styles.distanceContainer}>
+                        <Ionicons name="location" size={14} color="#666" />
+                        <Text style={styles.distanceText}>
+                          {shop.distance ? `${shop.distance.toFixed(2)} km` : 'Nearby'}
+                        </Text>
+                      </View>
+                    </View>
 
                   </TouchableOpacity>
                 ))}
@@ -941,7 +985,7 @@ aspect: [1, 1],
           </View>
 
           {/* FOOTER */}
-         <Footer/>
+          <Footer />
         </ScrollView>
 
         {/* BACKDROP */}
@@ -969,15 +1013,15 @@ aspect: [1, 1],
               },
             ]}
           >
-            
-              <View style={styles.userPanelHeader}>
-  {photoUri ? (
-    <Image source={{ uri: photoUri }} style={styles.panelAvatar} />
-  ) : (
-    <View style={styles.panelAvatarPlaceholder}>
-      <Ionicons name="person" size={22} color="#fff" />
-    </View>
-  )}
+
+            <View style={styles.userPanelHeader}>
+              {photoUri ? (
+                <Image source={{ uri: photoUri }} style={styles.panelAvatar} />
+              ) : (
+                <View style={styles.panelAvatarPlaceholder}>
+                  <Ionicons name="person" size={22} color="#fff" />
+                </View>
+              )}
 
 
               <View style={{ marginLeft: 10 }}>
@@ -999,34 +1043,34 @@ aspect: [1, 1],
               <Text style={styles.userPanelText}>My Account</Text>
             </TouchableOpacity>
             <TouchableOpacity
-  style={styles.userPanelItem}
-  onPress={() => {
-    closeDropdown();
-    router.push('/member-card');
-  }}
->
-  <Ionicons name="card-outline" size={22} color="#FF6600" />
-  <Text style={styles.userPanelText}>Member Card</Text>
-</TouchableOpacity>
+              style={styles.userPanelItem}
+              onPress={() => {
+                closeDropdown();
+                router.push('/member-card');
+              }}
+            >
+              <Ionicons name="card-outline" size={22} color="#FF6600" />
+              <Text style={styles.userPanelText}>Member Card</Text>
+            </TouchableOpacity>
 
 
             <TouchableOpacity
-  style={styles.userPanelItem}
-  onPress={() => {
-    closeDropdown();
-    router.push('/register-merchant');
-  }}
->
-  <Ionicons name="storefront-outline" size={22} color="#444" />
-  <Text style={styles.userPanelText}>Become a Merchant</Text>
-</TouchableOpacity>
+              style={styles.userPanelItem}
+              onPress={() => {
+                closeDropdown();
+                router.push('/register-merchant');
+              }}
+            >
+              <Ionicons name="storefront-outline" size={22} color="#444" />
+              <Text style={styles.userPanelText}>Become a Merchant</Text>
+            </TouchableOpacity>
 
 
-           
 
-        
 
-            
+
+
+
 
             <TouchableOpacity
               style={styles.userPanelItem}
@@ -1051,11 +1095,11 @@ aspect: [1, 1],
             <View style={styles.locationModalHeader}>
               <Text style={styles.locationModalTitle}>Select Location</Text>
               <TouchableOpacity onPress={() => setShowLocationModal(false)}>
-                <Ionicons name="close" size={24} color="#333" />
+                <Ionicons name="close" size={24} color="#ff6600" />
               </TouchableOpacity>
             </View>
 
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.useCurrentLocationBtn}
               onPress={handleUseCurrentLocation}
               disabled={isLocationLoading}
@@ -1099,7 +1143,7 @@ aspect: [1, 1],
             {isSearchingLocation && (
               <ActivityIndicator size="small" color="#FF6600" style={{ marginTop: 16 }} />
             )}
-            
+
             <ScrollView style={styles.locationSearchResults}>
               {locationSearchResults.map((item, index) => (
                 <TouchableOpacity
@@ -1134,15 +1178,10 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 8,
     paddingHorizontal: 16,
-    backgroundColor: '#fe6f09',
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#EEEEEE',
   },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  logo: { width: 140, height: 50 },
   rightContainer: {
     display: 'flex',
     flexDirection: 'row',
@@ -1164,12 +1203,8 @@ const styles = StyleSheet.create({
   locationText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#fff',
+    color: '#333',
     flex: 1,
-  },
-  locationIconButton: {
-    position: 'relative',
-    top: 3,
   },
   profileButton: {
     flexDirection: 'row',
@@ -1178,19 +1213,16 @@ const styles = StyleSheet.create({
   },
   profileIconButton: {
     borderWidth: 2,
-    borderColor: '#fff',
+    borderColor: '#ff6600',
     padding: 4,
     borderRadius: 30,
     marginLeft: 10,
     width: 34,
     textAlign: 'center',
   },
-  headerPhone: {
-    fontSize: 10,
-    color: '#FFFFFF',
-    marginTop: 2,
-    textAlign: 'right',
-  },
+  profileInfo: { alignItems: 'flex-end', marginRight: 8 },
+  userName: { fontSize: 14, fontWeight: '600', color: '#1A1A1A' },
+  userPhone: { fontSize: 10, color: '#666666', marginTop: 2 },
 
   membershipBanner: {
     marginHorizontal: 16,
@@ -1255,6 +1287,22 @@ const styles = StyleSheet.create({
   },
   searchIcon: { marginRight: 12 },
   searchInput: { flex: 1, fontSize: 16 },
+  animatedPlaceholder: {
+    position: 'absolute',
+    left: 52,
+    right: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  animatedPlaceholderPrefix: {
+    ...FontStylesWithFallback.body,
+    color: '#999999',
+  },
+  animatedPlaceholderWord: {
+    ...FontStylesWithFallback.body,
+    color: '#FF6600',
+    fontWeight: '700',
+  },
 
   section: { padding: 16 },
   sectionTitle: { fontSize: 20, fontWeight: '700', marginBottom: 16, color: '#1A1A1A' },
@@ -1527,216 +1575,216 @@ const styles = StyleSheet.create({
   userPanelTag: { fontSize: 12, color: '#FF6600', marginTop: 2, fontWeight: '600' },
 
   userPanelItem: {
-  flexDirection: 'row',
-  alignItems: 'center',
-  paddingVertical: 12,
-  paddingHorizontal: 6,
-  borderRadius: 8,
-},
- userPanelText: { fontSize: 15, marginLeft: 12, color: '#333' },
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 6,
+    borderRadius: 8,
+  },
+  userPanelText: { fontSize: 15, marginLeft: 12, color: '#333' },
   suggestionBox: {
-  backgroundColor: '#fff',
-  borderRadius: 10,
-  marginTop: 6,
-  borderWidth: 1,
-  borderColor: '#eee',
-  overflow: 'hidden',
-  zIndex: 20,
-},
-suggestionItem: {
-  padding: 14,
-  borderBottomWidth: 1,
-  borderBottomColor: '#f2f2f2',
-},
-suggestionText: {
-  fontSize: 15,
-  color: '#333',
-},
-sectionLabel: {
-  fontSize: 12,
-  fontWeight: '600',
-  color: '#999',
-  marginVertical: 8,
-},
-avatarButton: {
-  width: 38,
-  height: 38,
-  borderRadius: 19,
-  overflow: 'hidden',
-},
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    marginTop: 6,
+    borderWidth: 1,
+    borderColor: '#eee',
+    overflow: 'hidden',
+    zIndex: 20,
+  },
+  suggestionItem: {
+    padding: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f2f2f2',
+  },
+  suggestionText: {
+    fontSize: 15,
+    color: '#333',
+  },
+  sectionLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#999',
+    marginVertical: 8,
+  },
+  avatarButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    overflow: 'hidden',
+  },
 
-headerAvatar: {
-  width: '100%',
-  height: '100%',
-  borderRadius: 19,
-},
+  headerAvatar: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 19,
+  },
 
-headerAvatarPlaceholder: {
-  width: '100%',
-  height: '100%',
-  borderRadius: 19,
-  backgroundColor: '#FF6600',
-  alignItems: 'center',
-  justifyContent: 'center',
-},
-panelAvatar: {
-  width: 48,
-  height: 48,
-  borderRadius: 24,
-},
+  headerAvatarPlaceholder: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 19,
+    backgroundColor: '#FF6600',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  panelAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+  },
 
-panelAvatarPlaceholder: {
-  width: 48,
-  height: 48,
-  borderRadius: 24,
-  backgroundColor: '#FF6600',
-  alignItems: 'center',
-  justifyContent: 'center',
-},
+  panelAvatarPlaceholder: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#FF6600',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 
-// ===== MEMBER CAROUSEL STYLES =====
-carouselWrapper: {
-  marginTop: 12,
-  marginBottom: 8,
-},
+  // ===== MEMBER CAROUSEL STYLES =====
+  carouselWrapper: {
+    marginTop: 12,
+    marginBottom: 8,
+  },
 
-carouselSlide: {
-  width: SLIDE_WIDTH,
-  alignItems: 'center',
-},
+  carouselSlide: {
+    width: SLIDE_WIDTH,
+    alignItems: 'center',
+  },
 
-carouselImage: {
-  width: SLIDE_WIDTH - 32,
-  height: 160,
-  borderRadius: 12,
-  backgroundColor: '#eee',
-},
+  carouselImage: {
+    width: SLIDE_WIDTH - 32,
+    height: 160,
+    borderRadius: 12,
+    backgroundColor: '#eee',
+  },
 
-carouselDots: {
-  flexDirection: 'row',
-  justifyContent: 'center',
-  marginTop: 8,
-},
+  carouselDots: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 8,
+  },
 
-dot: {
-  width: 8,
-  height: 8,
-  borderRadius: 8,
-  backgroundColor: '#ddd',
-  marginHorizontal: 4,
-},
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 8,
+    backgroundColor: '#ddd',
+    marginHorizontal: 4,
+  },
 
-dotActive: {
-  backgroundColor: '#FF6600',
-},
-// =================================
+  dotActive: {
+    backgroundColor: '#FF6600',
+  },
+  // =================================
 
-// Location Modal Styles
-locationModalContainer: {
-  flex: 1,
-  backgroundColor: 'rgba(0,0,0,0.5)',
-  justifyContent: 'flex-end',
-},
-locationModalContent: {
-  backgroundColor: '#FFFFFF',
-  borderTopLeftRadius: 24,
-  borderTopRightRadius: 24,
-  padding: 20,
-  maxHeight: '80%',
-},
-locationModalHeader: {
-  flexDirection: 'row',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  marginBottom: 20,
-},
-locationModalTitle: {
-  fontSize: 20,
-  fontWeight: '700',
-  color: '#1A1A1A',
-},
-useCurrentLocationBtn: {
-  flexDirection: 'row',
-  alignItems: 'center',
-  backgroundColor: '#FFF3E0',
-  padding: 16,
-  borderRadius: 12,
-  marginBottom: 16,
-},
-useCurrentLocationText: {
-  fontSize: 16,
-  fontWeight: '600',
-  color: '#FF6600',
-  marginLeft: 12,
-},
-currentLocationDisplay: {
-  flexDirection: 'row',
-  alignItems: 'flex-start',
-  backgroundColor: '#E8F5E9',
-  padding: 14,
-  borderRadius: 12,
-  marginBottom: 16,
-},
-currentLocationArea: {
-  fontSize: 16,
-  fontWeight: '600',
-  color: '#333',
-},
-currentLocationFull: {
-  fontSize: 12,
-  color: '#666',
-  marginTop: 2,
-},
-locationDivider: {
-  flexDirection: 'row',
-  alignItems: 'center',
-  marginVertical: 16,
-},
-locationDividerLine: {
-  flex: 1,
-  height: 1,
-  backgroundColor: '#E0E0E0',
-},
-locationDividerText: {
-  marginHorizontal: 16,
-  fontSize: 12,
-  color: '#999',
-  fontWeight: '600',
-},
-locationSearchContainer: {
-  flexDirection: 'row',
-  alignItems: 'center',
-  backgroundColor: '#F5F5F5',
-  borderRadius: 12,
-  paddingHorizontal: 16,
-  paddingVertical: 12,
-},
-locationSearchInput: {
-  flex: 1,
-  fontSize: 16,
-  marginLeft: 12,
-  color: '#333',
-},
-locationSearchResults: {
-  maxHeight: 250,
-  marginTop: 8,
-},
-locationSearchItem: {
-  flexDirection: 'row',
-  alignItems: 'flex-start',
-  paddingVertical: 14,
-  borderBottomWidth: 1,
-  borderBottomColor: '#F0F0F0',
-},
-locationSearchItemName: {
-  fontSize: 15,
-  fontWeight: '600',
-  color: '#333',
-},
-locationSearchItemAddress: {
-  fontSize: 12,
-  color: '#666',
-  marginTop: 2,
-},
+  // Location Modal Styles
+  locationModalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  locationModalContent: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
+    maxHeight: '80%',
+  },
+  locationModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  locationModalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1A1A1A',
+  },
+  useCurrentLocationBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF3E0',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 16,
+  },
+  useCurrentLocationText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FF6600',
+    marginLeft: 12,
+  },
+  currentLocationDisplay: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#E8F5E9',
+    padding: 14,
+    borderRadius: 12,
+    marginBottom: 16,
+  },
+  currentLocationArea: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+  },
+  currentLocationFull: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 2,
+  },
+  locationDivider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 16,
+  },
+  locationDividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#E0E0E0',
+  },
+  locationDividerText: {
+    marginHorizontal: 16,
+    fontSize: 12,
+    color: '#999',
+    fontWeight: '600',
+  },
+  locationSearchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F5F5F5',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  locationSearchInput: {
+    flex: 1,
+    fontSize: 16,
+    marginLeft: 12,
+    color: '#333',
+  },
+  locationSearchResults: {
+    maxHeight: 250,
+    marginTop: 8,
+  },
+  locationSearchItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  locationSearchItemName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#333',
+  },
+  locationSearchItemAddress: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 2,
+  },
 
 });

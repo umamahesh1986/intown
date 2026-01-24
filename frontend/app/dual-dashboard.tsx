@@ -5,6 +5,7 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Animated,
   Dimensions,
   RefreshControl,
   FlatList,
@@ -142,6 +143,7 @@ export default function DualDashboard() {
   const [merchantTransactions, setMerchantTransactions] = useState<Transaction[]>([]);
   const [userTypeLabel, setUserTypeLabel] = useState<string>('Dual');
   const [searchQuery, setSearchQuery] = useState('');
+  const [placeholderIndex, setPlaceholderIndex] = useState(0);
 
   // Location store
   const location = useLocationStore((state) => state.location);
@@ -158,6 +160,7 @@ export default function DualDashboard() {
     longitude: number;
   }>>([]);
   const [isSearchingLocation, setIsSearchingLocation] = useState(false);
+  const placeholderAnim = useRef(new Animated.Value(0)).current;
 
   /* ===============================
      LOAD USER DATA
@@ -215,6 +218,52 @@ export default function DualDashboard() {
     if (location?.city) return location.city;
     return 'Set Location';
   };
+
+  const placeholderItems = [
+    'Grocery', 
+    'Salon', 
+    'Fashion',
+    'Vegetables',
+    'Fruits',
+    'Restaurant',
+    'Pharmacy',
+    'Electronics',];
+  const placeholderOpacity = placeholderAnim.interpolate({
+    inputRange: [-16, 0, 16],
+    outputRange: [0, 1, 0],
+  });
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const animatePlaceholder = () => {
+      placeholderAnim.setValue(16);
+      Animated.sequence([
+        Animated.timing(placeholderAnim, {
+          toValue: 0,
+          duration: 250,
+          useNativeDriver: true,
+        }),
+        Animated.delay(1200),
+        Animated.timing(placeholderAnim, {
+          toValue: -16,
+          duration: 250,
+          useNativeDriver: true,
+        }),
+      ]).start(({ finished }: { finished: boolean }) => {
+        if (!finished || !isMounted) return;
+        setPlaceholderIndex((prev) => (prev + 1) % placeholderItems.length);
+        animatePlaceholder();
+      });
+    };
+
+    animatePlaceholder();
+
+    return () => {
+      isMounted = false;
+      placeholderAnim.stopAnimation();
+    };
+  }, [placeholderAnim, placeholderItems.length]);
 
   const loadUserType = async () => {
     try {
@@ -348,53 +397,37 @@ export default function DualDashboard() {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <Image
-            source={require('../assets/images/intown-logo.jpg')}
-            style={styles.logo}
-            resizeMode="contain"
+        <TouchableOpacity
+          style={styles.locationButton}
+          onPress={() => setShowLocationModal(true)}
+        >
+          <Ionicons name="location" size={16} color="#FF6600" />
+          <View style={styles.locationTextContainer}>
+            <Text style={styles.locationText} numberOfLines={1}>
+              {getLocationDisplayText()}
+            </Text>
+          </View>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.profileButton}
+          onPress={(e) => {
+            e.stopPropagation();
+            handleLogout();
+          }}
+        >
+          <View style={styles.profileInfo}>
+            <Text style={styles.userName}>{user?.name ?? 'User'}</Text>
+            <Text style={styles.userPhone}>
+              {(user as any)?.phone ?? (user as any)?.email ?? ''}
+            </Text>
+          </View>
+          <Ionicons
+            name="person"
+            size={20}
+            color="#ff6600"
+            style={styles.profileIconButton}
           />
-        </View>
-        <View style={styles.rightContainer}>
-          <TouchableOpacity
-            style={styles.profileButton}
-            onPress={(e) => {
-              e.stopPropagation();
-              handleLogout();
-            }}
-          >
-            <View style={{ marginLeft: 10 }}>
-              <Text style={styles.headerPhone}>
-                {(user as any)?.phone ?? (user as any)?.email ?? ''}
-              </Text>
-              <TouchableOpacity
-                style={styles.locationButton}
-                onPress={() => setShowLocationModal(true)}
-              >
-                <Ionicons name="location" size={16} color="#FFFFFF" />
-                <View style={styles.locationTextContainer}>
-                  <View style={styles.locationRow}>
-                    <Text style={styles.locationText} numberOfLines={1}>
-                      {getLocationDisplayText()}
-                    </Text>
-                    <Ionicons
-                      name="chevron-down"
-                      size={14}
-                      color="#FFFFFF"
-                      style={styles.locationIconButton}
-                    />
-                  </View>
-                </View>
-              </TouchableOpacity>
-            </View>
-            <Ionicons
-              name="person"
-              size={20}
-              color="#ffffff"
-              style={styles.profileIconButton}
-            />
-          </TouchableOpacity>
-        </View>
+        </TouchableOpacity>
       </View>
 
       {/* Search Section */}
@@ -403,11 +436,24 @@ export default function DualDashboard() {
           <Ionicons name="search" size={20} color="#999" />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search for shops, categories..."
-            placeholderTextColor="#999"
+            placeholder=""
+            placeholderTextColor="#999999"
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
+          {searchQuery.length === 0 && (
+            <View pointerEvents="none" style={styles.animatedPlaceholder}>
+              <Text style={styles.animatedPlaceholderPrefix}>Search for </Text>
+              <Animated.Text
+                style={[
+                  styles.animatedPlaceholderWord,
+                  { opacity: placeholderOpacity, transform: [{ translateY: placeholderAnim }] },
+                ]}
+              >
+                {placeholderItems[placeholderIndex]}
+              </Animated.Text>
+            </View>
+          )}
         </View>
       </View>
 
@@ -605,7 +651,7 @@ export default function DualDashboard() {
             <View style={styles.locationModalHeader}>
               <Text style={styles.locationModalTitle}>Select Location</Text>
               <TouchableOpacity onPress={() => setShowLocationModal(false)}>
-                <Ionicons name="close" size={24} color="#333" />
+                <Ionicons name="close" size={24} color="#ff6600" />
               </TouchableOpacity>
             </View>
 
@@ -693,15 +739,7 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 8,
     paddingHorizontal: 16,
-    backgroundColor: '#fe6f09',
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  logo: {
-    width: 120,
-    height: 45,
+    backgroundColor: '#FFFFFF',
   },
   rightContainer: {
     display: 'flex',
@@ -724,12 +762,8 @@ const styles = StyleSheet.create({
   locationText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#fff',
+    color: '#333',
     flex: 1,
-  },
-  locationIconButton: {
-    position: 'relative',
-    top: 3,
   },
   profileButton: {
     flexDirection: 'row',
@@ -738,23 +772,29 @@ const styles = StyleSheet.create({
   },
   profileIconButton: {
     borderWidth: 2,
-    borderColor: '#fff',
+    borderColor: '#ff6600',
     padding: 4,
     borderRadius: 30,
     marginLeft: 10,
     width: 34,
     textAlign: 'center',
   },
-  headerPhone: {
+  profileInfo: {
+    alignItems: 'flex-end',
+    marginRight: 8,
+  },
+  userName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1A1A1A',
+  },
+  userPhone: {
     fontSize: 10,
-    color: '#FFFFFF',
+    color: '#666666',
     marginTop: 2,
-    textAlign: 'right',
   },
   searchSection: {
-    backgroundColor: '#FF6600',
-    paddingHorizontal: 16,
-    paddingBottom: 16,
+    padding: 16,
   },
   searchContainer: {
     flexDirection: 'row',
@@ -769,6 +809,22 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginLeft: 12,
     color: '#333',
+  },
+  animatedPlaceholder: {
+    position: 'absolute',
+    left: 44,
+    right: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  animatedPlaceholderPrefix: {
+    fontSize: 16,
+    color: '#999999',
+  },
+  animatedPlaceholderWord: {
+    fontSize: 16,
+    color: '#FF6600',
+    fontWeight: '700',
   },
   tabContainer: {
     flexDirection: 'row',
