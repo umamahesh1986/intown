@@ -1283,8 +1283,8 @@ const styles = StyleSheet.create({
   },
   animatedPlaceholderWord: {
     ...FontStylesWithFallback.body,
-    color: '#FF6600',
-    fontWeight: '700',
+    color: '#333',
+    fontWeight: '600',
   },
   searchHint: {
     ...FontStylesWithFallback.caption,

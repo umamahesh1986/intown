@@ -42,12 +42,12 @@ export default function MemberShopList() {
 
       const mappedShops = Array.isArray(data)
         ? data.map((item: any) => ({
-            id: item.id.toString(),
-            name: item.shopName,
-            category: item.businessCategory,
-            distance: item.distance,
-            image: item.s3ImageUrl,
-          }))
+          id: item.id.toString(),
+          name: item.shopName,
+          category: item.businessCategory,
+          distance: item.distance,
+          image: item.s3ImageUrl,
+        }))
         : [];
 
       if (mappedShops.length > 0) {
@@ -102,49 +102,50 @@ export default function MemberShopList() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
         renderItem={({ item }) => (
-        <View style={styles.shopCard}>
+          <View style={styles.shopCard}>
 
-  {/* TOP ROW */}
-  <View style={styles.shopRow}>
+            {/* TOP ROW */}
+            <View style={styles.shopRow}>
 
-    {/* LEFT: ICON */}
-    <View style={styles.shopImageContainer}>
-      {item.image ? (
-        <Image
-          source={{ uri: item.image }}
-          style={{ width: 80, height: 80, borderRadius: 10 }}
-        />
-      ) : (
-        <Ionicons name="storefront" size={60} color="#FF6600" />
-      )}
-    </View>
+              {/* LEFT: ICON */}
+              <View style={styles.shopImageContainer}>
+                {item.image ? (
+                  <Image
+                    source={{ uri: item.image }}
+                    style={{ width: 40, height: 40, borderRadius: 10 }}
+                  />
+                ) : (
+                  <Ionicons name="storefront" size={40} color="#FF6600" />
+                )}
+              </View>
 
-    {/* RIGHT: INFO */}
-    <View style={styles.shopInfoRight}>
-      <Text style={styles.shopName}>{item.name}</Text>
-      <Text style={styles.categoryText}>{item.category}</Text>
+              {/* RIGHT: INFO */}
+              <View style={styles.shopInfoRight}>
+                <View style={styles.shopInfoRightnew}>
+                  <Text style={styles.shopName}>{item.name}</Text>
+                  <Text style={styles.categoryText}>{item.category}</Text>
+                </View>
+                <View style={styles.distanceRow}>
+                  <Ionicons name="location" size={14} color="#ff6600" />
+                  <Text style={styles.distanceText}>
+                    {item.distance.toFixed(1)} km
+                  </Text>
+                </View>
+              </View>
 
-      <View style={styles.distanceRow}>
-        <Ionicons name="location" size={14} color="#666" />
-        <Text style={styles.distanceText}>
-          {item.distance.toFixed(1)} km
-        </Text>
-      </View>
-    </View>
+            </View>
 
-  </View>
+            {/* BUTTON */}
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity
+                style={styles.viewButton}
+                onPress={() => handleViewShop(item.id)}
+              >
+                <Text style={styles.viewButtonText}>View</Text>
+              </TouchableOpacity>
+            </View>
 
-  {/* BUTTON */}
-  <View style={styles.buttonContainer}>
-    <TouchableOpacity
-      style={styles.viewButton}
-      onPress={() => handleViewShop(item.id)}
-    >
-      <Text style={styles.viewButtonText}>View</Text>
-    </TouchableOpacity>
-  </View>
-
-</View>
+          </View>
 
         )}
       />
@@ -176,8 +177,8 @@ const styles = StyleSheet.create({
     borderColor: '#EEE',
   },
   shopImageContainer: {
-    width: 100,
-    height: 100,
+    width: 60,
+    height: 60,
     backgroundColor: '#FFF3E0',
     borderRadius: 12,
     alignItems: 'center',
@@ -185,35 +186,42 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   shopInfo: { marginBottom: 12 },
-  shopName: { fontSize: 18, fontWeight: 'bold', color: '#1A1A1A', marginBottom: 6 },
+  shopName: { fontSize: 18, fontWeight: 'bold', color: '#1A1A1A', marginBottom: 6, maxWidth: 210, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   ratingRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
-  distanceText: { fontSize: 14, color: '#666', marginLeft: 4 },
+  distanceText: { fontSize: 14, color: '#ff6600', marginLeft: 4 }, 
   categoryText: { fontSize: 14, color: '#999' },
   buttonContainer: { flexDirection: 'row', gap: 12 },
   viewButton: {
     flex: 1,
     backgroundColor: '#FF6600',
     borderRadius: 8,
-    paddingVertical: 12,
+    paddingVertical: 8,
     alignItems: 'center',
+    textTransform: 'uppercase',
   },
   viewButtonText: { color: '#FFF', fontSize: 16, fontWeight: '600' },
   shopRow: {
-  flexDirection: 'row',
-  alignItems: 'flex-start',
-  marginBottom: 12,
-},
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
 
-shopInfoRight: {
-  flex: 1,
-  marginLeft: 12,
-  minHeight: 100,
-},
+  shopInfoRight: {
+    flex: 1,
+    marginLeft: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  shopInfoRightnew: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
 
-distanceRow: {
-  flexDirection: 'row',
-  alignItems: 'center',
-  marginTop: 'auto', // pushes distance to bottom-right
-},
+  distanceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
 
 });

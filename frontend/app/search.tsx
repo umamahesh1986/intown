@@ -7,7 +7,7 @@ import {
   Pressable,
   ActivityIndicator,
 } from 'react-native';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { searchProducts } from '../utils/api';
@@ -26,6 +26,7 @@ export default function Search() {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const inputRef = useRef<TextInput>(null);
 
   // ✅ DEBOUNCE
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -52,6 +53,13 @@ export default function Search() {
 
     
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      inputRef.current?.focus();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
     <Pressable style={{ flex: 1 }} onPress={() => setShowSuggestions(false)}>
       <View style={styles.container}>
@@ -67,9 +75,11 @@ export default function Search() {
         <View style={styles.searchBox}>
           <Ionicons name="search" size={18} color="#666" />
           <TextInput
+            ref={inputRef}
             placeholder="Search products..."
             value={searchText}
             style={styles.input}
+            autoFocus
             onChangeText={(text) => {
               setSearchText(text);
               setShowSuggestions(true);

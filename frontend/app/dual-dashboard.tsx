@@ -42,6 +42,39 @@ interface Transaction {
   status: 'completed' | 'pending' | 'failed';
 }
 
+interface CustomerTransaction {
+  transactionId: number;
+  merchantName: string;
+  totalBillAmount: number;
+  savedAmount: number;
+  finalPaidAmount: number;
+  transactionDate: string;
+}
+
+interface MerchantSale {
+  transactionId: number;
+  customerName: string;
+  customerPhone: string;
+  totalSalesValue: number;
+  totalDiscountGiven: number;
+  totalAmountReceived: number;
+  transactionDate: string;
+}
+
+interface CustomerSummary {
+  totalBillAmount: number;
+  totalSavedAmount: number;
+  totalPaidAmount: number;
+  transactionCount: number;
+}
+
+interface MerchantSummary {
+  totalSalesValue: number;
+  totalDiscountGiven: number;
+  totalAmountReceived: number;
+  salesCount: number;
+}
+
 interface TabProps {
   active: boolean;
   label: string;
@@ -135,7 +168,7 @@ const TransactionCard = ({ transaction }: { transaction: Transaction }) => (
 export default function DualDashboard() {
   const router = useRouter();
   const params = useLocalSearchParams<{ userType?: string }>();
-  const { user, logout } = useAuthStore();
+  const { user, logout, token } = useAuthStore();
   const [activeTab, setActiveTab] = useState<'customer' | 'merchant'>('customer');
   const [refreshing, setRefreshing] = useState(false);
   const [userData, setUserData] = useState<any>(null);
@@ -144,6 +177,20 @@ export default function DualDashboard() {
   const [userTypeLabel, setUserTypeLabel] = useState<string>('Dual');
   const [searchQuery, setSearchQuery] = useState('');
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
+  const [customerId, setCustomerId] = useState<string | null>(null);
+  const [merchantId, setMerchantId] = useState<string | null>(null);
+  const [customerTotals, setCustomerTotals] = useState<{
+    today: CustomerSummary | null;
+    thisMonth: CustomerSummary | null;
+    thisYear: CustomerSummary | null;
+  }>({ today: null, thisMonth: null, thisYear: null });
+  const [merchantTotals, setMerchantTotals] = useState<{
+    today: MerchantSummary | null;
+    thisMonth: MerchantSummary | null;
+    thisYear: MerchantSummary | null;
+  }>({ today: null, thisMonth: null, thisYear: null });
+  const [isCustomerLoading, setIsCustomerLoading] = useState(false);
+  const [isMerchantLoading, setIsMerchantLoading] = useState(false);
 
   // Location store
   const location = useLocationStore((state) => state.location);
@@ -292,78 +339,115 @@ export default function DualDashboard() {
   };
 
   const loadTransactions = async () => {
-    // TODO: Replace with actual API calls
-    // For now, using dummy data
-    setCustomerTransactions([
-      {
-        id: '1',
-        date: '2025-01-05',
-        amount: 250.00,
-        description: 'Purchase at Fresh Mart',
-        type: 'debit',
-        status: 'completed',
-      },
-      {
-        id: '2',
-        date: '2025-01-04',
-        amount: 50.00,
-        description: 'Cashback Reward',
-        type: 'credit',
-        status: 'completed',
-      },
-      {
-        id: '3',
-        date: '2025-01-03',
-        amount: 1200.00,
-        description: 'Shopping at Fashion Hub',
-        type: 'debit',
-        status: 'completed',
-      },
-      {
-        id: '4',
-        date: '2025-01-02',
-        amount: 100.00,
-        description: 'Referral Bonus',
-        type: 'credit',
-        status: 'pending',
-      },
-    ]);
-
-    setMerchantTransactions([
-      {
-        id: '1',
-        date: '2025-01-05',
-        amount: 5000.00,
-        description: 'Daily Sales Settlement',
-        type: 'credit',
-        status: 'completed',
-      },
-      {
-        id: '2',
-        date: '2025-01-04',
-        amount: 150.00,
-        description: 'Platform Fee',
-        type: 'debit',
-        status: 'completed',
-      },
-      {
-        id: '3',
-        date: '2025-01-03',
-        amount: 3500.00,
-        description: 'Daily Sales Settlement',
-        type: 'credit',
-        status: 'completed',
-      },
-      {
-        id: '4',
-        date: '2025-01-02',
-        amount: 200.00,
-        description: 'Advertisement Fee',
-        type: 'debit',
-        status: 'completed',
-      },
-    ]);
+    try {
+      const [storedCustomerId, storedMerchantId] = await Promise.all([
+        AsyncStorage.getItem('customer_id'),
+        AsyncStorage.getItem('merchant_id'),
+      ]);
+      if (storedCustomerId) setCustomerId(storedCustomerId);
+      if (storedMerchantId) setMerchantId(storedMerchantId);
+    } catch (error) {
+      console.error('Error loading dual ids:', error);
+    }
   };
+
+  useEffect(() => {
+    const fetchCustomerTransactions = async (id: string) => {
+      setIsCustomerLoading(true);
+      try {
+        const res = await fetch(
+          `https://devapi.intownlocal.com/IN/transactions/customers/${id}`,
+          {
+            headers: token
+              ? {
+                  Authorization: `Bearer ${token}`,
+                  Accept: 'application/json',
+                }
+              : { Accept: 'application/json' },
+          }
+        );
+        if (!res.ok) {
+          throw new Error(`Customer transactions fetch failed: ${res.status}`);
+        }
+        const data = await res.json();
+        const apiTransactions: CustomerTransaction[] = data?.transactions ?? [];
+        setCustomerTransactions(
+          apiTransactions.map((item) => ({
+            id: String(item.transactionId),
+            date: new Date(item.transactionDate).toLocaleDateString(),
+            amount: item.finalPaidAmount ?? item.totalBillAmount ?? 0,
+            description: item.merchantName,
+            type: 'debit',
+            status: 'completed',
+          }))
+        );
+        setCustomerTotals({
+          today: data?.today ?? null,
+          thisMonth: data?.thisMonth ?? null,
+          thisYear: data?.thisYear ?? null,
+        });
+      } catch (error) {
+        console.error('Error loading customer transactions:', error);
+        setCustomerTransactions([]);
+        setCustomerTotals({ today: null, thisMonth: null, thisYear: null });
+      } finally {
+        setIsCustomerLoading(false);
+      }
+    };
+
+    if (customerId) {
+      fetchCustomerTransactions(customerId);
+    }
+  }, [customerId, token]);
+
+  useEffect(() => {
+    const fetchMerchantSales = async (id: string) => {
+      setIsMerchantLoading(true);
+      try {
+        const res = await fetch(
+          `https://devapi.intownlocal.com/IN/transactions/merchants/${id}`,
+          {
+            headers: token
+              ? {
+                  Authorization: `Bearer ${token}`,
+                  Accept: 'application/json',
+                }
+              : { Accept: 'application/json' },
+          }
+        );
+        if (!res.ok) {
+          throw new Error(`Merchant sales fetch failed: ${res.status}`);
+        }
+        const data = await res.json();
+        const apiSales: MerchantSale[] = data?.sales ?? [];
+        setMerchantTransactions(
+          apiSales.map((item) => ({
+            id: String(item.transactionId),
+            date: new Date(item.transactionDate).toLocaleDateString(),
+            amount: item.totalAmountReceived ?? item.totalSalesValue ?? 0,
+            description: item.customerName,
+            type: 'credit',
+            status: 'completed',
+          }))
+        );
+        setMerchantTotals({
+          today: data?.today ?? null,
+          thisMonth: data?.thisMonth ?? null,
+          thisYear: data?.thisYear ?? null,
+        });
+      } catch (error) {
+        console.error('Error loading merchant sales:', error);
+        setMerchantTransactions([]);
+        setMerchantTotals({ today: null, thisMonth: null, thisYear: null });
+      } finally {
+        setIsMerchantLoading(false);
+      }
+    };
+
+    if (merchantId) {
+      fetchMerchantSales(merchantId);
+    }
+  }, [merchantId, token]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -379,6 +463,13 @@ export default function DualDashboard() {
 
   const currentTransactions =
     activeTab === 'customer' ? customerTransactions : merchantTransactions;
+
+  const customerTodaySaved = customerTotals.today?.totalSavedAmount ?? 0;
+  const customerMonthSaved = customerTotals.thisMonth?.totalSavedAmount ?? 0;
+  const customerYearSaved = customerTotals.thisYear?.totalSavedAmount ?? 0;
+  const merchantTodaySales = merchantTotals.today?.totalSalesValue ?? 0;
+  const merchantMonthSales = merchantTotals.thisMonth?.totalSalesValue ?? 0;
+  const merchantYearSales = merchantTotals.thisYear?.totalSalesValue ?? 0;
 
   const getWelcomeName = () => {
     if (activeTab === 'customer' && userData?.customer?.name) {
@@ -505,26 +596,39 @@ export default function DualDashboard() {
         <View style={styles.statsContainer}>
           <View style={styles.statCard}>
             <Text style={styles.statValue}>
-              ₹{activeTab === 'customer' ? '1,550' : '8,350'}
+              ₹
+              {activeTab === 'customer'
+                ? customerTodaySaved.toFixed(0)
+                : merchantTodaySales.toFixed(0)}
             </Text>
             <Text style={styles.statLabel}>
-              {activeTab === 'customer' ? 'Total Spent' : 'Total Earnings'}
+              {activeTab === 'customer' ? "Today's Savings" : "Today's Sales"}
             </Text>
           </View>
           <View style={styles.statCard}>
             <Text style={styles.statValue}>
-              {activeTab === 'customer' ? '150' : '45'}
+              ₹
+              {activeTab === 'customer'
+                ? customerMonthSaved.toFixed(0)
+                : merchantMonthSales.toFixed(0)}
             </Text>
             <Text style={styles.statLabel}>
-              {activeTab === 'customer' ? 'Reward Points' : 'Orders'}
+              {activeTab === 'customer'
+                ? "This Month's Savings"
+                : "This Month's Sales"}
             </Text>
           </View>
           <View style={styles.statCard}>
             <Text style={styles.statValue}>
-              {activeTab === 'customer' ? '₹50' : '₹350'}
+              ₹
+              {activeTab === 'customer'
+                ? customerYearSaved.toFixed(0)
+                : merchantYearSales.toFixed(0)}
             </Text>
             <Text style={styles.statLabel}>
-              {activeTab === 'customer' ? 'Cashback' : 'Fees Paid'}
+              {activeTab === 'customer'
+                ? "This Year's Savings"
+                : "This Year's Sales"}
             </Text>
           </View>
         </View>
@@ -538,7 +642,15 @@ export default function DualDashboard() {
             </TouchableOpacity>
           </View>
 
-          {currentTransactions.length > 0 ? (
+          {activeTab === 'customer' && isCustomerLoading ? (
+            <View style={styles.emptyState}>
+              <ActivityIndicator size="small" color="#FF6600" />
+            </View>
+          ) : activeTab === 'merchant' && isMerchantLoading ? (
+            <View style={styles.emptyState}>
+              <ActivityIndicator size="small" color="#FF6600" />
+            </View>
+          ) : currentTransactions.length > 0 ? (
             currentTransactions.map((transaction) => (
               <TransactionCard key={transaction.id} transaction={transaction} />
             ))
@@ -823,8 +935,8 @@ const styles = StyleSheet.create({
   },
   animatedPlaceholderWord: {
     fontSize: 16,
-    color: '#FF6600',
-    fontWeight: '700',
+    color: '#333',
+    fontWeight: '600',
   },
   tabContainer: {
     flexDirection: 'row',

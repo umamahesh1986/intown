@@ -80,6 +80,15 @@ export default function MerchantDashboard() {
   const [shopName, setShopName] = useState<string | null>(null);
   const [sales, setSales] = useState<ApiSale[]>([]);
   const [lifetimeTotals, setLifetimeTotals] = useState<ApiSummary | null>(null);
+  const [periodTotals, setPeriodTotals] = useState<{
+    today: ApiSummary | null;
+    thisMonth: ApiSummary | null;
+    thisYear: ApiSummary | null;
+  }>({
+    today: null,
+    thisMonth: null,
+    thisYear: null,
+  });
   const [isSalesLoading, setIsSalesLoading] = useState(false);
 
   // Location store
@@ -257,10 +266,16 @@ const carouselRef = useRef<ScrollView | null>(null);
         const data = await res.json();
         setSales(data?.sales ?? []);
         setLifetimeTotals(data?.lifetime ?? null);
+        setPeriodTotals({
+          today: data?.today ?? null,
+          thisMonth: data?.thisMonth ?? null,
+          thisYear: data?.thisYear ?? null,
+        });
       } catch (error) {
         console.error('Error loading sales:', error);
         setSales([]);
         setLifetimeTotals(null);
+        setPeriodTotals({ today: null, thisMonth: null, thisYear: null });
       } finally {
         setIsSalesLoading(false);
       }
@@ -411,29 +426,26 @@ const carouselRef = useRef<ScrollView | null>(null);
         </View>
 
         {/* Total Summary Section */}
-        <View style={styles.section}>
+        <View style={[styles.section, styles.sectionNoHorizontalPadding]}>
           <Text style={styles.sectionTitle}>Payment Summary</Text>
-          <View style={styles.summaryCard}>
+          <View style={styles.summarySection}>
             <View style={styles.summaryRow}>
               <View style={styles.summaryItem}>
-                <Ionicons name="cash" size={32} color="#2196F3" />
-                <Text style={styles.summaryLabel}>Total Sales</Text>
+                <Text style={styles.summaryLabel}>Today's Sales</Text>
                 <Text style={styles.summaryValue}>
-                  ₹{(lifetimeTotals?.totalSalesValue ?? 0).toFixed(0)}
+                  ₹{(periodTotals.today?.totalSalesValue ?? 0).toFixed(0)}
                 </Text>
               </View>
               <View style={styles.summaryItem}>
-                <Ionicons name="pricetag" size={32} color="#FF6600" />
-                <Text style={styles.summaryLabel}>Discount Given</Text>
+                <Text style={styles.summaryLabel}>This Month's Sales</Text>
                 <Text style={styles.summaryValue}>
-                  ₹{(lifetimeTotals?.totalDiscountGiven ?? 0).toFixed(0)}
+                  ₹{(periodTotals.thisMonth?.totalSalesValue ?? 0).toFixed(0)}
                 </Text>
               </View>
               <View style={styles.summaryItem}>
-                <Ionicons name="wallet" size={32} color="#4CAF50" />
-                <Text style={styles.summaryLabel}>Amount Received</Text>
-                <Text style={styles.summaryValueLarge}>
-                  ₹{(lifetimeTotals?.totalAmountReceived ?? 0).toFixed(0)}
+                <Text style={styles.summaryLabel}>This Year's Sales</Text>
+                <Text style={styles.summaryValue}>
+                  ₹{(periodTotals.thisYear?.totalSalesValue ?? 0).toFixed(0)}
                 </Text>
               </View>
             </View>
@@ -674,13 +686,41 @@ const styles = StyleSheet.create({
   ratingContainer: { flexDirection: 'row', alignItems: 'center' },
   ratingText: { fontSize: 16, fontWeight: '600', color: '#666666', marginLeft: 8 },
   section: { padding: 16 },
-  sectionTitle: { fontSize: 20, fontWeight: 'bold', color: '#1A1A1A', marginBottom: 16 },
-  summaryCard: { backgroundColor: '#FFFFFF', borderRadius: 12, padding: 20 },
-  summaryRow: { flexDirection: 'row', justifyContent: 'space-around' },
-  summaryItem: { alignItems: 'center', flex: 1 },
-  summaryLabel: { fontSize: 12, color: '#666666', marginTop: 8, textAlign: 'center' },
-  summaryValue: { fontSize: 18, fontWeight: 'bold', color: '#1A1A1A', marginTop: 4 },
-  summaryValueLarge: { fontSize: 24, fontWeight: 'bold', color: '#4CAF50', marginTop: 4 },
+  sectionNoHorizontalPadding: {
+    paddingHorizontal: 0,
+  },
+  sectionTitle: { fontSize: 20, fontWeight: 'bold', color: '#1A1A1A', margin: 16 },
+  summarySection: {
+    backgroundColor: '#ff6600',
+    paddingVertical: 18,
+    paddingHorizontal: 0,
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginHorizontal: 10,
+  },
+  summaryItem: {
+    flex: 1,
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 12,
+    marginHorizontal: 6,
+    borderRadius: 10,
+  },
+  summaryLabel: {
+    ...FontStylesWithFallback.caption,
+    color: '#777777',
+    fontSize: 11,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  summaryValue: {
+    ...FontStylesWithFallback.h3,
+    color: '#fe6f09',
+    fontWeight: '700',
+    marginTop: 6,
+  },
   transactionRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',

@@ -172,6 +172,15 @@ export default function MemberDashboard() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [transactions, setTransactions] = useState<ApiTransaction[]>([]);
   const [lifetimeTotals, setLifetimeTotals] = useState<ApiSummary | null>(null);
+  const [periodTotals, setPeriodTotals] = useState<{
+    today: ApiSummary | null;
+    thisMonth: ApiSummary | null;
+    thisYear: ApiSummary | null;
+  }>({
+    today: null,
+    thisMonth: null,
+    thisYear: null,
+  });
   const [isTransactionsLoading, setIsTransactionsLoading] = useState(false);
   const [customerId, setCustomerId] = useState<string | null>(null);
   // Nearby shops (REAL API)
@@ -372,10 +381,16 @@ export default function MemberDashboard() {
         const data = await res.json();
         setTransactions(data?.transactions ?? []);
         setLifetimeTotals(data?.lifetime ?? null);
+        setPeriodTotals({
+          today: data?.today ?? null,
+          thisMonth: data?.thisMonth ?? null,
+          thisYear: data?.thisYear ?? null,
+        });
       } catch (error) {
         console.error('Error loading transactions:', error);
         setTransactions([]);
         setLifetimeTotals(null);
+        setPeriodTotals({ today: null, thisMonth: null, thisYear: null });
       } finally {
         setIsTransactionsLoading(false);
       }
@@ -520,9 +535,9 @@ export default function MemberDashboard() {
   };
 
 
-  const totalBillAmount = lifetimeTotals?.totalBillAmount ?? 0;
-  const totalPaidAmount = lifetimeTotals?.totalPaidAmount ?? 0;
-  const totalSavedAmount = lifetimeTotals?.totalSavedAmount ?? 0;
+  const todaySavedAmount = periodTotals.today?.totalSavedAmount ?? 0;
+  const monthSavedAmount = periodTotals.thisMonth?.totalSavedAmount ?? 0;
+  const yearSavedAmount = periodTotals.thisYear?.totalSavedAmount ?? 0;
 
   const handleLogout = async () => {
     setShowDropdown(false);
@@ -860,16 +875,16 @@ export default function MemberDashboard() {
           <View style={styles.summarySection}>
             <View style={styles.summaryRow}>
               <View style={styles.summaryItem}>
-                <Text style={styles.summaryLabel}>Total Bill Amount</Text>
-                <Text style={styles.summaryValue}>₹{totalBillAmount.toFixed(0)}</Text>
+                <Text style={styles.summaryLabel}>Today's Savings </Text>
+                <Text style={styles.summaryValue}>₹{todaySavedAmount.toFixed(0)}</Text>
               </View>
               <View style={styles.summaryItem}>
-                <Text style={styles.summaryLabel}>Total Paid Amount</Text>
-                <Text style={styles.summaryValue}>₹{totalPaidAmount.toFixed(0)}</Text>
+                <Text style={styles.summaryLabel}>This Month's Savings</Text>
+                <Text style={styles.summaryValue}>₹{monthSavedAmount.toFixed(0)}</Text>
               </View>
               <View style={styles.summaryItem}>
-                <Text style={styles.summaryLabel}>Total Saved Amount</Text>
-                <Text style={styles.summaryValue}>₹{totalSavedAmount.toFixed(0)}</Text>
+                <Text style={styles.summaryLabel}>This Year's Savings</Text>
+                <Text style={styles.summaryValue}>₹{yearSavedAmount.toFixed(0)}</Text>
               </View>
             </View>
           </View>
@@ -1300,8 +1315,8 @@ const styles = StyleSheet.create({
   },
   animatedPlaceholderWord: {
     ...FontStylesWithFallback.body,
-    color: '#FF6600',
-    fontWeight: '700',
+    color: '#333',
+    fontWeight: '600',
   },
 
   section: { padding: 16 },
@@ -1360,7 +1375,7 @@ const styles = StyleSheet.create({
   },
 
   summarySection: {
-    backgroundColor: 'rgba(33, 94, 97, 0.8)',
+    backgroundColor: '#ff6600',
     paddingVertical: 18,
     paddingHorizontal: 12,
   },
