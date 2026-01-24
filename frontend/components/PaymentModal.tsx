@@ -85,7 +85,7 @@ export default function PaymentModal({ visible, onClose, onSuccess }: PaymentMod
 
               <View style={styles.savingsSection}>
                 <View style={styles.savingsRow}>
-                  <Text style={styles.savingsLabel}>Instant Savings (10%)</Text>
+                  <Text style={styles.savingsLabel}>Instant Savings</Text>
                   <Text style={styles.savingsValue}>₹{instantSavings.toFixed(2)}</Text>
                 </View>
                 <View style={styles.divider} />
@@ -96,7 +96,7 @@ export default function PaymentModal({ visible, onClose, onSuccess }: PaymentMod
               </View>
 
               <TouchableOpacity style={styles.payButton} onPress={handlePayNow}>
-                <Text style={styles.payButtonText}>Pay Now</Text>
+                <Text style={styles.payButtonText}>Submit</Text>
               </TouchableOpacity>
             </>
           ) : (

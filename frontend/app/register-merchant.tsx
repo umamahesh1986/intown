@@ -76,9 +76,11 @@ const [showAllCategories, setShowAllCategories] = useState(false);
     Record<number, { id: number; name: string }[]>
   >({});
 
-  const [selectedCategoryIds, setSelectedCategoryIds] = useState<number[]>([]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
+
   const [products, setProducts] = useState<{ id: number; name: string }[]>([]);
   const [selectedProductIds, setSelectedProductIds] = useState<number[]>([]);
+  const [showProductModal, setShowProductModal] = useState(false);
 
   const [hasOtherProducts, setHasOtherProducts] = useState(false);
   const [customProductsCsv, setCustomProductsCsv] = useState('');
@@ -163,56 +165,42 @@ const [showAllCategories, setShowAllCategories] = useState(false);
 
     /* ================= CATEGORY TOGGLE (BACKEND) ================= */
 
-    const toggleCategory = async (cat: { id: number; name: string }) => {
-      let updatedIds: number[];
+   const selectCategory = async (cat: { id: number; name: string }) => {
+  // If same category clicked again, do nothing
+  if (selectedCategoryId === cat.id) return;
 
-      if (selectedCategoryIds.includes(cat.id)) {
-        updatedIds = selectedCategoryIds.filter(id => id !== cat.id);
-      } else {
-        updatedIds = [...selectedCategoryIds, cat.id];
+  // Set selected category
+  setSelectedCategoryId(cat.id);
+  setBusinessCategory(cat.name);
 
-        if (!productsByCategory[cat.id]) {
-          try {
-            const prodData = await getProductsByCategory(cat.id);
+  // Clear previously selected products
+  setSelectedProductIds([]);
+  setProducts([]);
 
+  try {
+    const prodData = await getProductsByCategory(cat.id);
 
-            if (Array.isArray(prodData)) {
-              setProductsByCategory(prev => ({
-                ...prev,
-                [cat.id]: prodData,
-              }));
-            } else if (Array.isArray(prodData?.data)) {
-              setProductsByCategory(prev => ({
-                ...prev,
-                [cat.id]: prodData.data,
-              }));
-            }
-          } catch (err) {
-            console.error('Product fetch failed', err);
-          }
-        }
-      }
+    if (Array.isArray(prodData)) {
+      setProducts(prodData);
+    } else if (Array.isArray(prodData?.data)) {
+      setProducts(prodData.data);
+    } else {
+      setProducts([]);
+    }
 
-      setSelectedCategoryIds(updatedIds);
+    // ✅ OPEN POPUP ONLY AFTER PRODUCTS ARE READY
+    setShowProductModal(true);
 
-      const categoryNames = categories
-        .filter(c => updatedIds.includes(c.id))
-        .map(c => c.name)
-        .join(', ');
-      setBusinessCategory(categoryNames);
-      // 🔴 FIX: prevent empty category
-      if (updatedIds.length === 0) {
-        setBusinessCategory('');
-        return;
-      }
+  } catch (error) {
+    console.error('Failed to fetch products by category', error);
+    setProducts([]);
+
+    // ✅ STILL OPEN POPUP FOR CSV ENTRY
+    setShowProductModal(true);
+  }
+};
 
 
-      const loadedProducts = updatedIds.flatMap(
-        id => productsByCategory[id] || []
-      );
-
-      setProducts([...loadedProducts, ...customProducts]);
-    };
 
     const toggleProduct = (productId: number) => {
       setSelectedProductIds(prev =>
@@ -241,14 +229,7 @@ const [showAllCategories, setShowAllCategories] = useState(false);
 
       setCustomProducts(csvProducts);
     }, [customProductsCsv, hasOtherProducts]);
-
-    useEffect(() => {
-      const loadedProducts = selectedCategoryIds.flatMap(
-        id => productsByCategory[id] || []
-      );
-      setProducts([...loadedProducts, ...customProducts]);
-    }, [customProducts, selectedCategoryIds, productsByCategory]);
-
+    
     /* ================= LOCATION PICKER ================= */
 
     const pickLocation = async () => {
@@ -410,7 +391,8 @@ if (email && !emailRegex.test(email)) {
         introducedBy,
         images,
         agreedToTerms,
-        categoryList: selectedCategoryIds,
+        categoryList: selectedCategoryId ? [selectedCategoryId] : [],
+
         productNames,
 
         
@@ -532,29 +514,33 @@ const displayedCategories = showAllCategories
 />
 
             <View style={styles.categoryGrid}>
-  {displayedCategories.map(cat => {
-    const isSelected = selectedCategoryIds.includes(cat.id);
+ {displayedCategories.map(cat => {
+  const isSelected = selectedCategoryId === cat.id;
+ 
 
-    return (
-      <TouchableOpacity
-        key={cat.id}
+  return (
+    <TouchableOpacity
+      key={cat.id}
+      style={[
+        styles.categoryCard,
+        isSelected && styles.categoryCardSelected,
+        
+      ]}
+      onPress={() => selectCategory(cat)}
+      
+    >
+      <Text
         style={[
-          styles.categoryCard,
-          isSelected && styles.categoryCardSelected,
+          styles.categoryText,
+          isSelected && styles.categoryTextSelected,
         ]}
-        onPress={() => toggleCategory(cat)}
       >
-        <Text
-          style={[
-            styles.categoryText,
-            isSelected && styles.categoryTextSelected,
-          ]}
-        >
-          {cat.name}
-        </Text>
-      </TouchableOpacity>
-    );
-  })}
+        {cat.name}
+      </Text>
+    </TouchableOpacity>
+  );
+})}
+
 </View>
 {filteredCategories.length > VISIBLE_CATEGORY_COUNT && (
   <TouchableOpacity
@@ -734,6 +720,71 @@ const displayedCategories = showAllCategories
 
           </ScrollView>
         </KeyboardAvoidingView>
+        {/* PRODUCT SELECTION POPUP */}
+{showProductModal && (
+  <View style={styles.modalOverlay}>
+    <View style={styles.modalBox}>
+
+      <Text style={styles.modalTitle}>
+        Select Products ({businessCategory})
+      </Text>
+
+      <ScrollView style={{ maxHeight: 300 }}>
+        {products.map(product => {
+          const checked = selectedProductIds.includes(product.id);
+
+          return (
+            <TouchableOpacity
+              key={product.id}
+              style={styles.productRow}
+              onPress={() => toggleProduct(product.id)}
+            >
+              <Ionicons
+                name={checked ? 'checkbox' : 'square-outline'}
+                size={22}
+                color={checked ? '#2196F3' : '#999'}
+              />
+              <Text style={styles.productText}>{product.name}</Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+
+      {/* OTHER PRODUCTS */}
+      <View style={styles.row}>
+        <Switch value={hasOtherProducts} onValueChange={setHasOtherProducts} />
+        <Text style={{ marginLeft: 8 }}>Add other products</Text>
+      </View>
+
+      {hasOtherProducts && (
+        <TextInput
+          style={styles.input}
+          placeholder="Enter products separated by comma"
+          value={customProductsCsv}
+          onChangeText={setCustomProductsCsv}
+        />
+      )}
+
+      {/* ACTION BUTTONS */}
+      <View style={styles.modalActions}>
+        <TouchableOpacity
+          onPress={() => setShowProductModal(false)}
+        >
+          <Text>Cancel</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.okBtn}
+          onPress={() => setShowProductModal(false)}
+        >
+          <Text style={{ color: '#FFF', fontWeight: '600' }}>OK</Text>
+        </TouchableOpacity>
+      </View>
+
+    </View>
+  </View>
+)}
+
       </SafeAreaView>
     );
   }
@@ -842,6 +893,54 @@ categoryTextSelected: {
   color: '#2196F3',
   fontWeight: '700',
 },
+modalOverlay: {
+  position: 'absolute',
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+  backgroundColor: 'rgba(0,0,0,0.4)',
+  justifyContent: 'center',
+  alignItems: 'center',
+},
+
+modalBox: {
+  width: '90%',
+  backgroundColor: '#FFF',
+  borderRadius: 12,
+  padding: 16,
+},
+
+modalTitle: {
+  fontSize: 16,
+  fontWeight: '700',
+  marginBottom: 12,
+},
+
+productRow: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  paddingVertical: 10,
+},
+
+productText: {
+  marginLeft: 10,
+  fontSize: 14,
+},
+
+modalActions: {
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  marginTop: 16,
+},
+
+okBtn: {
+  backgroundColor: '#2196F3',
+  paddingVertical: 10,
+  paddingHorizontal: 20,
+  borderRadius: 8,
+},
+
 
 
   });

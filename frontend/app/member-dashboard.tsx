@@ -26,7 +26,8 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuthStore } from '../store/authStore';
 import { useLocationStore } from '../store/locationStore';
-import { getCategories } from '../utils/api';
+import { getCategories, getNearbyShops } from '../utils/api';
+
 import { 
   getUserLocationWithDetails, 
   searchLocations, 
@@ -59,14 +60,7 @@ const MEMBER_CAROUSEL_IMAGES = [
 
 
 
-const DUMMY_NEARBY_SHOPS = [
-  { id: '1', name: 'Fresh Mart Grocery', category: 'Grocery', distance: 0.5, rating: 4.5 },
-  { id: '2', name: 'Style Salon & Spa', category: 'Salon', distance: 0.8, rating: 4.7 },
-  { id: '3', name: 'Quick Bites Restaurant', category: 'Restaurant', distance: 1.2, rating: 4.3 },
-  { id: '4', name: 'Wellness Pharmacy', category: 'Pharmacy', distance: 0.3, rating: 4.8 },
-  { id: '5', name: 'Fashion Hub', category: 'Fashion', distance: 1.5, rating: 4.2 },
-  { id: '6', name: 'Tech Store', category: 'Electronics', distance: 2.0, rating: 4.6 },
-];
+
 const SEARCH_ITEMS = [
   'Grocery',
   'Vegetables',
@@ -180,6 +174,10 @@ export default function MemberDashboard() {
   const [lifetimeTotals, setLifetimeTotals] = useState<ApiSummary | null>(null);
   const [isTransactionsLoading, setIsTransactionsLoading] = useState(false);
   const [customerId, setCustomerId] = useState<string | null>(null);
+  // Nearby shops (REAL API)
+const [nearbyShops, setNearbyShops] = useState<any[]>([]);
+const [isNearbyLoading, setIsNearbyLoading] = useState(false);
+
 
   const [showDropdown, setShowDropdown] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
@@ -200,11 +198,13 @@ export default function MemberDashboard() {
   // photo state and uploading indicator
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  
 
   const scrollX = useRef(new Animated.Value(0)).current;
   const categoryScrollX = useRef(new Animated.Value(0)).current;
   const CARD_WIDTH = 172;
-  const TOTAL_WIDTH = DUMMY_NEARBY_SHOPS.length * CARD_WIDTH;
+  
+
   const CATEGORY_CARD_WIDTH = 100;
   const CATEGORY_CARD_GAP = 12;
 
@@ -246,6 +246,21 @@ const carouselRef = useRef<ScrollView | null>(null);
 
   return () => clearInterval(timer);
 }, []);
+
+//  Call nearby shops API when location is available
+useEffect(() => {
+  if (location?.latitude && location?.longitude) {
+    loadNearbyShops();
+  }
+}, [location?.latitude, location?.longitude]);
+
+useEffect(() => {
+  if (nearbyShops.length > 0) {
+    startAutoScroll(nearbyShops.length);
+  }
+}, [nearbyShops.length]);
+
+
 
   useEffect(() => {
     if (categories.length === 0) return;
@@ -416,16 +431,47 @@ const formatUserType = (type: string): string => {
     }
   };
 
-  const startAutoScroll = () => {
-    const animationDuration = TOTAL_WIDTH * 50;
-    Animated.loop(
-      Animated.timing(scrollX, {
-        toValue: -TOTAL_WIDTH,
-        duration: animationDuration,
-        useNativeDriver: true,
-      })
-    ).start();
-  };
+  //  Load nearby shops using real API
+const loadNearbyShops = async () => {
+  // location comes from useLocationStore (already implemented)
+  if (!location?.latitude || !location?.longitude) return;
+
+  try {
+    setIsNearbyLoading(true);
+
+    const response = await getNearbyShops(
+  location.latitude,
+  location.longitude
+);
+
+
+    // Backend response format: { data: [...] }
+    setNearbyShops(Array.isArray(response) ? response : []);
+
+  } catch (error) {
+    console.error('Failed to load nearby shops:', error);
+    setNearbyShops([]);
+  } finally {
+    setIsNearbyLoading(false);
+  }
+};
+
+
+ const startAutoScroll = (count: number) => {
+  if (count <= 1) return;
+
+  const totalWidth = count * CARD_WIDTH;
+  scrollX.setValue(0);
+
+  Animated.loop(
+    Animated.timing(scrollX, {
+      toValue: -totalWidth,
+      duration: totalWidth * 50,
+      useNativeDriver: true,
+    })
+  ).start();
+};
+
 
   const totalBillAmount = lifetimeTotals?.totalBillAmount ?? 0;
   const totalPaidAmount = lifetimeTotals?.totalPaidAmount ?? 0;
@@ -828,7 +874,7 @@ aspect: [1, 1],
               </TouchableOpacity>
               <TouchableOpacity style={styles.actionButton}>
                 <Ionicons name="card" size={24} color="#FF6600" />
-                <Text style={styles.actionText}>Payment</Text>
+                <Text style={styles.actionText}>Grievance</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.actionButton}>
                 <Ionicons name="help-circle" size={24} color="#FF6600" />
@@ -848,7 +894,8 @@ aspect: [1, 1],
                   { transform: [{ translateX: scrollX }] },
                 ]}
               >
-                {[...DUMMY_NEARBY_SHOPS, ...DUMMY_NEARBY_SHOPS].map((shop, index) => (
+                {[...nearbyShops, ...nearbyShops].map((shop, index) => (
+
                   <TouchableOpacity
                     key={`${shop.id}-${index}`}
                     style={styles.shopCard}
@@ -864,22 +911,29 @@ aspect: [1, 1],
                     </View>
 
                     <Text style={styles.shopCardName} numberOfLines={1}>
-                      {shop.name}
-                    </Text>
+  {shop.shopName || shop.merchantName || 'Shop'}
+</Text>
 
-                    <Text style={styles.shopCardCategory}>{shop.category}</Text>
+<Text style={styles.shopCardCategory}>
+  {shop.businessCategory || 'General'}
+</Text>
 
-                    <View style={styles.shopCardFooter}>
-                      <View style={styles.ratingContainer}>
-                        <Ionicons name="star" size={14} color="#FFA500" />
-                        <Text style={styles.ratingText}>{shop.rating}</Text>
-                      </View>
+<View style={styles.shopCardFooter}>
+  <View style={styles.ratingContainer}>
+    <Ionicons name="star" size={14} color="#FFA500" />
+    <Text style={styles.ratingText}>
+      {shop.rating ?? '4.0'}
+    </Text>
+  </View>
 
-                      <View style={styles.distanceContainer}>
-                        <Ionicons name="location" size={14} color="#666" />
-                        <Text style={styles.distanceText}>{shop.distance} km</Text>
-                      </View>
-                    </View>
+  <View style={styles.distanceContainer}>
+    <Ionicons name="location" size={14} color="#666" />
+    <Text style={styles.distanceText}>
+      {shop.distance ? `${shop.distance} km` : 'Nearby'}
+    </Text>
+  </View>
+</View>
+
                   </TouchableOpacity>
                 ))}
               </Animated.View>

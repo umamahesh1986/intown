@@ -7,16 +7,15 @@ import {
   Pressable,
   ActivityIndicator,
 } from 'react-native';
-import { useState, useRef, useEffect } from 'react';
-
+import { useState, useRef } from 'react';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { searchByProductNames } from '../utils/api';
+import { searchProducts } from '../utils/api';
+
 import { getUserLocation } from '../utils/location';
 
 type SearchResult = {
   id?: string;
-  name?: string;
   productName?: string;
 };
 
@@ -27,75 +26,42 @@ export default function Search() {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [categoryResults, setCategoryResults] = useState<any[]>([]);
 
-
-  // ✅ DEBOUNCE REF (PRODUCTION SAFE)
+  // ✅ DEBOUNCE
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchSearchResults = async (text: string) => {
-    if (!text.trim()) {
-      setResults([]);
-      return;
-    }
+  if (!text.trim()) {
+    setResults([]);
+    return;
+  }
 
-    setLoading(true);
+  setLoading(true);
 
-    try {
-      const location = await getUserLocation();
-      if (!location) {
-        setResults([]);
-        return;
-      }
-
-      const data = await searchByProductNames(
-        text,
-        location.latitude,
-        location.longitude
-      );
-
-      setResults(Array.isArray(data) ? data : []);
-    } catch {
-      setResults([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-  const fetchCategorySuggestions = async () => {
   try {
-    const res = await fetch(
-      'https://devapi.intownlocal.com/IN/categories'
-    );
-    const json = await res.json();
-
-    const categories = Array.isArray(json)
-      ? json
-      : Array.isArray(json?.data)
-      ? json.data
-      : [];
-
-    setCategoryResults(categories);
+    const data = await searchProducts(text);
+    setResults(Array.isArray(data) ? data : []);
   } catch (error) {
-    console.error('Failed to fetch categories', error);
-    setCategoryResults([]);
+    console.error('Product search failed', error);
+    setResults([]);
+  } finally {
+    setLoading(false);
   }
 };
-useEffect(() => {
-  fetchCategorySuggestions();
-}, []);
 
 
+    
 
   return (
     <Pressable style={{ flex: 1 }} onPress={() => setShowSuggestions(false)}>
       <View style={styles.container}>
-        {/* HEADER WITH BACK ARROW */}
-<View style={styles.header}>
-  <TouchableOpacity onPress={() => router.back()}>
-    <Ionicons name="arrow-back" size={24} color="#000" />
-  </TouchableOpacity>
-</View>
 
+        {/* HEADER */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()}>
+            <Ionicons name="arrow-back" size={24} color="#000" />
+          </TouchableOpacity>
+        </View>
 
         {/* SEARCH INPUT */}
         <View style={styles.searchBox}>
@@ -104,25 +70,31 @@ useEffect(() => {
             placeholder="Search products..."
             value={searchText}
             style={styles.input}
-    onChangeText={(text) => {
-  setSearchText(text);
-  setShowSuggestions(true);
+            onChangeText={(text) => {
+              setSearchText(text);
+              setShowSuggestions(true);
 
-  // ❌ Clear previous timer
-  if (debounceTimer.current) {
-    clearTimeout(debounceTimer.current);
-  }
+              if (debounceTimer.current) {
+                clearTimeout(debounceTimer.current);
+              }
 
-  // ✅ Call product search API after user stops typing
-  debounceTimer.current = setTimeout(() => {
-    fetchSearchResults(text);
-  }, 500);
-}}
+              debounceTimer.current = setTimeout(() => {
+                fetchSearchResults(text);
+              }, 500);
+            }}
+            onSubmitEditing={() => {
+              if (!searchText.trim()) return;
 
-onSubmitEditing={() => {
-  fetchSearchResults(searchText);
-}}
+              setShowSuggestions(false);
 
+              router.push({
+                pathname: '/member-shop-list',
+                params: {
+                  query: searchText,
+                  source: 'free-text',
+                },
+              });
+            }}
           />
         </View>
 
@@ -133,40 +105,39 @@ onSubmitEditing={() => {
           </View>
         )}
 
-        {/* SUGGESTIONS */}
-        {showSuggestions && categoryResults.length > 0 && (
-
+        {/* PRODUCT SUGGESTIONS */}
+        {showSuggestions && results.length > 0 && (
           <View style={styles.suggestionBox}>
-            {categoryResults
-  .filter(cat =>
-    cat.name
-      ?.toLowerCase()
-      .startsWith(searchText.toLowerCase())
-  )
-  .map((cat, index) => (
-    <TouchableOpacity
-      key={cat.id ?? index}
-      style={styles.suggestionItem}
-      onPress={() => {
-        setShowSuggestions(false);
-        setSearchText('');
+            {results.map((item, index) => (
+              <TouchableOpacity
+                key={item.id ?? index}
+                style={styles.suggestionItem}
+              onPress={() => {
+  const value =
+    item.productName ||
+    (item as any).name ||
+    '';
 
-        router.push({
-          pathname: '/member-shop-list',
-          params: {
-            category: cat.name,
-          },
-        });
-      }}
-    >
-      <Ionicons name="grid" size={16} color="#666" />
-      <Text style={styles.suggestionText}>{cat.name}</Text>
-    </TouchableOpacity>
-  ))}
+  setSearchText(value);
+  setShowSuggestions(false);
 
+  router.push({
+    pathname: '/member-shop-list',
+    params: {
+      query: value,
+      source: 'product',
+    },
+  });
+}}
 
+              >
+                <Ionicons name="search" size={16} color="#666" />
+                <Text style={styles.suggestionText}>
+  {item.productName || (item as any).name}
+</Text>
 
-          
+              </TouchableOpacity>
+            ))}
           </View>
         )}
 
@@ -179,6 +150,11 @@ const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 16,
     marginTop: 12,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
   },
   searchBox: {
     flexDirection: 'row',
@@ -212,10 +188,4 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     fontSize: 14,
   },
-  header: {
-  flexDirection: 'row',
-  alignItems: 'center',
-  marginBottom: 10,
-},
-
 });
