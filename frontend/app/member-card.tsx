@@ -6,27 +6,71 @@ import { useRouter } from 'expo-router';
 import { useAuthStore } from '../store/authStore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useState } from 'react';
+import { getCustomerProfile } from '../utils/api';
+
 
 export default function MemberCardScreen() {
   const { user } = useAuthStore();
   const router = useRouter();
+  const customerId = (user as any)?.customerId;
+
+
 
   const [photoUri, setPhotoUri] = useState<string | null>(null);
+  const [profile, setProfile] = useState<{
+  id: number;
+  name: string;
+  validity: string;
+  image: string;
+} | null>(null);
+
+const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    (async () => {
-      const saved = await AsyncStorage.getItem('member_photo_uri');
-      if (saved) setPhotoUri(saved);
-    })();
-  }, []);
+  const fetchProfile = async () => {
+    try {
+      if (!customerId) return;
+
+      const res = await fetch(
+        `https://devapi.intownlocal.com/IN/customer/${customerId}/profile`
+      );
+
+      if (!res.ok) {
+        throw new Error('Profile API failed');
+      }
+
+      const data = await res.json();
+
+      console.log('Profile API response:', data); // ← should log John Doe
+      setProfile(data); // ✅ DIRECTLY SET (no .data)
+
+      if (data.image) {
+        setPhotoUri(data.image);
+      }
+    } catch (err) {
+      console.error('Profile fetch error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchProfile();
+}, [customerId]);
+
+
 
   const plan =
     (user as any)?.membershipPlan === 'IT Max Plus'
       ? 'IT Max Plus'
       : 'IT Max';
 
-  const memberId = (user as any)?.membershipId || 'ITM-9876-1234';
-  const validTill = (user as any)?.membershipValidTill || '31 Dec 2025';
+  if (loading) {
+  return (
+    <SafeAreaView style={styles.container}>
+      <Text>Loading member card...</Text>
+    </SafeAreaView>
+  );
+}
 
   return (
     <SafeAreaView style={styles.container}>
@@ -51,22 +95,27 @@ export default function MemberCardScreen() {
           )}
         </View>
 
-        <Text style={styles.name}>{user?.name ?? 'Member'}</Text>
+        <Text style={styles.name}>{profile?.name ?? 'Member'}</Text>
 
         <View style={styles.row}>
           <Text style={styles.label}>Member ID</Text>
-          <Text style={styles.value}>{memberId}</Text>
+          <Text style={styles.value}>{profile?.id ?? '-'}</Text>
         </View>
 
         <View style={styles.row}>
           <Text style={styles.label}>Plan</Text>
-          <Text style={styles.value}>{plan}</Text>
+          <Text style={styles.value}>INtown Member</Text>
         </View>
 
         <View style={styles.row}>
           <Text style={styles.label}>Valid Till</Text>
-          <Text style={styles.value}>{validTill}</Text>
-        </View>
+          <Text style={styles.value}>
+            {profile?.validity
+              ? new Date(profile.validity).toDateString()
+              : '-'}
+          </Text>
+</View>
+
       </View>
     </SafeAreaView>
   );

@@ -25,7 +25,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
 import { useLocationStore, LocationDetails } from '../store/locationStore';
-import { getPlans, getCategories } from '../utils/api';
+import { getPlans, getCategories, getNearbyShops } from '../utils/api';
+
 import {
   getUserLocationWithDetails,
   searchLocations,
@@ -154,6 +155,9 @@ export default function UserDashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [plans, setPlans] = useState<Plan[]>([]);
   const [categories, setCategories] = useState<Category[]>(DUMMY_CATEGORIES);
+  // Nearby shops (real API)
+const [nearbyShops, setNearbyShops] = useState<any[]>([]);
+
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
   const [monthlySpend, setMonthlySpend] = useState('10000');
   const [showDropdown, setShowDropdown] = useState(false);
@@ -190,14 +194,13 @@ export default function UserDashboard() {
   const CATEGORY_CARD_WIDTH = 100;
   const CATEGORY_CARD_GAP = 12;
   const CARD_WIDTH = 172; // 160 + 12 (margin)
-  const TOTAL_WIDTH = DUMMY_NEARBY_SHOPS.length * CARD_WIDTH;
+  
 
 
 
 
   useEffect(() => {
     loadData();
-    startAutoScroll();
     loadUserType();
     requestLocationOnMount();
 
@@ -214,6 +217,19 @@ export default function UserDashboard() {
 
     return () => clearInterval(timer);
   }, []);
+  useEffect(() => {
+  if (location?.latitude && location?.longitude) {
+    loadNearbyShops();
+  }
+}, [location?.latitude, location?.longitude]);
+
+
+useEffect(() => {
+  if (nearbyShops.length > 0) {
+    startAutoScroll(nearbyShops.length);
+  }
+}, [nearbyShops.length]);
+
 
   useEffect(() => {
     if (categories.length === 0) return;
@@ -292,17 +308,21 @@ export default function UserDashboard() {
     dropdownAnim.setValue(0);
   }, [user]);
 
-  const startAutoScroll = () => {
-    const animationDuration = TOTAL_WIDTH * 50;
+ const startAutoScroll = (count: number) => {
+  if (count <= 1) return;
 
-    Animated.loop(
-      Animated.timing(scrollX, {
-        toValue: -TOTAL_WIDTH,
-        duration: animationDuration,
-        useNativeDriver: true,
-      })
-    ).start();
-  };
+  const totalWidth = count * CARD_WIDTH;
+  scrollX.setValue(0);
+
+  Animated.loop(
+    Animated.timing(scrollX, {
+      toValue: -totalWidth,
+      duration: totalWidth * 50,
+      useNativeDriver: true,
+    })
+  ).start();
+};
+
 
   const loadData = async () => {
     try {
@@ -315,6 +335,25 @@ export default function UserDashboard() {
       setCategories(DUMMY_CATEGORIES);
     }
   };
+  //  Load nearby shops using location only
+const loadNearbyShops = async () => {
+  try {
+    // location already comes from store
+    if (!location?.latitude || !location?.longitude) return;
+
+    const response = await getNearbyShops(
+      location.latitude,
+      location.longitude
+    );
+
+    // backend returns ARRAY, not { data: [] }
+    setNearbyShops(Array.isArray(response) ? response : []);
+  } catch (error) {
+    console.error('Failed to load nearby shops', error);
+    setNearbyShops([]);
+  }
+};
+
 
   const calculateSavings = () => {
     const spend = parseFloat(monthlySpend) || 0;
@@ -833,7 +872,8 @@ export default function UserDashboard() {
                   },
                 ]}
               >
-                {[...DUMMY_NEARBY_SHOPS, ...DUMMY_NEARBY_SHOPS].map((shop, index) => (
+                {[...nearbyShops, ...nearbyShops].map((shop, index) => (
+
                   <TouchableOpacity
                     key={`${shop.id}-${index}`}
                     style={styles.shopCard}
@@ -842,13 +882,20 @@ export default function UserDashboard() {
                     <View style={styles.shopImagePlaceholder}>
                       <Ionicons name="storefront" size={40} color="#FF6600" />
                     </View>
-                    <Text style={styles.shopCardName} numberOfLines={1}>
-                      {shop.name}
-                    </Text>
-                    <Text style={styles.shopCardCategory}>{shop.category}</Text>
+                   <Text style={styles.shopCardName} numberOfLines={1}>
+  {shop.shopName}
+</Text>
+                   <Text style={styles.shopCardCategory}>
+  {shop.businessCategory}
+</Text>
                     <View style={styles.shopCardDistance}>
                       <Ionicons name="location" size={14} color="#666666" />
-                      <Text style={styles.shopCardDistanceText}>{shop.distance} km</Text>
+                      <Text style={styles.distanceText}>
+  {typeof shop.distance === 'number'
+    ? `${shop.distance.toFixed(2)} km`
+    : 'Nearby'}
+</Text>
+
                     </View>
                   </TouchableOpacity>
                 ))}
@@ -1820,5 +1867,11 @@ const styles = StyleSheet.create({
     color: '#666',
     marginTop: 2,
   },
+  distanceText: {
+  fontSize: 12,
+  color: '#666666',
+  marginLeft: 4,
+},
+
 
 });

@@ -481,24 +481,25 @@ export const determineUserRole = (response: UserSearchResponse): RoleInfo => {
 
 // 🔍 SEARCH PRODUCTS / CATEGORIES (REAL API)
 export const searchByProductNames = async (
-  productNames: string,
-  customerLatitude: number,
-  customerLongitude: number
+  productName: string,
+  latitude: number,
+  longitude: number
 ) => {
-  const url = `https://devapi.intownlocal.com/IN/search/by-product-names` +
-    `?productNames=${encodeURIComponent(productNames)}` +
-    `&customerLatitude=${customerLatitude}` +
-    `&customerLongitude=${customerLongitude}`;
+  const url =
+    `https://devapi.intownlocal.com/IN/search/by-product-names` +
+    `?productNames=${encodeURIComponent(productName)}` +
+    `&customerLatitude=${latitude}` +
+    `&customerLongitude=${longitude}`;
 
-  const res = await fetch(url, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  });
+  const res = await fetch(url);
+
+  if (!res.ok) {
+    throw new Error('Search by product failed');
+  }
 
   return res.json();
 };
+
 
 
 
@@ -508,7 +509,7 @@ export const searchByProductNames = async (
 ================================ */
 
 export const getCategories = async () => {
-  const response = await fetch(`${BASE_URL}/IN/categories`);
+  const response = await fetch(`${BASE_URL}/IN/categories/`);
 
   if (!response.ok) {
     throw new Error('Failed to fetch categories');
@@ -531,4 +532,62 @@ export const getProductsByCategory = async (categoryId: number) => {
   }
 
   return response.json();
+};
+export const getCustomerProfile = async (customerId: number) => {
+  const res = await fetch(
+    `https://devapi.intownlocal.com/IN/customer/${customerId}/profile`,
+    {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        // Add Authorization header if backend requires it
+        // Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  if (!res.ok) {
+    throw new Error('Failed to fetch customer profile');
+  }
+
+  return res.json();
+};
+
+
+
+export const searchProducts = async (text: string) => {
+  const res = await fetch(
+    'https://devapi.intownlocal.com/IN/products/'
+  );
+
+  if (!res.ok) {
+    throw new Error('Products API failed');
+  }
+
+  const data = await res.json();
+
+  // 🔍 filter locally for auto-suggestions
+  return Array.isArray(data)
+    ? data.filter((item: any) =>
+        (item.productName || item.name || '')
+          .toLowerCase()
+          .includes(text.toLowerCase())
+      )
+    : [];
+};
+
+/* ===============================
+   Near-by-shops   API
+================================ */
+
+export const getNearbyShops = async (
+  latitude: number,
+  longitude: number
+) => {
+  const url = `https://devapi.intownlocal.com/IN/search/by-product-names?customerLatitude=${latitude}&customerLongitude=${longitude}`;
+
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('Failed to fetch nearby shops');
+
+  return res.json();
 };

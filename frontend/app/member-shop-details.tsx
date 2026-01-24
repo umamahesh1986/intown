@@ -77,7 +77,7 @@ export default function MemberShopDetails() {
         </TouchableOpacity>
         <TouchableOpacity style={styles.payBtn} onPress={() => setShowPayment(true)}>
           <Ionicons name="card" size={20} color="#FFF" />
-          <Text style={styles.payBtnText}>Pay Now</Text>
+          <Text style={styles.payBtnText}>Payment Process</Text>
         </TouchableOpacity>
       </View>
 
