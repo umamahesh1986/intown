@@ -9,6 +9,7 @@ import {
   Animated,
   Dimensions,
   Image,
+  Easing,
   Alert,
   ActivityIndicator,
   Modal,
@@ -301,28 +302,25 @@ export default function MemberDashboard() {
     'Pharmacy',
     'Electronics',];
   const placeholderOpacity = placeholderAnim.interpolate({
-    inputRange: [-16, 0, 16],
-    outputRange: [0, 1, 0],
+    inputRange: [0, 0.2, 0.8, 1],
+    outputRange: [0, 1, 1, 0],
+  });
+  const placeholderTranslateY = placeholderAnim.interpolate({
+    inputRange: [0, 0.2, 0.8, 1],
+    outputRange: [16, 0, 0, -16],
   });
 
   useEffect(() => {
     let isMounted = true;
 
     const animatePlaceholder = () => {
-      placeholderAnim.setValue(16);
-      Animated.sequence([
-        Animated.timing(placeholderAnim, {
-          toValue: 0,
-          duration: 250,
-          useNativeDriver: true,
-        }),
-        Animated.delay(1200),
-        Animated.timing(placeholderAnim, {
-          toValue: -16,
-          duration: 250,
-          useNativeDriver: true,
-        }),
-      ]).start(({ finished }) => {
+      placeholderAnim.setValue(0);
+      Animated.timing(placeholderAnim, {
+        toValue: 1,
+        duration: 1800,
+        easing: Easing.inOut(Easing.cubic),
+        useNativeDriver: true,
+      }).start(({ finished }) => {
         if (!finished || !isMounted) return;
         setPlaceholderIndex((prev) => (prev + 1) % placeholderItems.length);
         animatePlaceholder();
@@ -761,7 +759,7 @@ export default function MemberDashboard() {
                     <Animated.Text
                       style={[
                         styles.animatedPlaceholderWord,
-                        { opacity: placeholderOpacity, transform: [{ translateY: placeholderAnim }] },
+                        { opacity: placeholderOpacity, transform: [{ translateY: placeholderTranslateY }] },
                       ]}
                     >
                       {placeholderItems[placeholderIndex]}
@@ -1315,8 +1313,8 @@ const styles = StyleSheet.create({
   },
   animatedPlaceholderWord: {
     ...FontStylesWithFallback.body,
-    color: '#333',
-    fontWeight: '600',
+    color: '#ff6600',
+    fontWeight: '500',
   },
 
   section: { padding: 16 },
