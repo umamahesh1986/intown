@@ -70,7 +70,12 @@ export default function MemberNavigate() {
         <Text style={styles.payButtonText}>Pay at Shop</Text>
       </TouchableOpacity>
 
-      <PaymentModal visible={showPayment} onClose={() => setShowPayment(false)} onSuccess={handlePaymentSuccess} />
+      <PaymentModal
+        visible={showPayment}
+        onClose={() => setShowPayment(false)}
+        onSuccess={handlePaymentSuccess}
+        merchantId={shopId}
+      />
     </SafeAreaView>
   );
 }

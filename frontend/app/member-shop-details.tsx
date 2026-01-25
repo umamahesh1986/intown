@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image } from 'react-native';
 import { useState } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -6,24 +6,116 @@ import { Ionicons } from '@expo/vector-icons';
 import PaymentModal from '../components/PaymentModal';
 
 const SHOP_DATA: any = {
-  '1': { name: 'Fresh Mart Grocery', rating: 4.5, category: 'Grocery', distance: 0.5 },
-  '2': { name: 'Style Salon & Spa', rating: 4.7, category: 'Salon', distance: 0.8 },
-  '3': { name: 'Quick Bites Restaurant', rating: 4.3, category: 'Restaurant', distance: 1.2 },
-  '4': { name: 'Wellness Pharmacy', rating: 4.8, category: 'Pharmacy', distance: 0.3 },
-  '5': { name: 'Fashion Hub', rating: 4.2, category: 'Fashion', distance: 1.5 },
-  '6': { name: 'Tech Store', rating: 4.6, category: 'Electronics', distance: 2.0 },
+  '1': {
+    name: 'Fresh Mart Grocery',
+    rating: 4.5,
+    category: 'Grocery',
+    distance: 0.5,
+    phone: '98765 43210',
+    address: 'Market Road, Sector 12',
+    offers: '10% instant savings on all purchases',
+  },
+  '2': {
+    name: 'Style Salon & Spa',
+    rating: 4.7,
+    category: 'Salon',
+    distance: 0.8,
+    phone: '91234 56789',
+    address: 'Main Street, Block B',
+    offers: '15% off on first visit',
+  },
+  '3': {
+    name: 'Quick Bites Restaurant',
+    rating: 4.3,
+    category: 'Restaurant',
+    distance: 1.2,
+    phone: '99887 66554',
+    address: 'Food Plaza, Lane 3',
+    offers: 'Free dessert on orders above ₹499',
+  },
+  '4': {
+    name: 'Wellness Pharmacy',
+    rating: 4.8,
+    category: 'Pharmacy',
+    distance: 0.3,
+    phone: '90123 45678',
+    address: 'Health Park, Sector 4',
+    offers: '5% discount on medicines',
+  },
+  '5': {
+    name: 'Fashion Hub',
+    rating: 4.2,
+    category: 'Fashion',
+    distance: 1.5,
+    phone: '90909 12345',
+    address: 'Mall Road, 2nd Floor',
+    offers: 'Buy 1 Get 1 on select items',
+  },
+  '6': {
+    name: 'Tech Store',
+    rating: 4.6,
+    category: 'Electronics',
+    distance: 2.0,
+    phone: '95555 00011',
+    address: 'Tech Street, Building A',
+    offers: 'Up to 20% off on accessories',
+  },
 };
 
 export default function MemberShopDetails() {
   const router = useRouter();
-  const params = useLocalSearchParams();
-  const shopId = params.shopId as string;
-  const shop = SHOP_DATA[shopId] || SHOP_DATA['1'];
+  const params = useLocalSearchParams<{ shopId?: string; shop?: string }>();
+  const shopId = params.shopId as string | undefined;
+  const shopFromParams = (() => {
+    if (!params.shop) return null;
+    try {
+      return JSON.parse(params.shop);
+    } catch {
+      return null;
+    }
+  })();
+  const shopFallback =
+    (shopId && SHOP_DATA[shopId]) || SHOP_DATA['1'];
+  const shop = shopFromParams || shopFallback;
   const [showPayment, setShowPayment] = useState(false);
 
   const handlePaymentSuccess = (amount: number, savings: number, method: string) => {
     console.log('Payment successful:', { amount, savings, method });
   };
+
+  const getCategoryBadge = (category?: string) => {
+    const value = (category || '').toLowerCase();
+    if (value.includes('grocery') || value.includes('kirana')) {
+      return { label: 'Grocery', bg: '#E3F2FD', color: '#1565C0' };
+    }
+    if (value.includes('salon') || value.includes('spa')) {
+      return { label: 'Salon', bg: '#FCE4EC', color: '#C2185B' };
+    }
+    if (value.includes('restaurant') || value.includes('food')) {
+      return { label: 'Restaurant', bg: '#FFF3E0', color: '#E65100' };
+    }
+    if (value.includes('pharmacy') || value.includes('medical')) {
+      return { label: 'Pharmacy', bg: '#E8F5E9', color: '#2E7D32' };
+    }
+    if (value.includes('fashion') || value.includes('apparel')) {
+      return { label: 'Fashion', bg: '#F3E5F5', color: '#6A1B9A' };
+    }
+    if (value.includes('electronics') || value.includes('tech')) {
+      return { label: 'Electronics', bg: '#E0F7FA', color: '#006064' };
+    }
+    return { label: category || 'General', bg: '#ECEFF1', color: '#455A64' };
+  };
+
+  const badge = getCategoryBadge(shop.category || shop.businessCategory);
+  const ratingValue =
+    typeof shop.rating === 'number' ? shop.rating : Number(shop.rating) || 0;
+  const addressText =
+    shop.address ||
+    shop.fullAddress ||
+    [shop.area, shop.city].filter(Boolean).join(', ') ||
+    'Not available';
+  const phoneText = shop.phone || shop.phoneNumber || shop.contactNumber || 'Not available';
+  const offerText = shop.offers || shop.offer || 'No active offers';
 
   return (
     <SafeAreaView style={styles.container}>
@@ -37,28 +129,64 @@ export default function MemberShopDetails() {
 
       <ScrollView>
         <View style={styles.shopImage}>
-          <Ionicons name="storefront" size={100} color="#FF6600" />
+          {shop.image || shop.s3ImageUrl ? (
+            <Image
+              source={{ uri: shop.image || shop.s3ImageUrl }}
+              style={styles.shopImageFull}
+            />
+          ) : (
+            <Ionicons name="storefront" size={100} color="#FF6600" />
+          )}
         </View>
 
         <View style={styles.content}>
-          <Text style={styles.shopName}>{shop.name}</Text>
+          <View style={styles.titleRow}>
+            <Text style={styles.shopName}>{shop.name}</Text>
+            <View style={[styles.badge, { backgroundColor: badge.bg }]}>
+              <Text style={[styles.badgeText, { color: badge.color }]}>
+                {badge.label}
+              </Text>
+            </View>
+          </View>
           <View style={styles.ratingContainer}>
             {[1,2,3,4,5].map(i => (
-              <Ionicons key={i} name={i <= shop.rating ? "star" : "star-outline"} size={20} color="#FFA500" />
+              <Ionicons key={i} name={i <= ratingValue ? "star" : "star-outline"} size={20} color="#FFA500" />
             ))}
-            <Text style={styles.ratingText}>{shop.rating}</Text>
+            <Text style={styles.ratingText}>{ratingValue.toFixed(1)}</Text>
           </View>
 
           <View style={styles.infoCard}>
             <View style={styles.infoRow}>
               <Ionicons name="pricetag" size={20} color="#666" />
               <Text style={styles.infoLabel}>Category:</Text>
-              <Text style={styles.infoValue}>{shop.category}</Text>
+              <Text style={styles.infoValue}>{shop.category || 'General'}</Text>
             </View>
             <View style={styles.infoRow}>
               <Ionicons name="location" size={20} color="#666" />
               <Text style={styles.infoLabel}>Distance:</Text>
-              <Text style={styles.infoValue}>{shop.distance} km</Text>
+              <Text style={styles.infoValue}>
+                {shop.distance != null ? `${Number(shop.distance).toFixed(1)} km` : 'Nearby'}
+              </Text>
+            </View>
+            <View style={styles.infoRow}>
+              <Ionicons name="star" size={20} color="#FFA500" />
+              <Text style={styles.infoLabel}>Rating:</Text>
+              <Text style={styles.infoValue}>{ratingValue.toFixed(1)} / 5</Text>
+            </View>
+            <View style={styles.infoRow}>
+              <Ionicons name="call" size={20} color="#666" />
+              <Text style={styles.infoLabel}>Phone:</Text>
+              <Text style={styles.infoValue}>{phoneText}</Text>
+            </View>
+            <View style={styles.infoRow}>
+              <Ionicons name="pin" size={20} color="#666" />
+              <Text style={styles.infoLabel}>Address:</Text>
+              <Text style={styles.infoValue}>{addressText}</Text>
+            </View>
+            <View style={styles.infoRow}>
+              <Ionicons name="gift" size={20} color="#666" />
+              <Text style={styles.infoLabel}>Offers:</Text>
+              <Text style={styles.infoValue}>{offerText}</Text>
             </View>
           </View>
 
@@ -81,7 +209,12 @@ export default function MemberShopDetails() {
         </TouchableOpacity>
       </View>
 
-      <PaymentModal visible={showPayment} onClose={() => setShowPayment(false)} onSuccess={handlePaymentSuccess} />
+      <PaymentModal
+        visible={showPayment}
+        onClose={() => setShowPayment(false)}
+        onSuccess={handlePaymentSuccess}
+        merchantId={shop.merchantId ?? shop.id}
+      />
     </SafeAreaView>
   );
 }
@@ -92,8 +225,12 @@ const styles = StyleSheet.create({
   backButton: {width:40, height:40, justifyContent:'center'},
   headerTitle: {fontSize:18, fontWeight:'600', color:'#1A1A1A'},
   shopImage: {width:'100%', height:250, backgroundColor:'#FFF3E0', alignItems:'center', justifyContent:'center'},
+  shopImageFull: { width: '100%', height: '100%', resizeMode: 'cover' },
   content: {padding:16},
-  shopName: {fontSize:28, fontWeight:'bold', color:'#1A1A1A', marginBottom:12},
+  titleRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 8 },
+  shopName: {fontSize:28, fontWeight:'bold', color:'#1A1A1A'},
+  badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 },
+  badgeText: { fontSize: 12, fontWeight: '700' },
   ratingContainer: {flexDirection:'row', alignItems:'center', marginBottom:16},
   ratingText: {fontSize:18, fontWeight:'600', color:'#666', marginLeft:8},
   infoCard: {backgroundColor:'#FFF', borderRadius:12, padding:16, marginBottom:16},

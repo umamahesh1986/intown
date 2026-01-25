@@ -81,8 +81,11 @@ export default function MemberShopList() {
     fetchRealShops();
   }, [query]);
 
-  const handleViewShop = (shopId: string) => {
-    router.push({ pathname: '/member-shop-details', params: { shopId } });
+  const handleViewShop = (shop: any) => {
+    router.push({
+      pathname: '/member-shop-details',
+      params: { shopId: shop.id, shop: JSON.stringify(shop) },
+    });
   };
 
   return (
@@ -122,7 +125,9 @@ export default function MemberShopList() {
               {/* RIGHT: INFO */}
               <View style={styles.shopInfoRight}>
                 <View style={styles.shopInfoRightnew}>
-                  <Text style={styles.shopName}>{item.name}</Text>
+                  <Text style={styles.shopName} numberOfLines={1}>
+                    {item.name}
+                  </Text>
                   <Text style={styles.categoryText}>{item.category}</Text>
                 </View>
                 <View style={styles.distanceRow}>
@@ -139,7 +144,7 @@ export default function MemberShopList() {
             <View style={styles.buttonContainer}>
               <TouchableOpacity
                 style={styles.viewButton}
-                onPress={() => handleViewShop(item.id)}
+                onPress={() => handleViewShop(item)}
               >
                 <Text style={styles.viewButtonText}>View</Text>
               </TouchableOpacity>
@@ -186,7 +191,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   shopInfo: { marginBottom: 12 },
-  shopName: { fontSize: 18, fontWeight: 'bold', color: '#1A1A1A', marginBottom: 6, maxWidth: 210, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+  shopName: { fontSize: 18, fontWeight: 'bold', color: '#1A1A1A', marginBottom: 6, maxWidth: 210 },
   ratingRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
   distanceText: { fontSize: 14, color: '#ff6600', marginLeft: 4 }, 
   categoryText: { fontSize: 14, color: '#999' },
