@@ -24,10 +24,34 @@ const DUMMY_SHOPS = [
 
 export default function MemberShopList() {
   const router = useRouter();
-  const { category, query } = useLocalSearchParams<{ category?: string; query?: string }>();
+  const { categoryId, categoryName, query } = useLocalSearchParams<{
+  categoryId?: string;
+  categoryName?: string;
+  query?: string;
+}>();
+
   const { location } = useLocationStore();
 
   const [shops, setShops] = useState<any[]>([]);
+
+  const fetchShopsByCategory = async () => {
+  try {
+    if (!categoryId || !location?.latitude || !location?.longitude) return;
+
+    const res = await fetch(
+      `https://devapi.intownlocal.com/IN/search/by-product-names?categoryId=${categoryId}&customerLatitude=${location.latitude}&customerLongitude=${location.longitude}`
+    );
+
+    const data = await res.json();
+
+    // ✅ YOUR API RETURNS ARRAY DIRECTLY
+    setShops(Array.isArray(data) ? data : []);
+  } catch (error) {
+    console.error('Failed to fetch category shops', error);
+    setShops([]);
+  }
+};
+
 
   // 🔹 PRODUCT SEARCH (EXISTING LOGIC + FALLBACK)
   const fetchRealShops = async () => {
@@ -78,8 +102,13 @@ export default function MemberShopList() {
 
   // 🔹 RUN SEARCH WHEN QUERY CHANGES
   useEffect(() => {
-    fetchRealShops();
-  }, [query]);
+  if (categoryId) {
+    fetchShopsByCategory();
+  } else if (query) {
+    fetchRealShops(); // existing product search logic
+  }
+}, [categoryId, query]);
+
 
   const handleViewShop = (shop: any) => {
     router.push({
@@ -94,9 +123,10 @@ export default function MemberShopList() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#1A1A1A" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>
-          {category || query || 'Nearby Shops'}
-        </Text>
+       <Text style={styles.headerTitle}>
+  {categoryName || query || 'Nearby Shops'}
+</Text>
+
         <View style={styles.placeholder} />
       </View>
 
@@ -126,9 +156,13 @@ export default function MemberShopList() {
               <View style={styles.shopInfoRight}>
                 <View style={styles.shopInfoRightnew}>
                   <Text style={styles.shopName} numberOfLines={1}>
-                    {item.name}
-                  </Text>
-                  <Text style={styles.categoryText}>{item.category}</Text>
+  {item.shopName || item.name || 'Shop'}
+</Text>
+
+                 <Text style={styles.categoryText}>
+  {item.businessCategory || item.category || 'General'}
+</Text>
+
                 </View>
                 <View style={styles.distanceRow}>
                   <Ionicons name="location" size={14} color="#ff6600" />
