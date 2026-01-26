@@ -25,6 +25,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuthStore } from '../store/authStore';
 import { useLocationStore } from '../store/locationStore';
 import Footer from '../components/Footer';
+import { getNearbyShops } from '../utils/api';
 import { 
   getUserLocationWithDetails, 
   searchLocations, 
@@ -109,14 +110,6 @@ interface TabProps {
   onPress: () => void;
 }
 
-const DUMMY_NEARBY_SHOPS = [
-  { id: '1', name: 'Fresh Mart Grocery', category: 'Grocery', distance: 0.5, rating: 4.5 },
-  { id: '2', name: 'Style Salon & Spa', category: 'Salon', distance: 0.8, rating: 4.7 },
-  { id: '3', name: 'Quick Bites Restaurant', category: 'Restaurant', distance: 1.2, rating: 4.3 },
-  { id: '4', name: 'Wellness Pharmacy', category: 'Pharmacy', distance: 0.3, rating: 4.8 },
-  { id: '5', name: 'Fashion Hub', category: 'Fashion', distance: 1.5, rating: 4.2 },
-  { id: '6', name: 'Tech Store', category: 'Electronics', distance: 2.0, rating: 4.6 },
-];
 
 /* ===============================
    TAB BUTTON COMPONENT
@@ -221,6 +214,8 @@ export default function DualDashboard() {
   }>({ today: null, thisMonth: null, thisYear: null });
   const [isCustomerLoading, setIsCustomerLoading] = useState(false);
   const [isMerchantLoading, setIsMerchantLoading] = useState(false);
+  const [nearbyShops, setNearbyShops] = useState<any[]>([]);
+  const [isNearbyLoading, setIsNearbyLoading] = useState(false);
 
   // Location store
   const location = useLocationStore((state) => state.location);
@@ -242,6 +237,9 @@ export default function DualDashboard() {
   const contentScrollRef = useRef<ScrollView | null>(null);
   const [showSupportModal, setShowSupportModal] = useState(false);
   const [showOffersModal, setShowOffersModal] = useState(false);
+  const [showAllTransactions, setShowAllTransactions] = useState(false);
+  const scrollX = useRef(new Animated.Value(0)).current;
+  const CARD_WIDTH = 172;
 
   /* ===============================
      LOAD USER DATA
@@ -252,6 +250,18 @@ export default function DualDashboard() {
     loadUserType();
     requestLocationOnMount();
   }, []);
+
+  useEffect(() => {
+    if (location?.latitude && location?.longitude) {
+      loadNearbyShops();
+    }
+  }, [location?.latitude, location?.longitude]);
+
+  useEffect(() => {
+    if (nearbyShops.length > 0) {
+      startAutoScroll(nearbyShops.length);
+    }
+  }, [nearbyShops.length]);
 
   // Request location permission on mount
   const requestLocationOnMount = async () => {
@@ -291,6 +301,37 @@ export default function DualDashboard() {
     if (result) {
       setShowLocationModal(false);
     }
+  };
+
+  const loadNearbyShops = async () => {
+    if (!location?.latitude || !location?.longitude) return;
+
+    try {
+      setIsNearbyLoading(true);
+      const response = await getNearbyShops(
+        location.latitude,
+        location.longitude
+      );
+      setNearbyShops(Array.isArray(response) ? response : []);
+    } catch (error) {
+      console.error('Failed to load nearby shops:', error);
+      setNearbyShops([]);
+    } finally {
+      setIsNearbyLoading(false);
+    }
+  };
+
+  const startAutoScroll = (count: number) => {
+    if (count <= 1) return;
+    const totalWidth = count * CARD_WIDTH;
+    scrollX.setValue(0);
+    Animated.loop(
+      Animated.timing(scrollX, {
+        toValue: -totalWidth,
+        duration: totalWidth * 50,
+        useNativeDriver: true,
+      })
+    ).start();
   };
 
   const getLocationDisplayText = () => {
@@ -643,25 +684,7 @@ export default function DualDashboard() {
               style={styles.userPanelItem}
               onPress={() => {
                 closeDropdown();
-                router.push('/register-merchant');
-              }}
-            >
-              <Ionicons name="storefront-outline" size={22} color="#FF6600" />
-              <Text style={styles.userPanelText}>Become a Merchant</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.userPanelItem}
-              onPress={() => {
-                closeDropdown();
-              }}
-            >
-              <Ionicons name="person-outline" size={22} color="#FF6600" />
-              <Text style={styles.userPanelText}>Account Details</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.userPanelItem}
-              onPress={() => {
-                closeDropdown();
+                  setActiveTab('merchant');
               }}
             >
               <Ionicons name="storefront-outline" size={22} color="#FF6600" />
@@ -835,7 +858,7 @@ export default function DualDashboard() {
         <View style={styles.transactionsSection}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Recent Transactions</Text>
-            <TouchableOpacity>
+            <TouchableOpacity onPress={() => setShowAllTransactions(true)}>
               <Text style={styles.viewAllText}>View All</Text>
             </TouchableOpacity>
           </View>
@@ -849,7 +872,7 @@ export default function DualDashboard() {
               <ActivityIndicator size="small" color="#FF6600" />
             </View>
           ) : currentTransactions.length > 0 ? (
-            currentTransactions.map((transaction) => (
+            currentTransactions.slice(0, 10).map((transaction) => (
               <TransactionCard key={transaction.id} transaction={transaction} />
             ))
           ) : (
@@ -945,39 +968,68 @@ export default function DualDashboard() {
         {activeTab === 'customer' && (
           <View style={styles.nearbyShopsSection}>
             <Text style={styles.sectionTitle}>Nearby Shops</Text>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.nearbyScroll}
-            >
-              {DUMMY_NEARBY_SHOPS.map((shop) => (
-                <TouchableOpacity
-                  key={shop.id}
-                  style={styles.nearbyCard}
-                  onPress={() => router.push('/user-dashboard')}
+            {isNearbyLoading ? (
+              <View style={styles.emptyState}>
+                <ActivityIndicator size="small" color="#FF6600" />
+              </View>
+            ) : nearbyShops.length > 0 ? (
+              <View style={styles.autoScrollContainer}>
+                <Animated.View
+                  style={[
+                    styles.autoScrollContent,
+                    { transform: [{ translateX: scrollX }] },
+                  ]}
                 >
-                  <View style={styles.nearbyImagePlaceholder}>
-                    <Ionicons name="storefront" size={36} color="#FF6600" />
-                  </View>
-                  <Text style={styles.nearbyName} numberOfLines={1}>
-                    {shop.name}
-                  </Text>
-                  <Text style={styles.nearbyMeta}>{shop.category}</Text>
-                  <View style={styles.nearbyFooter}>
-                    <View style={styles.nearbyRating}>
-                      <Ionicons name="star" size={12} color="#FFA500" />
-                      <Text style={styles.nearbyRatingText}>{shop.rating}</Text>
-                    </View>
-                    <View style={styles.nearbyDistance}>
-                      <Ionicons name="location" size={12} color="#666" />
-                      <Text style={styles.nearbyDistanceText}>
-                        {shop.distance} km
+                  {[...nearbyShops, ...nearbyShops].map((shop, index) => (
+                    <TouchableOpacity
+                      key={`${shop.id}-${index}`}
+                      style={styles.nearbyCard}
+                      onPress={() =>
+                        router.push({
+                          pathname: '/member-shop-details',
+                          params: {
+                            shopId: shop.id,
+                            shop: JSON.stringify(shop),
+                            source: 'dual',
+                          },
+                        })
+                      }
+                    >
+                      <View style={styles.nearbyImagePlaceholder}>
+                        <Ionicons name="storefront" size={36} color="#FF6600" />
+                      </View>
+                      <Text style={styles.nearbyName} numberOfLines={1}>
+                        {shop.shopName || shop.merchantName || 'Shop'}
                       </Text>
-                    </View>
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
+                      <Text style={styles.nearbyMeta}>
+                        {shop.businessCategory || 'General'}
+                      </Text>
+                      <View style={styles.nearbyFooter}>
+                        <View style={styles.nearbyRating}>
+                          <Ionicons name="star" size={12} color="#FFA500" />
+                          <Text style={styles.nearbyRatingText}>
+                            {shop.rating ?? '4.0'}
+                          </Text>
+                        </View>
+                        <View style={styles.nearbyDistance}>
+                          <Ionicons name="location" size={12} color="#666" />
+                          <Text style={styles.nearbyDistanceText}>
+                            {shop.distance
+                              ? `${shop.distance.toFixed(2)} km`
+                              : 'Nearby'}
+                          </Text>
+                        </View>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </Animated.View>
+              </View>
+            ) : (
+              <View style={styles.emptyState}>
+                <Ionicons name="storefront-outline" size={48} color="#CCCCCC" />
+                <Text style={styles.emptyText}>No nearby shops yet</Text>
+              </View>
+            )}
           </View>
         )}
         <Footer />
@@ -1026,6 +1078,45 @@ export default function DualDashboard() {
             >
               <Text style={styles.supportButtonText}>OK</Text>
             </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* All Transactions Modal */}
+      <Modal
+        visible={showAllTransactions}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowAllTransactions(false)}
+      >
+        <View style={styles.transactionsModalOverlay}>
+          <View style={styles.transactionsModalContent}>
+            <View style={styles.transactionsModalHeader}>
+              <Text style={styles.transactionsModalTitle}>
+                {activeTab === 'customer' ? 'All Transactions' : 'All Payments'}
+              </Text>
+              <TouchableOpacity
+                onPress={() => setShowAllTransactions(false)}
+                style={styles.modalCloseButton}
+              >
+                <Ionicons name="close" size={22} color="#666" />
+              </TouchableOpacity>
+            </View>
+            <ScrollView>
+              {currentTransactions.length > 0 ? (
+                currentTransactions.map((transaction) => (
+                  <TransactionCard
+                    key={`all-${transaction.id}`}
+                    transaction={transaction}
+                  />
+                ))
+              ) : (
+                <View style={styles.emptyState}>
+                  <Ionicons name="receipt-outline" size={48} color="#CCCCCC" />
+                  <Text style={styles.emptyText}>No transactions yet</Text>
+                </View>
+              )}
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -1329,6 +1420,38 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '700',
   },
+  transactionsModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+  },
+  transactionsModalContent: {
+    width: '100%',
+    maxWidth: 420,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 16,
+    maxHeight: '80%',
+  },
+  transactionsModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  transactionsModalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1A1A1A',
+  },
+  modalCloseButton: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   tabContainer: {
     flexDirection: 'row',
     backgroundColor: '#FFFFFF',
@@ -1538,6 +1661,8 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     marginTop: 12,
   },
+  autoScrollContainer: { overflow: 'hidden' },
+  autoScrollContent: { flexDirection: 'row' },
   actionButton: {
     width: '25%',
     alignItems: 'center',

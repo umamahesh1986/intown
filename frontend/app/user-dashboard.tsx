@@ -571,17 +571,7 @@ const loadNearbyShops = async () => {
                 },
               ]}
             >
-              {/* USER HEADER */}
-              <View style={styles.userPanelHeader}>
-                <Ionicons name="person-circle" size={48} color="#FF6600" />
-                <View style={{ marginLeft: 10 }}>
-                  <Text style={styles.userPanelName}>{user?.name ?? 'Guest User'}</Text>
-                  <Text style={styles.userPanelPhone}>
-                    {user?.phone ?? ''}
-                  </Text>
-
-                </View>
-              </View>
+              
               {/* MY ACCOUNT */}
               <TouchableOpacity
                 style={styles.userPanelItem}

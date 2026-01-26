@@ -79,6 +79,7 @@ export default function MerchantDashboard() {
   const [merchantId, setMerchantId] = useState<string | null>(null);
   const [shopName, setShopName] = useState<string | null>(null);
   const [sales, setSales] = useState<ApiSale[]>([]);
+  const [showAllPayments, setShowAllPayments] = useState(false);
   const [lifetimeTotals, setLifetimeTotals] = useState<ApiSummary | null>(null);
   const [periodTotals, setPeriodTotals] = useState<{
     today: ApiSummary | null;
@@ -477,12 +478,15 @@ const carouselRef = useRef<ScrollView | null>(null);
         {/* Payments List */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Recent Payments</Text>
+          <TouchableOpacity onPress={() => setShowAllPayments(true)}>
+            <Text style={styles.viewAllText}>View All</Text>
+          </TouchableOpacity>
           {isSalesLoading ? (
             <View style={styles.emptyState}>
               <ActivityIndicator size="small" color="#FF6600" />
             </View>
           ) : sales.length > 0 ? (
-            sales.map((sale) => (
+            sales.slice(0, 10).map((sale) => (
               <View key={sale.transactionId} style={styles.transactionRow}>
                 <View style={styles.transactionLeft}>
                   <Text style={styles.transactionMerchant} numberOfLines={1}>
@@ -528,6 +532,72 @@ const carouselRef = useRef<ScrollView | null>(null);
         {/* Footer */}
         <Footer/>
       </ScrollView>
+
+      {/* All Payments Modal */}
+      <Modal
+        visible={showAllPayments}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowAllPayments(false)}
+      >
+        <View style={styles.transactionsModalOverlay}>
+          <View style={styles.transactionsModalContent}>
+            <View style={styles.transactionsModalHeader}>
+              <Text style={styles.transactionsModalTitle}>All Payments</Text>
+              <TouchableOpacity
+                onPress={() => setShowAllPayments(false)}
+                style={styles.modalCloseButton}
+              >
+                <Ionicons name="close" size={22} color="#666" />
+              </TouchableOpacity>
+            </View>
+            <ScrollView>
+              {sales.length > 0 ? (
+                sales.map((sale) => (
+                  <View key={`all-${sale.transactionId}`} style={styles.transactionRow}>
+                    <View style={styles.transactionLeft}>
+                      <Text style={styles.transactionMerchant} numberOfLines={1}>
+                        {sale.customerName}
+                      </Text>
+                      <Text style={styles.transactionDate}>
+                        {sale.customerPhone}
+                      </Text>
+                      <Text style={styles.transactionDate}>
+                        {formatTransactionDate(sale.transactionDate)}
+                      </Text>
+                    </View>
+                    <View style={styles.transactionRight}>
+                      <View style={styles.transactionAmountBlock}>
+                        <Text style={styles.transactionAmountLabel}>Sales</Text>
+                        <Text style={styles.transactionAmountValue}>
+                          ₹{sale.totalSalesValue.toFixed(2)}
+                        </Text>
+                      </View>
+                      <View style={styles.transactionAmountBlock}>
+                        <Text style={styles.transactionAmountLabel}>Discount</Text>
+                        <Text style={styles.transactionAmountValue}>
+                          ₹{sale.totalDiscountGiven.toFixed(2)}
+                        </Text>
+                      </View>
+                      <View style={styles.transactionAmountBlock}>
+                        <Text style={styles.transactionAmountLabel}>Received</Text>
+                        <Text style={styles.transactionAmountValue}>
+                          ₹{sale.totalAmountReceived.toFixed(2)}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+                ))
+              ) : (
+                <View style={styles.emptyState}>
+                  <Ionicons name="receipt-outline" size={48} color="#CCCCCC" />
+                  <Text style={styles.emptyText}>No payments yet</Text>
+                </View>
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
 
       {/* Location Selection Modal */}
       <Modal
@@ -793,6 +863,44 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#999999',
     marginTop: 8,
+  },
+  viewAllText: {
+    fontSize: 14,
+    color: '#FF6600',
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  transactionsModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+  },
+  transactionsModalContent: {
+    width: '100%',
+    maxWidth: 420,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 16,
+    maxHeight: '80%',
+  },
+  transactionsModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  transactionsModalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1A1A1A',
+  },
+  modalCloseButton: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   footer: { backgroundColor: '#1A1A1A', padding: 24, alignItems: 'center', marginTop: 16 },
   footerTagline: {

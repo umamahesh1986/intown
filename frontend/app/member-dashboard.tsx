@@ -178,6 +178,7 @@ export default function MemberDashboard() {
   const [showSupportModal, setShowSupportModal] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [transactions, setTransactions] = useState<ApiTransaction[]>([]);
+  const [showAllTransactions, setShowAllTransactions] = useState(false);
   const [lifetimeTotals, setLifetimeTotals] = useState<ApiSummary | null>(null);
   const [periodTotals, setPeriodTotals] = useState<{
     today: ApiSummary | null;
@@ -910,7 +911,7 @@ const handleCategoryClick = (category: Category) => {
           <View style={styles.transactionsSection}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Recent Transactions</Text>
-              <TouchableOpacity>
+              <TouchableOpacity onPress={() => setShowAllTransactions(true)}>
                 <Text style={styles.viewAllText}>View All</Text>
               </TouchableOpacity>
             </View>
@@ -919,7 +920,7 @@ const handleCategoryClick = (category: Category) => {
                 <ActivityIndicator size="small" color="#FF6600" />
               </View>
             ) : transactions.length > 0 ? (
-              transactions.map((transaction) => (
+              transactions.slice(0, 10).map((transaction) => (
                 <TransactionRow
                   key={transaction.transactionId}
                   transaction={transaction}
@@ -1057,6 +1058,43 @@ const handleCategoryClick = (category: Category) => {
               >
                 <Text style={styles.supportButtonText}>OK</Text>
               </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
+        {/* All Transactions Modal */}
+        <Modal
+          visible={showAllTransactions}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setShowAllTransactions(false)}
+        >
+          <View style={styles.transactionsModalOverlay}>
+            <View style={styles.transactionsModalContent}>
+              <View style={styles.transactionsModalHeader}>
+                <Text style={styles.transactionsModalTitle}>All Transactions</Text>
+                <TouchableOpacity
+                  onPress={() => setShowAllTransactions(false)}
+                  style={styles.modalCloseButton}
+                >
+                  <Ionicons name="close" size={22} color="#666" />
+                </TouchableOpacity>
+              </View>
+              <ScrollView>
+                {transactions.length > 0 ? (
+                  transactions.map((transaction) => (
+                    <TransactionRow
+                      key={`all-${transaction.transactionId}`}
+                      transaction={transaction}
+                    />
+                  ))
+                ) : (
+                  <View style={styles.emptyState}>
+                    <Ionicons name="receipt-outline" size={48} color="#CCCCCC" />
+                    <Text style={styles.emptyText}>No transactions yet</Text>
+                  </View>
+                )}
+              </ScrollView>
             </View>
           </View>
         </Modal>
@@ -1664,6 +1702,38 @@ const styles = StyleSheet.create({
   supportButtonText: {
     color: '#fff',
     fontWeight: '700',
+  },
+  transactionsModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+  },
+  transactionsModalContent: {
+    width: '100%',
+    maxWidth: 420,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 16,
+    maxHeight: '80%',
+  },
+  transactionsModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  transactionsModalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1A1A1A',
+  },
+  modalCloseButton: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   userPanel: {
