@@ -44,24 +44,35 @@ export default function PaymentModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
-  const amountValue = parseFloat(amount || '0');
-  const instantSavings = parseFloat(instantSavingsInput || '0');
+  const parseAmount = (value: string) => {
+    const normalized = value.replace(/,/g, '').trim();
+    return parseFloat(normalized || '0');
+  };
+
+  const amountValue = parseAmount(amount);
+  const instantSavings = parseAmount(instantSavingsInput);
   const finalPaidAmount = amountValue - instantSavings;
 
   const handlePayNow = async () => {
-    if (!amount || Number.isNaN(amountValue) || amountValue <= 0) {
+    if (!amount || !Number.isFinite(amountValue) || amountValue <= 0) {
       Alert.alert('Invalid Amount', 'Please enter a valid amount');
       return;
     }
-    if (Number.isNaN(instantSavings) || instantSavings < 0 || instantSavings > amountValue) {
+    if (!Number.isFinite(instantSavings) || instantSavings < 0 || instantSavings > amountValue) {
       Alert.alert('Invalid Savings', 'Savings must be between 0 and total amount');
       return;
     }
-    if (!merchantId) {
+    if (!Number.isFinite(finalPaidAmount) || finalPaidAmount < 0) {
+      Alert.alert('Invalid Total', 'Total payable must be 0 or more');
+      return;
+    }
+    const merchantIdValue = Number(merchantId);
+    if (!merchantId || !Number.isFinite(merchantIdValue)) {
       Alert.alert('Missing Merchant', 'Merchant details not available');
       return;
     }
-    if (!customerId) {
+    const customerIdValue = Number(customerId);
+    if (!customerId || !Number.isFinite(customerIdValue)) {
       Alert.alert('Missing Customer', 'Customer details not available');
       return;
     }
@@ -69,12 +80,15 @@ export default function PaymentModal({
     setIsSubmitting(true);
     try {
       const payload = {
-        merchantId,
-        customerId,
+        merchantId: merchantIdValue,
+        customerId: customerIdValue,
         totalBillAmount: amountValue,
         enteredDiscountAmount: instantSavings,
         finalPaidAmount,
       };
+
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15000);
 
       const res = await fetch('https://devapi.intownlocal.com/IN/transactions/', {
         method: 'POST',
@@ -83,7 +97,9 @@ export default function PaymentModal({
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(payload),
+        signal: controller.signal,
       });
+      clearTimeout(timeout);
 
       const data = await res.json().catch(() => ({}));
       const statusValue = String(data?.status ?? '').toLowerCase();
@@ -94,9 +110,13 @@ export default function PaymentModal({
       } else {
         Alert.alert('Payment Failed', data?.message || 'Please try again later.');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Payment error:', error);
-      Alert.alert('Payment Failed', 'Please try again later.');
+      if (error?.name === 'AbortError') {
+        Alert.alert('Payment Failed', 'Request timed out. Please try again.');
+      } else {
+        Alert.alert('Payment Failed', 'Please try again later.');
+      }
     } finally {
       setIsSubmitting(false);
     }

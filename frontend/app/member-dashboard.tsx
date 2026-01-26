@@ -976,7 +976,7 @@ const handleCategoryClick = (category: Category) => {
                     onPress={() =>
                       router.push({
                         pathname: '/member-shop-details',
-                        params: { shopId: shop.id },
+                        params: { shopId: shop.id, shop: JSON.stringify(shop) },
                       })
                     }
                   >

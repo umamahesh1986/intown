@@ -2,12 +2,15 @@ import { View, Text, StyleSheet, TextInput, TouchableOpacity } from 'react-nativ
 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState } from 'react';
+import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 
 import { useAuthStore } from '../store/authStore';
 import { Picker } from '@react-native-picker/picker';
 
 
 export default function Account() {
+  const router = useRouter();
   const { user, updateProfile } = useAuthStore();
 
   const [editing, setEditing] = useState(false);
@@ -25,6 +28,12 @@ export default function Account() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => router.back()}
+        >
+          <Ionicons name="arrow-back" size={22} color="#1A1A1A" />
+        </TouchableOpacity>
         <Text style={styles.title}>My Account</Text>
         <TouchableOpacity onPress={() => setEditing(!editing)}>
           <Text style={styles.editBtn}>{editing ? 'Cancel' : 'Edit'}</Text>
@@ -84,8 +93,9 @@ export default function Account() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 16, backgroundColor: '#F5F5F5' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
-  title: { fontSize: 22, fontWeight: '700' },
+  header: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
+  backButton: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
+  title: { flex: 1, fontSize: 22, fontWeight: '700', marginLeft: 8 },
   editBtn: { color: '#FF6600', fontWeight: '600', fontSize: 16 },
 
   card: { backgroundColor: '#fff', borderRadius: 12, padding: 16 },

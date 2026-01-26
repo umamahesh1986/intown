@@ -78,6 +78,11 @@ export default function MemberShopDetails() {
   const shopFallback =
     (shopId && SHOP_DATA[shopId]) || SHOP_DATA['1'];
   const shop = shopFromParams || shopFallback;
+  const resolvedMerchantId =
+    shop?.merchantId ??
+    shop?.merchant?.id ??
+    shop?.id ??
+    shop?.merchant_id;
   const redirectTo = params.source === 'dual' ? '/dual-dashboard' : '/member-dashboard';
   const [showPayment, setShowPayment] = useState(false);
   const [customerId, setCustomerId] = useState<string | null>(null);
@@ -239,7 +244,7 @@ export default function MemberShopDetails() {
         visible={showPayment}
         onClose={() => setShowPayment(false)}
         onSuccess={handlePaymentSuccess}
-        merchantId={shop.merchantId ?? shop.id}
+        merchantId={resolvedMerchantId}
         customerId={customerId ?? shop.customerId}
         redirectTo={redirectTo}
       />
