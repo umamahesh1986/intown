@@ -175,6 +175,7 @@ export default function MemberDashboard() {
   const loadLocationFromStorage = useLocationStore((state) => state.loadFromStorage);
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [showSupportModal, setShowSupportModal] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [transactions, setTransactions] = useState<ApiTransaction[]>([]);
   const [lifetimeTotals, setLifetimeTotals] = useState<ApiSummary | null>(null);
@@ -219,6 +220,7 @@ export default function MemberDashboard() {
   const scrollX = useRef(new Animated.Value(0)).current;
   const categoryScrollX = useRef(new Animated.Value(0)).current;
   const placeholderAnim = useRef(new Animated.Value(0)).current;
+  const contentScrollRef = useRef<ScrollView | null>(null);
   const CARD_WIDTH = 172;
 
 
@@ -689,7 +691,7 @@ const handleCategoryClick = (category: Category) => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={{ flex: 1 }}>
-        <ScrollView showsVerticalScrollIndicator={false}>
+        <ScrollView ref={contentScrollRef} showsVerticalScrollIndicator={false}>
 
           {/* HEADER */}
           <View style={styles.header}>
@@ -937,20 +939,35 @@ const handleCategoryClick = (category: Category) => {
             <View style={styles.actionsGrid}>
               <TouchableOpacity
                 style={styles.actionButton}
-                onPress={() => router.push('/member-shop-list')}
+                onPress={() => router.push('/search')}
               >
                 <Ionicons name="search" size={24} color="#FF6600" />
                 <Text style={styles.actionText}>Find Shops</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.actionButton}>
+              <TouchableOpacity
+                style={styles.actionButton}
+                onPress={() => {
+                  contentScrollRef.current?.scrollTo({ y: 0, animated: true });
+                }}
+              >
                 <Ionicons name="gift" size={24} color="#FF6600" />
                 <Text style={styles.actionText}>My Rewards</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.actionButton}>
+              <TouchableOpacity
+                style={styles.actionButton}
+                onPress={() => {
+                  contentScrollRef.current?.scrollTo({ y: 0, animated: true });
+                }}
+              >
                 <Ionicons name="card" size={24} color="#FF6600" />
-                <Text style={styles.actionText}>Grievance</Text>
+                <Text style={styles.actionText}>Payment</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.actionButton}>
+              <TouchableOpacity
+                style={styles.actionButton}
+                onPress={() => {
+                  setShowSupportModal(true);
+                }}
+              >
                 <Ionicons name="help-circle" size={24} color="#FF6600" />
                 <Text style={styles.actionText}>Support</Text>
               </TouchableOpacity>
@@ -1017,6 +1034,32 @@ const handleCategoryClick = (category: Category) => {
           {/* FOOTER */}
           <Footer />
         </ScrollView>
+
+        {/* Support Modal */}
+        <Modal
+          visible={showSupportModal}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowSupportModal(false)}
+        >
+          <View style={styles.supportModalOverlay}>
+            <View style={styles.supportModalContent}>
+              <Image
+                source={require('../assets/images/intown-logo.jpg')}
+                style={styles.supportLogo}
+              />
+              <Text style={styles.supportTitle}>Intown Customer Support</Text>
+              <Text style={styles.supportText}>Phone: 9390932585</Text>
+              <Text style={styles.supportText}>Email: support@intownlocal.com</Text>
+              <TouchableOpacity
+                style={styles.supportButton}
+                onPress={() => setShowSupportModal(false)}
+              >
+                <Text style={styles.supportButtonText}>OK</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
 
         {/* BACKDROP */}
         {showDropdown && (
@@ -1576,6 +1619,51 @@ const styles = StyleSheet.create({
     right: 0,
     backgroundColor: 'transparent',
     zIndex: 999,
+  },
+  supportModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  supportModalContent: {
+    width: '100%',
+    maxWidth: 320,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 20,
+    alignItems: 'center',
+  },
+  supportLogo: {
+    width: '60%',
+    height: 85,
+    resizeMode: 'contain',
+    marginBottom: 12,
+  },
+  supportTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1A1A1A',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  supportText: {
+    fontSize: 14,
+    color: '#555',
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  supportButton: {
+    marginTop: 16,
+    backgroundColor: '#FF6600',
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+    borderRadius: 10,
+  },
+  supportButtonText: {
+    color: '#fff',
+    fontWeight: '700',
   },
 
   userPanel: {
