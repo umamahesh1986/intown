@@ -164,7 +164,7 @@ export default function MemberShopDetails() {
 
         <View style={styles.content}>
           <View style={styles.titleRow}>
-            <Text style={styles.shopName}>{shop.shopName}</Text>
+            <Text style={styles.shopName}>{shop.shopName || shop.name}</Text>
             <View style={[styles.badge, { backgroundColor: badge.bg }]}>
               <Text style={[styles.badgeText, { color: badge.color }]}>
                 {badge.label}
@@ -227,7 +227,11 @@ export default function MemberShopDetails() {
           onPress={() =>
             router.push({
               pathname: '/member-navigate',
-              params: { shopId, source: params.source },
+              params: {
+                shopId,
+                source: params.source,
+                shop: JSON.stringify(shop),
+              },
             })
           }
         >

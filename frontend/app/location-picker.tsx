@@ -1,8 +1,9 @@
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform } from 'react-native';
 import { useState } from 'react';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { getUserLocationWithDetails } from '../utils/location';
 
 // Web-safe placeholder components
 const WebMapPlaceholder = () => null;
@@ -29,20 +30,50 @@ const { MapView, Marker } = Platform.OS === 'web'
 
 export default function LocationPickerScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ returnTo?: string }>();
+  const returnTo = params.returnTo ?? '/register-member';
   const [selectedLocation, setSelectedLocation] = useState({
     latitude: 12.9716,
     longitude: 77.5946,
   });
+  const [isLocating, setIsLocating] = useState(false);
 
   const handleConfirmLocation = () => {
-    // In a real app, you would pass this location back to the registration form
-    // For now, we'll just go back
-    Alert.alert('Location Selected', `Lat: ${selectedLocation.latitude}, Lng: ${selectedLocation.longitude}`, [
-      {
-        text: 'OK',
-        onPress: () => router.back(),
+    router.replace({
+      pathname: returnTo as any,
+      params: {
+        latitude: String(selectedLocation.latitude),
+        longitude: String(selectedLocation.longitude),
       },
-    ]);
+    });
+  };
+
+  const handleUseDefaultLocation = async () => {
+    setIsLocating(true);
+    try {
+      const result = await getUserLocationWithDetails();
+      if (result) {
+        const nextLocation = {
+          latitude: result.latitude,
+          longitude: result.longitude,
+        };
+        setSelectedLocation(nextLocation);
+        router.replace({
+          pathname: returnTo as any,
+          params: {
+            latitude: String(nextLocation.latitude),
+            longitude: String(nextLocation.longitude),
+          },
+        });
+      } else {
+        Alert.alert('Location', 'Unable to fetch current location');
+      }
+    } catch (error) {
+      console.error('Failed to get current location', error);
+      Alert.alert('Location', 'Unable to fetch current location');
+    } finally {
+      setIsLocating(false);
+    }
   };
 
   const handleMapPress = (event: any) => {
@@ -85,8 +116,14 @@ export default function LocationPickerScreen() {
             </Text>
           </View>
 
-          <TouchableOpacity style={styles.confirmButton} onPress={handleConfirmLocation}>
-            <Text style={styles.confirmButtonText}>Use Default Location</Text>
+          <TouchableOpacity
+            style={styles.confirmButton}
+            onPress={handleUseDefaultLocation}
+            disabled={isLocating}
+          >
+            <Text style={styles.confirmButtonText}>
+              {isLocating ? 'Getting Location...' : 'Use Default Location'}
+            </Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -128,6 +165,17 @@ export default function LocationPickerScreen() {
           Lat: {selectedLocation.latitude.toFixed(4)}, Lng: {selectedLocation.longitude.toFixed(4)}
         </Text>
       </View>
+
+      {/* Use Current Location */}
+      <TouchableOpacity
+        style={styles.useDefaultButton}
+        onPress={handleUseDefaultLocation}
+        disabled={isLocating}
+      >
+        <Text style={styles.useDefaultButtonText}>
+          {isLocating ? 'Getting Location...' : 'Use Default Location'}
+        </Text>
+      </TouchableOpacity>
 
       {/* Confirm Button */}
       <TouchableOpacity style={styles.confirmButton} onPress={handleConfirmLocation}>
@@ -188,6 +236,23 @@ const styles = StyleSheet.create({
   coordinatesText: {
     fontSize: 12,
     color: '#999999',
+    fontWeight: '600',
+  },
+  useDefaultButton: {
+    position: 'absolute',
+    bottom: 96,
+    left: 16,
+    right: 16,
+    backgroundColor: '#FFF3E0',
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#FFD9B3',
+  },
+  useDefaultButtonText: {
+    color: '#FF6600',
+    fontSize: 14,
     fontWeight: '600',
   },
   confirmButton: {

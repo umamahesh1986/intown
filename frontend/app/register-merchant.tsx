@@ -12,7 +12,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useEffect, useState } from 'react';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -35,6 +35,7 @@ export default function RegisterMerchant() {
   ];
 
   const router = useRouter();
+  const params = useLocalSearchParams<{ latitude?: string; longitude?: string }>();
   const { setUserType, user } = useAuthStore();
 
   /* ================= ORIGINAL STATES (UNCHANGED) ================= */
@@ -251,6 +252,20 @@ const resetOtherProducts = () => {
 
 
     
+    useEffect(() => {
+      if (params.latitude && params.longitude) {
+        const lat = Number(params.latitude);
+        const lng = Number(params.longitude);
+        if (Number.isFinite(lat) && Number.isFinite(lng)) {
+          setLocation({ latitude: lat, longitude: lng });
+        }
+      }
+    }, [params.latitude, params.longitude]);
+
+    const handleSelectLocation = () => {
+      router.push({ pathname: '/location-picker', params: { returnTo: '/register-merchant' } });
+    };
+
     /* ================= LOCATION PICKER ================= */
 
     const pickLocation = async () => {
@@ -685,17 +700,14 @@ const displayedCategories = showAllCategories
               <Text style={styles.label}>Shop Location *</Text>
 
               <TouchableOpacity
-                style={{
-                  backgroundColor: '#4CAF50',
-                  padding: 12,
-                  borderRadius: 8,
-                  alignItems: 'center',
-                }}
-                disabled
+                style={[styles.locationButton, errors.location && styles.inputError]}
+                onPress={handleSelectLocation}
               >
-
-                <Text style={{ color: '#FFF', fontWeight: '600' }}>
-                  Location Set ✔
+                <Ionicons name="location" size={20} color="#FF6600" />
+                <Text style={styles.locationButtonText}>
+                  {location
+                    ? `Selected: ${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}`
+                    : 'Tap to select location on map'}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -859,6 +871,9 @@ const displayedCategories = showAllCategories
       borderRadius: 8,
       padding: 12,
     },
+  inputError: {
+    borderColor: '#FF3B30',
+  },
     textArea: {
       backgroundColor: '#FFF',
       borderWidth: 1,
@@ -892,6 +907,20 @@ errorText: {
   color: 'red',
   marginTop: 4,
 },
+  locationButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF',
+    borderWidth: 1,
+    borderColor: '#DDD',
+    borderRadius: 8,
+    padding: 12,
+  },
+  locationButtonText: {
+    marginLeft: 8,
+    fontSize: 14,
+    color: '#333',
+  },
 
 categoryGrid: {
   flexDirection: 'row',

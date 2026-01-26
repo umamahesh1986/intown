@@ -21,14 +21,27 @@ export default function MemberNavigate() {
   const params = useLocalSearchParams();
   const shopId = params.shopId as string;
   const redirectTo = params.source === 'dual' ? '/dual-dashboard' : '/member-dashboard';
-  const shop = SHOP_DATA[shopId] || SHOP_DATA['1'];
+  const shopFromParams = (() => {
+    if (!params.shop) return null;
+    try {
+      return JSON.parse(params.shop as string);
+    } catch {
+      return null;
+    }
+  })();
+  const fallbackShop = SHOP_DATA[shopId] || SHOP_DATA['1'];
+  const shopName = shopFromParams?.shopName || shopFromParams?.name || fallbackShop.name;
+  const destinationLat =
+    shopFromParams?.latitude ?? shopFromParams?.lat ?? fallbackShop.lat;
+  const destinationLng =
+    shopFromParams?.longitude ?? shopFromParams?.lng ?? fallbackShop.lng;
   const { location } = useLocationStore();
   const [showPayment, setShowPayment] = useState(false);
   const [customerId, setCustomerId] = useState<string | null>(null);
 
   const handleOpenMaps = () => {
     if (location) {
-      const url = `https://www.google.com/maps/dir/?api=1&origin=${location.latitude},${location.longitude}&destination=${shop.lat},${shop.lng}`;
+      const url = `https://www.google.com/maps/dir/?api=1&origin=${location.latitude},${location.longitude}&destination=${destinationLat},${destinationLng}`;
       Linking.openURL(url);
     }
   };
@@ -58,7 +71,7 @@ export default function MemberNavigate() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#FFF" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{shop.name}</Text>
+        <Text style={styles.headerTitle}>{shopName}</Text>
         <View style={{width:40}} />
       </View>
 
@@ -78,7 +91,7 @@ export default function MemberNavigate() {
           <Ionicons name="location" size={24} color="#2196F3" />
           <View style={{flex:1, marginLeft:12}}>
             <Text style={styles.infoLabel}>Destination</Text>
-            <Text style={styles.infoValue}>{shop.name}</Text>
+            <Text style={styles.infoValue}>{shopName}</Text>
           </View>
         </View>
       </View>

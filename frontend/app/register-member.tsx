@@ -12,7 +12,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useState, useEffect } from 'react';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -22,6 +22,7 @@ import { useAuthStore } from '../store/authStore';
 
 export default function RegisterMember() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ latitude?: string; longitude?: string }>();
   const { setUserType, user } = useAuthStore();
   
   // Form state
@@ -120,14 +121,18 @@ export default function RegisterMember() {
     return Object.keys(newErrors).length === 0;
   };
 
+  useEffect(() => {
+    if (params.latitude && params.longitude) {
+      const lat = Number(params.latitude);
+      const lng = Number(params.longitude);
+      if (Number.isFinite(lat) && Number.isFinite(lng)) {
+        setLocation({ latitude: lat, longitude: lng });
+      }
+    }
+  }, [params.latitude, params.longitude]);
+
   const handleSelectLocation = () => {
-    router.push('/location-picker');
-    // Note: In a real implementation, you'd pass a callback or use a state management solution
-    // For now, we'll use a placeholder
-    // Simulating location selection
-    setTimeout(() => {
-      setLocation({ latitude: 12.9716, longitude: 77.5946 });
-    }, 100);
+    router.push({ pathname: '/location-picker', params: { returnTo: '/register-member' } });
   };
 
   const handlePickImages = async () => {

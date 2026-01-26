@@ -10,6 +10,7 @@ import {
   ScrollView,
   TextInput,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   Modal,
   Dimensions,
   Animated,
@@ -510,12 +511,7 @@ const loadNearbyShops = async () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <TouchableOpacity style={styles.container} activeOpacity={1} onPress={() => {
-        // close dropdown on outside press
-        if (showDropdown) {
-          toggleDropdown();
-        }
-      }}>
+      <View style={styles.container}>
         <ScrollView showsVerticalScrollIndicator={false}>
           {/* Header */}
           <View style={styles.header}>
@@ -546,80 +542,6 @@ const loadNearbyShops = async () => {
               <Ionicons name="person" size={20} color="#ff6600" style={styles.profileIconButton} />
             </TouchableOpacity>
           </View>
-
-          {/* Animated User Panel (Swiggy-style) */}
-          {showDropdown && (
-            <Animated.View
-              style={[
-                styles.userPanel,
-                {
-                  opacity: dropdownAnim,
-                  transform: [
-                    {
-                      translateY: dropdownAnim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [-8, 0],
-                      }),
-                    },
-                    {
-                      scale: dropdownAnim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [0.98, 1],
-                      }),
-                    },
-                  ],
-                },
-              ]}
-            >
-              
-              {/* MY ACCOUNT */}
-              <TouchableOpacity
-                style={styles.userPanelItem}
-                onPress={() => {
-                  toggleDropdown();
-                  router.push('/account');
-                }}
-              >
-                <Ionicons name="person-outline" size={20} color="#ff6600" />
-                <Text style={styles.userPanelText}>My Account</Text>
-              </TouchableOpacity>
-
-
-
-              {/* BECOME A Customer */}
-              <TouchableOpacity
-                style={styles.userPanelItem}
-                onPress={() => {
-                  toggleDropdown();
-                  router.push('/register-member');
-                }}
-              >
-                <Ionicons name="star-outline" size={20} color="#ff6600" />
-                <Text style={styles.userPanelText}>Become a Customer</Text>
-              </TouchableOpacity>
-
-              {/* BECOME A MERCHANT */}
-              <TouchableOpacity
-                style={styles.userPanelItem}
-                onPress={() => {
-                  toggleDropdown();
-                  router.push('/register-merchant');
-                }}
-              >
-                <Ionicons name="storefront-outline" size={20} color="#ff6600" />
-                <Text style={styles.userPanelText}>Become a Merchant</Text>
-              </TouchableOpacity>
-
-
-
-              <TouchableOpacity style={[styles.userPanelItem, { marginTop: 6 }]} onPress={handleLogout}>
-                <Ionicons name="log-out-outline" size={22} color="#FF0000" />
-                <Text style={[styles.userPanelText, { color: '#FF0000' }]}>Logout</Text>
-              </TouchableOpacity>
-            </Animated.View>
-          )}
-
-
 
           {/* Search Box */}
           <View style={styles.searchContainer}>
@@ -947,7 +869,86 @@ const loadNearbyShops = async () => {
           {/* Footer */}
           <Footer />
         </ScrollView>
-      </TouchableOpacity>
+
+        {/* BACKDROP */}
+        {showDropdown && (
+          <TouchableWithoutFeedback onPress={() => toggleDropdown()}>
+            <View style={styles.backdrop} />
+          </TouchableWithoutFeedback>
+        )}
+
+        {/* Animated User Panel (Swiggy-style) */}
+        {showDropdown && (
+          <Animated.View
+            style={[
+              styles.userPanel,
+              {
+                opacity: dropdownAnim,
+                transform: [
+                  {
+                    translateY: dropdownAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [-8, 0],
+                    }),
+                  },
+                  {
+                    scale: dropdownAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.98, 1],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          >
+            {/* MY ACCOUNT */}
+            <TouchableOpacity
+              style={styles.userPanelItem}
+              onPress={() => {
+                toggleDropdown();
+                router.push('/account');
+              }}
+            >
+              <Ionicons name="person-outline" size={20} color="#ff6600" />
+              <Text style={styles.userPanelText}>My Account</Text>
+            </TouchableOpacity>
+
+            {/* BECOME A Customer */}
+            <TouchableOpacity
+              style={styles.userPanelItem}
+              onPress={() => {
+                toggleDropdown();
+                router.push('/register-member');
+              }}
+            >
+              <Ionicons name="star-outline" size={20} color="#ff6600" />
+              <Text style={styles.userPanelText}>Become a Customer</Text>
+            </TouchableOpacity>
+
+            {/* BECOME A MERCHANT */}
+            <TouchableOpacity
+              style={styles.userPanelItem}
+              onPress={() => {
+                toggleDropdown();
+                router.push('/register-merchant');
+              }}
+            >
+              <Ionicons name="storefront-outline" size={20} color="#ff6600" />
+              <Text style={styles.userPanelText}>Become a Merchant</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.userPanelItem, { marginTop: 6 }]}
+              onPress={handleLogout}
+            >
+              <Ionicons name="log-out-outline" size={22} color="#FF0000" />
+              <Text style={[styles.userPanelText, { color: '#FF0000' }]}>
+                Logout
+              </Text>
+            </TouchableOpacity>
+          </Animated.View>
+        )}
+      </View>
 
       {/* Registration Modal */}
       <Modal
@@ -1182,6 +1183,15 @@ const styles = StyleSheet.create({
     ...FontStylesWithFallback.caption,
     color: '#666666',
     fontSize: 10,
+  },
+  backdrop: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'transparent',
+    zIndex: 999,
   },
 
   /* --- New userPanel styles (Swiggy-like) --- */
