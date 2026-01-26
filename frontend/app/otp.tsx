@@ -302,6 +302,30 @@ export default function OTPScreen() {
       
       const searchResponse = await searchUserByPhone(phoneNumber);
       console.log("API Response:", JSON.stringify(searchResponse, null, 2));
+
+      await AsyncStorage.setItem(
+        "user_search_response",
+        JSON.stringify(searchResponse)
+      );
+
+      if (searchResponse?.customer?.id) {
+        await AsyncStorage.setItem(
+          "customer_id",
+          String(searchResponse.customer.id)
+        );
+      }
+      if (searchResponse?.merchant?.id) {
+        await AsyncStorage.setItem(
+          "merchant_id",
+          String(searchResponse.merchant.id)
+        );
+      }
+      if (searchResponse?.merchant?.shopName) {
+        await AsyncStorage.setItem(
+          "merchant_shop_name",
+          String(searchResponse.merchant.shopName)
+        );
+      }
       
       // Determine dashboard based on userType
       const roleInfo = determineUserRole(searchResponse);

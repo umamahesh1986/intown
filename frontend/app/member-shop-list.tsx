@@ -24,10 +24,11 @@ const DUMMY_SHOPS = [
 
 export default function MemberShopList() {
   const router = useRouter();
-  const { categoryId, categoryName, query } = useLocalSearchParams<{
+  const { categoryId, categoryName, query, source } = useLocalSearchParams<{
   categoryId?: string;
   categoryName?: string;
   query?: string;
+  source?: string;
 }>();
 
   const { location } = useLocationStore();
@@ -113,7 +114,7 @@ export default function MemberShopList() {
   const handleViewShop = (shop: any) => {
     router.push({
       pathname: '/member-shop-details',
-      params: { shopId: shop.id, shop: JSON.stringify(shop) },
+      params: { shopId: shop.id, shop: JSON.stringify(shop), source },
     });
   };
 

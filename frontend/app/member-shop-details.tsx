@@ -1,9 +1,10 @@
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image } from 'react-native';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import PaymentModal from '../components/PaymentModal';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const SHOP_DATA: any = {
   '1': {
@@ -64,7 +65,7 @@ const SHOP_DATA: any = {
 
 export default function MemberShopDetails() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ shopId?: string; shop?: string }>();
+  const params = useLocalSearchParams<{ shopId?: string; shop?: string; source?: string }>();
   const shopId = params.shopId as string | undefined;
   const shopFromParams = (() => {
     if (!params.shop) return null;
@@ -77,11 +78,28 @@ export default function MemberShopDetails() {
   const shopFallback =
     (shopId && SHOP_DATA[shopId]) || SHOP_DATA['1'];
   const shop = shopFromParams || shopFallback;
+  const redirectTo = params.source === 'dual' ? '/dual-dashboard' : '/member-dashboard';
   const [showPayment, setShowPayment] = useState(false);
+  const [customerId, setCustomerId] = useState<string | null>(null);
 
   const handlePaymentSuccess = (amount: number, savings: number, method: string) => {
     console.log('Payment successful:', { amount, savings, method });
   };
+
+  useEffect(() => {
+    const loadCustomerId = async () => {
+      try {
+        const storedCustomerId = await AsyncStorage.getItem('customer_id');
+        if (storedCustomerId) {
+          setCustomerId(storedCustomerId);
+        }
+      } catch (error) {
+        console.error('Error loading customer id:', error);
+      }
+    };
+
+    loadCustomerId();
+  }, []);
 
   const getCategoryBadge = (category?: string) => {
     const value = (category || '').toLowerCase();
@@ -141,7 +159,7 @@ export default function MemberShopDetails() {
 
         <View style={styles.content}>
           <View style={styles.titleRow}>
-            <Text style={styles.shopName}>{shop.name}</Text>
+            <Text style={styles.shopName}>{shop.shopName}</Text>
             <View style={[styles.badge, { backgroundColor: badge.bg }]}>
               <Text style={[styles.badgeText, { color: badge.color }]}>
                 {badge.label}
@@ -199,7 +217,15 @@ export default function MemberShopDetails() {
       </ScrollView>
 
       <View style={styles.bottomButtons}>
-        <TouchableOpacity style={styles.navigateBtn} onPress={() => router.push({pathname:'/member-navigate',params:{shopId}})}>
+        <TouchableOpacity
+          style={styles.navigateBtn}
+          onPress={() =>
+            router.push({
+              pathname: '/member-navigate',
+              params: { shopId, source: params.source },
+            })
+          }
+        >
           <Ionicons name="navigate" size={20} color="#FFF" />
           <Text style={styles.navigateBtnText}>Navigate</Text>
         </TouchableOpacity>
@@ -214,6 +240,8 @@ export default function MemberShopDetails() {
         onClose={() => setShowPayment(false)}
         onSuccess={handlePaymentSuccess}
         merchantId={shop.merchantId ?? shop.id}
+        customerId={customerId ?? shop.customerId}
+        redirectTo={redirectTo}
       />
     </SafeAreaView>
   );

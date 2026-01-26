@@ -17,6 +17,8 @@ interface PaymentModalProps {
   onClose: () => void;
   onSuccess: (amount: number, savings: number, paymentMethod: string) => void;
   merchantId?: string | number;
+  customerId?: string | number;
+  redirectTo?: string;
 }
 
 const PAYMENT_METHODS = [
@@ -26,7 +28,14 @@ const PAYMENT_METHODS = [
   { id: 'cash', name: 'Cash', icon: 'cash' },
 ];
 
-export default function PaymentModal({ visible, onClose, onSuccess, merchantId }: PaymentModalProps) {
+export default function PaymentModal({
+  visible,
+  onClose,
+  onSuccess,
+  merchantId,
+  customerId,
+  redirectTo,
+}: PaymentModalProps) {
   const router = useRouter();
   const [amount, setAmount] = useState('');
   const [instantSavingsInput, setInstantSavingsInput] = useState('');
@@ -37,7 +46,7 @@ export default function PaymentModal({ visible, onClose, onSuccess, merchantId }
 
   const amountValue = parseFloat(amount || '0');
   const instantSavings = parseFloat(instantSavingsInput || '0');
-  const totalPayable = amountValue - instantSavings;
+  const finalPaidAmount = amountValue - instantSavings;
 
   const handlePayNow = async () => {
     if (!amount || Number.isNaN(amountValue) || amountValue <= 0) {
@@ -52,14 +61,19 @@ export default function PaymentModal({ visible, onClose, onSuccess, merchantId }
       Alert.alert('Missing Merchant', 'Merchant details not available');
       return;
     }
+    if (!customerId) {
+      Alert.alert('Missing Customer', 'Customer details not available');
+      return;
+    }
 
     setIsSubmitting(true);
     try {
       const payload = {
         merchantId,
+        customerId,
         totalBillAmount: amountValue,
         enteredDiscountAmount: instantSavings,
-        totalPayable,
+        finalPaidAmount,
       };
 
       const res = await fetch('https://devapi.intownlocal.com/IN/transactions/', {
@@ -92,7 +106,7 @@ export default function PaymentModal({ visible, onClose, onSuccess, merchantId }
     // Simulate payment processing
     Alert.alert(
       'Payment Successful!',
-      `Paid ₹${totalPayable.toFixed(2)} via ${methodName}\nYou saved ₹${instantSavings.toFixed(2)}!`,
+      `Paid ₹${finalPaidAmount.toFixed(2)} via ${methodName}\nYou saved ₹${instantSavings.toFixed(2)}!`,
       [{
         text: 'OK',
         onPress: () => {
@@ -120,7 +134,7 @@ export default function PaymentModal({ visible, onClose, onSuccess, merchantId }
     setShowMethods(false);
     setShowSuccess(false);
     onClose();
-    router.replace('/member-dashboard');
+    router.replace((redirectTo || '/member-dashboard') as any);
   };
 
   return (
@@ -176,7 +190,7 @@ export default function PaymentModal({ visible, onClose, onSuccess, merchantId }
                 <View style={styles.savingsRow}>
                   <Text style={styles.totalLabel}>Total Payable</Text>
                   <Text style={styles.totalInput}>
-                    ₹{Number.isFinite(totalPayable) ? totalPayable.toFixed(2) : '0.00'}
+                    ₹{Number.isFinite(finalPaidAmount) ? finalPaidAmount.toFixed(2) : '0.00'}
                   </Text>
                 </View>
               </View>

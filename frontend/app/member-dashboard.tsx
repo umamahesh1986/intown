@@ -894,11 +894,11 @@ const handleCategoryClick = (category: Category) => {
                 <Text style={styles.summaryValue}>₹{todaySavedAmount.toFixed(0)}</Text>
               </View>
               <View style={styles.summaryItem}>
-                <Text style={styles.summaryLabel}>This Month's Savings</Text>
+                <Text style={styles.summaryLabel}>Month's Savings</Text>
                 <Text style={styles.summaryValue}>₹{monthSavedAmount.toFixed(0)}</Text>
               </View>
               <View style={styles.summaryItem}>
-                <Text style={styles.summaryLabel}>This Year's Savings</Text>
+                <Text style={styles.summaryLabel}>Year's Savings</Text>
                 <Text style={styles.summaryValue}>₹{yearSavedAmount.toFixed(0)}</Text>
               </View>
             </View>
@@ -1069,7 +1069,7 @@ const handleCategoryClick = (category: Category) => {
 
               }}
             >
-              <Ionicons name="person-outline" size={22} color="#444" />
+              <Ionicons name="person-outline" size={22} color="#FF6600" />
               <Text style={styles.userPanelText}>My Account</Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -1091,7 +1091,7 @@ const handleCategoryClick = (category: Category) => {
                 router.push('/register-merchant');
               }}
             >
-              <Ionicons name="storefront-outline" size={22} color="#444" />
+              <Ionicons name="storefront-outline" size={22} color="#FF6600" />
               <Text style={styles.userPanelText}>Become a Merchant</Text>
             </TouchableOpacity>
 
@@ -1447,8 +1447,8 @@ const styles = StyleSheet.create({
     borderBottomColor: '#F0F0F0',
   },
   transactionLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: 'column',
+    alignItems: 'flex-start',
     flex: 1,
   },
   transactionIcon: {

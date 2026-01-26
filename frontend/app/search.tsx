@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useState, useRef, useEffect } from 'react';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { searchProducts } from '../utils/api';
 
@@ -21,6 +21,8 @@ type SearchResult = {
 
 export default function Search() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ source?: string }>();
+  const source = params.source ?? 'member';
 
   const [searchText, setSearchText] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -101,7 +103,7 @@ export default function Search() {
                 pathname: '/member-shop-list',
                 params: {
                   query: searchText,
-                  source: 'free-text',
+                  source,
                 },
               });
             }}
@@ -135,7 +137,7 @@ export default function Search() {
     pathname: '/member-shop-list',
     params: {
       query: value,
-      source: 'product',
+      source,
     },
   });
 }}

@@ -90,6 +90,7 @@ export default function MerchantDashboard() {
     thisYear: null,
   });
   const [isSalesLoading, setIsSalesLoading] = useState(false);
+  const [debugMerchantId, setDebugMerchantId] = useState<string | null>(null);
 
   // Location store
   const location = useLocationStore((state) => state.location);
@@ -212,36 +213,50 @@ const carouselRef = useRef<ScrollView | null>(null);
   };
 
   useEffect(() => {
-    const loadMerchantId = async () => {
-      try {
-        if (params.merchantId) {
-          setMerchantId(params.merchantId);
-          await AsyncStorage.setItem('merchant_id', params.merchantId);
-        } else {
-          const storedMerchantId = await AsyncStorage.getItem('merchant_id');
-          if (storedMerchantId) {
-            setMerchantId(storedMerchantId);
-          }
-        }
-      } catch (error) {
-        console.error('Error loading merchant id:', error);
-      }
+    let isMounted = true;
+
+    const normalizeId = (value: string | string[] | null | undefined) => {
+      if (!value) return null;
+      if (Array.isArray(value)) return value[0] ?? null;
+      return value;
     };
 
-    const loadShopName = async () => {
+    const init = async () => {
       try {
         const storedShopName = await AsyncStorage.getItem('merchant_shop_name');
-        if (storedShopName) {
+        if (storedShopName && isMounted) {
           setShopName(storedShopName);
         }
+
+        const storedId =
+          (await AsyncStorage.getItem('merchant_id')) ??
+          (await AsyncStorage.getItem('merchantId'));
+        const resolvedId =
+          normalizeId(params.merchantId) ??
+          normalizeId(storedId) ??
+          (user?.id ?? null);
+
+        if (isMounted) {
+          setDebugMerchantId(resolvedId ? String(resolvedId) : null);
+        }
+        if (!resolvedId) return;
+        if (isMounted) {
+          setMerchantId(String(resolvedId));
+        }
+        if (params.merchantId) {
+          await AsyncStorage.setItem('merchant_id', String(params.merchantId));
+        }
       } catch (error) {
-        console.error('Error loading shop name:', error);
+        console.error('Error initializing merchant data:', error);
       }
     };
 
-    loadMerchantId();
-    loadShopName();
-  }, [params.merchantId]);
+    init();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [params.merchantId, user?.id]);
 
   useEffect(() => {
     if (!merchantId) return;
@@ -403,6 +418,13 @@ const carouselRef = useRef<ScrollView | null>(null);
   </View>
 </View>
 {/* === END MERCHANT CAROUSEL === */}
+
+        {/* DEBUG: Merchant ID */}
+        <View style={styles.debugBanner}>
+          <Text style={styles.debugText}>
+            Merchant ID: {debugMerchantId ?? 'not found'}
+          </Text>
+        </View>
 
 
         {/* Shop Details Card */}
@@ -825,6 +847,20 @@ dotActive: {
   backgroundColor: '#FF6600',
 },
 // ===================================
+  debugBanner: {
+    marginHorizontal: 16,
+    marginBottom: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    backgroundColor: '#FFF3E0',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#FFD9B3',
+  },
+  debugText: {
+    fontSize: 12,
+    color: '#B45309',
+  },
 
 // Location Modal Styles
 locationModalContainer: {

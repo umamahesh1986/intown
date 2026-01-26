@@ -5,6 +5,7 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   Animated,
   Dimensions,
   RefreshControl,
@@ -15,6 +16,7 @@ import {
   TextInput,
   Modal,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -30,6 +32,30 @@ import {
 } from '../utils/location';
 
 const { width } = Dimensions.get('window');
+
+const SEARCH_ITEMS = [
+  'Grocery',
+  'Vegetables',
+  'Fruits',
+  'Salon',
+  'Restaurant',
+  'Pharmacy',
+  'Fashion',
+  'Electronics',
+];
+
+const SEARCH_PRODUCTS = [
+  'Tomato',
+  'Onion',
+  'Potato',
+  'Apple',
+  'Banana',
+  'Milk',
+  'Bread',
+  'Rice',
+  'Shampoo',
+  'Soap',
+];
 
 /* ===============================
    INTERFACES
@@ -177,6 +203,9 @@ export default function DualDashboard() {
   const [merchantTransactions, setMerchantTransactions] = useState<Transaction[]>([]);
   const [userTypeLabel, setUserTypeLabel] = useState<string>('Dual');
   const [searchQuery, setSearchQuery] = useState('');
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const [customerId, setCustomerId] = useState<string | null>(null);
   const [merchantId, setMerchantId] = useState<string | null>(null);
@@ -209,6 +238,10 @@ export default function DualDashboard() {
   }>>([]);
   const [isSearchingLocation, setIsSearchingLocation] = useState(false);
   const placeholderAnim = useRef(new Animated.Value(0)).current;
+  const dropdownAnim = useRef(new Animated.Value(0)).current;
+  const contentScrollRef = useRef<ScrollView | null>(null);
+  const [showSupportModal, setShowSupportModal] = useState(false);
+  const [showOffersModal, setShowOffersModal] = useState(false);
 
   /* ===============================
      LOAD USER DATA
@@ -455,8 +488,40 @@ export default function DualDashboard() {
   };
 
   const handleLogout = async () => {
+    setShowDropdown(false);
     await logout();
     router.replace('/login');
+  };
+
+  const openDropdown = () => {
+    setShowDropdown(true);
+    Animated.timing(dropdownAnim, {
+      toValue: 1,
+      duration: 180,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const closeDropdown = () => {
+    Animated.timing(dropdownAnim, {
+      toValue: 0,
+      duration: 160,
+      useNativeDriver: true,
+    }).start(() => setShowDropdown(false));
+  };
+
+  const toggleDropdown = () => {
+    if (showDropdown) closeDropdown();
+    else openDropdown();
+  };
+
+  const handleSearch = () => {
+    if (searchQuery.trim()) {
+      router.push({
+        pathname: '/member-shop-list',
+        params: { query: searchQuery, source: 'dual' },
+      });
+    }
   };
 
   const currentTransactions =
@@ -501,7 +566,7 @@ export default function DualDashboard() {
           style={styles.profileButton}
           onPress={(e) => {
             e.stopPropagation();
-            handleLogout();
+            toggleDropdown();
           }}
         >
           <View style={styles.profileInfo}>
@@ -519,32 +584,166 @@ export default function DualDashboard() {
         </TouchableOpacity>
       </View>
 
-      {/* Search Section */}
-      <View style={styles.searchSection}>
-        <View style={styles.searchContainer}>
-          <Ionicons name="search" size={20} color="#999" />
-          <TextInput
-            style={styles.searchInput}
-            placeholder=""
-            placeholderTextColor="#999999"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-          {searchQuery.length === 0 && (
-            <View pointerEvents="none" style={styles.animatedPlaceholder}>
-              <Text style={styles.animatedPlaceholderPrefix}>Search for </Text>
-              <Animated.Text
-                style={[
-                  styles.animatedPlaceholderWord,
-                  { opacity: placeholderOpacity, transform: [{ translateY: placeholderTranslateY }] },
-                ]}
-              >
-                {placeholderItems[placeholderIndex]}
-              </Animated.Text>
+      {/* Dropdown Panel */}
+      {showDropdown && (
+        <>
+          <TouchableWithoutFeedback onPress={closeDropdown}>
+            <View style={styles.backdrop} />
+          </TouchableWithoutFeedback>
+          <Animated.View
+            style={[
+              styles.userPanel,
+              {
+                opacity: dropdownAnim,
+                transform: [
+                  {
+                    translateY: dropdownAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [-8, 0],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          >
+            <View style={styles.userPanelHeader}>
+              <View style={styles.panelAvatarPlaceholder}>
+                <Ionicons name="person" size={22} color="#fff" />
+              </View>
+              <View style={{ marginLeft: 10 }}>
+                <Text style={styles.userPanelName}>{user?.name ?? 'User'}</Text>
+                <Text style={styles.userPanelPhone}>
+                  {(user as any)?.phone ?? (user as any)?.email ?? ''}
+                </Text>
+                <Text style={styles.userPanelTag}>Dual Account</Text>
+              </View>
             </View>
-          )}
-        </View>
-      </View>
+
+            <TouchableOpacity
+              style={styles.userPanelItem}
+              onPress={() => {
+                closeDropdown();
+                router.push({ pathname: '/account' as any });
+              }}
+            >
+              <Ionicons name="person-outline" size={22} color="#FF6600" />
+              <Text style={styles.userPanelText}>My Account</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.userPanelItem}
+              onPress={() => {
+                closeDropdown();
+                router.push('/member-card');
+              }}
+            >
+              <Ionicons name="card-outline" size={22} color="#FF6600" />
+              <Text style={styles.userPanelText}>Member Card</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.userPanelItem}
+              onPress={() => {
+                closeDropdown();
+                router.push('/register-merchant');
+              }}
+            >
+              <Ionicons name="storefront-outline" size={22} color="#FF6600" />
+              <Text style={styles.userPanelText}>Become a Merchant</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.userPanelItem}
+              onPress={() => {
+                closeDropdown();
+              }}
+            >
+              <Ionicons name="person-outline" size={22} color="#FF6600" />
+              <Text style={styles.userPanelText}>Account Details</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.userPanelItem}
+              onPress={() => {
+                closeDropdown();
+              }}
+            >
+              <Ionicons name="storefront-outline" size={22} color="#FF6600" />
+              <Text style={styles.userPanelText}>Merchant</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.userPanelItem} onPress={handleLogout}>
+              <Ionicons name="log-out-outline" size={22} color="#FF0000" />
+              <Text style={[styles.userPanelText, { color: '#FF0000' }]}>
+                Logout
+              </Text>
+            </TouchableOpacity>
+          </Animated.View>
+        </>
+      )}
+
+      {/* Search Section (Customer Only) */}
+      {activeTab === 'customer' && (
+        <TouchableWithoutFeedback onPress={() => setShowSuggestions(false)}>
+          <View style={styles.searchSection}>
+            <View style={styles.searchContainer}>
+              <Ionicons name="search" size={20} color="#999" />
+              <TextInput
+                style={styles.searchInput}
+                placeholder=""
+                placeholderTextColor="#999999"
+                value={searchQuery}
+                onChangeText={(text) => {
+                  setSearchQuery(text);
+                  if (text.trim().length > 0) {
+                    const combined = [...SEARCH_ITEMS, ...SEARCH_PRODUCTS];
+                    const filtered = combined.filter((item) =>
+                      item.toLowerCase().includes(text.toLowerCase())
+                    );
+                    setSuggestions(filtered);
+                    setShowSuggestions(true);
+                  } else {
+                    setShowSuggestions(false);
+                  }
+                }}
+                onFocus={() => {
+                  router.push({ pathname: '/search', params: { source: 'dual' } });
+                }}
+                onSubmitEditing={handleSearch}
+              />
+              {searchQuery.length === 0 && (
+                <View pointerEvents="none" style={styles.animatedPlaceholder}>
+                  <Text style={styles.animatedPlaceholderPrefix}>Search for </Text>
+                  <Animated.Text
+                    style={[
+                      styles.animatedPlaceholderWord,
+                      { opacity: placeholderOpacity, transform: [{ translateY: placeholderTranslateY }] },
+                    ]}
+                  >
+                    {placeholderItems[placeholderIndex]}
+                  </Animated.Text>
+                </View>
+              )}
+            </View>
+            {showSuggestions && suggestions.length > 0 && (
+              <View style={styles.suggestionBox}>
+                {suggestions.map((item, index) => (
+                  <TouchableOpacity
+                    key={`${item}-${index}`}
+                    style={styles.suggestionItem}
+                    onPress={() => {
+                      setSearchQuery(item);
+                      setShowSuggestions(false);
+                      router.push({
+                        pathname: '/member-shop-list',
+                        params: { query: item, source: 'dual' },
+                      });
+                    }}
+                  >
+                    <Ionicons name="search" size={16} color="#666" />
+                    <Text style={styles.suggestionText}>{item}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+          </View>
+        </TouchableWithoutFeedback>
+      )}
 
       {/* Tab Switcher */}
       <View style={styles.tabContainer}>
@@ -564,6 +763,7 @@ export default function DualDashboard() {
 
       {/* Content */}
       <ScrollView
+        ref={contentScrollRef}
         style={styles.content}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -668,20 +868,35 @@ export default function DualDashboard() {
               <>
                 <TouchableOpacity
                   style={styles.actionButton}
-                  onPress={() => router.push('/user-dashboard')}
+                  onPress={() => router.push('/search')}
                 >
                   <Ionicons name="search" size={24} color="#FF6600" />
                   <Text style={styles.actionText}>Find Shops</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.actionButton}>
+                <TouchableOpacity
+                  style={styles.actionButton}
+                  onPress={() => {
+                    contentScrollRef.current?.scrollTo({ y: 0, animated: true });
+                  }}
+                >
                   <Ionicons name="gift" size={24} color="#FF6600" />
                   <Text style={styles.actionText}>My Rewards</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.actionButton}>
+                <TouchableOpacity
+                  style={styles.actionButton}
+                  onPress={() => {
+                    contentScrollRef.current?.scrollTo({ y: 0, animated: true });
+                  }}
+                >
                   <Ionicons name="card" size={24} color="#FF6600" />
                   <Text style={styles.actionText}>Payment</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.actionButton}>
+                <TouchableOpacity
+                  style={styles.actionButton}
+                  onPress={() => {
+                    setShowSupportModal(true);
+                  }}
+                >
                   <Ionicons name="help-circle" size={24} color="#FF6600" />
                   <Text style={styles.actionText}>Support</Text>
                 </TouchableOpacity>
@@ -690,64 +905,130 @@ export default function DualDashboard() {
               <>
                 <TouchableOpacity
                   style={styles.actionButton}
-                  onPress={() => router.push('/merchant-dashboard')}
+                  onPress={() => {
+                    contentScrollRef.current?.scrollTo({ y: 0, animated: true });
+                  }}
                 >
                   <Ionicons name="bar-chart" size={24} color="#FF6600" />
                   <Text style={styles.actionText}>Analytics</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.actionButton}>
+                <TouchableOpacity
+                  style={styles.actionButton}
+                  onPress={() => {
+                    setShowOffersModal(true);
+                  }}
+                >
                   <Ionicons name="pricetag" size={24} color="#FF6600" />
                   <Text style={styles.actionText}>Offers</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.actionButton}>
+                <TouchableOpacity
+                  style={styles.actionButton}
+                  onPress={() => {
+                    contentScrollRef.current?.scrollTo({ y: 0, animated: true });
+                  }}
+                >
                   <Ionicons name="wallet" size={24} color="#FF6600" />
                   <Text style={styles.actionText}>Payouts</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.actionButton}>
-                  <Ionicons name="settings" size={24} color="#FF6600" />
-                  <Text style={styles.actionText}>Settings</Text>
+                <TouchableOpacity
+                  style={styles.actionButton}
+                  onPress={() => setShowSupportModal(true)}
+                >
+                  <Ionicons name="help-circle" size={24} color="#FF6600" />
+                  <Text style={styles.actionText}>Support</Text>
                 </TouchableOpacity>
               </>
             )}
           </View>
         </View>
-        {/* Nearby Shops */}
-        <View style={styles.nearbyShopsSection}>
-          <Text style={styles.sectionTitle}>Nearby Shops</Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.nearbyScroll}
-          >
-            {DUMMY_NEARBY_SHOPS.map((shop) => (
-              <TouchableOpacity
-                key={shop.id}
-                style={styles.nearbyCard}
-                onPress={() => router.push('/user-dashboard')}
-              >
-                <View style={styles.nearbyImagePlaceholder}>
-                  <Ionicons name="storefront" size={36} color="#FF6600" />
-                </View>
-                <Text style={styles.nearbyName} numberOfLines={1}>
-                  {shop.name}
-                </Text>
-                <Text style={styles.nearbyMeta}>{shop.category}</Text>
-                <View style={styles.nearbyFooter}>
-                  <View style={styles.nearbyRating}>
-                    <Ionicons name="star" size={12} color="#FFA500" />
-                    <Text style={styles.nearbyRatingText}>{shop.rating}</Text>
+        {/* Nearby Shops (Customer Only) */}
+        {activeTab === 'customer' && (
+          <View style={styles.nearbyShopsSection}>
+            <Text style={styles.sectionTitle}>Nearby Shops</Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.nearbyScroll}
+            >
+              {DUMMY_NEARBY_SHOPS.map((shop) => (
+                <TouchableOpacity
+                  key={shop.id}
+                  style={styles.nearbyCard}
+                  onPress={() => router.push('/user-dashboard')}
+                >
+                  <View style={styles.nearbyImagePlaceholder}>
+                    <Ionicons name="storefront" size={36} color="#FF6600" />
                   </View>
-                  <View style={styles.nearbyDistance}>
-                    <Ionicons name="location" size={12} color="#666" />
-                    <Text style={styles.nearbyDistanceText}>{shop.distance} km</Text>
+                  <Text style={styles.nearbyName} numberOfLines={1}>
+                    {shop.name}
+                  </Text>
+                  <Text style={styles.nearbyMeta}>{shop.category}</Text>
+                  <View style={styles.nearbyFooter}>
+                    <View style={styles.nearbyRating}>
+                      <Ionicons name="star" size={12} color="#FFA500" />
+                      <Text style={styles.nearbyRatingText}>{shop.rating}</Text>
+                    </View>
+                    <View style={styles.nearbyDistance}>
+                      <Ionicons name="location" size={12} color="#666" />
+                      <Text style={styles.nearbyDistanceText}>
+                        {shop.distance} km
+                      </Text>
+                    </View>
                   </View>
-                </View>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        )}
         <Footer />
       </ScrollView>
+
+      {/* Support Modal */}
+      <Modal
+        visible={showSupportModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowSupportModal(false)}
+      >
+        <View style={styles.supportModalOverlay}>
+          <View style={styles.supportModalContent}>
+            <Image
+              source={require('../assets/images/intown-logo.jpg')}
+              style={styles.supportLogo}
+            />
+            <Text style={styles.supportTitle}>Intown Customer Support</Text>
+            <Text style={styles.supportText}>Phone: 9390932585</Text>
+            <Text style={styles.supportText}>Email: support@intownlocal.com</Text>
+            <TouchableOpacity
+              style={styles.supportButton}
+              onPress={() => setShowSupportModal(false)}
+            >
+              <Text style={styles.supportButtonText}>OK</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Offers Modal */}
+      <Modal
+        visible={showOffersModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowOffersModal(false)}
+      >
+        <View style={styles.supportModalOverlay}>
+          <View style={styles.supportModalContent}>
+            <Text style={styles.supportTitle}>Offers</Text>
+            <Text style={styles.supportText}>Offers will come soon</Text>
+            <TouchableOpacity
+              style={styles.supportButton}
+              onPress={() => setShowOffersModal(false)}
+            >
+              <Text style={styles.supportButtonText}>OK</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       {/* Location Selection Modal */}
       <Modal
@@ -935,6 +1216,118 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#ff6600',
     fontWeight: '500',
+  },
+  suggestionBox: {
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    marginTop: 6,
+    borderWidth: 1,
+    borderColor: '#eee',
+    overflow: 'hidden',
+    zIndex: 20,
+  },
+  suggestionItem: {
+    padding: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f2f2f2',
+  },
+  suggestionText: {
+    fontSize: 15,
+    color: '#333',
+  },
+  backdrop: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'transparent',
+    zIndex: 999,
+  },
+  userPanel: {
+    position: 'absolute',
+    top: 70,
+    right: 16,
+    width: 280,
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    padding: 12,
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 10,
+    zIndex: 2000,
+  },
+  userPanelHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  userPanelName: { fontSize: 16, fontWeight: '700' },
+  userPanelPhone: { fontSize: 12, color: '#888', marginTop: 2 },
+  userPanelTag: { fontSize: 12, color: '#FF6600', marginTop: 2, fontWeight: '600' },
+  userPanelItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 6,
+    borderRadius: 8,
+  },
+  userPanelText: { fontSize: 15, marginLeft: 12, color: '#333' },
+  panelAvatarPlaceholder: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#FF6600',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  supportModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  supportModalContent: {
+    width: '100%',
+    maxWidth: 320,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 20,
+    alignItems: 'center',
+  },
+  supportLogo: {
+    width: '60%',
+    height: 85,
+    resizeMode: 'contain',
+    marginBottom: 12,
+  },
+  supportTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1A1A1A',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  supportText: {
+    fontSize: 14,
+    color: '#555',
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  supportButton: {
+    marginTop: 16,
+    backgroundColor: '#FF6600',
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+    borderRadius: 10,
+  },
+  supportButtonText: {
+    color: '#fff',
+    fontWeight: '700',
   },
   tabContainer: {
     flexDirection: 'row',

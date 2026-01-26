@@ -1,10 +1,11 @@
 import { View, Text, StyleSheet, TouchableOpacity, Linking } from 'react-native';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocationStore } from '../store/locationStore';
 import PaymentModal from '../components/PaymentModal';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const SHOP_DATA: any = {
   '1': { name: 'Fresh Mart Grocery', lat: 12.9716, lng: 77.5946 },
@@ -19,9 +20,11 @@ export default function MemberNavigate() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const shopId = params.shopId as string;
+  const redirectTo = params.source === 'dual' ? '/dual-dashboard' : '/member-dashboard';
   const shop = SHOP_DATA[shopId] || SHOP_DATA['1'];
   const { location } = useLocationStore();
   const [showPayment, setShowPayment] = useState(false);
+  const [customerId, setCustomerId] = useState<string | null>(null);
 
   const handleOpenMaps = () => {
     if (location) {
@@ -33,6 +36,21 @@ export default function MemberNavigate() {
   const handlePaymentSuccess = (amount: number, savings: number, method: string) => {
     console.log('Payment successful:', { amount, savings, method });
   };
+
+  useEffect(() => {
+    const loadCustomerId = async () => {
+      try {
+        const storedCustomerId = await AsyncStorage.getItem('customer_id');
+        if (storedCustomerId) {
+          setCustomerId(storedCustomerId);
+        }
+      } catch (error) {
+        console.error('Error loading customer id:', error);
+      }
+    };
+
+    loadCustomerId();
+  }, []);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -75,6 +93,8 @@ export default function MemberNavigate() {
         onClose={() => setShowPayment(false)}
         onSuccess={handlePaymentSuccess}
         merchantId={shopId}
+        customerId={customerId}
+        redirectTo={redirectTo}
       />
     </SafeAreaView>
   );
