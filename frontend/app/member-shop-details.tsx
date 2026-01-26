@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Modal, Pressable } from 'react-native';
 import { useState, useEffect } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -84,8 +84,10 @@ export default function MemberShopDetails() {
     shop?.id ??
     shop?.merchant_id;
   const redirectTo = params.source === 'dual' ? '/dual-dashboard' : '/member-dashboard';
+  const isUserFlow = params.source === 'user';
   const [showPayment, setShowPayment] = useState(false);
   const [customerId, setCustomerId] = useState<string | null>(null);
+  const [showRegistrationModal, setShowRegistrationModal] = useState(false);
 
   const handlePaymentSuccess = (amount: number, savings: number, method: string) => {
     console.log('Payment successful:', { amount, savings, method });
@@ -140,6 +142,10 @@ export default function MemberShopDetails() {
   const phoneText = shop.phone || shop.phoneNumber || shop.contactNumber || 'Not available';
   const offerText = shop.offers || shop.offer || 'No active offers';
 
+  const handleUserTap = () => {
+    if (isUserFlow) setShowRegistrationModal(true);
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -151,80 +157,159 @@ export default function MemberShopDetails() {
       </View>
 
       <ScrollView>
-        <View style={styles.shopImage}>
-          {shop.image || shop.s3ImageUrl ? (
-            <Image
-              source={{ uri: shop.image || shop.s3ImageUrl }}
-              style={styles.shopImageFull}
-            />
-          ) : (
-            <Ionicons name="storefront" size={100} color="#FF6600" />
-          )}
-        </View>
+        {isUserFlow ? (
+          <Pressable onPress={handleUserTap}>
+            <View style={styles.shopImage}>
+              {shop.image || shop.s3ImageUrl ? (
+                <Image
+                  source={{ uri: shop.image || shop.s3ImageUrl }}
+                  style={styles.shopImageFull}
+                />
+              ) : (
+                <Ionicons name="storefront" size={100} color="#FF6600" />
+              )}
+            </View>
 
-        <View style={styles.content}>
-          <View style={styles.titleRow}>
-            <Text style={styles.shopName}>{shop.shopName || shop.name}</Text>
-            <View style={[styles.badge, { backgroundColor: badge.bg }]}>
-              <Text style={[styles.badgeText, { color: badge.color }]}>
-                {badge.label}
-              </Text>
-            </View>
-          </View>
-          <View style={styles.ratingContainer}>
-            {[1,2,3,4,5].map(i => (
-              <Ionicons key={i} name={i <= ratingValue ? "star" : "star-outline"} size={20} color="#FFA500" />
-            ))}
-            <Text style={styles.ratingText}>{ratingValue.toFixed(1)}</Text>
-          </View>
+            <View style={styles.content}>
+              <View style={styles.titleRow}>
+                <Text style={styles.shopName}>{shop.shopName || shop.name}</Text>
+                <View style={[styles.badge, { backgroundColor: badge.bg }]}>
+                  <Text style={[styles.badgeText, { color: badge.color }]}>
+                    {badge.label}
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.ratingContainer}>
+                {[1,2,3,4,5].map(i => (
+                  <Ionicons key={i} name={i <= ratingValue ? "star" : "star-outline"} size={20} color="#FFA500" />
+                ))}
+                <Text style={styles.ratingText}>{ratingValue.toFixed(1)}</Text>
+              </View>
 
-          <View style={styles.infoCard}>
-            <View style={styles.infoRow}>
-              <Ionicons name="pricetag" size={20} color="#666" />
-              <Text style={styles.infoLabel}>Category:</Text>
-              <Text style={styles.infoValue}>{shop.category || 'General'}</Text>
-            </View>
-            <View style={styles.infoRow}>
-              <Ionicons name="location" size={20} color="#666" />
-              <Text style={styles.infoLabel}>Distance:</Text>
-              <Text style={styles.infoValue}>
-                {shop.distance != null ? `${Number(shop.distance).toFixed(1)} km` : 'Nearby'}
-              </Text>
-            </View>
-            <View style={styles.infoRow}>
-              <Ionicons name="star" size={20} color="#FFA500" />
-              <Text style={styles.infoLabel}>Rating:</Text>
-              <Text style={styles.infoValue}>{ratingValue.toFixed(1)} / 5</Text>
-            </View>
-            <View style={styles.infoRow}>
-              <Ionicons name="call" size={20} color="#666" />
-              <Text style={styles.infoLabel}>Phone:</Text>
-              <Text style={styles.infoValue}>{phoneText}</Text>
-            </View>
-            <View style={styles.infoRow}>
-              <Ionicons name="pin" size={20} color="#666" />
-              <Text style={styles.infoLabel}>Address:</Text>
-              <Text style={styles.infoValue}>{addressText}</Text>
-            </View>
-            <View style={styles.infoRow}>
-              <Ionicons name="gift" size={20} color="#666" />
-              <Text style={styles.infoLabel}>Offers:</Text>
-              <Text style={styles.infoValue}>{offerText}</Text>
-            </View>
-          </View>
+              <View style={styles.infoCard}>
+                <View style={styles.infoRow}>
+                  <Ionicons name="pricetag" size={20} color="#666" />
+                  <Text style={styles.infoLabel}>Category:</Text>
+                  <Text style={styles.infoValue}>{shop.category || 'General'}</Text>
+                </View>
+                <View style={styles.infoRow}>
+                  <Ionicons name="location" size={20} color="#666" />
+                  <Text style={styles.infoLabel}>Distance:</Text>
+                  <Text style={styles.infoValue}>
+                    {shop.distance != null ? `${Number(shop.distance).toFixed(1)} km` : 'Nearby'}
+                  </Text>
+                </View>
+                <View style={styles.infoRow}>
+                  <Ionicons name="star" size={20} color="#FFA500" />
+                  <Text style={styles.infoLabel}>Rating:</Text>
+                  <Text style={styles.infoValue}>{ratingValue.toFixed(1)} / 5</Text>
+                </View>
+                <View style={styles.infoRow}>
+                  <Ionicons name="call" size={20} color="#666" />
+                  <Text style={styles.infoLabel}>Phone:</Text>
+                  <Text style={styles.infoValue}>{phoneText}</Text>
+                </View>
+                <View style={styles.infoRow}>
+                  <Ionicons name="pin" size={20} color="#666" />
+                  <Text style={styles.infoLabel}>Address:</Text>
+                  <Text style={styles.infoValue}>{addressText}</Text>
+                </View>
+                <View style={styles.infoRow}>
+                  <Ionicons name="gift" size={20} color="#666" />
+                  <Text style={styles.infoLabel}>Offers:</Text>
+                  <Text style={styles.infoValue}>{offerText}</Text>
+                </View>
+              </View>
 
-          <View style={styles.savingsCard}>
-            <Ionicons name="gift" size={32} color="#4CAF50" />
-            <Text style={styles.savingsTitle}>Special Offer</Text>
-            <Text style={styles.savingsText}>Get 10% instant savings on all purchases!</Text>
-          </View>
-        </View>
+              <View style={styles.savingsCard}>
+                <Ionicons name="gift" size={32} color="#4CAF50" />
+                <Text style={styles.savingsTitle}>Special Offer</Text>
+                <Text style={styles.savingsText}>Get 10% instant savings on all purchases!</Text>
+              </View>
+            </View>
+          </Pressable>
+        ) : (
+          <>
+            <View style={styles.shopImage}>
+              {shop.image || shop.s3ImageUrl ? (
+                <Image
+                  source={{ uri: shop.image || shop.s3ImageUrl }}
+                  style={styles.shopImageFull}
+                />
+              ) : (
+                <Ionicons name="storefront" size={100} color="#FF6600" />
+              )}
+            </View>
+
+            <View style={styles.content}>
+              <View style={styles.titleRow}>
+                <Text style={styles.shopName}>{shop.shopName || shop.name}</Text>
+                <View style={[styles.badge, { backgroundColor: badge.bg }]}>
+                  <Text style={[styles.badgeText, { color: badge.color }]}>
+                    {badge.label}
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.ratingContainer}>
+                {[1,2,3,4,5].map(i => (
+                  <Ionicons key={i} name={i <= ratingValue ? "star" : "star-outline"} size={20} color="#FFA500" />
+                ))}
+                <Text style={styles.ratingText}>{ratingValue.toFixed(1)}</Text>
+              </View>
+
+              <View style={styles.infoCard}>
+                <View style={styles.infoRow}>
+                  <Ionicons name="pricetag" size={20} color="#666" />
+                  <Text style={styles.infoLabel}>Category:</Text>
+                  <Text style={styles.infoValue}>{shop.category || 'General'}</Text>
+                </View>
+                <View style={styles.infoRow}>
+                  <Ionicons name="location" size={20} color="#666" />
+                  <Text style={styles.infoLabel}>Distance:</Text>
+                  <Text style={styles.infoValue}>
+                    {shop.distance != null ? `${Number(shop.distance).toFixed(1)} km` : 'Nearby'}
+                  </Text>
+                </View>
+                <View style={styles.infoRow}>
+                  <Ionicons name="star" size={20} color="#FFA500" />
+                  <Text style={styles.infoLabel}>Rating:</Text>
+                  <Text style={styles.infoValue}>{ratingValue.toFixed(1)} / 5</Text>
+                </View>
+                <View style={styles.infoRow}>
+                  <Ionicons name="call" size={20} color="#666" />
+                  <Text style={styles.infoLabel}>Phone:</Text>
+                  <Text style={styles.infoValue}>{phoneText}</Text>
+                </View>
+                <View style={styles.infoRow}>
+                  <Ionicons name="pin" size={20} color="#666" />
+                  <Text style={styles.infoLabel}>Address:</Text>
+                  <Text style={styles.infoValue}>{addressText}</Text>
+                </View>
+                <View style={styles.infoRow}>
+                  <Ionicons name="gift" size={20} color="#666" />
+                  <Text style={styles.infoLabel}>Offers:</Text>
+                  <Text style={styles.infoValue}>{offerText}</Text>
+                </View>
+              </View>
+
+              <View style={styles.savingsCard}>
+                <Ionicons name="gift" size={32} color="#4CAF50" />
+                <Text style={styles.savingsTitle}>Special Offer</Text>
+                <Text style={styles.savingsText}>Get 10% instant savings on all purchases!</Text>
+              </View>
+            </View>
+          </>
+        )}
       </ScrollView>
 
       <View style={styles.bottomButtons}>
         <TouchableOpacity
           style={styles.navigateBtn}
-          onPress={() =>
+          onPress={() => {
+            if (isUserFlow) {
+              setShowRegistrationModal(true);
+              return;
+            }
             router.push({
               pathname: '/member-navigate',
               params: {
@@ -232,13 +317,22 @@ export default function MemberShopDetails() {
                 source: params.source,
                 shop: JSON.stringify(shop),
               },
-            })
-          }
+            });
+          }}
         >
           <Ionicons name="navigate" size={20} color="#FFF" />
           <Text style={styles.navigateBtnText}>Navigate</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.payBtn} onPress={() => setShowPayment(true)}>
+        <TouchableOpacity
+          style={styles.payBtn}
+          onPress={() => {
+            if (isUserFlow) {
+              setShowRegistrationModal(true);
+              return;
+            }
+            setShowPayment(true);
+          }}
+        >
           <Ionicons name="card" size={20} color="#FFF" />
           <Text style={styles.payBtnText}>Payment Process</Text>
         </TouchableOpacity>
@@ -252,6 +346,46 @@ export default function MemberShopDetails() {
         customerId={customerId ?? shop.customerId}
         redirectTo={redirectTo}
       />
+
+      {/* Registration Modal (User Flow Only) */}
+      <Modal
+        visible={showRegistrationModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowRegistrationModal(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Choose Registration Type</Text>
+            <TouchableOpacity
+              style={styles.modalButton}
+              onPress={() => {
+                setShowRegistrationModal(false);
+                router.push('/register-member');
+              }}
+            >
+              <Ionicons name="person" size={24} color="#FF6600" />
+              <Text style={styles.modalButtonText}>Register as Customer</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.modalButton}
+              onPress={() => {
+                setShowRegistrationModal(false);
+                router.push('/register-merchant');
+              }}
+            >
+              <Ionicons name="storefront" size={24} color="#FF6600" />
+              <Text style={styles.modalButtonText}>Register as Merchant</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.modalCancelButton}
+              onPress={() => setShowRegistrationModal(false)}
+            >
+              <Text style={styles.modalCancelText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -282,4 +416,44 @@ const styles = StyleSheet.create({
   navigateBtnText: {color:'#FFF', fontSize:16, fontWeight:'bold', marginLeft:8},
   payBtn: {flex:1, backgroundColor:'#FF6600', borderRadius:12, paddingVertical:16, flexDirection:'row', alignItems:'center', justifyContent:'center'},
   payBtnText: {color:'#FFF', fontSize:16, fontWeight:'bold', marginLeft:8},
+  modalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1A1A1A',
+    marginBottom: 24,
+    textAlign: 'center',
+  },
+  modalButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF3E0',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+  },
+  modalButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FF6600',
+    marginLeft: 12,
+  },
+  modalCancelButton: {
+    padding: 16,
+    alignItems: 'center',
+  },
+  modalCancelText: {
+    fontSize: 16,
+    color: '#666666',
+  },
 });

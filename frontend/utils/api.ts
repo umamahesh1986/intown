@@ -126,8 +126,16 @@ export const getShops = async (
 };
 
 export const getPlans = async () => {
-  const response = await api.get("/plans");
-  return response.data;
+  try {
+    const response = await api.get("/plans");
+    return response.data;
+  } catch (error: any) {
+    console.warn("getPlans API failed:", error.message);
+    if (isNetworkError(error)) {
+      return [];
+    }
+    throw error;
+  }
 };
 
 

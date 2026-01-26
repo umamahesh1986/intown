@@ -10,15 +10,18 @@ import {
   Platform,
   Switch,
   ActivityIndicator,
+  Image,
 } from 'react-native';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { registerMerchant } from '../utils/api';
 import { useAuthStore } from '../store/authStore';
 import * as Location from 'expo-location';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   getCategories,
   getProductsByCategory,
@@ -35,8 +38,14 @@ export default function RegisterMerchant() {
   ];
 
   const router = useRouter();
-  const params = useLocalSearchParams<{ latitude?: string; longitude?: string }>();
+  const params = useLocalSearchParams<{
+    latitude?: string;
+    longitude?: string;
+    returnTo?: string;
+  }>();
+  const returnTo = params.returnTo ?? '/login';
   const { setUserType, user } = useAuthStore();
+  const draftKey = 'register_merchant_draft';
 
   /* ================= ORIGINAL STATES (UNCHANGED) ================= */
 
@@ -63,6 +72,74 @@ export default function RegisterMerchant() {
   const [address, setAddress] = useState('');
   const [introducedBy, setIntroducedBy] = useState('');
   const [images, setImages] = useState<string[]>([]);
+  const addImages = (newImages: string[]) => {
+    setImages((prev) => Array.from(new Set([...prev, ...newImages])));
+  };
+
+  const getImagePreviewSource = (value: string) => {
+    if (!value) return null;
+    if (
+      value.startsWith('http') ||
+      value.startsWith('file:') ||
+      value.startsWith('content:') ||
+      value.startsWith('data:')
+    ) {
+      return { uri: value };
+    }
+    return { uri: `data:image/jpeg;base64,${value}` };
+  };
+
+  const handlePickFromGallery = async () => {
+    try {
+      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!perm.granted) {
+        Alert.alert('Permission Required', 'Please allow photo library access');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsMultipleSelection: true,
+        quality: 0.5,
+        base64: true,
+      });
+
+      if (result.canceled) return;
+      const newImages =
+        (result as any).assets?.map((asset: any) => asset.base64 || asset.uri) ??
+        [];
+      if (newImages.length > 0) addImages(newImages);
+    } catch (error) {
+      console.error('Image pick error:', error);
+      Alert.alert('Error', 'Unable to pick images');
+    }
+  };
+
+  const handleTakePhoto = async () => {
+    try {
+      const perm = await ImagePicker.requestCameraPermissionsAsync();
+      if (!perm.granted) {
+        Alert.alert('Permission Required', 'Please allow camera access');
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        quality: 0.5,
+        allowsEditing: true,
+        base64: true,
+      });
+
+      if (result.canceled) return;
+      const imageValue =
+        (result as any).assets?.[0]?.base64 ??
+        (result as any).assets?.[0]?.uri ??
+        null;
+      if (imageValue) addImages([imageValue]);
+    } catch (error) {
+      console.error('Camera error:', error);
+      Alert.alert('Error', 'Unable to open camera');
+    }
+  };
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<any>({});
@@ -262,7 +339,99 @@ const resetOtherProducts = () => {
       }
     }, [params.latitude, params.longitude]);
 
-    const handleSelectLocation = () => {
+    const saveDraft = async () => {
+      try {
+        const draft = {
+          businessName,
+          contactName,
+          shopName,
+          businessCategory,
+          description,
+          yearsInBusiness,
+          branches,
+          email,
+          phoneNumber,
+          pincode,
+          address,
+          introducedBy,
+          images,
+          agreedToTerms,
+          selectedCategoryId,
+          selectedProductIds,
+          hasOtherProducts,
+          customProductsCsv,
+        };
+        await AsyncStorage.setItem(draftKey, JSON.stringify(draft));
+      } catch (error) {
+        console.error('Failed to save merchant draft', error);
+      }
+    };
+
+    const restoreDraft = async () => {
+      try {
+        const stored = await AsyncStorage.getItem(draftKey);
+        if (!stored) return;
+        const draft = JSON.parse(stored);
+        if (!draft) return;
+        setBusinessName(draft.businessName ?? '');
+        setContactName(draft.contactName ?? '');
+        setShopName(draft.shopName ?? '');
+        setBusinessCategory(draft.businessCategory ?? '');
+        setDescription(draft.description ?? '');
+        setYearsInBusiness(draft.yearsInBusiness ?? '');
+        setBranches(draft.branches ?? '');
+        setEmail(draft.email ?? '');
+        setPhoneNumber(draft.phoneNumber ?? '');
+        setPincode(draft.pincode ?? '');
+        setAddress(draft.address ?? '');
+        setIntroducedBy(draft.introducedBy ?? '');
+        setImages(Array.isArray(draft.images) ? draft.images : []);
+        setAgreedToTerms(Boolean(draft.agreedToTerms));
+        setSelectedCategoryId(
+          typeof draft.selectedCategoryId === 'number' ? draft.selectedCategoryId : null
+        );
+        setSelectedProductIds(
+          Array.isArray(draft.selectedProductIds) ? draft.selectedProductIds : []
+        );
+        setHasOtherProducts(Boolean(draft.hasOtherProducts));
+        setCustomProductsCsv(draft.customProductsCsv ?? '');
+      } catch (error) {
+        console.error('Failed to restore merchant draft', error);
+      }
+    };
+
+    useFocusEffect(
+      useCallback(() => {
+        const loadPickedLocation = async () => {
+          try {
+            await restoreDraft();
+            const stored = await AsyncStorage.getItem(
+              'location_picker_register_merchant'
+            );
+            if (!stored) return;
+            const parsed = JSON.parse(stored);
+            if (
+              parsed &&
+              Number.isFinite(parsed.latitude) &&
+              Number.isFinite(parsed.longitude)
+            ) {
+              setLocation({
+                latitude: parsed.latitude,
+                longitude: parsed.longitude,
+              });
+            }
+            await AsyncStorage.removeItem('location_picker_register_merchant');
+          } catch (error) {
+            console.error('Failed to load picked location', error);
+          }
+        };
+
+        loadPickedLocation();
+      }, [])
+    );
+
+    const handleSelectLocation = async () => {
+      await saveDraft();
       router.push({ pathname: '/location-picker', params: { returnTo: '/register-merchant' } });
     };
 
@@ -453,6 +622,10 @@ const productNames = allProducts
         if (shopName) {
           await AsyncStorage.setItem('merchant_shop_name', shopName);
         }
+        if (images.length > 0) {
+          await AsyncStorage.setItem('merchant_profile_image', String(images[0]));
+        }
+        await AsyncStorage.removeItem(draftKey);
         if (location?.latitude != null && location?.longitude != null) {
           await AsyncStorage.setItem('merchant_location_lat', String(location.latitude));
           await AsyncStorage.setItem('merchant_location_lng', String(location.longitude));
@@ -503,12 +676,20 @@ const displayedCategories = showAllCategories
 
     /* ================= UI (UNCHANGED) ================= */
 
+    const handleBack = () => {
+      if (router.canGoBack()) {
+        router.back();
+        return;
+      }
+      router.replace(returnTo as any);
+    };
+
     return (
       <SafeAreaView style={styles.container}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
           {/* Header */}
           <View style={styles.header}>
-            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <TouchableOpacity onPress={handleBack} style={styles.backButton}>
               <Ionicons name="arrow-back" size={24} color="#1A1A1A" />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Merchant Registration</Text>
@@ -724,6 +905,42 @@ const displayedCategories = showAllCategories
               />
             </View>
 
+            {/* SHOP IMAGES */}
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Shop Images</Text>
+              <View style={styles.imageActions}>
+                <TouchableOpacity
+                  style={styles.imageButton}
+                  onPress={handleTakePhoto}
+                >
+                  <Ionicons name="camera" size={18} color="#FF6600" />
+                  <Text style={styles.imageButtonText}>Take Photo</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.imageButton}
+                  onPress={handlePickFromGallery}
+                >
+                  <Ionicons name="images" size={18} color="#FF6600" />
+                  <Text style={styles.imageButtonText}>Choose Images</Text>
+                </TouchableOpacity>
+              </View>
+              {images.length > 0 && (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  style={styles.imagesPreview}
+                >
+                  {images.map((uri) => (
+                    <Image
+                      key={uri}
+                      source={getImagePreviewSource(uri) ?? { uri }}
+                      style={styles.imageThumb}
+                    />
+                  ))}
+                </ScrollView>
+              )}
+            </View>
+
             {/* INTRODUCED BY */}
             <View style={styles.formGroup}>
               <Text style={styles.label}>Introduced By</Text>
@@ -907,6 +1124,37 @@ errorText: {
   color: 'red',
   marginTop: 4,
 },
+  imageActions: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 12,
+  },
+  imageButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFF3E0',
+    borderRadius: 8,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: '#FFD9B3',
+  },
+  imageButtonText: {
+    marginLeft: 8,
+    color: '#FF6600',
+    fontWeight: '600',
+  },
+  imagesPreview: {
+    marginTop: 4,
+  },
+  imageThumb: {
+    width: 72,
+    height: 72,
+    borderRadius: 8,
+    marginRight: 8,
+    backgroundColor: '#EEE',
+  },
   locationButton: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -653,7 +653,16 @@ const loadNearbyShops = async () => {
                     <TouchableOpacity
                       key={`${category.id}-${index}`}
                       style={styles.categoryCard}
-                      onPress={() => setShowRegistrationModal(true)}
+                      onPress={() =>
+                        router.push({
+                          pathname: '/member-shop-list',
+                          params: {
+                            categoryId: String(category.id),
+                            categoryName: category.name,
+                            source: 'user',
+                          },
+                        })
+                      }
                       activeOpacity={0.8}
                     >
                       <View style={styles.categoryImageContainer}>
@@ -840,7 +849,16 @@ const loadNearbyShops = async () => {
                   <TouchableOpacity
                     key={`${shop.id}-${index}`}
                     style={styles.shopCard}
-                    onPress={() => setShowRegistrationModal(true)}
+                    onPress={() =>
+                      router.push({
+                        pathname: '/member-shop-details',
+                        params: {
+                          shopId: shop.id,
+                          shop: JSON.stringify(shop),
+                          source: 'user',
+                        },
+                      })
+                    }
                   >
                     <View style={styles.shopImagePlaceholder}>
                       <Ionicons name="storefront" size={40} color="#FF6600" />

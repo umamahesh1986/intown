@@ -11,7 +11,7 @@ import {
   Switch,
   ActivityIndicator,
 } from 'react-native';
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,6 +19,7 @@ import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { registerMember } from '../utils/api';
 import { useAuthStore } from '../store/authStore';
+import { useFocusEffect } from '@react-navigation/native';
 
 export default function RegisterMember() {
   const router = useRouter();
@@ -130,6 +131,33 @@ export default function RegisterMember() {
       }
     }
   }, [params.latitude, params.longitude]);
+
+  useFocusEffect(
+    useCallback(() => {
+      const loadPickedLocation = async () => {
+        try {
+          const stored = await AsyncStorage.getItem('location_picker_register_member');
+          if (!stored) return;
+          const parsed = JSON.parse(stored);
+          if (
+            parsed &&
+            Number.isFinite(parsed.latitude) &&
+            Number.isFinite(parsed.longitude)
+          ) {
+            setLocation({
+              latitude: parsed.latitude,
+              longitude: parsed.longitude,
+            });
+          }
+          await AsyncStorage.removeItem('location_picker_register_member');
+        } catch (error) {
+          console.error('Failed to load picked location', error);
+        }
+      };
+
+      loadPickedLocation();
+    }, [])
+  );
 
   const handleSelectLocation = () => {
     router.push({ pathname: '/location-picker', params: { returnTo: '/register-member' } });

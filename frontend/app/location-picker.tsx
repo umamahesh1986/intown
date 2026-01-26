@@ -1,9 +1,10 @@
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform } from 'react-native';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { getUserLocationWithDetails } from '../utils/location';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Web-safe placeholder components
 const WebMapPlaceholder = () => null;
@@ -32,20 +33,75 @@ export default function LocationPickerScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ returnTo?: string }>();
   const returnTo = params.returnTo ?? '/register-member';
+  const getLocationStorageKey = () => {
+    if (returnTo === '/register-merchant') {
+      return 'location_picker_register_merchant';
+    }
+    if (returnTo === '/register-member') {
+      return 'location_picker_register_member';
+    }
+    return 'location_picker_default';
+  };
   const [selectedLocation, setSelectedLocation] = useState({
     latitude: 12.9716,
     longitude: 77.5946,
   });
+  const [mapRegion, setMapRegion] = useState({
+    latitude: 12.9716,
+    longitude: 77.5946,
+    latitudeDelta: 0.01,
+    longitudeDelta: 0.01,
+  });
   const [isLocating, setIsLocating] = useState(false);
+  const mapRef = useRef<any>(null);
 
-  const handleConfirmLocation = () => {
-    router.replace({
-      pathname: returnTo as any,
-      params: {
-        latitude: String(selectedLocation.latitude),
-        longitude: String(selectedLocation.longitude),
-      },
-    });
+  useEffect(() => {
+    const loadCurrentLocation = async () => {
+      setIsLocating(true);
+      try {
+        const result = await getUserLocationWithDetails();
+        if (result?.latitude && result?.longitude) {
+          const nextLocation = {
+            latitude: result.latitude,
+            longitude: result.longitude,
+          };
+          setSelectedLocation(nextLocation);
+          setMapRegion((prev) => ({
+            ...prev,
+            latitude: nextLocation.latitude,
+            longitude: nextLocation.longitude,
+          }));
+          if (mapRef.current?.animateToRegion) {
+            mapRef.current.animateToRegion(
+              {
+                latitude: nextLocation.latitude,
+                longitude: nextLocation.longitude,
+                latitudeDelta: 0.01,
+                longitudeDelta: 0.01,
+              },
+              400
+            );
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load current location on mount', error);
+      } finally {
+        setIsLocating(false);
+      }
+    };
+
+    loadCurrentLocation();
+  }, []);
+
+  const handleConfirmLocation = async () => {
+    await AsyncStorage.setItem(
+      getLocationStorageKey(),
+      JSON.stringify({
+        latitude: selectedLocation.latitude,
+        longitude: selectedLocation.longitude,
+      })
+    );
+    router.back();
   };
 
   const handleUseDefaultLocation = async () => {
@@ -58,13 +114,19 @@ export default function LocationPickerScreen() {
           longitude: result.longitude,
         };
         setSelectedLocation(nextLocation);
-        router.replace({
-          pathname: returnTo as any,
-          params: {
-            latitude: String(nextLocation.latitude),
-            longitude: String(nextLocation.longitude),
-          },
-        });
+        setMapRegion((prev) => ({
+          ...prev,
+          latitude: nextLocation.latitude,
+          longitude: nextLocation.longitude,
+        }));
+        await AsyncStorage.setItem(
+          getLocationStorageKey(),
+          JSON.stringify({
+            latitude: nextLocation.latitude,
+            longitude: nextLocation.longitude,
+          })
+        );
+        router.back();
       } else {
         Alert.alert('Location', 'Unable to fetch current location');
       }
@@ -79,6 +141,11 @@ export default function LocationPickerScreen() {
   const handleMapPress = (event: any) => {
     const { latitude, longitude } = event.nativeEvent.coordinate;
     setSelectedLocation({ latitude, longitude });
+    setMapRegion((prev) => ({
+      ...prev,
+      latitude,
+      longitude,
+    }));
   };
 
   // Web fallback UI
@@ -145,13 +212,9 @@ export default function LocationPickerScreen() {
       {/* Map */}
       {MapView && (
         <MapView
+          ref={mapRef}
           style={styles.map}
-          initialRegion={{
-            latitude: selectedLocation.latitude,
-            longitude: selectedLocation.longitude,
-            latitudeDelta: 0.01,
-            longitudeDelta: 0.01,
-          }}
+          region={mapRegion}
           onPress={handleMapPress}
         >
           {Marker && <Marker coordinate={selectedLocation} />}

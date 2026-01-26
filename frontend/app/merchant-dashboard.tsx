@@ -78,6 +78,7 @@ export default function MerchantDashboard() {
   const [userType, setUserType] = useState<string>('Merchant');
   const [merchantId, setMerchantId] = useState<string | null>(null);
   const [shopName, setShopName] = useState<string | null>(null);
+  const [profileImage, setProfileImage] = useState<string | null>(null);
   const [sales, setSales] = useState<ApiSale[]>([]);
   const [showAllPayments, setShowAllPayments] = useState(false);
   const [lifetimeTotals, setLifetimeTotals] = useState<ApiSummary | null>(null);
@@ -204,6 +205,19 @@ const carouselRef = useRef<ScrollView | null>(null);
     }
   };
 
+  const getProfileImageSource = (value: string | null) => {
+    if (!value) return null;
+    if (
+      value.startsWith('http') ||
+      value.startsWith('file:') ||
+      value.startsWith('content:') ||
+      value.startsWith('data:')
+    ) {
+      return { uri: value };
+    }
+    return { uri: `data:image/jpeg;base64,${value}` };
+  };
+
   const formatUserType = (type: string): string => {
     const lower = type.toLowerCase();
     if (lower === 'new_user' || lower === 'new' || lower === 'user') return 'User';
@@ -227,6 +241,10 @@ const carouselRef = useRef<ScrollView | null>(null);
         const storedShopName = await AsyncStorage.getItem('merchant_shop_name');
         if (storedShopName && isMounted) {
           setShopName(storedShopName);
+        }
+        const storedProfileImage = await AsyncStorage.getItem('merchant_profile_image');
+        if (storedProfileImage && isMounted) {
+          setProfileImage(storedProfileImage);
         }
 
         const storedId =
@@ -346,12 +364,19 @@ const carouselRef = useRef<ScrollView | null>(null);
                 {(user as any)?.phone ?? (user as any)?.email ?? ''}
               </Text>
             </View>
-            <Ionicons
-              name="person"
-              size={20}
-              color="#ff6600"
-              style={styles.profileIconButton}
-            />
+            {profileImage ? (
+              <Image
+                source={getProfileImageSource(profileImage) ?? undefined}
+                style={styles.profileImage}
+              />
+            ) : (
+              <Ionicons
+                name="person"
+                size={20}
+                color="#ff6600"
+                style={styles.profileIconButton}
+              />
+            )}
           </TouchableOpacity>
         </View>
 
@@ -734,6 +759,14 @@ const styles = StyleSheet.create({
     marginLeft: 10,
     width: 34,
     textAlign: 'center',
+  },
+  profileImage: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    borderWidth: 2,
+    borderColor: '#ff6600',
+    marginLeft: 10,
   },
   profileInfo: { alignItems: 'flex-end', marginRight: 8 },
   userName: { fontSize: 14, fontWeight: '600', color: '#1A1A1A' },
