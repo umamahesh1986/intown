@@ -591,3 +591,27 @@ export const getNearbyShops = async (
 
   return res.json();
 };
+
+
+// ================= Member-dashboard CATEGORY → NEARBY SHOPS API =================
+
+export const getNearbyShopsByCategory = async (
+  categoryId: number,
+  latitude: number,
+  longitude: number
+) => {
+  const url = `https://devapi.intownlocal.com/IN/search/by-product-names?categoryId=${categoryId}&customerLatitude=${latitude}&customerLongitude=${longitude}`;
+
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      Accept: 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch nearby shops by category');
+  }
+
+  return response.json();
+};

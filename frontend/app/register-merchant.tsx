@@ -176,6 +176,8 @@ const [showAllCategories, setShowAllCategories] = useState(false);
   // Clear previously selected products
   setSelectedProductIds([]);
   setProducts([]);
+  resetOtherProducts(); 
+
 
   try {
     const prodData = await getProductsByCategory(cat.id);
@@ -212,23 +214,42 @@ const [showAllCategories, setShowAllCategories] = useState(false);
 
     /* ================= CSV → PRODUCTS (UNCHANGED) ================= */
 
-    useEffect(() => {
-      if (!hasOtherProducts || !customProductsCsv.trim()) {
-        setCustomProducts([]);
-        return;
-      }
+    /* ================= CSV → PRODUCTS (AUTO SELECT) ================= */
 
-      const csvProducts = customProductsCsv
-        .split(',')
-        .map(p => p.trim())
-        .filter(Boolean)
-        .map((name, index) => ({
-          id: 9000 + index,
-          name,
-        }));
+useEffect(() => {
+  if (!hasOtherProducts || !customProductsCsv.trim()) {
+    setCustomProducts([]);
+    return;
+  }
 
-      setCustomProducts(csvProducts);
-    }, [customProductsCsv, hasOtherProducts]);
+  const csvProducts = customProductsCsv
+    .split(',')
+    .map(p => p.trim())
+    .filter(Boolean)
+    .map((name, index) => ({
+      id: 9000 + index, // temporary frontend ID
+      name,
+    }));
+
+  setCustomProducts(csvProducts);
+
+  // ✅ AUTO-SELECT CSV PRODUCTS
+  setSelectedProductIds(prev => {
+    const csvIds = csvProducts.map(p => p.id);
+    return Array.from(new Set([...prev, ...csvIds]));
+  });
+
+}, [customProductsCsv, hasOtherProducts]);
+
+/* ================= RESET CSV PRODUCTS STATE ================= */
+
+const resetOtherProducts = () => {
+  setHasOtherProducts(false);
+  setCustomProductsCsv('');
+  setCustomProducts([]);
+};
+
+
     
     /* ================= LOCATION PICKER ================= */
 
@@ -368,9 +389,13 @@ if (email && !emailRegex.test(email)) {
       }
 
       setIsLoading(true);
-      const productNames = products
+     // ✅ MERGE EXISTING PRODUCTS + CSV PRODUCTS
+const allProducts = [...products, ...customProducts];
+
+const productNames = allProducts
   .filter(p => selectedProductIds.includes(p.id))
   .map(p => p.name);
+
 
 
       const payload = {
@@ -729,26 +754,27 @@ const displayedCategories = showAllCategories
         Select Products ({businessCategory})
       </Text>
 
-      <ScrollView style={{ maxHeight: 300 }}>
-        {products.map(product => {
-          const checked = selectedProductIds.includes(product.id);
+     <ScrollView style={{ maxHeight: 300 }}>
+  {[...products, ...customProducts].map(product => {
+    const checked = selectedProductIds.includes(product.id);
 
-          return (
-            <TouchableOpacity
-              key={product.id}
-              style={styles.productRow}
-              onPress={() => toggleProduct(product.id)}
-            >
-              <Ionicons
-                name={checked ? 'checkbox' : 'square-outline'}
-                size={22}
-                color={checked ? '#2196F3' : '#999'}
-              />
-              <Text style={styles.productText}>{product.name}</Text>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
+    return (
+      <TouchableOpacity
+        key={product.id}
+        style={styles.productRow}
+        onPress={() => toggleProduct(product.id)}
+      >
+        <Ionicons
+          name={checked ? 'checkbox' : 'square-outline'}
+          size={22}
+          color={checked ? '#2196F3' : '#999'}
+        />
+        <Text style={styles.productText}>{product.name}</Text>
+      </TouchableOpacity>
+    );
+  })}
+</ScrollView>
+
 
       {/* OTHER PRODUCTS */}
       <View style={styles.row}>
@@ -767,18 +793,26 @@ const displayedCategories = showAllCategories
 
       {/* ACTION BUTTONS */}
       <View style={styles.modalActions}>
-        <TouchableOpacity
-          onPress={() => setShowProductModal(false)}
-        >
-          <Text>Cancel</Text>
-        </TouchableOpacity>
+       <TouchableOpacity
+  onPress={() => {
+    resetOtherProducts();      
+    setShowProductModal(false);
+  }}
+>
+  <Text>Cancel</Text>
+</TouchableOpacity>
+
 
         <TouchableOpacity
-          style={styles.okBtn}
-          onPress={() => setShowProductModal(false)}
-        >
-          <Text style={{ color: '#FFF', fontWeight: '600' }}>OK</Text>
-        </TouchableOpacity>
+  style={styles.okBtn}
+  onPress={() => {
+    resetOtherProducts();      
+    setShowProductModal(false);
+  }}
+>
+  <Text style={{ color: '#FFF', fontWeight: '600' }}>OK</Text>
+</TouchableOpacity>
+
       </View>
 
     </View>

@@ -27,7 +27,12 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuthStore } from '../store/authStore';
 import { useLocationStore } from '../store/locationStore';
-import { getCategories, getNearbyShops } from '../utils/api';
+import {
+  getCategories,
+  getNearbyShops,
+  getNearbyShopsByCategory,
+} from '../utils/api';
+
 
 import {
   getUserLocationWithDetails,
@@ -516,6 +521,22 @@ export default function MemberDashboard() {
     }
   };
 
+  /* ================= CATEGORY CLICK HANDLER ================= */
+
+const handleCategoryClick = (category: Category) => {
+  router.push({
+    pathname: '/member-shop-list',
+    params: {
+      categoryId: String(category.id),
+      categoryName: category.name,
+    },
+  });
+};
+
+
+
+
+
 
   const startAutoScroll = (count: number) => {
     if (count <= 1) return;
@@ -843,17 +864,13 @@ export default function MemberDashboard() {
                 ]}
               >
                 {[...categories, ...categories].map((category, index) => (
-                  <TouchableOpacity
-                    key={`${category.id}-${index}`}
-                    style={styles.categoryCard}
-                    onPress={() =>
-                      router.push({
-                        pathname: '/member-shop-list',
-                        params: { category: category.name },
-                      })
-                    }
-                    activeOpacity={0.8}
-                  >
+                 <TouchableOpacity
+  key={`${category.id}-${index}`}
+  style={styles.categoryCard}
+  onPress={() => handleCategoryClick(category)}
+  activeOpacity={0.8}
+>
+
                     <View style={styles.categoryImageContainer}>
                       <Image
                         source={getCategoryImageByIndex(index % categories.length)}
