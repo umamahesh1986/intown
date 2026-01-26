@@ -1012,7 +1012,7 @@ export default function DualDashboard() {
                           </Text>
                         </View>
                         <View style={styles.nearbyDistance}>
-                          <Ionicons name="location" size={12} color="#666" />
+                          <Ionicons name="location" size={12} color="#FF6600" />
                           <Text style={styles.nearbyDistanceText}>
                             {shop.distance
                               ? `${shop.distance.toFixed(2)} km`

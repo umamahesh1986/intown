@@ -1019,7 +1019,7 @@ const handleCategoryClick = (category: Category) => {
                       </View>
 
                       <View style={styles.distanceContainer}>
-                        <Ionicons name="location" size={14} color="#666" />
+                        <Ionicons name="location" size={14} color="#FF6600" />
                         <Text style={styles.distanceText}>
                           {shop.distance ? `${shop.distance.toFixed(2)} km` : 'Nearby'}
                         </Text>

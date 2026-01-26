@@ -930,7 +930,7 @@ const loadNearbyShops = async () => {
   {shop.businessCategory}
 </Text>
                     <View style={styles.shopCardDistance}>
-                      <Ionicons name="location" size={14} color="#666666" />
+                      <Ionicons name="location" size={14} color="#FF6600" />
                       <Text style={styles.distanceText}>
   {typeof shop.distance === 'number'
     ? `${shop.distance.toFixed(2)} km`
