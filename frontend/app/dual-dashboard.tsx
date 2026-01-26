@@ -1153,7 +1153,7 @@ const styles = StyleSheet.create({
   locationText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#333',
+    color: '#FF6600',
     flex: 1,
   },
   profileButton: {
@@ -1604,7 +1604,7 @@ const styles = StyleSheet.create({
   nearbyDistanceText: {
     fontSize: 12,
     marginLeft: 4,
-    color: '#666666',
+    color: '#FF6600',
   },
   
   // Location Modal Styles

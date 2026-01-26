@@ -1135,7 +1135,7 @@ const styles = StyleSheet.create({
   locationText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#333',
+    color: '#FF6600',
     flex: 1,
   },
   profileButton: {
