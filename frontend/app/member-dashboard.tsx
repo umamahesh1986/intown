@@ -53,12 +53,14 @@ const SLIDE_WIDTH = Math.round(width);
 const CAROUSEL_HEIGHT = 160;
 
 const MEMBER_CAROUSEL_IMAGES = [
-  require('../assets/images/1.jpg'),
-  require('../assets/images/2.jpg'),
-  require('../assets/images/3.jpg'),
-  require('../assets/images/4.jpg'),
-  require('../assets/images/5.jpg'),
-  require('../assets/images/6.jpg'),
+ {uri: 'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/CarouselImage1.png'},
+    {uri:'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/CarouselImage2.png'},
+    {uri:'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/CarouselImage3.png'},
+    {uri:'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/CarouselImage4.png'},
+    {uri:'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/CarouselImage5.png'},
+    {uri:'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/CarouselImage6.png'},
+    {uri:'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/CarouselImage7.png'},
+
 ];
 // =================================
 

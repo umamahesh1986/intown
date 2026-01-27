@@ -1,6 +1,11 @@
 // user-dashboard.tsx
 import { useState, useEffect, useRef } from 'react';
 import Footer from '../components/Footer';
+import {
+  CATEGORY_IMAGE_LIST,
+  FALLBACK_CATEGORY_IMAGE,
+} from '../utils/categoryImageList';
+
 
 
 import {
@@ -55,38 +60,12 @@ interface Category {
 const { width } = Dimensions.get('window');
 // ===== MEMBER STYLE CAROUSEL CONFIG =====
 const SLIDE_WIDTH = Math.round(width);
-
-// Category images from Unsplash/Pexels - mapped to API category names
-const CATEGORY_IMAGES: { [key: string]: string } = {
-  // API Categories
-  'Groceries & Kirana': 'https://images.unsplash.com/photo-1609952578538-3d454550301d?w=400&h=300&fit=crop',
-  'Bakery, Sweets & Snacks': 'https://images.unsplash.com/photo-1645597454210-c97f9701257a?w=400&h=300&fit=crop',
-  'Dairy & Milk Products': 'https://images.pexels.com/photos/3735192/pexels-photo-3735192.jpeg?w=400&h=300&fit=crop',
-  'Fruits & Vegetables': 'https://images.unsplash.com/photo-1553799262-a37c45961038?w=400&h=300&fit=crop',
-  'Meat, Chicken & Fish Shops': 'https://images.unsplash.com/photo-1704303923171-d6839e4784c3?w=400&h=300&fit=crop',
-  'Pharmacy / Medical Stores': 'https://images.pexels.com/photos/8657301/pexels-photo-8657301.jpeg?w=400&h=300&fit=crop',
-  'General Stores / Provision Stores': 'https://images.unsplash.com/photo-1739066598279-1297113f5c6a?w=400&h=300&fit=crop',
-  'Water Can Suppliers': 'https://images.unsplash.com/photo-1616118132534-381148898bb4?w=400&h=300&fit=crop',
-  "Men's Salons": 'https://images.unsplash.com/photo-1654097801176-cb1795fd0c5e?w=400&h=300&fit=crop',
-  "Women's Salons / Beauty Parlors": 'https://images.pexels.com/photos/3738340/pexels-photo-3738340.jpeg?w=400&h=300&fit=crop',
-  // Legacy/fallback names
-  'Grocery': 'https://images.unsplash.com/photo-1609952578538-3d454550301d?w=400&h=300&fit=crop',
-  'Salon': 'https://images.unsplash.com/photo-1654097801176-cb1795fd0c5e?w=400&h=300&fit=crop',
-  'Restaurant': 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=300&fit=crop',
-  'Pharmacy': 'https://images.pexels.com/photos/8657301/pexels-photo-8657301.jpeg?w=400&h=300&fit=crop',
-  'Fashion': 'https://images.unsplash.com/photo-1641440615976-d4bc4eb7dab8?w=400&h=300&fit=crop',
-  'Electronics': 'https://images.unsplash.com/photo-1550009158-9ebf69173e03?w=400&h=300&fit=crop',
+const getCategoryImageByIndex = (index: number) => {
+  return CATEGORY_IMAGE_LIST[index] ?? FALLBACK_CATEGORY_IMAGE;
 };
 
-const MEMBER_CAROUSEL_IMAGES = [
-  require('../assets/images/1.jpg'),
-  require('../assets/images/2.jpg'),
-  require('../assets/images/3.jpg'),
-  require('../assets/images/4.jpg'),
-  require('../assets/images/5.jpg'),
-  require('../assets/images/6.jpg'),
-];
-// =====================================
+
+
 
 // ------------------- RESPONSIVE CAROUSEL DIMENSION ADJUSTMENT -------------------
 const slideWidth = Math.round(width);
@@ -134,18 +113,7 @@ export default function UserDashboard() {
   ];
 
   // ----------------- CAROUSEL IMAGES (FIXED for Web compatibility) -----------------
-  const CAROUSEL_IMAGES_RAW = [
-    require('../assets/images/1.jpg'),
-    require('../assets/images/2.jpg'),
-    require('../assets/images/3.jpg'),
-    require('../assets/images/4.jpg'),
-    require('../assets/images/5.jpg'),
-    require('../assets/images/6.jpg'),
-  ];
-
-  const CAROUSEL_IMAGES = CAROUSEL_IMAGES_RAW.map(image =>
-    Platform.OS === 'web' && (image as any).default ? (image as any).default : image
-  );
+  
   // ---------------------------------------------------------------------------------
 
 
@@ -186,9 +154,25 @@ const [nearbyShops, setNearbyShops] = useState<any[]>([]);
 
   // Carousel state
   const [carouselIndex, setCarouselIndex] = useState(0);
+  const [carouselImages, setCarouselImages] = useState<string[]>([]);
+
   const carouselRef = useRef<ScrollView | null>(null);
   const autoPlayTimer = useRef<number | null>(null);
 
+// ================= CAROUSEL IMAGES FROM S3 =================
+const loadCarouselImages = () => {
+  setCarouselImages([
+    'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/CarouselImage1.png',
+    'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/CarouselImage2.png',
+    'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/CarouselImage3.png',
+    'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/CarouselImage4.png',
+    'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/CarouselImage5.png',
+    'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/CarouselImage6.png',
+    'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/CarouselImage7.png',
+
+  ]);
+};
+// ==========================================================
 
 
   // Animation for auto-scrolling shops
@@ -201,26 +185,32 @@ const [nearbyShops, setNearbyShops] = useState<any[]>([]);
   
 
 
+useEffect(() => {
+  loadData();
+  loadUserType();
+  requestLocationOnMount();
 
+  loadCarouselImages(); 
+}, []);
+useEffect(() => {
+  if (carouselImages.length === 0) return;
 
-  useEffect(() => {
-    loadData();
-    loadUserType();
-    requestLocationOnMount();
-
-    const timer = setInterval(() => {
-      setCarouselIndex(prev => {
-        const next = (prev + 1) % MEMBER_CAROUSEL_IMAGES.length;
-        carouselRef.current?.scrollTo({
-          x: next * SLIDE_WIDTH,
-          animated: true,
-        });
-        return next;
+  const timer = setInterval(() => {
+    setCarouselIndex(prev => {
+      const next = (prev + 1) % carouselImages.length;
+      carouselRef.current?.scrollTo({
+        x: next * SLIDE_WIDTH,
+        animated: true,
       });
-    }, 3500);
+      return next;
+    });
+  }, 3500);
 
-    return () => clearInterval(timer);
-  }, []);
+  return () => clearInterval(timer);
+}, [carouselImages]);
+
+
+
   useEffect(() => {
   if (location?.latitude && location?.longitude) {
     loadNearbyShops();
@@ -639,15 +629,21 @@ const loadNearbyShops = async () => {
                 setCarouselIndex(index);
               }}
             >
-              {MEMBER_CAROUSEL_IMAGES.map((img, index) => (
-                <View key={index} style={styles.carouselSlide}>
-                  <Image source={img} style={styles.carouselImage} />
-                </View>
-              ))}
+             {carouselImages.map((url, index) => (
+  <View key={index} style={styles.carouselSlide}>
+    <Image
+      source={{ uri: url }}
+      style={styles.carouselImage}
+      resizeMode="cover"
+    />
+  </View>
+))}
+
             </ScrollView>
 
             <View style={styles.carouselDots}>
-              {MEMBER_CAROUSEL_IMAGES.map((_, i) => (
+             {carouselImages.map((_, i) => (
+
                 <View
                   key={i}
                   style={[
@@ -689,15 +685,12 @@ const loadNearbyShops = async () => {
                       activeOpacity={0.8}
                     >
                       <View style={styles.categoryImageContainer}>
-                        <Image
-                          source={{
-                            uri:
-                              CATEGORY_IMAGES[category.name] ||
-                              'https://images.unsplash.com/photo-1609952578538-3d454550301d?w=400&h=300&fit=crop',
-                          }}
-                          style={styles.categoryImage}
-                          resizeMode="cover"
-                        />
+                      <Image
+  source={getCategoryImageByIndex(index % categories.length)}
+  style={styles.categoryImage}
+  resizeMode="cover"
+/>
+
                         <View style={styles.categoryGradient} />
                         <Text style={styles.categoryName}>{category.name}</Text>
                       </View>
