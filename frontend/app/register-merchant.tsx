@@ -11,8 +11,9 @@ import {
   Switch,
   ActivityIndicator,
   Image,
+  Modal,
 } from 'react-native';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -72,6 +73,50 @@ export default function RegisterMerchant() {
   const [address, setAddress] = useState('');
   const [introducedBy, setIntroducedBy] = useState('');
   const [images, setImages] = useState<string[]>([]);
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [successMerchantId, setSuccessMerchantId] = useState<string | number | null>(null);
+  const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const uploadImagesToS3 = async (inTownIdValue: string | number, files: string[]) => {
+    if (!files.length) return;
+    const url = `https://devapi.intownlocal.com/IN/s3/upload?userType=IN_MERCHANT&inTownId=${inTownIdValue}`;
+    const payload = files.map((img, index) => {
+      const isUri =
+        img.startsWith('http') ||
+        img.startsWith('file:') ||
+        img.startsWith('content:') ||
+        img.startsWith('data:');
+      const urlValue = isUri ? img : `data:image/jpeg;base64,${img}`;
+      return {
+        fileName: `merchant_${inTownIdValue}_${index + 1}.jpg`,
+        url: urlValue,
+        status: '',
+        message: '',
+      };
+    });
+
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+    const raw = await res.text();
+    let parsed: any = raw;
+    try {
+      parsed = raw ? JSON.parse(raw) : raw;
+    } catch {
+      // keep raw string if not JSON
+    }
+    if (!res.ok) {
+      throw new Error(
+        typeof parsed === 'string' ? parsed : JSON.stringify(parsed)
+      );
+    }
+    return parsed;
+  };
   const addImages = (newImages: string[]) => {
     setImages((prev) => Array.from(new Set([...prev, ...newImages])));
   };
@@ -616,6 +661,14 @@ const productNames = allProducts
           response?.data?.merchantId ??
           response?.data?.id ??
           null;
+        const inTownId =
+          response?.id ??
+          response?.data?.id ??
+          response?.inTownId ??
+          response?.data?.inTownId ??
+          response?.intownId ??
+          response?.data?.intownId ??
+          null;
         if (merchantId) {
           await AsyncStorage.setItem('merchant_id', String(merchantId));
         }
@@ -630,24 +683,26 @@ const productNames = allProducts
           await AsyncStorage.setItem('merchant_location_lat', String(location.latitude));
           await AsyncStorage.setItem('merchant_location_lng', String(location.longitude));
         }
+        if (inTownId) {
+          try {
+            await uploadImagesToS3(inTownId, images);
+          } catch (error) {
+            console.error('S3 upload failed:', error);
+          }
+        }
 
-        // Show success message
-        const successMessage = `Your merchant account has been created successfully!\nMerchant ID: ${
+        const popupMessage = `Your merchant account has been created successfully!\nMerchant ID: ${
           merchantId ?? 'N/A'
         }`;
-
-        Alert.alert('Registration Successful', successMessage, [
-          {
-            text: 'OK',
-            onPress: () => {
-              setUserType('merchant');
-              router.replace({
-                pathname: '/merchant-dashboard',
-                params: merchantId ? { merchantId: String(merchantId) } : {},
-              });
-            },
-          },
-        ]);
+        setSuccessMessage(popupMessage);
+        setSuccessMerchantId(merchantId ?? null);
+        setShowSuccessPopup(true);
+        if (successTimerRef.current) {
+          clearTimeout(successTimerRef.current);
+        }
+        successTimerRef.current = setTimeout(() => {
+          handleSuccessClose(merchantId);
+        }, 5000);
       } catch (error: any) {
         console.error('Merchant registration error:', error);
         
@@ -663,6 +718,28 @@ const productNames = allProducts
       }
 
     };
+
+    const handleSuccessClose = (merchantIdValue?: string | number | null) => {
+      if (successTimerRef.current) {
+        clearTimeout(successTimerRef.current);
+        successTimerRef.current = null;
+      }
+      setShowSuccessPopup(false);
+      setUserType('merchant');
+      const resolvedId = merchantIdValue ?? successMerchantId;
+      router.replace({
+        pathname: '/merchant-dashboard',
+        params: resolvedId ? { merchantId: String(resolvedId) } : {},
+      });
+    };
+
+    useEffect(() => {
+      return () => {
+        if (successTimerRef.current) {
+          clearTimeout(successTimerRef.current);
+        }
+      };
+    }, []);
 
     const filteredCategories = categories.filter(cat =>
   cat.name.toLowerCase().includes(categorySearch.toLowerCase())
@@ -1048,6 +1125,21 @@ const displayedCategories = showAllCategories
   </View>
 )}
 
+      <Modal visible={showSuccessPopup} transparent animationType="fade">
+        <View style={styles.popupOverlay}>
+          <View style={styles.popupCard}>
+            <Text style={styles.popupTitle}>Registration Successful</Text>
+            <Text style={styles.popupMessage}>{successMessage}</Text>
+            <TouchableOpacity
+              style={styles.popupButton}
+              onPress={() => handleSuccessClose(null)}
+            >
+              <Text style={styles.popupButtonText}>OK</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
       </SafeAreaView>
     );
   }
@@ -1251,6 +1343,51 @@ okBtn: {
   paddingHorizontal: 20,
   borderRadius: 8,
 },
+
+  popupOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  popupCard: {
+    width: '100%',
+    maxWidth: 360,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#E6E6E6',
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 3,
+  },
+  popupTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1A1A1A',
+    marginBottom: 8,
+  },
+  popupMessage: {
+    fontSize: 14,
+    color: '#444444',
+    marginBottom: 16,
+  },
+  popupButton: {
+    alignSelf: 'flex-end',
+    backgroundColor: '#FF6600',
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  popupButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 14,
+  },
 
 
 

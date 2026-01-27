@@ -10,8 +10,9 @@ import {
   Platform,
   Switch,
   ActivityIndicator,
+  Modal,
 } from 'react-native';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -34,6 +35,51 @@ export default function RegisterMember() {
   const [pincode, setPincode] = useState('');
   const [address, setAddress] = useState('');
   const [images, setImages] = useState<string[]>([]);
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [successCustomerId, setSuccessCustomerId] = useState<string | number | null>(null);
+  const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const uploadImagesToS3 = async (inTownIdValue: string | number, files: string[]) => {
+    if (!files.length) return;
+    const url = `https://devapi.intownlocal.com/IN/s3/upload?userType=IN_CUSTOMER&inTownId=${inTownIdValue}`;
+    const payload = files.map((img, index) => {
+      const isUri =
+        img.startsWith('http') ||
+        img.startsWith('file:') ||
+        img.startsWith('content:') ||
+        img.startsWith('data:');
+      const urlValue = isUri ? img : `data:image/jpeg;base64,${img}`;
+      return {
+        fileName: `customer_${inTownIdValue}_${index + 1}.jpg`,
+        url: urlValue,
+        status: '',
+        message: '',
+      };
+    });
+
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+    const raw = await res.text();
+    let parsed: any = raw;
+    try {
+      parsed = raw ? JSON.parse(raw) : raw;
+    } catch {
+      // keep raw string if not JSON
+    }
+    if (!res.ok) {
+      throw new Error(
+        typeof parsed === 'string' ? parsed : JSON.stringify(parsed)
+      );
+    }
+    return parsed;
+  };
+
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -222,6 +268,14 @@ export default function RegisterMember() {
         response?.data?.customerId ??
         response?.data?.id ??
         null;
+      const inTownId =
+        response?.id ??
+        response?.data?.id ??
+        response?.inTownId ??
+        response?.data?.inTownId ??
+        response?.intownId ??
+        response?.data?.intownId ??
+        null;
 
       if (customerId) {
         await AsyncStorage.setItem('customer_id', String(customerId));
@@ -230,26 +284,27 @@ export default function RegisterMember() {
         await AsyncStorage.setItem('customer_location_lat', String(location.latitude));
         await AsyncStorage.setItem('customer_location_lng', String(location.longitude));
       }
+
+      if (inTownId) {
+        try {
+          await uploadImagesToS3(inTownId, images);
+        } catch (error) {
+          console.error('S3 upload failed:', error);
+        }
+      }
       
-      // Show success message
-      const successMessage = `Your customer account has been created successfully!\nCustomer ID: ${
+      const popupMessage = `Your customer account has been created successfully!\nCustomer ID: ${
         customerId ?? 'N/A'
       }`;
-
-      Alert.alert('Registration Successful', successMessage, [
-        {
-          text: 'OK',
-          onPress: () => {
-            // Set user type
-            setUserType('member');
-            // Navigate to dashboard with customer id
-            router.replace({
-              pathname: '/member-dashboard',
-              params: customerId ? { customerId: String(customerId) } : {},
-            });
-          },
-        },
-      ]);
+      setSuccessMessage(popupMessage);
+      setSuccessCustomerId(customerId ?? null);
+      setShowSuccessPopup(true);
+      if (successTimerRef.current) {
+        clearTimeout(successTimerRef.current);
+      }
+      successTimerRef.current = setTimeout(() => {
+        handleSuccessClose(customerId);
+      }, 5000);
       
     } catch (error: any) {
       console.error('Customer registration error:', error);
@@ -265,6 +320,28 @@ export default function RegisterMember() {
       setIsLoading(false);
     }
   };
+
+  const handleSuccessClose = (customerId?: string | number | null) => {
+    if (successTimerRef.current) {
+      clearTimeout(successTimerRef.current);
+      successTimerRef.current = null;
+    }
+    setShowSuccessPopup(false);
+    setUserType('member');
+    const resolvedId = customerId ?? successCustomerId;
+    router.replace({
+      pathname: '/member-dashboard',
+      params: resolvedId ? { customerId: String(resolvedId) } : {},
+    });
+  };
+
+  useEffect(() => {
+    return () => {
+      if (successTimerRef.current) {
+        clearTimeout(successTimerRef.current);
+      }
+    };
+  }, []);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -446,6 +523,21 @@ export default function RegisterMember() {
           <View style={styles.bottomSpacer} />
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <Modal visible={showSuccessPopup} transparent animationType="fade">
+        <View style={styles.popupOverlay}>
+          <View style={styles.popupCard}>
+            <Text style={styles.popupTitle}>Registration Successful</Text>
+            <Text style={styles.popupMessage}>{successMessage}</Text>
+            <TouchableOpacity
+              style={styles.popupButton}
+              onPress={() => handleSuccessClose(null)}
+            >
+              <Text style={styles.popupButtonText}>OK</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -650,5 +742,49 @@ const styles = StyleSheet.create({
   },
   bottomSpacer: {
     height: 32,
+  },
+  popupOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  popupCard: {
+    width: '100%',
+    maxWidth: 360,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#E6E6E6',
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 3,
+  },
+  popupTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1A1A1A',
+    marginBottom: 8,
+  },
+  popupMessage: {
+    fontSize: 14,
+    color: '#444444',
+    marginBottom: 16,
+  },
+  popupButton: {
+    alignSelf: 'flex-end',
+    backgroundColor: '#FF6600',
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  popupButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 14,
   },
 });

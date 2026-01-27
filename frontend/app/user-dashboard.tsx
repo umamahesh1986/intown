@@ -164,8 +164,8 @@ const [nearbyShops, setNearbyShops] = useState<any[]>([]);
   const [monthlySpend, setMonthlySpend] = useState('10000');
   const [showDropdown, setShowDropdown] = useState(false);
   const [activeTab, setActiveTab] = useState<'customer' | 'merchant'>('customer');
-  const [showSearchDropdown, setShowSearchDropdown] = useState(false);
-  const [filteredCategories, setFilteredCategories] = useState<Category[]>([]);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
 
   // Location modal states
@@ -254,15 +254,40 @@ useEffect(() => {
     return () => animation.stop();
   }, [categories, CATEGORY_CARD_GAP, CATEGORY_CARD_WIDTH, categoryScrollX]);
 
+  const SEARCH_ITEMS = [
+    'Grocery',
+    'Vegetables',
+    'Fruits',
+    'Salon',
+    'Restaurant',
+    'Pharmacy',
+    'Fashion',
+    'Electronics',
+  ];
+
+  const SEARCH_PRODUCTS = [
+    'Tomato',
+    'Onion',
+    'Potato',
+    'Apple',
+    'Banana',
+    'Milk',
+    'Bread',
+    'Rice',
+    'Shampoo',
+    'Soap',
+  ];
+
   const placeholderItems = [
-    'Grocery', 
-    'Salon', 
+    'Grocery',
+    'Salon',
     'Fashion',
     'Vegetables',
     'Fruits',
     'Restaurant',
     'Pharmacy',
-    'Electronics',];
+    'Electronics',
+  ];
   const placeholderOpacity = placeholderAnim.interpolate({
     inputRange: [0, 0.2, 0.8, 1],
     outputRange: [0, 1, 1, 0],
@@ -441,15 +466,16 @@ const loadNearbyShops = async () => {
 
   const handleSearchChange = (text: string) => {
     setSearchQuery(text);
-    if (text.length > 0) {
-      const filtered = categories.filter((category) =>
-        category.name.toLowerCase().includes(text.toLowerCase())
+    if (text.trim().length > 0) {
+      const combined = [...SEARCH_ITEMS, ...SEARCH_PRODUCTS];
+      const filtered = combined.filter(item =>
+        item.toLowerCase().includes(text.toLowerCase())
       );
-      setFilteredCategories(filtered);
-      setShowSearchDropdown(true);
+      setSuggestions(filtered);
+      setShowSuggestions(true);
     } else {
-      setShowSearchDropdown(false);
-      setFilteredCategories([]);
+      setShowSuggestions(false);
+      setSuggestions([]);
     }
   };
 
@@ -494,15 +520,9 @@ const loadNearbyShops = async () => {
     return 'Set Location';
   };
 
-  const handleSearchFocus = () => {
-    if (searchQuery.length > 0) {
-      setShowSearchDropdown(true);
-    }
-  };
-
   const handleSearchBlur = () => {
     setTimeout(() => {
-      setShowSearchDropdown(false);
+      setShowSuggestions(false);
     }, 200);
   };
 
@@ -552,7 +572,9 @@ const loadNearbyShops = async () => {
                 placeholder=""
                 value={searchQuery}
                 onChangeText={handleSearchChange}
-                onFocus={handleSearchFocus}
+                onFocus={() => {
+                  router.push('/search');
+                }}
                 onBlur={handleSearchBlur}
                 placeholderTextColor="#999999"
               />
@@ -573,26 +595,27 @@ const loadNearbyShops = async () => {
           </View>
 
           {/* Search Dropdown */}
-          {showSearchDropdown && filteredCategories.length > 0 && (
+          {showSuggestions && suggestions.length > 0 && (
             <TouchableOpacity style={styles.searchDropdownContainer} activeOpacity={1} onPress={(e) => e.stopPropagation()}>
               <View style={styles.searchDropdown}>
-                {filteredCategories.map((category) => (
+                {suggestions.map((item, index) => (
                   <TouchableOpacity
-                    key={category.id}
+                    key={`${item}-${index}`}
                     style={styles.searchDropdownItem}
-                    onPress={() => setShowRegistrationModal(true)}
+                    onPress={() => {
+                      setSearchQuery(item);
+                      setShowSuggestions(false);
+                      router.push({
+                        pathname: '/member-shop-list',
+                        params: { query: item, source: 'user' },
+                      });
+                    }}
                   >
                     <View style={styles.searchDropdownItemContent}>
                       <View style={styles.searchDropdownItemLeft}>
-                        <Ionicons name={category.icon as any} size={20} color="#FF6600" />
-                        <Text style={styles.searchDropdownItemText}>{category.name}</Text>
+                        <Ionicons name="search" size={20} color="#FF6600" />
+                        <Text style={styles.searchDropdownItemText}>{item}</Text>
                       </View>
-                      <TouchableOpacity style={styles.viewButton} onPress={() => setShowRegistrationModal(true)}>
-                        <Text style={styles.viewButtonText}>View</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity style={styles.viewButton} onPress={() => setShowRegistrationModal(true)}>
-                        <Text style={styles.viewButtonNavigate}>Navigate</Text>
-                      </TouchableOpacity>
                     </View>
                   </TouchableOpacity>
                 ))}

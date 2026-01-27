@@ -9,6 +9,7 @@ import {
   Platform,
   Animated,
   ActivityIndicator,
+  Modal,
 } from "react-native";
 import { useState, useRef, useEffect } from "react";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -80,6 +81,8 @@ export default function OTPScreen() {
   const [isSendingOtp, setIsSendingOtp] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
   const [otpSent, setOtpSent] = useState(false);
+  const [showOtpPopup, setShowOtpPopup] = useState(false);
+  const [otpPopupMessage, setOtpPopupMessage] = useState("");
 
   const [timer, setTimer] = useState(RESEND_SECONDS);
   const [canResend, setCanResend] = useState(false);
@@ -87,6 +90,26 @@ export default function OTPScreen() {
   const inputRefs = useRef<(TextInput | null)[]>([]);
   const recaptchaVerifier = useRef<any>(null);
   const shakeAnim = useRef(new Animated.Value(0)).current;
+  const popupTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showOtpSentPopup = (message: string) => {
+    setOtpPopupMessage(message);
+    setShowOtpPopup(true);
+    if (popupTimerRef.current) {
+      clearTimeout(popupTimerRef.current);
+    }
+    popupTimerRef.current = setTimeout(() => {
+      setShowOtpPopup(false);
+    }, 2000);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (popupTimerRef.current) {
+        clearTimeout(popupTimerRef.current);
+      }
+    };
+  }, []);
 
   /* ===============================
      RESEND TIMER
@@ -137,11 +160,7 @@ export default function OTPScreen() {
       setStatusMessage("Test OTP: 123456");
       setIsSendingOtp(false);
       
-      Alert.alert(
-        "Test Mode (Web)", 
-        `For web testing, use OTP: ${WEB_TEST_OTP}\n\nThis bypasses Firebase reCAPTCHA which doesn't work in web preview.`,
-        [{ text: "OK" }]
-      );
+      showOtpSentPopup(`OTP sent successfully`);
       return;
     }
 
@@ -180,11 +199,7 @@ export default function OTPScreen() {
       setOtpSent(true);
       setStatusMessage("OTP sent! Enter the code.");
       
-      Alert.alert(
-        "OTP Sent ✓", 
-        `SMS sent to ${formattedPhone}\n\nPlease enter the 6-digit OTP you receive.`,
-        [{ text: "OK" }]
-      );
+      showOtpSentPopup("OTP sent successfully");
       
     } catch (err: any) {
       console.error("=== SEND OTP ERROR ===");
@@ -452,7 +467,7 @@ export default function OTPScreen() {
         </TouchableOpacity>
 
         <Text style={styles.title}>Verify OTP</Text>
-        <Text style={styles.subtitle}>Enter the 6-digit code sent to</Text>
+        <Text style={styles.subtitle}>Enter the 6-digit OTP code that we sent to</Text>
         <Text style={styles.phoneNumber}>+91 {phone}</Text>
         
         {/* Web Test Mode Banner */}
@@ -535,18 +550,16 @@ export default function OTPScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Debug Info */}
-        {__DEV__ && (
-          <View style={styles.debugContainer}>
-            <Text style={styles.debugText}>
-              Platform: {Platform.OS} | Mode: {isWeb ? "Test" : "Firebase"}
-            </Text>
-            <Text style={styles.debugText}>
-              Verification ID: {verificationId ? "✓ Set" : "✗ Not set"}
-            </Text>
-          </View>
-        )}
       </View>
+
+      <Modal visible={showOtpPopup} transparent animationType="fade">
+        <View style={styles.popupOverlay}>
+          <View style={styles.popupCard}>
+            <Ionicons name="checkmark-circle" size={22} color="#4CAF50" />
+            <Text style={styles.popupText}>{otpPopupMessage}</Text>
+          </View>
+        </View>
+      </Modal>
     </KeyboardAvoidingView>
   );
 }
@@ -632,13 +645,12 @@ const styles = StyleSheet.create({
     height: 60,
     fontSize: 24,
     fontWeight: 'bold',
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: "#E0E0E0",
-    borderRadius: 12,
+    borderRadius: 6,
     textAlign: "center",
     marginHorizontal: 4,
     color: "#000",
-    backgroundColor: "#FAFAFA",
   },
   otpInputFilled: {
     borderColor: "#FF6600",
@@ -691,5 +703,33 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+  },
+  popupOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  popupCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E6E6E6',
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 3,
+  },
+  popupText: {
+    marginLeft: 8,
+    fontSize: 14,
+    color: '#1A1A1A',
+    fontWeight: '600',
   },
 });
