@@ -7,6 +7,7 @@ import {
   TextInput,
   Alert,
   ScrollView,
+  Linking,
 } from 'react-native';
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
@@ -25,7 +26,7 @@ const PAYMENT_METHODS = [
   { id: 'phonepe', name: 'PhonePe', icon: 'call' },
   { id: 'googlepay', name: 'Google Pay', icon: 'logo-google' },
   { id: 'paytm', name: 'Paytm', icon: 'wallet' },
-  { id: 'cash', name: 'Cash', icon: 'cash' },
+  { id: 'amazonpay', name: 'Amazon Pay', icon: 'cart' },
 ];
 
 export default function PaymentModal({
@@ -122,23 +123,56 @@ export default function PaymentModal({
     }
   };
 
-  const handlePaymentMethodSelect = (methodId: string, methodName: string) => {
-    // Simulate payment processing
-    Alert.alert(
-      'Payment Successful!',
-      `Paid ₹${finalPaidAmount.toFixed(2)} via ${methodName}\nYou saved ₹${instantSavings.toFixed(2)}!`,
-      [{
-        text: 'OK',
-        onPress: () => {
-          onSuccess(amountValue, instantSavings, methodName);
-          setAmount('');
-          setInstantSavingsInput('');
-          setSelectedMethod('');
-          setShowMethods(false);
-          onClose();
-        },
-      }]
-    );
+  const getPaymentAppUrls = (methodId: string) => {
+    switch (methodId) {
+      case 'phonepe':
+        return ['phonepe://'];
+      case 'googlepay':
+        return ['gpay://', 'tez://upi/pay', 'googlepay://upi/pay'];
+      case 'paytm':
+        return ['paytmmp://'];
+      case 'amazonpay':
+        return ['amazonpay://'];
+      default:
+        return [];
+    }
+  };
+
+  const handlePaymentMethodSelect = async (methodId: string, methodName: string) => {
+    try {
+      const urls = getPaymentAppUrls(methodId);
+      if (urls.length === 0) {
+        Alert.alert('Unsupported', 'Selected payment method is not supported.');
+        return;
+      }
+
+      let opened = false;
+      for (const url of urls) {
+        // eslint-disable-next-line no-await-in-loop
+        const canOpen = await Linking.canOpenURL(url);
+        if (canOpen) {
+          // eslint-disable-next-line no-await-in-loop
+          await Linking.openURL(url);
+          opened = true;
+          break;
+        }
+      }
+
+      if (!opened) {
+        Alert.alert('App Not Found', `${methodName} is not installed on this device.`);
+      }
+    } catch (error) {
+      console.error('Open payment app error:', error);
+      Alert.alert('Error', `Unable to open ${methodName}.`);
+    } finally {
+      onSuccess(amountValue, instantSavings, methodName);
+      setAmount('');
+      setInstantSavingsInput('');
+      setSelectedMethod('');
+      setShowMethods(false);
+      onClose();
+      router.replace((redirectTo || '/member-dashboard') as any);
+    }
   };
 
   const handleDismiss = () => {
@@ -147,14 +181,8 @@ export default function PaymentModal({
   };
 
   const handleSuccessOk = () => {
-    onSuccess(amountValue, instantSavings, 'Direct');
-    setAmount('');
-    setInstantSavingsInput('');
-    setSelectedMethod('');
-    setShowMethods(false);
     setShowSuccess(false);
-    onClose();
-    router.replace((redirectTo || '/member-dashboard') as any);
+    setShowMethods(true);
   };
 
   return (
@@ -231,7 +259,7 @@ export default function PaymentModal({
                 <TouchableOpacity onPress={() => setShowMethods(false)}>
                   <Ionicons name="arrow-back" size={24} color="#666" />
                 </TouchableOpacity>
-                <Text style={styles.modalTitle}>Select Payment Method</Text>
+                <Text style={styles.modalTitle}>Select Payment App</Text>
                 <View style={{width: 28}} />
               </View>
 
