@@ -8,6 +8,7 @@ import {
   Alert,
   ScrollView,
   Linking,
+  Platform,
 } from 'react-native';
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
@@ -314,6 +315,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#1A1A1A',
     textAlign: 'left',
+    ...(Platform.OS === 'web' ? { outlineStyle: 'none' as any } : {}),
   },
   savingsSection: { backgroundColor: '#E8F5E9', borderRadius: 12, padding: 16, marginBottom: 24 },
   savingsRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginVertical: 8 },

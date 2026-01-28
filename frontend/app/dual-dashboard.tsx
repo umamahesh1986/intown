@@ -241,10 +241,10 @@ export default function DualDashboard() {
   const placeholderAnim = useRef(new Animated.Value(0)).current;
   const dropdownAnim = useRef(new Animated.Value(0)).current;
   const contentScrollRef = useRef<ScrollView | null>(null);
+  const nearbyScrollRef = useRef<ScrollView | null>(null);
   const [showSupportModal, setShowSupportModal] = useState(false);
   const [showOffersModal, setShowOffersModal] = useState(false);
   const [showAllTransactions, setShowAllTransactions] = useState(false);
-  const scrollX = useRef(new Animated.Value(0)).current;
   const CARD_WIDTH = 172;
 
   /* ===============================
@@ -283,11 +283,6 @@ export default function DualDashboard() {
     }
   }, [location?.latitude, location?.longitude]);
 
-  useEffect(() => {
-    if (nearbyShops.length > 0) {
-      startAutoScroll(nearbyShops.length);
-    }
-  }, [nearbyShops.length]);
 
   // Request location permission on mount
   const requestLocationOnMount = async () => {
@@ -347,18 +342,6 @@ export default function DualDashboard() {
     }
   };
 
-  const startAutoScroll = (count: number) => {
-    if (count <= 1) return;
-    const totalWidth = count * CARD_WIDTH;
-    scrollX.setValue(0);
-    Animated.loop(
-      Animated.timing(scrollX, {
-        toValue: -totalWidth,
-        duration: totalWidth * 50,
-        useNativeDriver: true,
-      })
-    ).start();
-  };
 
   const getLocationDisplayText = () => {
     if (isLocationLoading) return 'Getting location...';
@@ -631,19 +614,23 @@ export default function DualDashboard() {
   const merchantYearSales = merchantTotals.thisYear?.totalSalesValue ?? 0;
 
   const getWelcomeName = () => {
-    if (activeTab === 'customer' && userData?.customer?.name) {
-      return userData.customer.name;
+    if (activeTab === 'customer') {
+      return (
+        customerContactName ||
+        userData?.customer?.name ||
+        user?.name ||
+        user?.phone ||
+        'User'
+      );
     }
-    if (activeTab === 'merchant' && userData?.merchant?.businessName) {
-      return userData.merchant.businessName;
-    }
-    if (activeTab === 'customer' && customerContactName) {
-      return customerContactName;
-    }
-    if (activeTab === 'merchant') {
-      return merchantShopName || merchantContactName || user?.phone || 'User';
-    }
-    return customerContactName || user?.phone || 'User';
+    return (
+      merchantShopName ||
+      merchantContactName ||
+      userData?.merchant?.businessName ||
+      user?.name ||
+      user?.phone ||
+      'User'
+    );
   };
 
   const getProfileDisplayName = () => {
@@ -1058,57 +1045,57 @@ export default function DualDashboard() {
                 <ActivityIndicator size="small" color="#FF6600" />
               </View>
             ) : nearbyShops.length > 0 ? (
-              <View style={styles.autoScrollContainer}>
-                <Animated.View
-                  style={[
-                    styles.autoScrollContent,
-                    { transform: [{ translateX: scrollX }] },
-                  ]}
-                >
-                  {[...nearbyShops, ...nearbyShops].map((shop, index) => (
-                    <TouchableOpacity
-                      key={`${shop.id}-${index}`}
-                      style={styles.nearbyCard}
-                      onPress={() =>
-                        router.push({
-                          pathname: '/member-shop-details',
-                          params: {
-                            shopId: shop.id,
-                            shop: JSON.stringify(shop),
-                            source: 'dual',
-                          },
-                        })
-                      }
-                    >
-                      <View style={styles.nearbyImagePlaceholder}>
-                        <Ionicons name="storefront" size={36} color="#FF6600" />
+              <ScrollView
+                ref={nearbyScrollRef}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                snapToInterval={CARD_WIDTH}
+                decelerationRate="fast"
+                contentContainerStyle={styles.nearbyCarouselContent}
+              >
+                {nearbyShops.map((shop, index) => (
+                  <TouchableOpacity
+                    key={`${shop.id}-${index}`}
+                    style={styles.nearbyCard}
+                    onPress={() =>
+                      router.push({
+                        pathname: '/member-shop-details',
+                        params: {
+                          shopId: shop.id,
+                          shop: JSON.stringify(shop),
+                          source: 'dual',
+                        },
+                      })
+                    }
+                  >
+                    <View style={styles.nearbyImagePlaceholder}>
+                      <Ionicons name="storefront" size={36} color="#FF6600" />
+                    </View>
+                    <Text style={styles.nearbyName} numberOfLines={1}>
+                      {shop.shopName || shop.merchantName || shop.contactName || 'Shop'}
+                    </Text>
+                    <Text style={styles.nearbyMeta}>
+                      {shop.businessCategory || 'General'}
+                    </Text>
+                    <View style={styles.nearbyFooter}>
+                      <View style={styles.nearbyRating}>
+                        <Ionicons name="star" size={12} color="#FFA500" />
+                        <Text style={styles.nearbyRatingText}>
+                          {shop.rating ?? '4.0'}
+                        </Text>
                       </View>
-                      <Text style={styles.nearbyName} numberOfLines={1}>
-                        {shop.shopName || shop.merchantName || 'Shop'}
-                      </Text>
-                      <Text style={styles.nearbyMeta}>
-                        {shop.businessCategory || 'General'}
-                      </Text>
-                      <View style={styles.nearbyFooter}>
-                        <View style={styles.nearbyRating}>
-                          <Ionicons name="star" size={12} color="#FFA500" />
-                          <Text style={styles.nearbyRatingText}>
-                            {shop.rating ?? '4.0'}
-                          </Text>
-                        </View>
-                        <View style={styles.nearbyDistance}>
-                          <Ionicons name="location" size={12} color="#FF6600" />
-                          <Text style={styles.nearbyDistanceText}>
-                            {formatDistance(
-                              typeof shop.distance === 'number' ? shop.distance : null
-                            )}
-                          </Text>
-                        </View>
+                      <View style={styles.nearbyDistance}>
+                        <Ionicons name="location" size={12} color="#FF6600" />
+                        <Text style={styles.nearbyDistanceText}>
+                          {formatDistance(
+                            typeof shop.distance === 'number' ? shop.distance : null
+                          )}
+                        </Text>
                       </View>
-                    </TouchableOpacity>
-                  ))}
-                </Animated.View>
-              </View>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
             ) : (
               <View style={styles.emptyState}>
                 <Ionicons name="storefront-outline" size={48} color="#CCCCCC" />
@@ -1759,8 +1746,6 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     marginTop: 12,
   },
-  autoScrollContainer: { overflow: 'hidden' },
-  autoScrollContent: { flexDirection: 'row' },
   actionButton: {
     width: '25%',
     alignItems: 'center',
@@ -1775,8 +1760,8 @@ const styles = StyleSheet.create({
   nearbyShopsSection: {
     padding: 16,
   },
-  nearbyScroll: {
-    paddingRight: 8,
+  nearbyCarouselContent: {
+    paddingRight: 12,
   },
   nearbyCard: {
     width: 160,

@@ -70,6 +70,7 @@ export default function MemberShopList() {
         ? data.map((item: any) => ({
           id: item.id.toString(),
           name: item.shopName,
+          contactName: item.contactName,
           category: item.businessCategory,
           distance: item.distance,
           image: item.s3ImageUrl,
@@ -158,12 +159,18 @@ export default function MemberShopList() {
               <View style={styles.shopInfoRight}>
                 <View style={styles.shopInfoRightnew}>
                   <Text style={styles.shopName} numberOfLines={1}>
-  {item.shopName || item.name || 'Shop'}
-</Text>
+                    {item.shopName || item.name || item.contactName || 'Shop'}
+                  </Text>
 
-                 <Text style={styles.categoryText}>
-  {item.businessCategory || item.category || 'General'}
-</Text>
+                  <Text style={styles.categoryText}>
+                    {item.businessCategory || item.category || 'General'}
+                  </Text>
+
+                  {!!(item.contactName && item.contactName !== item.shopName) && (
+                    <Text style={styles.contactNameText} numberOfLines={1}>
+                      {item.contactName}
+                    </Text>
+                  )}
 
                 </View>
                 <View style={styles.distanceRow}>
@@ -231,6 +238,7 @@ const styles = StyleSheet.create({
   ratingRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
   distanceText: { fontSize: 14, color: '#ff6600', marginLeft: 4 }, 
   categoryText: { fontSize: 14, color: '#999' },
+  contactNameText: { fontSize: 12, color: '#999', marginTop: 2 },
   buttonContainer: { flexDirection: 'row', gap: 12 },
   viewButton: {
     flex: 1,
