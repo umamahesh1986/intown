@@ -1519,7 +1519,7 @@ const styles = StyleSheet.create({
   },
 
   summarySection: {
-    backgroundColor: '#ff6600',
+    backgroundColor: '#FFF3E0',
     paddingVertical: 18,
     paddingHorizontal: 12,
   },

@@ -166,7 +166,7 @@ const TransactionCard = ({ transaction }: { transaction: Transaction }) => (
             : styles.debitAmount,
         ]}
       >
-        {transaction.type === 'credit' ? '+' : '-'}₹{transaction.amount.toFixed(2)}
+        {transaction.type === 'credit' ? '' : ''}₹{transaction.amount.toFixed(2)}
       </Text>
       <Text
         style={[
@@ -1706,10 +1706,10 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   creditAmount: {
-    color: '#4CAF50',
+    color: '#000',
   },
   debitAmount: {
-    color: '#F44336',
+    color: '#000',
   },
   transactionStatus: {
     fontSize: 11,

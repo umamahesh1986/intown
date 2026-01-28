@@ -4,6 +4,7 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   
   Image,
   Dimensions,
@@ -418,34 +419,6 @@ const carouselRef = useRef<ScrollView | null>(null);
           </TouchableOpacity>
         </View>
 
-        {/* Dropdown Menu */}
-        {showDropdown && (
-          <View style={styles.dropdown}>
-            <TouchableOpacity
-              style={styles.dropdownItem}
-              onPress={() => {
-                setShowDropdown(false);
-              }}
-            >
-              <Ionicons name="person-outline" size={20} color="#666666" />
-              <Text style={styles.dropdownText}>Account Details</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.dropdownItem}
-              onPress={() => {
-                setShowDropdown(false);
-              }}
-            >
-              <Ionicons name="storefront-outline" size={20} color="#666666" />
-              <Text style={styles.dropdownText}>Merchant</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.dropdownItem} onPress={handleLogout}>
-              <Ionicons name="log-out-outline" size={20} color="#FF0000" />
-              <Text style={[styles.dropdownText, { color: '#FF0000' }]}>Logout</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
         {/* ===== MERCHANT CAROUSEL ===== */}
 <View style={styles.carouselWrapper}>
   <ScrollView
@@ -482,14 +455,6 @@ const carouselRef = useRef<ScrollView | null>(null);
   </View>
 </View>
 {/* === END MERCHANT CAROUSEL === */}
-
-        {/* DEBUG: Merchant ID */}
-        <View style={styles.debugBanner}>
-          <Text style={styles.debugText}>
-            Merchant ID: {debugMerchantId ?? 'not found'}
-          </Text>
-        </View>
-
 
         {/* Shop Details Card */}
         <View style={styles.shopCard}>
@@ -540,10 +505,12 @@ const carouselRef = useRef<ScrollView | null>(null);
 
         {/* Payments List */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Recent Payments</Text>
-          <TouchableOpacity onPress={() => setShowAllPayments(true)}>
-            <Text style={styles.viewAllText}>View All</Text>
-          </TouchableOpacity>
+          <View style={styles.sectionPaymentHeader}>
+            <Text style={styles.sectionTitle}>Recent Payments</Text>
+            <TouchableOpacity onPress={() => setShowAllPayments(true)}>
+              <Text style={styles.viewAllText}>View All</Text>
+            </TouchableOpacity>
+          </View>
           {isSalesLoading ? (
             <View style={styles.emptyState}>
               <ActivityIndicator size="small" color="#FF6600" />
@@ -595,6 +562,39 @@ const carouselRef = useRef<ScrollView | null>(null);
         {/* Footer */}
         <Footer/>
       </ScrollView>
+
+      {showDropdown && (
+        <>
+          <TouchableWithoutFeedback onPress={() => setShowDropdown(false)}>
+            <View style={styles.dropdownBackdrop} />
+          </TouchableWithoutFeedback>
+          <View style={styles.dropdownPanel}>
+            <TouchableOpacity
+              style={styles.dropdownItem}
+              onPress={() => {
+                setShowDropdown(false);
+                router.push('/account');
+              }}
+            >
+              <Ionicons name="person-outline" size={20} color="#666666" />
+              <Text style={styles.dropdownText}>Account Details</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.dropdownItem}
+              onPress={() => {
+                setShowDropdown(false);
+              }}
+            >
+              <Ionicons name="storefront-outline" size={20} color="#666666" />
+              <Text style={styles.dropdownText}>My Offers</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.dropdownItem} onPress={handleLogout}>
+              <Ionicons name="log-out-outline" size={20} color="#FF0000" />
+              <Text style={[styles.dropdownText, { color: '#FF0000' }]}>Logout</Text>
+            </TouchableOpacity>
+          </View>
+        </>
+      )}
 
       {/* All Payments Modal */}
       <Modal
@@ -814,14 +814,30 @@ const styles = StyleSheet.create({
   profileInfo: { alignItems: 'flex-end', marginRight: 8 },
   userName: { fontSize: 14, fontWeight: '600', color: '#1A1A1A' },
   userPhone: { fontSize: 10, color: '#666666', marginTop: 2 },
-  dropdown: {
+  dropdownBackdrop: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'transparent',
+    zIndex: 999,
+  },
+  dropdownPanel: {
+    position: 'absolute',
+    top: 70,
+    right: 16,
+    width: 240,
     backgroundColor: '#FFFFFF',
-    marginHorizontal: 16,
-    marginTop: 8,
-    borderRadius: 8,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: '#EEEEEE',
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 10,
+    zIndex: 1000,
   },
   dropdownItem: {
     flexDirection: 'row',
@@ -853,9 +869,14 @@ const styles = StyleSheet.create({
   shopCategory: { fontSize: 16, color: '#666666', marginBottom: 12 },
   ratingContainer: { flexDirection: 'row', alignItems: 'center' },
   ratingText: { fontSize: 16, fontWeight: '600', color: '#666666', marginLeft: 8 },
-  section: { padding: 16 },
+  section: { padding: 16},
   sectionNoHorizontalPadding: {
     paddingHorizontal: 0,
+  },
+  sectionPaymentHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   sectionTitle: { fontSize: 20, fontWeight: 'bold', color: '#1A1A1A', margin: 16 },
   summarySection: {
@@ -996,19 +1017,19 @@ const styles = StyleSheet.create({
 carouselWrapper: {
   marginTop: 12,
   marginBottom: 8,
+  height: 160,
 },
 
 carouselSlide: {
   width: SLIDE_WIDTH,
-  maxHeight: 'fit-content' as any,
-  minHeight: 140,
+  height: 160,
   paddingHorizontal: 16,
 },
 
 
 carouselImage: {
   width: '100%',
-  height: '100%',
+  height: 160,
   borderRadius: 12,
   resizeMode: 'cover',
 },
@@ -1031,22 +1052,6 @@ dot: {
 dotActive: {
   backgroundColor: '#FF6600',
 },
-// ===================================
-  debugBanner: {
-    marginHorizontal: 16,
-    marginBottom: 8,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    backgroundColor: '#FFF3E0',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#FFD9B3',
-  },
-  debugText: {
-    fontSize: 12,
-    color: '#B45309',
-  },
-
 // Location Modal Styles
 locationModalContainer: {
   flex: 1,

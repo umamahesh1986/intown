@@ -187,6 +187,13 @@ export default function MemberShopDetails() {
                 <Text style={styles.ratingText}>{ratingValue.toFixed(1)}</Text>
               </View>
 
+            <View style={styles.descriptionCard}>
+              <Text style={styles.descriptionTitle}>Description</Text>
+              <Text style={styles.descriptionText}>
+                {shop.description || 'No description available'}
+              </Text>
+            </View>
+
               <View style={styles.infoCard}>
                 <View style={styles.infoRow}>
                   <Ionicons name="pricetag" size={20} color="#FF6600" />
@@ -259,6 +266,13 @@ export default function MemberShopDetails() {
                 <Ionicons key={i} name={i <= ratingValue ? "star" : "star-outline"} size={20} color="#FFA500" />
               ))}
               <Text style={styles.ratingText}>{ratingValue.toFixed(1)}</Text>
+            </View>
+
+            <View style={styles.descriptionCard}>
+              <Text style={styles.descriptionTitle}>Description</Text>
+              <Text style={styles.descriptionText}>
+                {shop.description || 'No description available'}
+              </Text>
             </View>
 
             <View style={styles.infoCard}>
@@ -410,6 +424,9 @@ const styles = StyleSheet.create({
   badgeText: { fontSize: 12, fontWeight: '700' },
   ratingContainer: {flexDirection:'row', alignItems:'center', marginBottom:16},
   ratingText: {fontSize:18, fontWeight:'600', color:'#666', marginLeft:8},
+  descriptionCard: { backgroundColor: '#FFF', borderRadius: 12, padding: 16, marginBottom: 16 },
+  descriptionTitle: { fontSize: 14, fontWeight: '700', color: '#1A1A1A', marginBottom: 6 },
+  descriptionText: { fontSize: 14, color: '#666666', lineHeight: 20 },
   infoCard: {backgroundColor:'#FFF', borderRadius:12, padding:16, marginBottom:16},
   infoRow: {flexDirection:'row', alignItems:'center', marginBottom:12},
   infoLabel: {fontSize:14, color:'#666', marginLeft:8, width:80},

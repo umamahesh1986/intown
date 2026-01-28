@@ -125,6 +125,14 @@ export default function ShopDetailsScreen() {
                 </View>
               </View>
 
+              {/* Description */}
+              <View style={styles.descriptionCard}>
+                <Text style={styles.descriptionTitle}>Description</Text>
+                <Text style={styles.descriptionText}>
+                  {shop.description || 'No description available'}
+                </Text>
+              </View>
+
               {/* Navigation Button */}
               <TouchableOpacity style={styles.navigationButton} onPress={handleOpenInMaps}>
                 <Ionicons name="navigate" size={24} color="#FFFFFF" />
@@ -213,6 +221,14 @@ export default function ShopDetailsScreen() {
                   <Text style={styles.detailValue}>₹{shop.price}</Text>
                 </View>
               </View>
+            </View>
+
+            {/* Description */}
+            <View style={styles.descriptionCard}>
+              <Text style={styles.descriptionTitle}>Description</Text>
+              <Text style={styles.descriptionText}>
+                {shop.description || 'No description available'}
+              </Text>
             </View>
 
             {/* Navigation Button */}
@@ -379,6 +395,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     marginBottom: 16,
+  },
+  descriptionCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+  },
+  descriptionTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1A1A1A',
+    marginBottom: 6,
+  },
+  descriptionText: {
+    fontSize: 14,
+    color: '#666666',
+    lineHeight: 20,
   },
   detailContent: {
     flex: 1,
