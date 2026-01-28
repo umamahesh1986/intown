@@ -1403,7 +1403,7 @@ const styles = StyleSheet.create({
   },
   animatedPlaceholderWord: {
     fontSize: 16,
-    color: '#ff6600',
+    color: '#777',
     fontWeight: '500',
   },
   suggestionBox: {

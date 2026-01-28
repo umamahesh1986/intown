@@ -1456,7 +1456,7 @@ const styles = StyleSheet.create({
   },
   animatedPlaceholderWord: {
     ...FontStylesWithFallback.body,
-    color: '#ff6600',
+    color: '#666666',
     fontWeight: '500',
   },
 

@@ -78,26 +78,26 @@ export default function Search() {
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchSearchResults = async (text: string) => {
-  if (!text.trim()) {
-    setResults([]);
-    return;
-  }
+    if (!text.trim()) {
+      setResults([]);
+      return;
+    }
 
-  setLoading(true);
+    setLoading(true);
 
-  try {
-    const data = await searchProducts(text);
-    setResults(Array.isArray(data) ? data : []);
-  } catch (error) {
-    console.error('Product search failed', error);
-    setResults([]);
-  } finally {
-    setLoading(false);
-  }
-};
+    try {
+      const data = await searchProducts(text);
+      setResults(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Product search failed', error);
+      setResults([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
 
-    
+
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -136,14 +136,14 @@ export default function Search() {
           {/* SEARCH INPUT */}
           <View style={styles.searchBox}>
             <Ionicons name="search" size={18} color="#666" />
-          <TextInput
+            <TextInput
               ref={inputRef}
               placeholder="Search products..."
               value={searchText}
-            style={[
-              styles.input,
-              Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : null,
-            ]}
+              style={[
+                styles.input,
+                Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : null,
+              ]}
               autoFocus
               onChangeText={(text) => {
                 setSearchText(text);
@@ -180,29 +180,29 @@ export default function Search() {
                 <TouchableOpacity
                   key={item.id ?? index}
                   style={styles.suggestionItem}
-                onPress={() => {
-  const value =
-    item.productName ||
-    (item as any).name ||
-    '';
+                  onPress={() => {
+                    const value =
+                      item.productName ||
+                      (item as any).name ||
+                      '';
 
-  setSearchText(value);
-  setShowSuggestions(false);
+                    setSearchText(value);
+                    setShowSuggestions(false);
 
-  router.push({
-    pathname: '/member-shop-list',
-    params: {
-      query: value,
-      source,
-    },
-  });
-}}
+                    router.push({
+                      pathname: '/member-shop-list',
+                      params: {
+                        query: value,
+                        source,
+                      },
+                    });
+                  }}
 
                 >
                   <Ionicons name="search" size={16} color="#666" />
                   <Text style={styles.suggestionText}>
-  {item.productName || (item as any).name}
-</Text>
+                    {item.productName || (item as any).name}
+                  </Text>
 
                 </TouchableOpacity>
               ))}

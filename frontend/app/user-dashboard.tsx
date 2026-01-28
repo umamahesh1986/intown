@@ -731,7 +731,12 @@ const loadNearbyShops = async () => {
             <Text style={styles.sectionTitle}>Estimated Savings Calculator</Text>
             <View style={styles.calculatorCard}>
               <View style={styles.calculatorRow}>
-                <Text style={styles.calculatorLabel}>Estimated Monthly Spend</Text>
+                <Text style={[styles.calculatorLabel, styles.calculatorLabelSpend]}>
+                  Estimated Monthly Spend{' '}
+                  <Text style={styles.calculatorLabelNote}>
+                    (Please enter your monthly spend)
+                  </Text>
+                </Text>
                 <TextInput
                   style={styles.calculatorInput}
                   value={monthlySpend}
@@ -744,10 +749,13 @@ const loadNearbyShops = async () => {
                 <Text style={styles.calculatorLabel}>Estimated Monthly Savings</Text>
                 <Text style={styles.calculatorValue}>₹{monthlySavings.toFixed(0)}</Text>
               </View>
-              <View style={styles.calculatorRow}>
+              <View style={[styles.calculatorRow, styles.calculatorRowLast]}>
                 <Text style={styles.calculatorLabel}>Estimated Annual Savings</Text>
                 <Text style={styles.calculatorValueLarge}>₹{annualSavings.toFixed(0)}</Text>
               </View>
+              <Text style={styles.calculatorHint}>
+                You can save 8%-20% monthly on your monthly spend.
+              </Text>
             </View>
           </View>
 
@@ -1612,7 +1620,7 @@ const styles = StyleSheet.create({
   },
 
   themeSection: {
-    backgroundColor: 'rgba(33, 94, 97, 0.8)',
+    backgroundColor: '#008080',
     padding: 24,
     alignItems: 'center',
   },
@@ -1637,6 +1645,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 16,
+    borderWidth: 1,
+    borderColor: '#E6E6E6',
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
   },
   calculatorRow: {
     flexDirection: 'row',
@@ -1644,17 +1659,29 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
   },
+  calculatorRowLast: {
+    marginBottom: 8,
+  },
   calculatorLabel: {
     fontSize: 14,
     color: '#666666',
     flex: 1,
   },
+  calculatorLabelNote: {
+    fontSize: 11,
+    color: '#9A9A9A',
+    fontWeight: '500',
+    display: 'block' as any,
+  },
+  calculatorLabelSpend: {
+    color: '#777777',
+  },
   calculatorInput: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#FF6600',
-    borderBottomWidth: 1,
-    borderBottomColor: '#FF6600',
+    color: '#777777',
+    backgroundColor: '#e4e4e4',
+    borderRadius: 4,
     paddingVertical: 4,
     paddingHorizontal: 8,
     minWidth: 100,
@@ -1664,23 +1691,22 @@ const styles = StyleSheet.create({
   calculatorValue: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#4CAF50',
+    color: '#2E7D32',
   },
   calculatorValueLarge: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#4CAF50',
+    color: '#1B5E20',
   },
-
-
-
-
-
-
-
-
-
-
+  calculatorHint: {
+    fontSize: 12,
+    color: '#000',
+    fontWeight: '400',
+    marginTop: 4,
+    borderTopWidth: 1,
+    borderTopColor: '#E6E6E6',
+    paddingTop: 8,
+  },
   planCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
@@ -1690,11 +1716,9 @@ const styles = StyleSheet.create({
     borderColor: '#EEEEEE',
   },
   popularPlan: {
-    borderColor: '#FF6600',
-    borderWidth: 2,
   },
   popularBadge: {
-    backgroundColor: '#FF6600',
+    backgroundColor: '#008080',
     paddingVertical: 4,
     paddingHorizontal: 12,
     borderRadius: 12,
@@ -1709,7 +1733,7 @@ const styles = StyleSheet.create({
   planName: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#FF6600',
+    color: '#000000',
     marginBottom: 8,
   },
   planPriceRow: {
@@ -1720,11 +1744,11 @@ const styles = StyleSheet.create({
   planPrice: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#1A1A1A',
+    color: '#ddd',
   },
   strikePrice: {
     fontSize: 16,
-    color: '#000000',      // BLACK color
+    color: '#999',
     textDecorationLine: 'line-through',
     marginRight: 8,
   },
