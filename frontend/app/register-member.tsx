@@ -280,6 +280,9 @@ export default function RegisterMember() {
       if (customerId) {
         await AsyncStorage.setItem('customer_id', String(customerId));
       }
+      if (contactName) {
+        await AsyncStorage.setItem('customer_contact_name', contactName);
+      }
       if (location?.latitude != null && location?.longitude != null) {
         await AsyncStorage.setItem('customer_location_lat', String(location.latitude));
         await AsyncStorage.setItem('customer_location_lng', String(location.longitude));

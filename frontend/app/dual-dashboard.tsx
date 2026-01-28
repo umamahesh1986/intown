@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -24,6 +24,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuthStore } from '../store/authStore';
 import { useLocationStore } from '../store/locationStore';
+import { useFocusEffect } from '@react-navigation/native';
 import Footer from '../components/Footer';
 import { getNearbyShops } from '../utils/api';
 import { 
@@ -31,6 +32,7 @@ import {
   searchLocations, 
   setManualLocation 
 } from '../utils/location';
+import { formatDistance } from '../utils/formatDistance';
 
 const { width } = Dimensions.get('window');
 
@@ -202,6 +204,10 @@ export default function DualDashboard() {
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const [customerId, setCustomerId] = useState<string | null>(null);
   const [merchantId, setMerchantId] = useState<string | null>(null);
+  const [customerContactName, setCustomerContactName] = useState<string | null>(null);
+  const [merchantContactName, setMerchantContactName] = useState<string | null>(null);
+  const [merchantShopName, setMerchantShopName] = useState<string | null>(null);
+  const [profileImage, setProfileImage] = useState<string | null>(null);
   const [customerTotals, setCustomerTotals] = useState<{
     today: CustomerSummary | null;
     thisMonth: CustomerSummary | null;
@@ -250,6 +256,26 @@ export default function DualDashboard() {
     loadUserType();
     requestLocationOnMount();
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      let isActive = true;
+      const refreshProfileImage = async () => {
+        try {
+          const storedProfileImage = await AsyncStorage.getItem('user_profile_image');
+          if (storedProfileImage && isActive) {
+            setProfileImage(storedProfileImage);
+          }
+        } catch (error) {
+          console.error('Error refreshing profile image:', error);
+        }
+      };
+      refreshProfileImage();
+      return () => {
+        isActive = false;
+      };
+    }, [])
+  );
 
   useEffect(() => {
     if (location?.latitude && location?.longitude) {
@@ -341,6 +367,19 @@ export default function DualDashboard() {
     return 'Set Location';
   };
 
+  const getProfileImageSource = (value: string | null) => {
+    if (!value) return undefined;
+    if (
+      value.startsWith('http') ||
+      value.startsWith('file:') ||
+      value.startsWith('content:') ||
+      value.startsWith('data:')
+    ) {
+      return { uri: value };
+    }
+    return { uri: `data:image/jpeg;base64,${value}` };
+  };
+
   const placeholderItems = [
     'Grocery', 
     'Salon', 
@@ -404,6 +443,22 @@ export default function DualDashboard() {
       const storedData = await AsyncStorage.getItem('user_search_response');
       if (storedData) {
         setUserData(JSON.parse(storedData));
+      }
+      const storedCustomerName = await AsyncStorage.getItem('customer_contact_name');
+      if (storedCustomerName) {
+        setCustomerContactName(storedCustomerName);
+      }
+      const storedMerchantName = await AsyncStorage.getItem('merchant_contact_name');
+      if (storedMerchantName) {
+        setMerchantContactName(storedMerchantName);
+      }
+      const storedShopName = await AsyncStorage.getItem('merchant_shop_name');
+      if (storedShopName) {
+        setMerchantShopName(storedShopName);
+      }
+      const storedProfileImage = await AsyncStorage.getItem('user_profile_image');
+      if (storedProfileImage) {
+        setProfileImage(storedProfileImage);
       }
     } catch (error) {
       console.error('Error loading user data:', error);
@@ -582,7 +637,13 @@ export default function DualDashboard() {
     if (activeTab === 'merchant' && userData?.merchant?.businessName) {
       return userData.merchant.businessName;
     }
-    return user?.phone || 'User';
+    if (activeTab === 'customer' && customerContactName) {
+      return customerContactName;
+    }
+    if (activeTab === 'merchant') {
+      return merchantShopName || merchantContactName || user?.phone || 'User';
+    }
+    return customerContactName || user?.phone || 'User';
   };
 
   /* ===============================
@@ -598,6 +659,7 @@ export default function DualDashboard() {
         >
           <Ionicons name="location" size={16} color="#FF6600" />
           <View style={styles.locationTextContainer}>
+            <Text style={styles.welcomeText}>Welcome {getWelcomeName()}</Text>
             <Text style={styles.locationText} numberOfLines={1}>
               {getLocationDisplayText()}
             </Text>
@@ -616,12 +678,19 @@ export default function DualDashboard() {
               {(user as any)?.phone ?? (user as any)?.email ?? ''}
             </Text>
           </View>
-          <Ionicons
-            name="person"
-            size={20}
-            color="#ff6600"
-            style={styles.profileIconButton}
-          />
+          {profileImage ? (
+            <Image
+              source={getProfileImageSource(profileImage) as any}
+              style={styles.profileImage}
+            />
+          ) : (
+            <Ionicons
+              name="person"
+              size={20}
+              color="#ff6600"
+              style={styles.profileIconButton}
+            />
+          )}
         </TouchableOpacity>
       </View>
 
@@ -1014,9 +1083,9 @@ export default function DualDashboard() {
                         <View style={styles.nearbyDistance}>
                           <Ionicons name="location" size={12} color="#FF6600" />
                           <Text style={styles.nearbyDistanceText}>
-                            {shop.distance
-                              ? `${shop.distance.toFixed(2)} km`
-                              : 'Nearby'}
+                            {formatDistance(
+                              typeof shop.distance === 'number' ? shop.distance : null
+                            )}
                           </Text>
                         </View>
                       </View>
@@ -1247,6 +1316,11 @@ const styles = StyleSheet.create({
     color: '#FF6600',
     flex: 1,
   },
+  welcomeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#1A1A1A',
+  },
   profileButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1260,6 +1334,14 @@ const styles = StyleSheet.create({
     marginLeft: 10,
     width: 34,
     textAlign: 'center',
+  },
+  profileImage: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    borderWidth: 2,
+    borderColor: '#ff6600',
+    marginLeft: 10,
   },
   profileInfo: {
     alignItems: 'flex-end',

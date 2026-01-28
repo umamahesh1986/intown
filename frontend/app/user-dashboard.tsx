@@ -1,5 +1,5 @@
 // user-dashboard.tsx
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Footer from '../components/Footer';
 import {
   CATEGORY_IMAGE_LIST,
@@ -30,6 +30,7 @@ import {
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { useAuthStore } from '../store/authStore';
 import { useLocationStore, LocationDetails } from '../store/locationStore';
 import { getPlans, getCategories, getNearbyShops } from '../utils/api';
@@ -43,6 +44,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { FontStylesWithFallback } from '../utils/fonts';
+import { formatDistance } from '../utils/formatDistance';
 
 interface Plan {
   id: string;
@@ -127,6 +129,7 @@ export default function UserDashboard() {
   const [categories, setCategories] = useState<Category[]>(DUMMY_CATEGORIES);
   // Nearby shops (real API)
 const [nearbyShops, setNearbyShops] = useState<any[]>([]);
+  const [profileImage, setProfileImage] = useState<string | null>(null);
 
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
   const [monthlySpend, setMonthlySpend] = useState('10000');
@@ -158,6 +161,8 @@ const [nearbyShops, setNearbyShops] = useState<any[]>([]);
 
   const carouselRef = useRef<ScrollView | null>(null);
   const autoPlayTimer = useRef<number | null>(null);
+  const categoriesScrollRef = useRef<ScrollView | null>(null);
+  const nearbyScrollRef = useRef<ScrollView | null>(null);
 
 // ================= CAROUSEL IMAGES FROM S3 =================
 const loadCarouselImages = () => {
@@ -175,9 +180,6 @@ const loadCarouselImages = () => {
 // ==========================================================
 
 
-  // Animation for auto-scrolling shops
-  const scrollX = useRef(new Animated.Value(0)).current;
-  const categoryScrollX = useRef(new Animated.Value(0)).current;
   const placeholderAnim = useRef(new Animated.Value(0)).current;
   const CATEGORY_CARD_WIDTH = 100;
   const CATEGORY_CARD_GAP = 12;
@@ -188,6 +190,7 @@ const loadCarouselImages = () => {
 useEffect(() => {
   loadData();
   loadUserType();
+  loadProfileImage();
   requestLocationOnMount();
 
   loadCarouselImages(); 
@@ -209,6 +212,8 @@ useEffect(() => {
   return () => clearInterval(timer);
 }, [carouselImages]);
 
+  const stopCategoriesAutoScroll = () => {};
+  const stopNearbyAutoScroll = () => {};
 
 
   useEffect(() => {
@@ -217,32 +222,6 @@ useEffect(() => {
   }
 }, [location?.latitude, location?.longitude]);
 
-
-useEffect(() => {
-  if (nearbyShops.length > 0) {
-    startAutoScroll(nearbyShops.length);
-  }
-}, [nearbyShops.length]);
-
-
-  useEffect(() => {
-    if (categories.length === 0) return;
-
-    const totalWidth =
-      categories.length * (CATEGORY_CARD_WIDTH + CATEGORY_CARD_GAP);
-
-    categoryScrollX.setValue(0);
-    const animation = Animated.loop(
-      Animated.timing(categoryScrollX, {
-        toValue: -totalWidth,
-        duration: totalWidth * 30,
-        useNativeDriver: true,
-      })
-    );
-
-    animation.start();
-    return () => animation.stop();
-  }, [categories, CATEGORY_CARD_GAP, CATEGORY_CARD_WIDTH, categoryScrollX]);
 
   const SEARCH_ITEMS = [
     'Grocery',
@@ -354,6 +333,37 @@ useEffect(() => {
     }
   };
 
+  const loadProfileImage = async () => {
+    try {
+      const storedImage = await AsyncStorage.getItem('user_profile_image');
+      if (storedImage) {
+        setProfileImage(storedImage);
+      }
+    } catch (error) {
+      console.log('Error loading profile image:', error);
+    }
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      let isActive = true;
+      const refreshProfileImage = async () => {
+        try {
+          const storedImage = await AsyncStorage.getItem('user_profile_image');
+          if (storedImage && isActive) {
+            setProfileImage(storedImage);
+          }
+        } catch (error) {
+          console.log('Error refreshing profile image:', error);
+        }
+      };
+      refreshProfileImage();
+      return () => {
+        isActive = false;
+      };
+    }, [])
+  );
+
   const formatUserType = (type: string): string => {
     const lower = type.toLowerCase();
     if (lower === 'new_user' || lower === 'new' || lower === 'user') return 'User';
@@ -370,20 +380,7 @@ useEffect(() => {
     dropdownAnim.setValue(0);
   }, [user]);
 
- const startAutoScroll = (count: number) => {
-  if (count <= 1) return;
 
-  const totalWidth = count * CARD_WIDTH;
-  scrollX.setValue(0);
-
-  Animated.loop(
-    Animated.timing(scrollX, {
-      toValue: -totalWidth,
-      duration: totalWidth * 50,
-      useNativeDriver: true,
-    })
-  ).start();
-};
 
 
   const loadData = async () => {
@@ -510,6 +507,19 @@ const loadNearbyShops = async () => {
     return 'Set Location';
   };
 
+  const getProfileImageSource = (value: string | null) => {
+    if (!value) return undefined;
+    if (
+      value.startsWith('http') ||
+      value.startsWith('file:') ||
+      value.startsWith('content:') ||
+      value.startsWith('data:')
+    ) {
+      return { uri: value };
+    }
+    return { uri: `data:image/jpeg;base64,${value}` };
+  };
+
   const handleSearchBlur = () => {
     setTimeout(() => {
       setShowSuggestions(false);
@@ -549,7 +559,14 @@ const loadNearbyShops = async () => {
                   {(user as any)?.phone ?? (user as any)?.email ?? ''}
                 </Text>
               </View>
-              <Ionicons name="person" size={20} color="#ff6600" style={styles.profileIconButton} />
+              {profileImage ? (
+                <Image
+                  source={getProfileImageSource(profileImage) as any}
+                  style={styles.profileImage}
+                />
+              ) : (
+                <Ionicons name="person" size={20} color="#ff6600" style={styles.profileIconButton} />
+              )}
             </TouchableOpacity>
           </View>
 
@@ -661,43 +678,43 @@ const loadNearbyShops = async () => {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Popular Categories</Text>
             {categories.length > 0 ? (
-              <View style={styles.categoriesAutoScrollContainer}>
-                <Animated.View
-                  style={[
-                    styles.categoriesAutoScrollContent,
-                    { transform: [{ translateX: categoryScrollX }] },
-                  ]}
-                >
-                  {[...categories, ...categories].map((category, index) => (
-                    <TouchableOpacity
-                      key={`${category.id}-${index}`}
-                      style={styles.categoryCard}
-                      onPress={() =>
-                        router.push({
-                          pathname: '/member-shop-list',
-                          params: {
-                            categoryId: String(category.id),
-                            categoryName: category.name,
-                            source: 'user',
-                          },
-                        })
-                      }
-                      activeOpacity={0.8}
-                    >
-                      <View style={styles.categoryImageContainer}>
+              <ScrollView
+                ref={categoriesScrollRef}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                snapToInterval={CATEGORY_CARD_WIDTH + CATEGORY_CARD_GAP}
+                decelerationRate="fast"
+                contentContainerStyle={styles.categoriesCarouselContent}
+                onScrollBeginDrag={stopCategoriesAutoScroll}
+              >
+                {categories.map((category, index) => (
+                  <TouchableOpacity
+                    key={category.id}
+                    style={styles.categoryCard}
+                    onPress={() =>
+                      router.push({
+                        pathname: '/member-shop-list',
+                        params: {
+                          categoryId: String(category.id),
+                          categoryName: category.name,
+                          source: 'user',
+                        },
+                      })
+                    }
+                    activeOpacity={0.8}
+                  >
+                    <View style={styles.categoryImageContainer}>
                       <Image
-  source={getCategoryImageByIndex(index % categories.length)}
-  style={styles.categoryImage}
-  resizeMode="cover"
-/>
-
-                        <View style={styles.categoryGradient} />
-                        <Text style={styles.categoryName}>{category.name}</Text>
-                      </View>
-                    </TouchableOpacity>
-                  ))}
-                </Animated.View>
-              </View>
+                        source={getCategoryImageByIndex(index)}
+                        style={styles.categoryImage}
+                        resizeMode="cover"
+                      />
+                      <View style={styles.categoryGradient} />
+                      <Text style={styles.categoryName}>{category.name}</Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
             ) : (
               <Text style={styles.noCategoriesText}>No categories available</Text>
             )}
@@ -851,53 +868,50 @@ const loadNearbyShops = async () => {
           {/* Nearby Shops Section */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Nearby Shops</Text>
-            <View style={styles.autoScrollContainer}>
-              <Animated.View
-                style={[
-                  styles.autoScrollContent,
-                  {
-                    transform: [{ translateX: scrollX }],
-                  },
-                ]}
-              >
-                {[...nearbyShops, ...nearbyShops].map((shop, index) => (
-
-                  <TouchableOpacity
-                    key={`${shop.id}-${index}`}
-                    style={styles.shopCard}
-                    onPress={() =>
-                      router.push({
-                        pathname: '/member-shop-details',
-                        params: {
-                          shopId: shop.id,
-                          shop: JSON.stringify(shop),
-                          source: 'user',
-                        },
-                      })
-                    }
-                  >
-                    <View style={styles.shopImagePlaceholder}>
-                      <Ionicons name="storefront" size={40} color="#FF6600" />
-                    </View>
-                   <Text style={styles.shopCardName} numberOfLines={1}>
-  {shop.shopName}
-</Text>
-                   <Text style={styles.shopCardCategory}>
-  {shop.businessCategory}
-</Text>
-                    <View style={styles.shopCardDistance}>
-                      <Ionicons name="location" size={14} color="#FF6600" />
-                      <Text style={styles.distanceText}>
-  {typeof shop.distance === 'number'
-    ? `${shop.distance.toFixed(2)} km`
-    : 'Nearby'}
-</Text>
-
-                    </View>
-                  </TouchableOpacity>
-                ))}
-              </Animated.View>
-            </View>
+            <ScrollView
+              ref={nearbyScrollRef}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              snapToInterval={CARD_WIDTH}
+              decelerationRate="fast"
+              contentContainerStyle={styles.nearbyCarouselContent}
+              onScrollBeginDrag={stopNearbyAutoScroll}
+            >
+              {nearbyShops.map((shop, index) => (
+                <TouchableOpacity
+                  key={`${shop.id}-${index}`}
+                  style={styles.shopCard}
+                  onPress={() =>
+                    router.push({
+                      pathname: '/member-shop-details',
+                      params: {
+                        shopId: shop.id,
+                        shop: JSON.stringify(shop),
+                        source: 'user',
+                      },
+                    })
+                  }
+                >
+                  <View style={styles.shopImagePlaceholder}>
+                    <Ionicons name="storefront" size={40} color="#FF6600" />
+                  </View>
+                  <Text style={styles.shopCardName} numberOfLines={1}>
+                    {shop.shopName}
+                  </Text>
+                  <Text style={styles.shopCardCategory}>
+                    {shop.businessCategory}
+                  </Text>
+                  <View style={styles.shopCardDistance}>
+                    <Ionicons name="location" size={14} color="#FF6600" />
+                    <Text style={styles.distanceText}>
+                      {formatDistance(
+                        typeof shop.distance === 'number' ? shop.distance : null
+                      )}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
           </View>
 
           {/* Footer */}
@@ -1177,6 +1191,14 @@ const styles = StyleSheet.create({
     width: 34,
     textAlign: 'center',
   },
+  profileImage: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    borderWidth: 2,
+    borderColor: '#ff6600',
+    marginLeft: 10,
+  },
   dropdownMenu: {
     position: 'absolute',
     top: 70,
@@ -1404,7 +1426,8 @@ const styles = StyleSheet.create({
 
   carouselImage: {
     width: SLIDE_WIDTH - 32,
-    height: 160,
+    maxHeight: 'fit-content' as any,
+    minHeight: 140,
     borderRadius: 12,
     backgroundColor: '#eee',
   },
@@ -1524,6 +1547,9 @@ const styles = StyleSheet.create({
   },
   categoriesAutoScrollContent: {
     flexDirection: 'row',
+  },
+  categoriesCarouselContent: {
+    paddingRight: 12,
   },
   categoryCard: {
     width: 100,
@@ -1753,6 +1779,9 @@ const styles = StyleSheet.create({
   },
   autoScrollContent: {
     flexDirection: 'row',
+  },
+  nearbyCarouselContent: {
+    paddingRight: 12,
   },
   shopCard: {
     width: 160,

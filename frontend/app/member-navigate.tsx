@@ -1,11 +1,13 @@
-import { View, Text, StyleSheet, TouchableOpacity, Linking } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useState, useEffect } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocationStore } from '../store/locationStore';
+import { getUserLocationWithDetails } from '../utils/location';
 import PaymentModal from '../components/PaymentModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { WebView } from 'react-native-webview';
 
 const SHOP_DATA: any = {
   '1': { name: 'Fresh Mart Grocery', lat: 12.9716, lng: 77.5946 },
@@ -35,22 +37,33 @@ export default function MemberNavigate() {
     shopFromParams?.latitude ?? shopFromParams?.lat ?? fallbackShop.lat;
   const destinationLng =
     shopFromParams?.longitude ?? shopFromParams?.lng ?? fallbackShop.lng;
-  const { location } = useLocationStore();
+  const location = useLocationStore((state) => state.location);
+  const loadLocationFromStorage = useLocationStore((state) => state.loadFromStorage);
+  const [isLoadingLocation, setIsLoadingLocation] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
   const [customerId, setCustomerId] = useState<string | null>(null);
 
-  const handleOpenMaps = () => {
-    if (location) {
-      const url = `https://www.google.com/maps/dir/?api=1&origin=${location.latitude},${location.longitude}&destination=${destinationLat},${destinationLng}`;
-      Linking.openURL(url);
-    }
-  };
+  const originLat = Number(location?.latitude);
+  const originLng = Number(location?.longitude);
+  const hasOrigin = Number.isFinite(originLat) && Number.isFinite(originLng);
+  const directionsUrl = `https://www.google.com/maps/dir/?api=1&origin=${hasOrigin ? `${originLat},${originLng}` : 'Current+Location'}&destination=${destinationLat},${destinationLng}&travelmode=driving`;
 
   const handlePaymentSuccess = (amount: number, savings: number, method: string) => {
     console.log('Payment successful:', { amount, savings, method });
   };
 
   useEffect(() => {
+    const ensureLocation = async () => {
+      setIsLoadingLocation(true);
+      await loadLocationFromStorage();
+      const storedLocation = useLocationStore.getState().location;
+      if (!storedLocation) {
+        await getUserLocationWithDetails();
+      }
+      setIsLoadingLocation(false);
+    };
+    ensureLocation();
+
     const loadCustomerId = async () => {
       try {
         const storedCustomerId = await AsyncStorage.getItem('customer_id');
@@ -75,25 +88,29 @@ export default function MemberNavigate() {
         <View style={{width:40}} />
       </View>
 
-      <View style={styles.mapPlaceholder}>
-        <Ionicons name="map" size={100} color="#2196F3" />
-        <Text style={styles.mapText}>Map View</Text>
-        <Text style={styles.mapSubtext}>Route from your location to shop</Text>
-        
-        <TouchableOpacity style={styles.openMapsButton} onPress={handleOpenMaps}>
-          <Ionicons name="navigate" size={24} color="#FFF" />
-          <Text style={styles.openMapsText}>Open in Google Maps</Text>
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.infoCard}>
-        <View style={styles.infoRow}>
-          <Ionicons name="location" size={24} color="#2196F3" />
-          <View style={{flex:1, marginLeft:12}}>
-            <Text style={styles.infoLabel}>Destination</Text>
-            <Text style={styles.infoValue}>{shopName}</Text>
+      <View style={styles.mapContainer}>
+        {hasOrigin ? (
+          <WebView
+            source={{ uri: directionsUrl }}
+            style={styles.mapWebView}
+            startInLoadingState
+            renderLoading={() => (
+              <View style={styles.mapLoading}>
+                <ActivityIndicator size="small" color="#2196F3" />
+                <Text style={styles.mapLoadingText}>Loading route...</Text>
+              </View>
+            )}
+          />
+        ) : (
+          <View style={styles.mapPlaceholder}>
+            <ActivityIndicator size="small" color="#2196F3" />
+            <Text style={styles.mapSubtext}>
+              {isLoadingLocation
+                ? 'Getting your location...'
+                : 'Waiting for location permission...'}
+            </Text>
           </View>
-        </View>
+        )}
       </View>
 
       <TouchableOpacity style={styles.payButton} onPress={() => setShowPayment(true)}>
@@ -106,7 +123,7 @@ export default function MemberNavigate() {
         onClose={() => setShowPayment(false)}
         onSuccess={handlePaymentSuccess}
         merchantId={shopId}
-        customerId={customerId}
+        customerId={customerId ?? undefined}
         redirectTo={redirectTo}
       />
     </SafeAreaView>
@@ -118,15 +135,13 @@ const styles = StyleSheet.create({
   header: {flexDirection:'row', alignItems:'center', justifyContent:'space-between', padding:16, backgroundColor:'#2196F3'},
   backButton: {width:40, height:40, justifyContent:'center'},
   headerTitle: {fontSize:18, fontWeight:'600', color:'#FFF'},
+  mapContainer: {flex:1, backgroundColor:'#E3F2FD'},
+  mapWebView: {flex:1},
+  mapLoading: {flex:1, alignItems:'center', justifyContent:'center', backgroundColor:'#E3F2FD'},
+  mapLoadingText: {marginTop:8, color:'#1976D2', fontSize:14},
   mapPlaceholder: {flex:1, backgroundColor:'#E3F2FD', alignItems:'center', justifyContent:'center', padding:32},
   mapText: {fontSize:24, fontWeight:'bold', color:'#1976D2', marginTop:16},
   mapSubtext: {fontSize:14, color:'#1976D2', marginTop:8, textAlign:'center'},
-  openMapsButton: {flexDirection:'row', backgroundColor:'#2196F3', borderRadius:12, paddingVertical:14, paddingHorizontal:24, marginTop:24, alignItems:'center'},
-  openMapsText: {color:'#FFF', fontSize:16, fontWeight:'600', marginLeft:8},
-  infoCard: {backgroundColor:'#FFF', margin:16, borderRadius:12, padding:16},
-  infoRow: {flexDirection:'row', alignItems:'center'},
-  infoLabel: {fontSize:12, color:'#999', marginBottom:4},
-  infoValue: {fontSize:16, fontWeight:'600', color:'#1A1A1A'},
   payButton: {flexDirection:'row', backgroundColor:'#FF6600', margin:16, borderRadius:12, paddingVertical:16, alignItems:'center', justifyContent:'center'},
   payButtonText: {color:'#FFF', fontSize:18, fontWeight:'bold', marginLeft:8},
 });

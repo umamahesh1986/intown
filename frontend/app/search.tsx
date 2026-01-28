@@ -68,9 +68,15 @@ export default function Search() {
 
         {/* HEADER */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()}>
+          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={24} color="#000" />
           </TouchableOpacity>
+          <View>
+            <Text style={styles.headerTitle}>Search your product</Text>
+            <Text style={styles.headerSubtitle}>
+              Search your favirote products and get more savings
+            </Text>
+          </View>
         </View>
 
         {/* SEARCH INPUT */}
@@ -161,12 +167,26 @@ export default function Search() {
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 16,
-    marginTop: 12,
+    paddingTop: 60,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 12,
+  },
+  backButton: {
+    marginRight: 12,
+    marginTop: 6,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1A1A1A',
+  },
+  headerSubtitle: {
+    fontSize: 12,
+    color: '#666666',
+    marginTop: 2,
   },
   searchBox: {
     flexDirection: 'row',

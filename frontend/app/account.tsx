@@ -1,9 +1,10 @@
-import { View, Text, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
-
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { useAuthStore } from '../store/authStore';
 import { Picker } from '@react-native-picker/picker';
@@ -16,6 +17,31 @@ export default function Account() {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(user?.name ?? '');
   const [gender, setGender] = useState((user as any)?.gender ?? '');
+  const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [pendingImage, setPendingImage] = useState<string | null>(null);
+  const [isSavingImage, setIsSavingImage] = useState(false);
+  const [userType, setUserType] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadProfileImage = async () => {
+      try {
+        const [storedImage, storedUserType] = await Promise.all([
+          AsyncStorage.getItem('user_profile_image'),
+          AsyncStorage.getItem('user_type'),
+        ]);
+        if (storedImage) {
+          setProfileImage(storedImage);
+        }
+        if (storedUserType) {
+          setUserType(storedUserType);
+        }
+      } catch (error) {
+        console.error('Error loading profile image:', error);
+      }
+    };
+
+    loadProfileImage();
+  }, []);
 
  
 
@@ -23,6 +49,73 @@ export default function Account() {
   updateProfile({ name, gender });
   setEditing(false);
 };
+
+  const requestCameraPermission = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    return status === 'granted';
+  };
+
+  const requestMediaPermission = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    return status === 'granted';
+  };
+
+  const handleTakePhoto = async () => {
+    const hasPermission = await requestCameraPermission();
+    if (!hasPermission) {
+      Alert.alert('Permission required', 'Camera permission is required to take a photo.');
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+    });
+    if (!result.canceled && result.assets?.length) {
+      setPendingImage(result.assets[0].uri);
+    }
+  };
+
+  const handlePickImage = async () => {
+    const hasPermission = await requestMediaPermission();
+    if (!hasPermission) {
+      Alert.alert('Permission required', 'Gallery permission is required to pick a photo.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+    });
+    if (!result.canceled && result.assets?.length) {
+      setPendingImage(result.assets[0].uri);
+    }
+  };
+
+  const handleUpdateProfileImage = async () => {
+    if (!pendingImage) return;
+    setIsSavingImage(true);
+    try {
+      await AsyncStorage.setItem('user_profile_image', pendingImage);
+      const lowerUserType = (userType ?? '').toLowerCase();
+      if (lowerUserType.includes('merchant')) {
+        await AsyncStorage.setItem('merchant_profile_image', pendingImage);
+      }
+      setProfileImage(pendingImage);
+      setPendingImage(null);
+    } catch (error) {
+      console.error('Error saving profile image:', error);
+    } finally {
+      setIsSavingImage(false);
+    }
+  };
+
+  const getProfileImageSource = (value: string | null) => {
+    if (!value) return undefined;
+    return { uri: value };
+  };
 
 
   return (
@@ -37,6 +130,40 @@ export default function Account() {
         <Text style={styles.title}>My Account</Text>
         <TouchableOpacity onPress={() => setEditing(!editing)}>
           <Text style={styles.editBtn}>{editing ? 'Cancel' : 'Edit'}</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.profileCard}>
+        <View style={styles.profileImageWrapper}>
+          {pendingImage || profileImage ? (
+            <Image
+              source={getProfileImageSource(pendingImage || profileImage) as any}
+              style={styles.profileImage}
+            />
+          ) : (
+            <View style={styles.profilePlaceholder}>
+              <Ionicons name="person" size={40} color="#FF6600" />
+            </View>
+          )}
+        </View>
+        <View style={styles.profileActions}>
+          <TouchableOpacity style={styles.profileButton} onPress={handleTakePhoto}>
+            <Ionicons name="camera" size={16} color="#FF6600" />
+            <Text style={styles.profileButtonText}>Take Photo</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.profileButton} onPress={handlePickImage}>
+            <Ionicons name="image" size={16} color="#FF6600" />
+            <Text style={styles.profileButtonText}>Upload Gallery</Text>
+          </TouchableOpacity>
+        </View>
+        <TouchableOpacity
+          style={[styles.updateButton, !pendingImage && styles.updateButtonDisabled]}
+          onPress={handleUpdateProfileImage}
+          disabled={!pendingImage || isSavingImage}
+        >
+          <Text style={styles.updateButtonText}>
+            {isSavingImage ? 'Updating...' : 'Update Profile Image'}
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -98,6 +225,65 @@ const styles = StyleSheet.create({
   title: { flex: 1, fontSize: 22, fontWeight: '700', marginLeft: 8 },
   editBtn: { color: '#FF6600', fontWeight: '600', fontSize: 16 },
 
+  profileCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    alignItems: 'center',
+  },
+  profileImageWrapper: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: '#FF6600',
+    marginBottom: 12,
+  },
+  profileImage: {
+    width: '100%',
+    height: '100%',
+  },
+  profilePlaceholder: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFF3E0',
+  },
+  profileActions: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 12,
+  },
+  profileButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF3E0',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+  },
+  profileButtonText: {
+    marginLeft: 6,
+    color: '#FF6600',
+    fontWeight: '600',
+    fontSize: 12,
+  },
+  updateButton: {
+    backgroundColor: '#FF6600',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  updateButtonDisabled: {
+    backgroundColor: '#F4B183',
+  },
+  updateButtonText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 12,
+  },
   card: { backgroundColor: '#fff', borderRadius: 12, padding: 16 },
   label: { fontSize: 12, color: '#777', marginTop: 12 },
   value: { fontSize: 16, fontWeight: '600', marginTop: 4 },

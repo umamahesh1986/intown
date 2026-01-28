@@ -20,11 +20,12 @@ import {
   FALLBACK_CATEGORY_IMAGE,
 } from '../utils/categoryImageList';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import { useFocusEffect } from '@react-navigation/native';
 import { useAuthStore } from '../store/authStore';
 import { useLocationStore } from '../store/locationStore';
 import {
@@ -43,6 +44,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Footer from '../components/Footer'
 import { CATEGORY_ICON_MAP } from '../utils/categoryIconMap';
 import { FontStylesWithFallback } from '../utils/fonts';
+import { formatDistance } from '../utils/formatDistance';
 
 
 
@@ -193,9 +195,11 @@ export default function MemberDashboard() {
   });
   const [isTransactionsLoading, setIsTransactionsLoading] = useState(false);
   const [customerId, setCustomerId] = useState<string | null>(null);
+  const [customerName, setCustomerName] = useState<string | null>(null);
   // Nearby shops (REAL API)
   const [nearbyShops, setNearbyShops] = useState<any[]>([]);
   const [isNearbyLoading, setIsNearbyLoading] = useState(false);
+  const [profileImage, setProfileImage] = useState<string | null>(null);
 
 
   const [showDropdown, setShowDropdown] = useState(false);
@@ -220,8 +224,6 @@ export default function MemberDashboard() {
   const [uploading, setUploading] = useState(false);
 
 
-  const scrollX = useRef(new Animated.Value(0)).current;
-  const categoryScrollX = useRef(new Animated.Value(0)).current;
   const placeholderAnim = useRef(new Animated.Value(0)).current;
   const contentScrollRef = useRef<ScrollView | null>(null);
   const CARD_WIDTH = 172;
@@ -235,6 +237,8 @@ export default function MemberDashboard() {
   // ===== MEMBER CAROUSEL STATE =====
   const [carouselIndex, setCarouselIndex] = useState(0);
   const carouselRef = useRef<ScrollView | null>(null);
+  const categoriesScrollRef = useRef<ScrollView | null>(null);
+  const nearbyScrollRef = useRef<ScrollView | null>(null);
   // ================================
 
 
@@ -275,32 +279,8 @@ export default function MemberDashboard() {
     }
   }, [location?.latitude, location?.longitude]);
 
-  useEffect(() => {
-    if (nearbyShops.length > 0) {
-      startAutoScroll(nearbyShops.length);
-    }
-  }, [nearbyShops.length]);
-
-
-
-  useEffect(() => {
-    if (categories.length === 0) return;
-
-    const totalWidth =
-      categories.length * (CATEGORY_CARD_WIDTH + CATEGORY_CARD_GAP);
-
-    categoryScrollX.setValue(0);
-    const animation = Animated.loop(
-      Animated.timing(categoryScrollX, {
-        toValue: -totalWidth,
-        duration: totalWidth * 30,
-        useNativeDriver: true,
-      })
-    );
-
-    animation.start();
-    return () => animation.stop();
-  }, [categories, CATEGORY_CARD_GAP, CATEGORY_CARD_WIDTH, categoryScrollX]);
+  const stopCategoriesAutoScroll = () => {};
+  const stopNearbyAutoScroll = () => {};
 
   const placeholderItems = [
     'Grocery', 
@@ -346,8 +326,16 @@ export default function MemberDashboard() {
   }, [placeholderAnim, placeholderItems.length]);
 
   useEffect(() => {
-    const loadCustomerId = async () => {
+    const loadCustomerMeta = async () => {
       try {
+        const storedName = await AsyncStorage.getItem('customer_contact_name');
+        if (storedName) {
+          setCustomerName(storedName);
+        }
+        const storedProfileImage = await AsyncStorage.getItem('user_profile_image');
+        if (storedProfileImage) {
+          setProfileImage(storedProfileImage);
+        }
         if (params.customerId) {
           setCustomerId(params.customerId);
           await AsyncStorage.setItem('customer_id', params.customerId);
@@ -362,8 +350,28 @@ export default function MemberDashboard() {
       }
     };
 
-    loadCustomerId();
+    loadCustomerMeta();
   }, [params.customerId]);
+
+  useFocusEffect(
+    useCallback(() => {
+      let isActive = true;
+      const refreshProfileImage = async () => {
+        try {
+          const storedProfileImage = await AsyncStorage.getItem('user_profile_image');
+          if (storedProfileImage && isActive) {
+            setProfileImage(storedProfileImage);
+          }
+        } catch (error) {
+          console.error('Error refreshing profile image:', error);
+        }
+      };
+      refreshProfileImage();
+      return () => {
+        isActive = false;
+      };
+    }, [])
+  );
 
   useEffect(() => {
     const effectiveCustomerId = customerId ?? user?.id;
@@ -469,6 +477,19 @@ export default function MemberDashboard() {
     return 'Set Location';
   };
 
+  const getProfileImageSource = (value: string | null) => {
+    if (!value) return undefined;
+    if (
+      value.startsWith('http') ||
+      value.startsWith('file:') ||
+      value.startsWith('content:') ||
+      value.startsWith('data:')
+    ) {
+      return { uri: value };
+    }
+    return { uri: `data:image/jpeg;base64,${value}` };
+  };
+
   const loadUserType = async () => {
     try {
       if (params.userType) {
@@ -543,20 +564,7 @@ const handleCategoryClick = (category: Category) => {
 
 
 
-  const startAutoScroll = (count: number) => {
-    if (count <= 1) return;
-
-    const totalWidth = count * CARD_WIDTH;
-    scrollX.setValue(0);
-
-    Animated.loop(
-      Animated.timing(scrollX, {
-        toValue: -totalWidth,
-        duration: totalWidth * 50,
-        useNativeDriver: true,
-      })
-    ).start();
-  };
+ 
 
 
   const todaySavedAmount = periodTotals.today?.totalSavedAmount ?? 0;
@@ -704,6 +712,9 @@ const handleCategoryClick = (category: Category) => {
             >
               <Ionicons name="location" size={16} color="#FF6600" />
               <View style={styles.locationTextContainer}>
+              <Text style={styles.welcomeText}>
+                Welcome {customerName || user?.name || 'Member'}
+              </Text>
                 <Text style={styles.locationText} numberOfLines={1}>
                   {getLocationDisplayText()}
                 </Text>
@@ -717,17 +728,24 @@ const handleCategoryClick = (category: Category) => {
               style={styles.profileButton}
             >
               <View style={styles.profileInfo}>
-                <Text style={styles.userName}>{user?.name ?? 'Member'}</Text>
+                <Text style={styles.userName}>{customerName || user?.name || 'Member'}</Text>
                 <Text style={styles.userPhone}>
                   {(user as any)?.phone ?? (user as any)?.email ?? ''}
                 </Text>
               </View>
-              <Ionicons
-                name="person"
-                size={20}
-                color="#ff6600"
-                style={styles.profileIconButton}
-              />
+              {profileImage ? (
+                <Image
+                  source={getProfileImageSource(profileImage) as any}
+                  style={styles.profileImage}
+                />
+              ) : (
+                <Ionicons
+                  name="person"
+                  size={20}
+                  color="#ff6600"
+                  style={styles.profileIconButton}
+                />
+              )}
             </TouchableOpacity>
           </View>
 
@@ -861,34 +879,34 @@ const handleCategoryClick = (category: Category) => {
           {/* CATEGORIES */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Popular Categories</Text>
-            <View style={styles.categoriesAutoScrollContainer}>
-              <Animated.View
-                style={[
-                  styles.categoriesAutoScrollContent,
-                  { transform: [{ translateX: categoryScrollX }] },
-                ]}
-              >
-                {[...categories, ...categories].map((category, index) => (
-                 <TouchableOpacity
-  key={`${category.id}-${index}`}
-  style={styles.categoryCard}
-  onPress={() => handleCategoryClick(category)}
-  activeOpacity={0.8}
->
-
-                    <View style={styles.categoryImageContainer}>
-                      <Image
-                        source={getCategoryImageByIndex(index % categories.length)}
-                        style={styles.categoryImage}
-                        resizeMode="cover"
-                      />
-                      <View style={styles.categoryGradient} />
-                      <Text style={styles.categoryName}>{category.name}</Text>
-                    </View>
-                  </TouchableOpacity>
-                ))}
-              </Animated.View>
-            </View>
+            <ScrollView
+              ref={categoriesScrollRef}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              snapToInterval={CATEGORY_CARD_WIDTH + CATEGORY_CARD_GAP}
+              decelerationRate="fast"
+              contentContainerStyle={styles.categoriesCarouselContent}
+              onScrollBeginDrag={stopCategoriesAutoScroll}
+            >
+              {categories.map((category, index) => (
+                <TouchableOpacity
+                  key={category.id}
+                  style={styles.categoryCard}
+                  onPress={() => handleCategoryClick(category)}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.categoryImageContainer}>
+                    <Image
+                      source={getCategoryImageByIndex(index)}
+                      style={styles.categoryImage}
+                      resizeMode="cover"
+                    />
+                    <View style={styles.categoryGradient} />
+                    <Text style={styles.categoryName}>{category.name}</Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
           </View>
 
           {/* SUMMARY SECTION */}
@@ -981,57 +999,58 @@ const handleCategoryClick = (category: Category) => {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Nearby Shops</Text>
 
-            <View style={styles.autoScrollContainer}>
-              <Animated.View
-                style={[
-                  styles.autoScrollContent,
-                  { transform: [{ translateX: scrollX }] },
-                ]}
-              >
-                {[...nearbyShops, ...nearbyShops].map((shop, index) => (
+            <ScrollView
+              ref={nearbyScrollRef}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              snapToInterval={CARD_WIDTH}
+              decelerationRate="fast"
+              contentContainerStyle={styles.nearbyCarouselContent}
+              onScrollBeginDrag={stopNearbyAutoScroll}
+            >
+              {nearbyShops.map((shop, index) => (
+                <TouchableOpacity
+                  key={`${shop.id}-${index}`}
+                  style={styles.shopCard}
+                  onPress={() =>
+                    router.push({
+                      pathname: '/member-shop-details',
+                      params: { shopId: shop.id, shop: JSON.stringify(shop) },
+                    })
+                  }
+                >
+                  <View style={styles.shopImagePlaceholder}>
+                    <Ionicons name="storefront" size={40} color="#FF6600" />
+                  </View>
 
-                  <TouchableOpacity
-                    key={`${shop.id}-${index}`}
-                    style={styles.shopCard}
-                    onPress={() =>
-                      router.push({
-                        pathname: '/member-shop-details',
-                        params: { shopId: shop.id, shop: JSON.stringify(shop) },
-                      })
-                    }
-                  >
-                    <View style={styles.shopImagePlaceholder}>
-                      <Ionicons name="storefront" size={40} color="#FF6600" />
+                  <Text style={styles.shopCardName} numberOfLines={1}>
+                    {shop.shopName || shop.merchantName || 'Shop'}
+                  </Text>
+
+                  <Text style={styles.shopCardCategory}>
+                    {shop.businessCategory || 'General'}
+                  </Text>
+
+                  <View style={styles.shopCardFooter}>
+                    <View style={styles.ratingContainer}>
+                      <Ionicons name="star" size={14} color="#FFA500" />
+                      <Text style={styles.ratingText}>
+                        {shop.rating ?? '4.0'}
+                      </Text>
                     </View>
 
-                    <Text style={styles.shopCardName} numberOfLines={1}>
-                      {shop.shopName || shop.merchantName || 'Shop'}
-                    </Text>
-
-                    <Text style={styles.shopCardCategory}>
-                      {shop.businessCategory || 'General'}
-                    </Text>
-
-                    <View style={styles.shopCardFooter}>
-                      <View style={styles.ratingContainer}>
-                        <Ionicons name="star" size={14} color="#FFA500" />
-                        <Text style={styles.ratingText}>
-                          {shop.rating ?? '4.0'}
-                        </Text>
-                      </View>
-
-                      <View style={styles.distanceContainer}>
-                        <Ionicons name="location" size={14} color="#FF6600" />
-                        <Text style={styles.distanceText}>
-                          {shop.distance ? `${shop.distance.toFixed(2)} km` : 'Nearby'}
-                        </Text>
-                      </View>
+                    <View style={styles.distanceContainer}>
+                      <Ionicons name="location" size={14} color="#FF6600" />
+                      <Text style={styles.distanceText}>
+                        {formatDistance(
+                          typeof shop.distance === 'number' ? shop.distance : null
+                        )}
+                      </Text>
                     </View>
-
-                  </TouchableOpacity>
-                ))}
-              </Animated.View>
-            </View>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
           </View>
 
           {/* FOOTER */}
@@ -1319,6 +1338,11 @@ const styles = StyleSheet.create({
     color: '#FF6600',
     flex: 1,
   },
+  welcomeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#1A1A1A',
+  },
   profileButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1333,13 +1357,21 @@ const styles = StyleSheet.create({
     width: 34,
     textAlign: 'center',
   },
+  profileImage: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    borderWidth: 2,
+    borderColor: '#ff6600',
+    marginLeft: 10,
+  },
   profileInfo: { alignItems: 'flex-end', marginRight: 8 },
   userName: { fontSize: 14, fontWeight: '600', color: '#1A1A1A' },
   userPhone: { fontSize: 10, color: '#666666', marginTop: 2 },
 
   membershipBanner: {
     marginHorizontal: 16,
-    marginTop: 8,
+    marginVertical: 8,
     backgroundColor: '#FFF3E0',
     borderRadius: 10,
     padding: 10,
@@ -1425,6 +1457,9 @@ const styles = StyleSheet.create({
   },
   categoriesAutoScrollContent: {
     flexDirection: 'row',
+  },
+  categoriesCarouselContent: {
+    paddingRight: 12,
   },
   categoryCard: {
     width: 100,
@@ -1612,6 +1647,9 @@ const styles = StyleSheet.create({
 
   autoScrollContainer: { overflow: 'hidden' },
   autoScrollContent: { flexDirection: 'row' },
+  nearbyCarouselContent: {
+    paddingRight: 12,
+  },
 
   shopCard: {
     width: 150,
@@ -1845,7 +1883,8 @@ const styles = StyleSheet.create({
 
   carouselImage: {
     width: SLIDE_WIDTH - 32,
-    height: 160,
+    maxHeight: 'fit-content' as any,
+    minHeight: 140,
     borderRadius: 12,
     backgroundColor: '#eee',
   },

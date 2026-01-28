@@ -217,16 +217,16 @@ export default function Footer() {
       {/* --- Social Media Links --- */}
       <View style={styles.socialContainer}>
         <TouchableOpacity style={styles.socialButton} onPress={() => openExternalURL(SOCIAL_LINKS.instagram)}>
-          <Ionicons name="logo-instagram" size={iconSize} color="#FFFFFF" />
+          <Ionicons name="logo-instagram" size={iconSize} color="#FF6600" />
         </TouchableOpacity>
         <TouchableOpacity style={styles.socialButton} onPress={() => openExternalURL(SOCIAL_LINKS.facebook)}>
-          <Ionicons name="logo-facebook" size={iconSize} color="#FFFFFF" />
+          <Ionicons name="logo-facebook" size={iconSize} color="#FF6600" />
         </TouchableOpacity>
         <TouchableOpacity style={styles.socialButton} onPress={() => openExternalURL(SOCIAL_LINKS.linkedin)}>
-          <Ionicons name="logo-linkedin" size={iconSize} color="#FFFFFF" />
+          <Ionicons name="logo-linkedin" size={iconSize} color="#FF6600" />
         </TouchableOpacity>
         <TouchableOpacity style={styles.socialButton} onPress={() => openExternalURL(SOCIAL_LINKS.youtube)}>
-          <Ionicons name="logo-youtube" size={iconSize} color="#FFFFFF" />
+          <Ionicons name="logo-youtube" size={iconSize} color="#FF6600" />
         </TouchableOpacity>
       </View>
 

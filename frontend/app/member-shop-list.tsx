@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { searchByProductNames } from '../utils/api';
 import { useLocationStore } from '../store/locationStore';
+import { formatDistance } from '../utils/formatDistance';
 
 const DUMMY_SHOPS = [
   { id: '1', name: 'Fresh Mart Grocery', category: 'Grocery', distance: 0.5, rating: 4.5, image: null },
@@ -168,7 +169,7 @@ export default function MemberShopList() {
                 <View style={styles.distanceRow}>
                   <Ionicons name="location" size={14} color="#ff6600" />
                   <Text style={styles.distanceText}>
-                    {item.distance.toFixed(1)} km
+                    {formatDistance(item.distance)}
                   </Text>
                 </View>
               </View>

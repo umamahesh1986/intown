@@ -9,6 +9,7 @@ import {
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { formatDistance } from '../utils/formatDistance';
 import { useLocationStore } from '../store/locationStore';
 
 interface Shop {
@@ -81,7 +82,9 @@ export default function ShopDetailsScreen() {
               <Ionicons name="location" size={20} color="#666666" />
               <View style={styles.detailContent}>
                 <Text style={styles.detailLabel}>Distance</Text>
-                <Text style={styles.detailValue}>{shop.distance.toFixed(1)} km away</Text>
+                <Text style={styles.detailValue}>
+                  {formatDistance(shop.distance)} away
+                </Text>
               </View>
             </View>
 

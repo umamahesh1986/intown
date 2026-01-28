@@ -13,7 +13,7 @@ import {
   ActivityIndicator,
   Platform,
 } from 'react-native';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -27,7 +27,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { FontStylesWithFallback } from '../utils/fonts';
 import Footer from '../components/Footer'
-import { useRef } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 
 const { width } = Dimensions.get('window');
 
@@ -80,6 +80,7 @@ export default function MerchantDashboard() {
   const [userType, setUserType] = useState<string>('Merchant');
   const [merchantId, setMerchantId] = useState<string | null>(null);
   const [shopName, setShopName] = useState<string | null>(null);
+  const [merchantContactName, setMerchantContactName] = useState<string | null>(null);
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [sales, setSales] = useState<ApiSale[]>([]);
   const [showAllPayments, setShowAllPayments] = useState(false);
@@ -144,6 +145,28 @@ const carouselRef = useRef<ScrollView | null>(null);
   return () => clearInterval(timer);
   // =====================================
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      let isActive = true;
+      const refreshProfileImage = async () => {
+        try {
+          const storedProfileImage =
+            (await AsyncStorage.getItem('merchant_profile_image')) ??
+            (await AsyncStorage.getItem('user_profile_image'));
+          if (storedProfileImage && isActive) {
+            setProfileImage(storedProfileImage);
+          }
+        } catch (error) {
+          console.error('Error refreshing profile image:', error);
+        }
+      };
+      refreshProfileImage();
+      return () => {
+        isActive = false;
+      };
+    }, [])
+  );
 
   // Request location permission on mount
   const requestLocationOnMount = async () => {
@@ -244,7 +267,13 @@ const carouselRef = useRef<ScrollView | null>(null);
         if (storedShopName && isMounted) {
           setShopName(storedShopName);
         }
-        const storedProfileImage = await AsyncStorage.getItem('merchant_profile_image');
+        const storedContactName = await AsyncStorage.getItem('merchant_contact_name');
+        if (storedContactName && isMounted) {
+          setMerchantContactName(storedContactName);
+        }
+        const storedProfileImage =
+          (await AsyncStorage.getItem('merchant_profile_image')) ??
+          (await AsyncStorage.getItem('user_profile_image'));
         if (storedProfileImage && isMounted) {
           setProfileImage(storedProfileImage);
         }
@@ -348,6 +377,9 @@ const carouselRef = useRef<ScrollView | null>(null);
           >
             <Ionicons name="location" size={16} color="#FF6600" />
             <View style={styles.locationTextContainer}>
+              <Text style={styles.welcomeText}>
+                Welcome {shopName || merchantContactName || user?.name || 'My Shop'}
+              </Text>
               <Text style={styles.locationText} numberOfLines={1}>
                 {getLocationDisplayText()}
               </Text>
@@ -748,6 +780,11 @@ const styles = StyleSheet.create({
     color: '#FF6600',
     flex: 1,
   },
+  welcomeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#1A1A1A',
+  },
   profileButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -959,7 +996,8 @@ carouselWrapper: {
 
 carouselSlide: {
   width: SLIDE_WIDTH,
-  height: 160,
+  maxHeight: 'fit-content' as any,
+  minHeight: 140,
   paddingHorizontal: 16,
 },
 

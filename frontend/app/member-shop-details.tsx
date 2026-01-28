@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { formatDistance } from '../utils/formatDistance';
 import PaymentModal from '../components/PaymentModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -188,34 +189,36 @@ export default function MemberShopDetails() {
 
               <View style={styles.infoCard}>
                 <View style={styles.infoRow}>
-                  <Ionicons name="pricetag" size={20} color="#666" />
+                  <Ionicons name="pricetag" size={20} color="#FF6600" />
                   <Text style={styles.infoLabel}>Category:</Text>
                   <Text style={styles.infoValue}>{shop.category || 'General'}</Text>
                 </View>
                 <View style={styles.infoRow}>
-                  <Ionicons name="location" size={20} color="#666" />
+                  <Ionicons name="location" size={20} color="#FF6600" />
                   <Text style={styles.infoLabel}>Distance:</Text>
                   <Text style={styles.infoValue}>
-                    {shop.distance != null ? `${Number(shop.distance).toFixed(1)} km` : 'Nearby'}
+                    {formatDistance(
+                      shop.distance != null ? Number(shop.distance) : null
+                    )}
                   </Text>
                 </View>
                 <View style={styles.infoRow}>
-                  <Ionicons name="star" size={20} color="#FFA500" />
+                  <Ionicons name="star" size={20} color="#FF6600" />
                   <Text style={styles.infoLabel}>Rating:</Text>
                   <Text style={styles.infoValue}>{ratingValue.toFixed(1)} / 5</Text>
                 </View>
                 <View style={styles.infoRow}>
-                  <Ionicons name="call" size={20} color="#666" />
+                  <Ionicons name="call" size={20} color="#FF6600" />
                   <Text style={styles.infoLabel}>Phone:</Text>
                   <Text style={styles.infoValue}>{phoneText}</Text>
                 </View>
                 <View style={styles.infoRow}>
-                  <Ionicons name="pin" size={20} color="#666" />
+                  <Ionicons name="pin" size={20} color="#FF6600" />
                   <Text style={styles.infoLabel}>Address:</Text>
                   <Text style={styles.infoValue}>{addressText}</Text>
                 </View>
                 <View style={styles.infoRow}>
-                  <Ionicons name="gift" size={20} color="#666" />
+                  <Ionicons name="gift" size={20} color="#FF6600" />
                   <Text style={styles.infoLabel}>Offers:</Text>
                   <Text style={styles.infoValue}>{offerText}</Text>
                 </View>
@@ -259,34 +262,36 @@ export default function MemberShopDetails() {
 
               <View style={styles.infoCard}>
                 <View style={styles.infoRow}>
-                  <Ionicons name="pricetag" size={20} color="#666" />
+                  <Ionicons name="pricetag" size={20} color="#FF6600" />
                   <Text style={styles.infoLabel}>Category:</Text>
                   <Text style={styles.infoValue}>{shop.category || 'General'}</Text>
                 </View>
                 <View style={styles.infoRow}>
-                  <Ionicons name="location" size={20} color="#666" />
+                  <Ionicons name="location" size={20} color="#FF6600" />
                   <Text style={styles.infoLabel}>Distance:</Text>
                   <Text style={styles.infoValue}>
-                    {shop.distance != null ? `${Number(shop.distance).toFixed(1)} km` : 'Nearby'}
+                    {formatDistance(
+                      shop.distance != null ? Number(shop.distance) : null
+                    )}
                   </Text>
                 </View>
                 <View style={styles.infoRow}>
-                  <Ionicons name="star" size={20} color="#FFA500" />
+                  <Ionicons name="star" size={20} color="#FF6600" />
                   <Text style={styles.infoLabel}>Rating:</Text>
                   <Text style={styles.infoValue}>{ratingValue.toFixed(1)} / 5</Text>
                 </View>
                 <View style={styles.infoRow}>
-                  <Ionicons name="call" size={20} color="#666" />
+                  <Ionicons name="call" size={20} color="#FF6600" />
                   <Text style={styles.infoLabel}>Phone:</Text>
                   <Text style={styles.infoValue}>{phoneText}</Text>
                 </View>
                 <View style={styles.infoRow}>
-                  <Ionicons name="pin" size={20} color="#666" />
+                  <Ionicons name="pin" size={20} color="#FF6600" />
                   <Text style={styles.infoLabel}>Address:</Text>
                   <Text style={styles.infoValue}>{addressText}</Text>
                 </View>
                 <View style={styles.infoRow}>
-                  <Ionicons name="gift" size={20} color="#666" />
+                  <Ionicons name="gift" size={20} color="#FF6600" />
                   <Text style={styles.infoLabel}>Offers:</Text>
                   <Text style={styles.infoValue}>{offerText}</Text>
                 </View>
@@ -295,7 +300,7 @@ export default function MemberShopDetails() {
               <View style={styles.savingsCard}>
                 <Ionicons name="gift" size={32} color="#4CAF50" />
                 <Text style={styles.savingsTitle}>Special Offer</Text>
-                <Text style={styles.savingsText}>Get 10% instant savings on all purchases!</Text>
+                <Text style={styles.savingsText}>Get INtown assured instant savings on all purchases!</Text>
               </View>
             </View>
           </>

@@ -672,6 +672,9 @@ const productNames = allProducts
         if (merchantId) {
           await AsyncStorage.setItem('merchant_id', String(merchantId));
         }
+        if (contactName) {
+          await AsyncStorage.setItem('merchant_contact_name', contactName);
+        }
         if (shopName) {
           await AsyncStorage.setItem('merchant_shop_name', shopName);
         }
