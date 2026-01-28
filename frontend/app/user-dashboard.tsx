@@ -753,9 +753,11 @@ const loadNearbyShops = async () => {
                 <Text style={styles.calculatorLabel}>Estimated Annual Savings</Text>
                 <Text style={styles.calculatorValueLarge}>₹{annualSavings.toFixed(0)}</Text>
               </View>
-              <Text style={styles.calculatorHint}>
-                You can save 8%-20% monthly on your monthly spend.
-              </Text>
+              <View style={styles.calculatorHintContainer}>
+                <Text style={styles.calculatorHint}>
+                  You can save 8%-20% monthly on your daily spend.
+                </Text>
+              </View>
             </View>
           </View>
 
@@ -1691,21 +1693,32 @@ const styles = StyleSheet.create({
   calculatorValue: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#2E7D32',
+    color: '#000',
   },
   calculatorValueLarge: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#1B5E20',
+    color: '#000',
   },
   calculatorHint: {
     fontSize: 12,
-    color: '#000',
+    color: '#fff',
     fontWeight: '400',
-    marginTop: 4,
+    width: '100%',
+    textAlign: 'center',
+  },
+  calculatorHintContainer: {
+    alignSelf: 'stretch',
+    backgroundColor: '#008080',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    marginTop: 12,
+    marginHorizontal: -16,
+    marginBottom: -16,
     borderTopWidth: 1,
-    borderTopColor: '#E6E6E6',
-    paddingTop: 8,
+    borderTopColor: '#008080',
+    borderBottomLeftRadius: 12,
+    borderBottomRightRadius: 12,
   },
   planCard: {
     backgroundColor: '#FFFFFF',
