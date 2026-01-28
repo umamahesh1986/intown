@@ -50,7 +50,6 @@ export default function RegisterMerchant() {
 
   /* ================= ORIGINAL STATES (UNCHANGED) ================= */
 
-  const [businessName, setBusinessName] = useState('');
   const [contactName, setContactName] = useState('');
   const [shopName, setShopName] = useState('');
 
@@ -387,7 +386,6 @@ const resetOtherProducts = () => {
     const saveDraft = async () => {
       try {
         const draft = {
-          businessName,
           contactName,
           shopName,
           businessCategory,
@@ -418,7 +416,6 @@ const resetOtherProducts = () => {
         if (!stored) return;
         const draft = JSON.parse(stored);
         if (!draft) return;
-        setBusinessName(draft.businessName ?? '');
         setContactName(draft.contactName ?? '');
         setShopName(draft.shopName ?? '');
         setBusinessCategory(draft.businessCategory ?? '');
@@ -555,7 +552,6 @@ const resetOtherProducts = () => {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
       // BUSINESS
-      if (!businessName) newErrors.businessName = 'Required';
       if (!contactName) newErrors.contactName = 'Required';
       if (!businessCategory) newErrors.businessCategory = 'Required';
       // YEARS IN BUSINESS
@@ -628,7 +624,6 @@ const productNames = allProducts
 
 
       const payload = {
-        businessName,
         contactName,
         shopName,
         businessCategory,
@@ -778,12 +773,7 @@ const displayedCategories = showAllCategories
 
           <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
 
-            {/* BUSINESS NAME */}
-            <View style={styles.formGroup}>
-              <Text style={styles.label}>Business Name *</Text>
-              <TextInput style={styles.input} value={businessName} onChangeText={setBusinessName} />
-            </View>
-{/* SHOP NAME */}
+            {/* SHOP NAME */}
             <View style={styles.formGroup}>
   <Text style={styles.label}>Shop Name *</Text>
   <TextInput

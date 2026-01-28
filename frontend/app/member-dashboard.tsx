@@ -220,7 +220,6 @@ export default function MemberDashboard() {
   const [isSearchingLocation, setIsSearchingLocation] = useState(false);
 
   // photo state and uploading indicator
-  const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
 
 
@@ -246,17 +245,6 @@ export default function MemberDashboard() {
     loadCategories();
     loadUserType();
     requestLocationOnMount();
-    // load cached local photo if exists
-    (async () => {
-      try {
-        const saved = await AsyncStorage.getItem('member_photo_uri');
-        if (saved) setPhotoUri(saved);
-      } catch (e) {
-        // ignore
-      }
-
-    })();
-
     // ===== MEMBER CAROUSEL AUTO SLIDE =====
     const timer = setInterval(() => {
       setCarouselIndex(prev => {
@@ -574,7 +562,12 @@ const handleCategoryClick = (category: Category) => {
   const handleLogout = async () => {
     setShowDropdown(false);
     try {
-      await AsyncStorage.clear();
+      const keys = await AsyncStorage.getAllKeys();
+      const preserve = new Set(['user_profile_image', 'merchant_profile_image']);
+      const keysToRemove = keys.filter((key) => !preserve.has(key));
+      if (keysToRemove.length > 0) {
+        await AsyncStorage.multiRemove(keysToRemove);
+      }
       await logout();
       await new Promise(resolve => setTimeout(resolve, 100));
       router.replace('/');
@@ -637,59 +630,74 @@ const handleCategoryClick = (category: Category) => {
         quality: 0.7,
         allowsEditing: true,
         aspect: [1, 1],
+        base64: true,
       });
 
       // handle new expo result shape (assets)
-      const pickedUri =
-        (result as any).assets?.[0]?.uri ??
-        (result as any).uri ??
-        null;
+      const asset = (result as any).assets?.[0];
+      const pickedUri = asset?.uri ?? (result as any).uri ?? null;
+      const pickedBase64 = asset?.base64 ?? null;
 
       // ✅ use .canceled (new API), not .cancelled
       if (!result.canceled && pickedUri) {
-        setPhotoUri(pickedUri);
-        await AsyncStorage.setItem('member_photo_uri', pickedUri); // cache locally
-        uploadPhotoToServer(pickedUri);
+        await uploadPhotoToServer(pickedUri, pickedBase64);
       }
     } catch (err) {
       console.error('Image pick error', err);
     }
   };
 
-  const uploadPhotoToServer = async (uri: string) => {
+  const uploadPhotoToServer = async (uri: string, base64?: string | null) => {
     setUploading(true);
     try {
-      const form = new FormData();
-      const filename = uri.split('/').pop() ?? 'photo.jpg';
+      const inTownId =
+        (await AsyncStorage.getItem('customer_id')) ??
+        (user?.id ?? null);
+      if (!inTownId) {
+        throw new Error('Missing customer id for image upload.');
+      }
 
-      const match = /\.(\w+)$/.exec(filename);
-      const type = match ? `image/${match[1]}` : 'image/jpeg';
+      const uploadUrl = `https://devapi.intownlocal.com/IN/s3/upload?userType=IN_CUSTOMER&inTownId=${inTownId}`;
+      const fileName = `customer_${inTownId}_${Date.now()}.jpg`;
+      const urlValue = base64 ? `data:image/jpeg;base64,${base64}` : uri;
 
-      // @ts-ignore — FormData file object
-      form.append('photo', {
-        uri,
-        name: filename,
-        type,
-      });
+      const payload = [
+        {
+          fileName,
+          url: urlValue,
+          status: '',
+          message: '',
+        },
+      ];
 
-      // Replace with your real API if needed
-      const uploadUrl = 'https://your-api.example.com/members/upload-photo';
-
-      /*
       const res = await fetch(uploadUrl, {
         method: 'POST',
         headers: {
           Accept: 'application/json',
+          'Content-Type': 'application/json',
         },
-        body: form,
+        body: JSON.stringify(payload),
       });
-      const json = await res.json();
-      console.log('Upload result', json);
-      */
+      const raw = await res.text();
+      let parsed: any = raw;
+      try {
+        parsed = raw ? JSON.parse(raw) : raw;
+      } catch {
+        // keep raw string if not JSON
+      }
+      if (!res.ok) {
+        throw new Error(typeof parsed === 'string' ? parsed : JSON.stringify(parsed));
+      }
+      const uploadedUrl = Array.isArray(parsed) ? parsed[0]?.url : parsed?.url;
+      if (!uploadedUrl) {
+        throw new Error('Upload succeeded but no image URL was returned.');
+      }
 
-      await new Promise(r => setTimeout(r, 800));
+      await AsyncStorage.setItem('user_profile_image', uploadedUrl);
+      setProfileImage(uploadedUrl);
     } catch (err) {
       console.error('Upload error', err);
+      Alert.alert('Upload failed', 'Unable to update profile image. Please try again.');
     } finally {
       setUploading(false);
     }
@@ -728,7 +736,7 @@ const handleCategoryClick = (category: Category) => {
               style={styles.profileButton}
             >
               <View style={styles.profileInfo}>
-                <Text style={styles.userName}>{customerName || user?.name || 'Member'}</Text>
+                <Text style={styles.userName}>{'Customer'}</Text>
                 <Text style={styles.userPhone}>
                   {(user as any)?.phone ?? (user as any)?.email ?? ''}
                 </Text>
@@ -1147,8 +1155,11 @@ const handleCategoryClick = (category: Category) => {
           >
 
             <View style={styles.userPanelHeader}>
-              {photoUri ? (
-                <Image source={{ uri: photoUri }} style={styles.panelAvatar} />
+              {profileImage ? (
+                <Image
+                  source={getProfileImageSource(profileImage) as any}
+                  style={styles.panelAvatar}
+                />
               ) : (
                 <View style={styles.panelAvatarPlaceholder}>
                   <Ionicons name="person" size={22} color="#fff" />

@@ -213,17 +213,22 @@ export default function PaymentModal({
 
               <View style={styles.amountSection}>
                 <Text style={styles.label}>Total Amount</Text>
-                <TextInput
-                  style={styles.amountInput}
-                  value={amount}
-                  onChangeText={setAmount}
-                  placeholder="Enter amount"
-                  keyboardType="numeric"
-                  placeholderTextColor="#999"
-                />
+                <View style={styles.amountInputWrapper}>
+                  <Text style={styles.amountPrefix}>₹</Text>
+                  <TextInput
+                    style={styles.amountInput}
+                    value={amount}
+                    onChangeText={setAmount}
+                    placeholder="Enter amount"
+                    keyboardType="numeric"
+                    placeholderTextColor="#999"
+                  />
+                </View>
               </View>
               <View style={styles.amountSection}>
-                  <Text style={styles.label}>Instant Savings</Text>
+                <Text style={styles.label}>Instant Savings</Text>
+                <View style={styles.amountInputWrapper}>
+                  <Text style={styles.amountPrefix}>₹</Text>
                   <TextInput
                     style={styles.amountInput}
                     value={instantSavingsInput}
@@ -233,6 +238,7 @@ export default function PaymentModal({
                     placeholderTextColor="#999"
                   />
                 </View>
+              </View>
 
               <View style={styles.savingsSection}>
                 <View style={styles.savingsRow}>
@@ -293,7 +299,22 @@ const styles = StyleSheet.create({
   modalTitle: { fontSize: 20, fontWeight: 'bold', color: '#1A1A1A' },
   amountSection: { marginBottom: 24 },
   label: { fontSize: 14, fontWeight: '600', color: '#666', marginBottom: 8 },
-  amountInput: { backgroundColor: '#F5F5F5', borderRadius: 8, paddingHorizontal: 16, paddingVertical: 14, fontSize: 24, fontWeight: 'bold', color: '#1A1A1A', textAlign: 'center' },
+  amountInputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F5F5F5',
+    borderRadius: 8,
+    paddingHorizontal: 16,
+  },
+  amountPrefix: { fontSize: 22, fontWeight: 'bold', color: '#1A1A1A', marginRight: 6 },
+  amountInput: {
+    flex: 1,
+    paddingVertical: 14,
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#1A1A1A',
+    textAlign: 'left',
+  },
   savingsSection: { backgroundColor: '#E8F5E9', borderRadius: 12, padding: 16, marginBottom: 24 },
   savingsRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginVertical: 8 },
   savingsLabel: { fontSize: 14, color: '#2E7D32' },

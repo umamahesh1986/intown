@@ -351,8 +351,12 @@ const carouselRef = useRef<ScrollView | null>(null);
 
  const handleLogout = async () => {
   try {
-    // 1️⃣ Clear local storage
-    await AsyncStorage.clear();
+    const keys = await AsyncStorage.getAllKeys();
+    const preserve = new Set(['user_profile_image', 'merchant_profile_image']);
+    const keysToRemove = keys.filter((key) => !preserve.has(key));
+    if (keysToRemove.length > 0) {
+      await AsyncStorage.multiRemove(keysToRemove);
+    }
 
     // 2️⃣ Clear auth store
     logout();

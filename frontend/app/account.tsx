@@ -18,7 +18,8 @@ export default function Account() {
   const [name, setName] = useState(user?.name ?? '');
   const [gender, setGender] = useState((user as any)?.gender ?? '');
   const [profileImage, setProfileImage] = useState<string | null>(null);
-  const [pendingImage, setPendingImage] = useState<string | null>(null);
+  const [pendingImageUri, setPendingImageUri] = useState<string | null>(null);
+  const [pendingImageBase64, setPendingImageBase64] = useState<string | null>(null);
   const [isSavingImage, setIsSavingImage] = useState(false);
   const [userType, setUserType] = useState<string | null>(null);
 
@@ -71,9 +72,12 @@ export default function Account() {
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.7,
+      base64: true,
     });
     if (!result.canceled && result.assets?.length) {
-      setPendingImage(result.assets[0].uri);
+      const asset = result.assets[0];
+      setPendingImageUri(asset.uri);
+      setPendingImageBase64(asset.base64 ?? null);
     }
   };
 
@@ -88,25 +92,84 @@ export default function Account() {
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.7,
+      base64: true,
     });
     if (!result.canceled && result.assets?.length) {
-      setPendingImage(result.assets[0].uri);
+      const asset = result.assets[0];
+      setPendingImageUri(asset.uri);
+      setPendingImageBase64(asset.base64 ?? null);
     }
   };
 
   const handleUpdateProfileImage = async () => {
-    if (!pendingImage) return;
+    if (!pendingImageUri) return;
     setIsSavingImage(true);
     try {
-      await AsyncStorage.setItem('user_profile_image', pendingImage);
       const lowerUserType = (userType ?? '').toLowerCase();
-      if (lowerUserType.includes('merchant')) {
-        await AsyncStorage.setItem('merchant_profile_image', pendingImage);
+      const isMerchant = lowerUserType.includes('merchant');
+      const userTypeParam = isMerchant ? 'IN_MERCHANT' : 'IN_CUSTOMER';
+      const inTownId =
+        (isMerchant
+          ? await AsyncStorage.getItem('merchant_id')
+          : await AsyncStorage.getItem('customer_id')) ??
+        (await AsyncStorage.getItem('customer_id')) ??
+        (await AsyncStorage.getItem('merchant_id')) ??
+        user?.id ??
+        null;
+
+      if (!inTownId) {
+        throw new Error('Missing user id for image upload.');
       }
-      setProfileImage(pendingImage);
-      setPendingImage(null);
+
+      const uploadUrl = `https://devapi.intownlocal.com/IN/s3/upload?userType=${userTypeParam}&inTownId=${inTownId}`;
+      const fileName = `${isMerchant ? 'merchant' : 'customer'}_${inTownId}_${Date.now()}.jpg`;
+      const urlValue = pendingImageBase64
+        ? `data:image/jpeg;base64,${pendingImageBase64}`
+        : pendingImageUri;
+
+      const payload = [
+        {
+          fileName,
+          url: urlValue,
+          status: '',
+          message: '',
+        },
+      ];
+
+      const res = await fetch(uploadUrl, {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+      const raw = await res.text();
+      let parsed: any = raw;
+      try {
+        parsed = raw ? JSON.parse(raw) : raw;
+      } catch {
+        // keep raw string if not JSON
+      }
+      if (!res.ok) {
+        throw new Error(typeof parsed === 'string' ? parsed : JSON.stringify(parsed));
+      }
+
+      const uploadedUrl = Array.isArray(parsed) ? parsed[0]?.url : parsed?.url;
+      if (!uploadedUrl) {
+        throw new Error('Upload succeeded but no image URL was returned.');
+      }
+
+      await AsyncStorage.setItem('user_profile_image', uploadedUrl);
+      if (isMerchant) {
+        await AsyncStorage.setItem('merchant_profile_image', uploadedUrl);
+      }
+      setProfileImage(uploadedUrl);
+      setPendingImageUri(null);
+      setPendingImageBase64(null);
     } catch (error) {
       console.error('Error saving profile image:', error);
+      Alert.alert('Upload failed', 'Unable to update profile image. Please try again.');
     } finally {
       setIsSavingImage(false);
     }
@@ -135,9 +198,9 @@ export default function Account() {
 
       <View style={styles.profileCard}>
         <View style={styles.profileImageWrapper}>
-          {pendingImage || profileImage ? (
+          {pendingImageUri || profileImage ? (
             <Image
-              source={getProfileImageSource(pendingImage || profileImage) as any}
+              source={getProfileImageSource(pendingImageUri || profileImage) as any}
               style={styles.profileImage}
             />
           ) : (
@@ -157,9 +220,9 @@ export default function Account() {
           </TouchableOpacity>
         </View>
         <TouchableOpacity
-          style={[styles.updateButton, !pendingImage && styles.updateButtonDisabled]}
+          style={[styles.updateButton, !pendingImageUri && styles.updateButtonDisabled]}
           onPress={handleUpdateProfileImage}
-          disabled={!pendingImage || isSavingImage}
+          disabled={!pendingImageUri || isSavingImage}
         >
           <Text style={styles.updateButtonText}>
             {isSavingImage ? 'Updating...' : 'Update Profile Image'}

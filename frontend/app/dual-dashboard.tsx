@@ -646,6 +646,22 @@ export default function DualDashboard() {
     return customerContactName || user?.phone || 'User';
   };
 
+  const getProfileDisplayName = () => {
+    const candidates = [
+      customerContactName,
+      merchantContactName,
+      merchantShopName,
+      user?.name,
+    ];
+    const normalized = candidates.find(
+      (value) =>
+        typeof value === 'string' &&
+        value.trim().length > 0 &&
+        value.trim().toLowerCase() !== 'string'
+    );
+    return normalized ?? 'User';
+  };
+
   /* ===============================
      RENDER
   ================================ */
@@ -673,7 +689,7 @@ export default function DualDashboard() {
           }}
         >
           <View style={styles.profileInfo}>
-            <Text style={styles.userName}>{user?.name ?? 'User'}</Text>
+            <Text style={styles.userName}>{getProfileDisplayName()}</Text>
             <Text style={styles.userPhone}>
               {(user as any)?.phone ?? (user as any)?.email ?? ''}
             </Text>

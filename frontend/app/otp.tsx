@@ -25,6 +25,7 @@ let PhoneAuthProvider: any = null;
 let signInWithCredential: any = null;
 let auth: any = null;
 let firebaseConfig: any = null;
+let SmsRetriever: any = null;
 
 if (Platform.OS !== 'web') {
   // Dynamic imports for mobile only
@@ -38,6 +39,14 @@ if (Platform.OS !== 'web') {
   const firebaseConfigModule = require('../firebase/firebaseConfig');
   auth = firebaseConfigModule.auth;
   firebaseConfig = firebaseConfigModule.firebaseConfig;
+}
+
+if (Platform.OS === 'android') {
+  try {
+    SmsRetriever = require('react-native-android-sms-retriever');
+  } catch (error) {
+    SmsRetriever = null;
+  }
 }
 
 /* ===============================
@@ -110,6 +119,42 @@ export default function OTPScreen() {
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (Platform.OS !== 'android' || !SmsRetriever || !otpSent) return;
+    let isActive = true;
+
+    const startListener = async () => {
+      try {
+        await SmsRetriever.startSmsRetriever();
+        SmsRetriever.addSmsListener((event: any) => {
+          if (!isActive) return;
+          const message = event?.message ?? "";
+          const match = message.match(/\b\d{6}\b/);
+          if (!match) return;
+          const digits = match[0].split("");
+          setOtp(digits);
+          if (digits.length >= OTP_LENGTH) {
+            inputRefs.current[OTP_LENGTH - 1]?.focus();
+          }
+          SmsRetriever.removeSmsListener();
+        });
+      } catch (error) {
+        console.log("SMS retriever error:", error);
+      }
+    };
+
+    startListener();
+
+    return () => {
+      isActive = false;
+      try {
+        SmsRetriever.removeSmsListener();
+      } catch (error) {
+        // ignore cleanup errors
+      }
+    };
+  }, [otpSent]);
 
   /* ===============================
      RESEND TIMER
@@ -347,20 +392,39 @@ export default function OTPScreen() {
       console.log("User Type:", roleInfo.userType);
       console.log("Dashboard:", roleInfo.dashboard);
 
-      // Save user data
-      const userData = {
-        uid: userId,
+      const lowerUserType = (roleInfo.userType ?? '').toLowerCase();
+      const mappedUserType: 'merchant' | 'member' | 'user' =
+        lowerUserType.includes('merchant')
+          ? 'merchant'
+          : lowerUserType.includes('customer') || lowerUserType === 'dual'
+          ? 'member'
+          : 'user';
+      const resolvedId =
+        roleInfo.userData?.customer?.id ??
+        roleInfo.userData?.merchant?.id ??
+        roleInfo.userData?.user?.id ??
+        userId;
+      const resolvedName =
+        roleInfo.userData?.customer?.contactName ??
+        roleInfo.userData?.customer?.name ??
+        roleInfo.userData?.merchant?.contactName ??
+        roleInfo.userData?.merchant?.name ??
+        roleInfo.userData?.merchant?.shopName ??
+        roleInfo.userData?.user?.name ??
+        'User';
+
+      const authUser = {
+        id: String(resolvedId ?? userId),
+        name: resolvedName,
         phone: phoneNumber,
-        role: roleInfo.role,
-        userType: roleInfo.userType,
-        ...roleInfo.userData,
+        userType: mappedUserType,
       };
 
-      await AsyncStorage.setItem("user_data", JSON.stringify(userData));
+      await AsyncStorage.setItem("user_data", JSON.stringify(authUser));
       await AsyncStorage.setItem("user_role", roleInfo.role);
       await AsyncStorage.setItem("user_type", roleInfo.userType);
       
-      setUser(userData);
+      setUser(authUser);
       setToken(`token_${userId}`);
 
       setStatusMessage("Success! Redirecting...");
