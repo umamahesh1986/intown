@@ -580,7 +580,7 @@ const loadNearbyShops = async () => {
                 value={searchQuery}
                 onChangeText={handleSearchChange}
                 onFocus={() => {
-                  router.push('/search');
+                  router.push({ pathname: '/search', params: { source: 'user' } });
                 }}
                 onBlur={handleSearchBlur}
                 placeholderTextColor="#999999"

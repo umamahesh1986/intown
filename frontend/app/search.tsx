@@ -6,18 +6,62 @@ import {
   TouchableOpacity,
   Pressable,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { useState, useRef, useEffect } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { searchProducts } from '../utils/api';
 
-import { getUserLocation } from '../utils/location';
 
 type SearchResult = {
   id?: string;
   productName?: string;
 };
+
+const POPULAR_PRODUCTS = [
+  'Rice',
+  'Milk',
+  'Bread',
+  'Onion',
+  'Tomato',
+  'Potato',
+  'Curd',
+  'Eggs',
+  'Cooking Oil',
+  'Sugar',
+  'Salt',
+  'Atta Dal',
+  'Wheat Flour',
+  'Tea Powder',
+  'Coffee Powder',
+  'Biscuits',
+  'Soap',
+  'Shampoo',
+  'Toothpaste',
+  'Toothbrush',
+  'Detergent',
+  'Dishwash Liquid',
+  'Floor Cleaner',
+  'Toilet Cleaner',
+  'Garbage Bags',
+  'Tissues',
+  'Handwash',
+  'Sanitary Pads',
+  'Baby Diapers',
+  'Hair Oil',
+  'Face Wash',
+  'Body Lotion',
+  'Spices',
+  'Chilli Powder',
+  'Turmeric Powder',
+  'Bread Jam',
+  'Butter',
+  'Cheese',
+  'Noodles',
+  'Snacks',
+  'Chips'
+];
 
 export default function Search() {
   const router = useRouter();
@@ -62,6 +106,15 @@ export default function Search() {
     return () => clearTimeout(timer);
   }, []);
 
+  const handleChipPress = (value: string) => {
+    setSearchText(value);
+    setShowSuggestions(true);
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
+    }
+    fetchSearchResults(value);
+  };
+
   return (
     <Pressable style={{ flex: 1 }} onPress={() => setShowSuggestions(false)}>
       <View style={styles.container}>
@@ -79,58 +132,55 @@ export default function Search() {
           </View>
         </View>
 
-        {/* SEARCH INPUT */}
-        <View style={styles.searchBox}>
-          <Ionicons name="search" size={18} color="#666" />
+        <View style={styles.searchArea}>
+          {/* SEARCH INPUT */}
+          <View style={styles.searchBox}>
+            <Ionicons name="search" size={18} color="#666" />
           <TextInput
-            ref={inputRef}
-            placeholder="Search products..."
-            value={searchText}
-            style={styles.input}
-            autoFocus
-            onChangeText={(text) => {
-              setSearchText(text);
-              setShowSuggestions(true);
+              ref={inputRef}
+              placeholder="Search products..."
+              value={searchText}
+            style={[
+              styles.input,
+              Platform.OS === 'web' ? ({ outlineStyle: 'none' } as any) : null,
+            ]}
+              autoFocus
+              onChangeText={(text) => {
+                setSearchText(text);
+                setShowSuggestions(true);
 
-              if (debounceTimer.current) {
-                clearTimeout(debounceTimer.current);
-              }
+                if (debounceTimer.current) {
+                  clearTimeout(debounceTimer.current);
+                }
 
-              debounceTimer.current = setTimeout(() => {
-                fetchSearchResults(text);
-              }, 500);
-            }}
-            onSubmitEditing={() => {
-              if (!searchText.trim()) return;
+                debounceTimer.current = setTimeout(() => {
+                  fetchSearchResults(text);
+                }, 500);
+              }}
+              onSubmitEditing={() => {
+                if (!searchText.trim()) return;
 
-              setShowSuggestions(false);
+                setShowSuggestions(false);
 
-              router.push({
-                pathname: '/member-shop-list',
-                params: {
-                  query: searchText,
-                  source,
-                },
-              });
-            }}
-          />
-        </View>
-
-        {/* LOADING */}
-        {loading && (
-          <View style={{ marginTop: 8 }}>
-            <ActivityIndicator size="small" color="#FF6600" />
+                router.push({
+                  pathname: '/member-shop-list',
+                  params: {
+                    query: searchText,
+                    source,
+                  },
+                });
+              }}
+            />
           </View>
-        )}
 
-        {/* PRODUCT SUGGESTIONS */}
-        {showSuggestions && results.length > 0 && (
-          <View style={styles.suggestionBox}>
-            {results.map((item, index) => (
-              <TouchableOpacity
-                key={item.id ?? index}
-                style={styles.suggestionItem}
-              onPress={() => {
+          {/* PRODUCT SUGGESTIONS */}
+          {showSuggestions && results.length > 0 && (
+            <View style={styles.suggestionBox}>
+              {results.map((item, index) => (
+                <TouchableOpacity
+                  key={item.id ?? index}
+                  style={styles.suggestionItem}
+                onPress={() => {
   const value =
     item.productName ||
     (item as any).name ||
@@ -148,14 +198,35 @@ export default function Search() {
   });
 }}
 
-              >
-                <Ionicons name="search" size={16} color="#666" />
-                <Text style={styles.suggestionText}>
+                >
+                  <Ionicons name="search" size={16} color="#666" />
+                  <Text style={styles.suggestionText}>
   {item.productName || (item as any).name}
 </Text>
 
-              </TouchableOpacity>
-            ))}
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+        </View>
+
+        {/* POPULAR CHIPS */}
+        <View style={styles.chipsContainer}>
+          {POPULAR_PRODUCTS.map((item) => (
+            <TouchableOpacity
+              key={item}
+              style={styles.chip}
+              onPress={() => handleChipPress(item)}
+            >
+              <Text style={styles.chipText}>{item}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* LOADING */}
+        {loading && (
+          <View style={{ marginTop: 8 }}>
+            <ActivityIndicator size="small" color="#FF6600" />
           </View>
         )}
 
@@ -188,26 +259,52 @@ const styles = StyleSheet.create({
     color: '#666666',
     marginTop: 2,
   },
+  searchArea: {
+    position: 'relative',
+  },
   searchBox: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#fff',
     borderRadius: 12,
     padding: 12,
-    borderWidth: 1,
-    borderColor: '#eee',
   },
   input: {
     marginLeft: 8,
     fontSize: 15,
     flex: 1,
   },
+  chipsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 12,
+    zIndex: -1,
+  },
+  chip: {
+    backgroundColor: '#FFF3E0',
+    borderRadius: 16,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: '#FFCC99',
+  },
+  chipText: {
+    fontSize: 12,
+    color: '#666',
+    fontWeight: '600',
+  },
   suggestionBox: {
     backgroundColor: '#fff',
     borderRadius: 12,
-    marginTop: 6,
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 56,
     borderWidth: 1,
     borderColor: '#eee',
+    zIndex: 999,
+    elevation: 12,
   },
   suggestionItem: {
     flexDirection: 'row',

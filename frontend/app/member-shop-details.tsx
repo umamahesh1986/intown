@@ -157,82 +157,9 @@ export default function MemberShopDetails() {
         <View style={{width:40}} />
       </View>
 
-      <ScrollView>
-        {isUserFlow ? (
-          <Pressable onPress={handleUserTap}>
-            <View style={styles.shopImage}>
-              {shop.image || shop.s3ImageUrl ? (
-                <Image
-                  source={{ uri: shop.image || shop.s3ImageUrl }}
-                  style={styles.shopImageFull}
-                />
-              ) : (
-                <Ionicons name="storefront" size={100} color="#FF6600" />
-              )}
-            </View>
-
-            <View style={styles.content}>
-              <View style={styles.titleRow}>
-                <Text style={styles.shopName}>{shop.shopName || shop.name}</Text>
-                <View style={[styles.badge, { backgroundColor: badge.bg }]}>
-                  <Text style={[styles.badgeText, { color: badge.color }]}>
-                    {badge.label}
-                  </Text>
-                </View>
-              </View>
-              <View style={styles.ratingContainer}>
-                {[1,2,3,4,5].map(i => (
-                  <Ionicons key={i} name={i <= ratingValue ? "star" : "star-outline"} size={20} color="#FFA500" />
-                ))}
-                <Text style={styles.ratingText}>{ratingValue.toFixed(1)}</Text>
-              </View>
-
-              <View style={styles.infoCard}>
-                <View style={styles.infoRow}>
-                  <Ionicons name="pricetag" size={20} color="#FF6600" />
-                  <Text style={styles.infoLabel}>Category:</Text>
-                  <Text style={styles.infoValue}>{shop.category || 'General'}</Text>
-                </View>
-                <View style={styles.infoRow}>
-                  <Ionicons name="location" size={20} color="#FF6600" />
-                  <Text style={styles.infoLabel}>Distance:</Text>
-                  <Text style={styles.infoValue}>
-                    {formatDistance(
-                      shop.distance != null ? Number(shop.distance) : null
-                    )}
-                  </Text>
-                </View>
-                <View style={styles.infoRow}>
-                  <Ionicons name="star" size={20} color="#FF6600" />
-                  <Text style={styles.infoLabel}>Rating:</Text>
-                  <Text style={styles.infoValue}>{ratingValue.toFixed(1)} / 5</Text>
-                </View>
-                <View style={styles.infoRow}>
-                  <Ionicons name="call" size={20} color="#FF6600" />
-                  <Text style={styles.infoLabel}>Phone:</Text>
-                  <Text style={styles.infoValue}>{phoneText}</Text>
-                </View>
-                <View style={styles.infoRow}>
-                  <Ionicons name="pin" size={20} color="#FF6600" />
-                  <Text style={styles.infoLabel}>Address:</Text>
-                  <Text style={styles.infoValue}>{addressText}</Text>
-                </View>
-                <View style={styles.infoRow}>
-                  <Ionicons name="gift" size={20} color="#FF6600" />
-                  <Text style={styles.infoLabel}>Offers:</Text>
-                  <Text style={styles.infoValue}>{offerText}</Text>
-                </View>
-              </View>
-
-              <View style={styles.savingsCard}>
-                <Ionicons name="gift" size={32} color="#4CAF50" />
-                <Text style={styles.savingsTitle}>Special Offer</Text>
-                <Text style={styles.savingsText}>Get 10% instant savings on all purchases!</Text>
-              </View>
-            </View>
-          </Pressable>
-        ) : (
-          <>
+      {isUserFlow ? (
+        <Pressable style={styles.userFlowPressable} onPress={handleUserTap}>
+          <ScrollView>
             <View style={styles.shopImage}>
               {shop.image || shop.s3ImageUrl ? (
                 <Image
@@ -303,9 +230,82 @@ export default function MemberShopDetails() {
                 <Text style={styles.savingsText}>Get INtown assured instant savings on all purchases!</Text>
               </View>
             </View>
-          </>
-        )}
-      </ScrollView>
+          </ScrollView>
+        </Pressable>
+      ) : (
+        <ScrollView>
+          <View style={styles.shopImage}>
+            {shop.image || shop.s3ImageUrl ? (
+              <Image
+                source={{ uri: shop.image || shop.s3ImageUrl }}
+                style={styles.shopImageFull}
+              />
+            ) : (
+              <Ionicons name="storefront" size={100} color="#FF6600" />
+            )}
+          </View>
+
+          <View style={styles.content}>
+            <View style={styles.titleRow}>
+              <Text style={styles.shopName}>{shop.shopName || shop.name}</Text>
+              <View style={[styles.badge, { backgroundColor: badge.bg }]}>
+                <Text style={[styles.badgeText, { color: badge.color }]}>
+                  {badge.label}
+                </Text>
+              </View>
+            </View>
+            <View style={styles.ratingContainer}>
+              {[1,2,3,4,5].map(i => (
+                <Ionicons key={i} name={i <= ratingValue ? "star" : "star-outline"} size={20} color="#FFA500" />
+              ))}
+              <Text style={styles.ratingText}>{ratingValue.toFixed(1)}</Text>
+            </View>
+
+            <View style={styles.infoCard}>
+              <View style={styles.infoRow}>
+                <Ionicons name="pricetag" size={20} color="#FF6600" />
+                <Text style={styles.infoLabel}>Category:</Text>
+                <Text style={styles.infoValue}>{shop.category || 'General'}</Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Ionicons name="location" size={20} color="#FF6600" />
+                <Text style={styles.infoLabel}>Distance:</Text>
+                <Text style={styles.infoValue}>
+                  {formatDistance(
+                    shop.distance != null ? Number(shop.distance) : null
+                  )}
+                </Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Ionicons name="star" size={20} color="#FF6600" />
+                <Text style={styles.infoLabel}>Rating:</Text>
+                <Text style={styles.infoValue}>{ratingValue.toFixed(1)} / 5</Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Ionicons name="call" size={20} color="#FF6600" />
+                <Text style={styles.infoLabel}>Phone:</Text>
+                <Text style={styles.infoValue}>{phoneText}</Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Ionicons name="pin" size={20} color="#FF6600" />
+                <Text style={styles.infoLabel}>Address:</Text>
+                <Text style={styles.infoValue}>{addressText}</Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Ionicons name="gift" size={20} color="#FF6600" />
+                <Text style={styles.infoLabel}>Offers:</Text>
+                <Text style={styles.infoValue}>{offerText}</Text>
+              </View>
+            </View>
+
+            <View style={styles.savingsCard}>
+              <Ionicons name="gift" size={32} color="#4CAF50" />
+              <Text style={styles.savingsTitle}>Special Offer</Text>
+              <Text style={styles.savingsText}>Get INtown assured instant savings on all purchases!</Text>
+            </View>
+          </View>
+        </ScrollView>
+      )}
 
       <View style={styles.bottomButtons}>
         <TouchableOpacity
@@ -403,6 +403,7 @@ const styles = StyleSheet.create({
   shopImage: {width:'100%', height:250, backgroundColor:'#FFF3E0', alignItems:'center', justifyContent:'center'},
   shopImageFull: { width: '100%', height: '100%', resizeMode: 'cover' },
   content: {padding:16},
+  userFlowPressable: { flex: 1 },
   titleRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 8 },
   shopName: {fontSize:28, fontWeight:'bold', color:'#1A1A1A'},
   badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 },
