@@ -623,3 +623,35 @@ export const getNearbyShopsByCategory = async (
 
   return response.json();
 };
+
+
+
+/* ===============================
+   Near-by-shops   API
+================================ */
+export const assignCategoryToMerchant = async (
+  merchantId: number | string,
+  categoryId: number
+) => {
+  const response = await fetch(
+    'https://devapi.intownlocal.com/IN/merchant/assign-to-merchant',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        merchantId,
+        categoryId,
+      }),
+    }
+  );
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data?.message || 'Assign category failed');
+  }
+
+  return data;
+};

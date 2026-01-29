@@ -30,6 +30,8 @@ import {
 
 
 
+
+
 export default function RegisterMerchant() {
   const DUMMY_CATEGORIES = [
     { id: 1, name: 'Grocery' },

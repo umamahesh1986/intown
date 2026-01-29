@@ -37,14 +37,13 @@ const SLIDE_WIDTH = Math.round(width);
 const CAROUSEL_HEIGHT = 160;
 
 const MERCHANT_CAROUSEL_IMAGES = [
-  {uri: 'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/CarouselImage1.png'},
-    {uri:'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/CarouselImage2.png'},
-    {uri:'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/CarouselImage3.png'},
-    {uri:'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/CarouselImage4.png'},
-    {uri:'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/CarouselImage5.png'},
-    {uri:'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/CarouselImage6.png'},
-    {uri:'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/CarouselImage7.png'},
-
+  {uri: 'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner1.jpg'},
+    {uri:'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner2.png'},
+    {uri:'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner3.png'},
+    {uri:'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner4.png'},
+    {uri:'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner5.png'},
+    {uri:'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner6.png'},
+    {uri:'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner7.png'},
 ];
 // =================================
 
@@ -560,7 +559,7 @@ const carouselRef = useRef<ScrollView | null>(null);
         </View>
 
         {/* Footer */}
-        <Footer/>
+        <Footer dashboardType="merchant"/>
       </ScrollView>
 
       {showDropdown && (

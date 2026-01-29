@@ -141,7 +141,7 @@ export default function MemberShopDetails() {
     [shop.area, shop.city].filter(Boolean).join(', ') ||
     'Not available';
   const phoneText = shop.phone || shop.phoneNumber || shop.contactNumber || 'Not available';
-  const offerText = shop.offers || shop.offer || 'No active offers';
+  const offerText = shop.offers || shop.offer || 'Guaranty Savings';
 
   const handleUserTap = () => {
     if (isUserFlow) setShowRegistrationModal(true);
@@ -234,7 +234,7 @@ export default function MemberShopDetails() {
               <View style={styles.savingsCard}>
                 <Ionicons name="gift" size={32} color="#4CAF50" />
                 <Text style={styles.savingsTitle}>Special Offer</Text>
-                <Text style={styles.savingsText}>Get INtown assured instant savings on all purchases!</Text>
+                <Text style={styles.savingsText}>Get INtown Guaranty instant savings on your purchases!</Text>
               </View>
             </View>
           </ScrollView>
@@ -315,7 +315,7 @@ export default function MemberShopDetails() {
             <View style={styles.savingsCard}>
               <Ionicons name="gift" size={32} color="#4CAF50" />
               <Text style={styles.savingsTitle}>Special Offer</Text>
-              <Text style={styles.savingsText}>Get INtown assured instant savings on all purchases!</Text>
+              <Text style={styles.savingsText}>Get INtown Guaranty instant savings on your purchases!</Text>
             </View>
           </View>
         </ScrollView>

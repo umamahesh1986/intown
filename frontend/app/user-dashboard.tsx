@@ -167,13 +167,13 @@ const [nearbyShops, setNearbyShops] = useState<any[]>([]);
 // ================= CAROUSEL IMAGES FROM S3 =================
 const loadCarouselImages = () => {
   setCarouselImages([
-    'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/CarouselImage1.png',
-    'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/CarouselImage2.png',
-    'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/CarouselImage3.png',
-    'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/CarouselImage4.png',
-    'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/CarouselImage5.png',
-    'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/CarouselImage6.png',
-    'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/CarouselImage7.png',
+    'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner1.jpg',
+    'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner2.png',
+    'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner3.png',
+    'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner4.png',
+    'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner5.png',
+    'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner6.png',
+    'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner7.png',
 
   ]);
 };
@@ -723,7 +723,7 @@ const loadNearbyShops = async () => {
           {/* Theme Section */}
           <View style={styles.themeSection}>
             <Text style={styles.themeTitle}>Instant Savings ! </Text>
-            <Text style={styles.themeSubtitle}> Pay less. No coupons. No cashback. No waiting.</Text>
+            <Text style={styles.themeSubtitle}> Walk-in. Show App and Save on Every Purchase</Text>
           </View>
 
           {/* Savings Calculator */}
@@ -800,7 +800,7 @@ const loadNearbyShops = async () => {
                     Premium individual membership with exclusive benefits and unlimited access to all partner stores.
                   </Text>
                   <TouchableOpacity style={styles.purchaseButton} onPress={() => router.push('/register-member')}>
-                    <Text style={styles.purchaseButtonText}>Purchase Now</Text>
+                    <Text style={styles.purchaseButtonText}>Register Now</Text>
                   </TouchableOpacity>
                 </View>
 
@@ -822,7 +822,7 @@ const loadNearbyShops = async () => {
                     style={[styles.purchaseButton, styles.purchaseButtonPrimary]}
                     onPress={() => router.push('/register-member')}
                   >
-                    <Text style={styles.purchaseButtonText}>Purchase Now</Text>
+                    <Text style={styles.purchaseButtonText}>Register Now</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -925,7 +925,7 @@ const loadNearbyShops = async () => {
           </View>
 
           {/* Footer */}
-          <Footer />
+          <Footer dashboardType="user"/>
         </ScrollView>
 
         {/* BACKDROP */}

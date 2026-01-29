@@ -6,7 +6,7 @@
  * - safety for future categories
  */
 export const FALLBACK_CATEGORY_IMAGE = {
-  uri: 'https://intown-dev.s3.ap-south-1.amazonaws.com/category/default.jpg',
+  uri: 'https://intown-dev.s3.ap-south-1.amazonaws.com/category/GroceriesAndKirana.jpg',
 };
 
   
@@ -95,16 +95,12 @@ export const CATEGORY_IMAGE_LIST = [
   {uri:'https://intown-dev.s3.ap-south-1.amazonaws.com/category/PhysiotherapyClinics.jpg'},
   {uri:'https://intown-dev.s3.ap-south-1.amazonaws.com/category/OrganicStores.jpg'},
   {uri:'https://intown-dev.s3.ap-south-1.amazonaws.com/category/EmergingOrOtherCategories.jpg'},
-  FALLBACK_CATEGORY_IMAGE, // D65 missing → fallback
+  {uri:'https://intown-dev.s3.ap-south-1.amazonaws.com/category/Plumbers.jpg'},
   {uri:'https://intown-dev.s3.ap-south-1.amazonaws.com/category/PestControlServices.jpg'},
  {uri:'https://intown-dev.s3.ap-south-1.amazonaws.com/category/ApplianceRepairNon-Mobile.jpg'},
   {uri:'https://intown-dev.s3.ap-south-1.amazonaws.com/category/CleaningOrJanitorialServices.jpg'},
-  FALLBACK_CATEGORY_IMAGE, // D69 missing → fallback
-FALLBACK_CATEGORY_IMAGE, // D70 missing → fallback
-
-//   require('../assets/images/category-images/D69.jpg'),
-//   require('../assets/images/category-images/D70.jpg'),
-
+  {uri:'https://intown-dev.s3.ap-south-1.amazonaws.com/category/Locksmiths.png'},
+ {uri:'https://intown-dev.s3.ap-south-1.amazonaws.com/category/SecuritySystemInstallation.png'},
   {uri:'https://intown-dev.s3.ap-south-1.amazonaws.com/category/FinancialServices.jpg'},
   {uri:'https://intown-dev.s3.ap-south-1.amazonaws.com/category/RealEstateAgents.jpg'},
 {uri:'https://intown-dev.s3.ap-south-1.amazonaws.com/category/AdvocatesOrLegalServices.jpg'},
