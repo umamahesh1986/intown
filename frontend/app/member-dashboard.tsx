@@ -55,13 +55,13 @@ const SLIDE_WIDTH = Math.round(width);
 const CAROUSEL_HEIGHT = 160;
 
 const MEMBER_CAROUSEL_IMAGES = [
- {uri: 'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/CarouselImage1.png'},
-    {uri:'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/CarouselImage2.png'},
-    {uri:'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/CarouselImage3.png'},
-    {uri:'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/CarouselImage4.png'},
-    {uri:'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/CarouselImage5.png'},
-    {uri:'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/CarouselImage6.png'},
-    {uri:'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/CarouselImage7.png'},
+ {uri: 'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner1.jpg'},
+    {uri:'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner2.png'},
+    {uri:'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner3.png'},
+    {uri:'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner4.png'},
+    {uri:'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner5.png'},
+    {uri:'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner6.png'},
+    {uri:'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner7.png'},
 
 ];
 // =================================
@@ -674,7 +674,7 @@ const handleCategoryClick = (category: Category) => {
         method: 'POST',
         headers: {
           Accept: 'application/json',
-          'Content-Type': 'application/json',
+          'Content-Type': 'multipart/form-data',
         },
         body: JSON.stringify(payload),
       });
@@ -1062,7 +1062,7 @@ const handleCategoryClick = (category: Category) => {
           </View>
 
           {/* FOOTER */}
-          <Footer />
+          <Footer dashboardType="member"/>
         </ScrollView>
 
         {/* Support Modal */}
@@ -1456,7 +1456,7 @@ const styles = StyleSheet.create({
   },
   animatedPlaceholderWord: {
     ...FontStylesWithFallback.body,
-    color: '#666666',
+    color: '#ff6600',
     fontWeight: '500',
   },
 

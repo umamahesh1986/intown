@@ -16,11 +16,14 @@ import { Video, ResizeMode } from 'expo-av';
 
 const CARD_WIDTH = 520;
 const RADIUS = 12;
+const VIDEO_URL =
+  'https://intown-dev.s3.ap-south-1.amazonaws.com/LoginBackgroundVideo/INtownVideo.mp4';
 
 const BackgroundContent = React.memo(() => {
   if (Platform.OS === 'web') {
     return (
       <video
+        src={VIDEO_URL}
         autoPlay
         loop
         muted
@@ -34,16 +37,14 @@ const BackgroundContent = React.memo(() => {
           left: 0,
           zIndex: -1,
         }}
-      >
-        <source src="/videos/intown-video.mp4" type="video/mp4" />
-      </video>
+      />
     );
   }
 
   return (
     <View style={StyleSheet.absoluteFill}>
       <Video
-        source={require('../assets/videos/intown-video.mp4')}
+        source={{ uri: VIDEO_URL }}
         style={StyleSheet.absoluteFill}
         resizeMode={ResizeMode.COVER}
         shouldPlay
@@ -53,6 +54,7 @@ const BackgroundContent = React.memo(() => {
     </View>
   );
 });
+
 
 export default function LoginScreen() {
   const router = useRouter();
