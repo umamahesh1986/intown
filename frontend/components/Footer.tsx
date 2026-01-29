@@ -144,8 +144,7 @@ const LEGAL_CONTENT = {
       </ul>
       
       <h2>3. Refunds & Cancellations</h2>
-      <p>Purchases of INtown Access and subscriptions are final and non-refundable, except where required under applicable consumer protection laws or in cases of proven technical failures directly attributable to INtown.</p>
-      
+      <p>Purchases of INtown Access and subscriptions are final and refundable if customer fails to save subscription amount within the year.</p>
       <h2>4. Third‑Party Links</h2>
       <p>The Platform may contain external links. INtown is not responsible for content, policies, or services on third‑party websites.</p>
       
@@ -188,8 +187,12 @@ const openExternalURL = async (url: string) => {
     Alert.alert('Error', 'Failed to open link');
   }
 };
+type FooterProps = {
+  dashboardType: 'user' | 'member' | 'merchant';
+};
 
-export default function Footer() {
+
+export default function Footer({ dashboardType }: FooterProps) {
   const iconSize = 18;
   const { width: screenWidth } = useWindowDimensions();
   const isLargeScreen = Platform.OS === 'web' || screenWidth > 768;
@@ -204,10 +207,22 @@ export default function Footer() {
     setModalVisible(true);
   };
 
+  const getFooterTagline = () => {
+  switch (dashboardType) {
+    case 'member':
+      return 'You deserve for the best';
+    case 'merchant':
+      return 'Supporting local markets';
+    case 'user':
+    default:
+      return 'Local Stores. Real Savings.';
+  }
+};
+
   return (
     <View style={styles.footer}>
       <Text style={styles.footerTagline}>
-        Shop Local, Save Instantly! Connecting Communities Through Personal Bond.
+           {getFooterTagline()}
       </Text>
       <Text style={styles.footerDescription}>
         India's most trusted local savings network, helping customers save

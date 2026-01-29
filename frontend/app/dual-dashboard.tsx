@@ -1104,7 +1104,7 @@ export default function DualDashboard() {
             )}
           </View>
         )}
-        <Footer />
+        <Footer dashboardType={activeTab === 'customer' ? 'member' : 'merchant'} />
       </ScrollView>
 
       {/* Support Modal */}
