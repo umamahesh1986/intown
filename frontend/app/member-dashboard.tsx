@@ -657,7 +657,7 @@ const handleCategoryClick = (category: Category) => {
     if (!images.length) {
       throw new Error('No image URL returned from image fetch.');
     }
-    const latestImage = images[0];
+    const latestImage = images[images.length - 1];
     await AsyncStorage.setItem('user_profile_image', latestImage);
     setProfileImage(latestImage);
   };

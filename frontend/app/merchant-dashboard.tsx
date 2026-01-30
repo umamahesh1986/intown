@@ -35,6 +35,8 @@ const { width } = Dimensions.get('window');
 // ===== MERCHANT CAROUSEL CONFIG (SAME AS MEMBER) =====
 const SLIDE_WIDTH = Math.round(width);
 const CAROUSEL_HEIGHT = 160;
+const SHOP_IMAGE_WIDTH = 300;
+const SHOP_IMAGE_HEIGHT = 130;
 
 const MERCHANT_CAROUSEL_IMAGES = [
   { uri: 'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner1.jpg' },
@@ -121,6 +123,7 @@ export default function MerchantDashboard() {
   // =================================
 
   const shopImageTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const shopImageScrollRef = useRef<ScrollView | null>(null);
 
 
   // Merchant shop details (would come from registration)
@@ -165,6 +168,26 @@ export default function MerchantDashboard() {
     };
   }, [shopImages]);
 
+  useEffect(() => {
+    if (!shopImageScrollRef.current || shopImages.length === 0) return;
+    shopImageScrollRef.current.scrollTo({
+      x: shopImageIndex * SHOP_IMAGE_WIDTH,
+      animated: true,
+    });
+  }, [shopImageIndex, shopImages.length]);
+
+  const handlePrevShopImage = () => {
+    if (shopImages.length === 0) return;
+    setShopImageIndex((prev) =>
+      prev === 0 ? shopImages.length - 1 : prev - 1
+    );
+  };
+
+  const handleNextShopImage = () => {
+    if (shopImages.length === 0) return;
+    setShopImageIndex((prev) => (prev + 1) % shopImages.length);
+  };
+
   useFocusEffect(
     useCallback(() => {
       let isActive = true;
@@ -181,11 +204,11 @@ export default function MerchantDashboard() {
             try {
               const storedImages = JSON.parse(storedShopImagesRaw);
               if (Array.isArray(storedImages) && storedImages.length > 0) {
+                const latestImage = storedImages[storedImages.length - 1];
                 setShopImages(storedImages);
                 setShopImageIndex(0);
-                if (!storedProfileImage) {
-                  setProfileImage(storedImages[0]);
-                }
+                setProfileImage(latestImage);
+                await AsyncStorage.setItem('merchant_profile_image', latestImage);
               }
             } catch {
               // ignore parse issues
@@ -369,10 +392,11 @@ export default function MerchantDashboard() {
       const data = await res.json();
       const images = Array.isArray(data?.s3ImageUrl) ? data.s3ImageUrl : [];
       if (images.length > 0) {
+        const latestImage = images[images.length - 1];
         setShopImages(images);
         setShopImageIndex(0);
-        setProfileImage(images[0]);
-        await AsyncStorage.setItem('merchant_profile_image', images[0]);
+        setProfileImage(latestImage);
+        await AsyncStorage.setItem('merchant_profile_image', latestImage);
         await AsyncStorage.setItem('merchant_shop_images', JSON.stringify(images));
       }
     } catch (error) {
@@ -531,10 +555,42 @@ export default function MerchantDashboard() {
         <View style={styles.shopCard}>
           <View style={styles.shopImageContainer}>
             {shopImages.length > 0 ? (
-              <Image
-                source={{ uri: shopImages[shopImageIndex] }}
-                style={styles.shopImageCarousel}
-              />
+              <>
+                <ScrollView
+                  ref={shopImageScrollRef}
+                  horizontal
+                  pagingEnabled
+                  showsHorizontalScrollIndicator={false}
+                  style={styles.shopImageScroll}
+                  contentContainerStyle={styles.shopImageScrollContent}
+                  onMomentumScrollEnd={(e) => {
+                    const index = Math.round(
+                      e.nativeEvent.contentOffset.x / SHOP_IMAGE_WIDTH
+                    );
+                    setShopImageIndex(index);
+                  }}
+                >
+                  {shopImages.map((img, index) => (
+                    <Image
+                      key={`${img}-${index}`}
+                      source={{ uri: img }}
+                      style={styles.shopImageCarousel}
+                    />
+                  ))}
+                </ScrollView>
+                <TouchableOpacity
+                  style={[styles.shopArrow, styles.shopArrowLeft]}
+                  onPress={handlePrevShopImage}
+                >
+                  <Ionicons name="chevron-back" size={20} color="#FFFFFF" />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.shopArrow, styles.shopArrowRight]}
+                  onPress={handleNextShopImage}
+                >
+                  <Ionicons name="chevron-forward" size={20} color="#FFFFFF" />
+                </TouchableOpacity>
+              </>
             ) : (
               <Ionicons name="storefront" size={80} color="#2196F3" />
             )}
@@ -935,19 +991,44 @@ const styles = StyleSheet.create({
     borderColor: '#EEEEEE',
   },
   shopImageContainer: {
-    width: 300,
-    height: 130,
+    width: SHOP_IMAGE_WIDTH,
+    height: SHOP_IMAGE_HEIGHT,
     borderRadius: 6,
     backgroundColor: '#E3F2FD',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
     overflow: 'hidden',
+    position: 'relative',
+  },
+  shopImageScroll: {
+    width: SHOP_IMAGE_WIDTH,
+    height: SHOP_IMAGE_HEIGHT,
+  },
+  shopImageScrollContent: {
+    height: SHOP_IMAGE_HEIGHT,
   },
   shopImageCarousel: {
-    width: '100%',
-    height: '100%',
+    width: SHOP_IMAGE_WIDTH,
+    height: SHOP_IMAGE_HEIGHT,
     resizeMode: 'cover',
+  },
+  shopArrow: {
+    position: 'absolute',
+    top: '50%',
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    transform: [{ translateY: -14 }],
+  },
+  shopArrowLeft: {
+    left: 8,
+  },
+  shopArrowRight: {
+    right: 8,
   },
   shopName: { fontSize: 24, fontWeight: 'bold', color: '#1A1A1A', marginBottom: 4 },
   shopCategory: { fontSize: 16, color: '#666666', marginBottom: 12 },
