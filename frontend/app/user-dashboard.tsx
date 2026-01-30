@@ -518,7 +518,7 @@ const loadNearbyShops = async () => {
                   {(user as any)?.phone ?? (user as any)?.email ?? ''}
                 </Text>
               </View>
-              
+              <Ionicons name="chevron-down" size={16} color="#666666" />
             </TouchableOpacity>
           </View>
 

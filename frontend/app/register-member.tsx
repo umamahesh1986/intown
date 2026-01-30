@@ -5,6 +5,7 @@ import {
   TextInput,
   TouchableOpacity,
   ScrollView,
+  Image,
   Alert,
   KeyboardAvoidingView,
   Platform,
@@ -39,31 +40,50 @@ export default function RegisterMember() {
   const [successMessage, setSuccessMessage] = useState('');
   const [successCustomerId, setSuccessCustomerId] = useState<string | number | null>(null);
   const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const buildImageFormData = async (files: string[], inTownIdValue: string | number) => {
+    const formData = new FormData();
+    for (let index = 0; index < files.length; index += 1) {
+      const img = files[index];
+      const fileName = `customer_${inTownIdValue}_${index + 1}.jpg`;
+      if (Platform.OS === 'web') {
+        const blobSource = img.startsWith('data:')
+          ? img
+          : img.startsWith('http') || img.startsWith('blob:')
+          ? img
+          : `data:image/jpeg;base64,${img}`;
+        const response = await fetch(blobSource);
+        const blob = await response.blob();
+        formData.append('file', blob, fileName);
+      } else {
+        const uriValue = img.startsWith('data:')
+          ? img
+          : img.startsWith('file:') || img.startsWith('content:')
+          ? img
+          : `data:image/jpeg;base64,${img}`;
+        formData.append(
+          'file',
+          {
+            uri: uriValue,
+            name: fileName,
+            type: 'image/jpeg',
+          } as any
+        );
+      }
+    }
+    return formData;
+  };
+
   const uploadImagesToS3 = async (inTownIdValue: string | number, files: string[]) => {
     if (!files.length) return;
     const url = `https://devapi.intownlocal.com/IN/s3/upload?userType=IN_CUSTOMER&inTownId=${inTownIdValue}`;
-    const payload = files.map((img, index) => {
-      const isUri =
-        img.startsWith('http') ||
-        img.startsWith('file:') ||
-        img.startsWith('content:') ||
-        img.startsWith('data:');
-      const urlValue = isUri ? img : `data:image/jpeg;base64,${img}`;
-      return {
-        fileName: `customer_${inTownIdValue}_${index + 1}.jpg`,
-        url: urlValue,
-        status: '',
-        message: '',
-      };
-    });
+    const formData = await buildImageFormData(files, inTownIdValue);
 
     const res = await fetch(url, {
       method: 'POST',
       headers: {
         Accept: 'application/json',
-        'Content-Type': 'application/json',
       },
-      body: JSON.stringify(payload),
+      body: formData,
     });
     const raw = await res.text();
     let parsed: any = raw;
@@ -78,6 +98,24 @@ export default function RegisterMember() {
       );
     }
     return parsed;
+  };
+
+  const addImages = (newImages: string[]) => {
+    setImages((prev) => Array.from(new Set([...prev, ...newImages])));
+  };
+
+  const getImagePreviewSource = (value: string) => {
+    if (!value) return null;
+    if (
+      value.startsWith('http') ||
+      value.startsWith('file:') ||
+      value.startsWith('content:') ||
+      value.startsWith('data:') ||
+      value.startsWith('blob:')
+    ) {
+      return { uri: value };
+    }
+    return { uri: `data:image/jpeg;base64,${value}` };
   };
 
   const [agreedToTerms, setAgreedToTerms] = useState(false);
@@ -209,12 +247,11 @@ export default function RegisterMember() {
     router.push({ pathname: '/location-picker', params: { returnTo: '/register-member' } });
   };
 
-  const handlePickImages = async () => {
+  const handlePickFromGallery = async () => {
     try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      
-      if (status !== 'granted') {
-        Alert.alert('Permission Required', 'Please allow access to your photo library');
+      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!perm.granted) {
+        Alert.alert('Permission Required', 'Please allow photo library access');
         return;
       }
 
@@ -225,18 +262,41 @@ export default function RegisterMember() {
         base64: true,
       });
 
-      if (!result.canceled && result.assets) {
-        const newImages = result.assets.map(asset => asset.base64 || asset.uri);
-        setImages([...images, ...newImages]);
-      }
+      if (result.canceled) return;
+      const newImages =
+        (result as any).assets?.map((asset: any) => asset.uri || asset.base64) ??
+        [];
+      if (newImages.length > 0) addImages(newImages);
     } catch (error) {
-      console.error('Error picking images:', error);
-      Alert.alert('Error', 'Failed to pick images');
+      console.error('Image pick error:', error);
+      Alert.alert('Error', 'Unable to pick images');
     }
   };
 
-  const handleRemoveImage = (index: number) => {
-    setImages(images.filter((_, i) => i !== index));
+  const handleTakePhoto = async () => {
+    try {
+      const perm = await ImagePicker.requestCameraPermissionsAsync();
+      if (!perm.granted) {
+        Alert.alert('Permission Required', 'Please allow camera access');
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        quality: 0.5,
+        allowsEditing: true,
+        base64: true,
+      });
+
+      if (result.canceled) return;
+      const imageValue =
+        (result as any).assets?.[0]?.uri ??
+        (result as any).assets?.[0]?.base64 ??
+        null;
+      if (imageValue) addImages([imageValue]);
+    } catch (error) {
+      console.error('Camera error:', error);
+      Alert.alert('Error', 'Unable to open camera');
+    }
   };
 
   const handleRegister = async () => {
@@ -290,7 +350,17 @@ export default function RegisterMember() {
 
       if (inTownId) {
         try {
-          await uploadImagesToS3(inTownId, images);
+          const uploadResponse = await uploadImagesToS3(inTownId, images);
+          const uploadedUrls = Array.isArray(uploadResponse)
+            ? uploadResponse.map((item: any) => item?.url).filter(Boolean)
+            : [];
+          if (uploadedUrls.length > 0) {
+            await AsyncStorage.setItem(
+              'customer_profile_images',
+              JSON.stringify(uploadedUrls)
+            );
+            await AsyncStorage.setItem('user_profile_image', uploadedUrls[0]);
+          }
         } catch (error) {
           console.error('S3 upload failed:', error);
         }
@@ -457,25 +527,36 @@ export default function RegisterMember() {
           {/* Upload Images */}
           <View style={styles.formGroup}>
             <Text style={styles.label}>Upload Images</Text>
-            <TouchableOpacity style={styles.uploadButton} onPress={handlePickImages}>
-              <Ionicons name="cloud-upload" size={24} color="#FF6600" />
-              <Text style={styles.uploadButtonText}>Select Images</Text>
-            </TouchableOpacity>
-            
+            <View style={styles.imageActions}>
+              <TouchableOpacity
+                style={styles.imageButton}
+                onPress={handleTakePhoto}
+              >
+                <Ionicons name="camera" size={18} color="#FF6600" />
+                <Text style={styles.imageButtonText}>Take Photo</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.imageButton}
+                onPress={handlePickFromGallery}
+              >
+                <Ionicons name="images" size={18} color="#FF6600" />
+                <Text style={styles.imageButtonText}>Choose Images</Text>
+              </TouchableOpacity>
+            </View>
             {images.length > 0 && (
-              <View style={styles.imagePreviewContainer}>
-                {images.map((img, index) => (
-                  <View key={index} style={styles.imagePreview}>
-                    <TouchableOpacity
-                      style={styles.removeImageButton}
-                      onPress={() => handleRemoveImage(index)}
-                    >
-                      <Ionicons name="close-circle" size={24} color="#FF0000" />
-                    </TouchableOpacity>
-                    <Text style={styles.imageText}>Image {index + 1}</Text>
-                  </View>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.imagesPreview}
+              >
+                {images.map((uri) => (
+                  <Image
+                    key={uri}
+                    source={getImagePreviewSource(uri) ?? { uri }}
+                    style={styles.imageThumb}
+                  />
                 ))}
-              </View>
+              </ScrollView>
             )}
           </View>
 
@@ -644,46 +725,35 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     flex: 1,
   },
-  uploadButton: {
+  imageActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  imageButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: '#FF6600',
-    borderRadius: 8,
-    borderStyle: 'dashed',
-    paddingVertical: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: '#FFF5EE',
   },
-  uploadButtonText: {
-    fontSize: 16,
+  imageButtonText: {
+    marginLeft: 6,
     color: '#FF6600',
     fontWeight: '600',
-    marginLeft: 8,
+    fontSize: 13,
   },
-  imagePreviewContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+  imagesPreview: {
     marginTop: 12,
   },
-  imagePreview: {
+  imageThumb: {
     width: 80,
     height: 80,
-    backgroundColor: '#FFF3E0',
     borderRadius: 8,
-    margin: 4,
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative',
-  },
-  removeImageButton: {
-    position: 'absolute',
-    top: -8,
-    right: -8,
-  },
-  imageText: {
-    fontSize: 12,
-    color: '#FF6600',
+    marginRight: 8,
+    backgroundColor: '#F0F0F0',
   },
   termsContainer: {
     marginTop: 8,

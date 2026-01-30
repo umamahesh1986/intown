@@ -195,6 +195,14 @@ export default function MemberDashboard() {
   });
   const [isTransactionsLoading, setIsTransactionsLoading] = useState(false);
   const [customerId, setCustomerId] = useState<string | null>(null);
+  const normalizeId = (value?: string | number | null) => {
+    if (value == null) return null;
+    const raw = String(value).trim();
+    if (!raw) return null;
+    const num = Number(raw);
+    return Number.isFinite(num) ? String(num) : null;
+  };
+
   const [customerName, setCustomerName] = useState<string | null>(null);
   // Nearby shops (REAL API)
   const [nearbyShops, setNearbyShops] = useState<any[]>([]);
@@ -350,6 +358,21 @@ export default function MemberDashboard() {
           if (storedProfileImage && isActive) {
             setProfileImage(storedProfileImage);
           }
+          if (!storedProfileImage) {
+            const storedCustomerImages = await AsyncStorage.getItem('customer_profile_images');
+            if (storedCustomerImages && isActive) {
+              try {
+                const parsedImages = JSON.parse(storedCustomerImages);
+                if (Array.isArray(parsedImages) && parsedImages.length > 0) {
+                  const firstImage = parsedImages[0];
+                  setProfileImage(firstImage);
+                  await AsyncStorage.setItem('user_profile_image', firstImage);
+                }
+              } catch {
+                // ignore parse issues
+              }
+            }
+          }
         } catch (error) {
           console.error('Error refreshing profile image:', error);
         }
@@ -362,7 +385,8 @@ export default function MemberDashboard() {
   );
 
   useEffect(() => {
-    const effectiveCustomerId = customerId ?? user?.id;
+    const effectiveCustomerId =
+      normalizeId(customerId) ?? normalizeId(user?.id ?? null);
     if (!effectiveCustomerId) return;
 
     const fetchTransactions = async () => {
@@ -659,6 +683,7 @@ const handleCategoryClick = (category: Category) => {
     }
     const latestImage = images[images.length - 1];
     await AsyncStorage.setItem('user_profile_image', latestImage);
+    await AsyncStorage.setItem('customer_profile_images', JSON.stringify(images));
     setProfileImage(latestImage);
   };
 
@@ -712,9 +737,13 @@ const handleCategoryClick = (category: Category) => {
       if (!res.ok) {
         throw new Error(typeof parsed === 'string' ? parsed : JSON.stringify(parsed));
       }
-      await AsyncStorage.setItem('user_profile_image', uri);
-      setProfileImage(uri);
-      await fetchLatestCustomerImage(inTownId);
+      const uploadedUrl = Array.isArray(parsed)
+        ? parsed[parsed.length - 1]?.url
+        : parsed?.url;
+      const resolvedImage = uploadedUrl || uri;
+      await AsyncStorage.setItem('user_profile_image', resolvedImage);
+      setProfileImage(resolvedImage);
+      // Do not override with GET s3 response; use upload response URL
     } catch (err) {
       console.error('Upload error', err);
       Alert.alert('Upload failed', 'Unable to update profile image. Please try again.');

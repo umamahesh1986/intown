@@ -204,11 +204,13 @@ export default function MerchantDashboard() {
             try {
               const storedImages = JSON.parse(storedShopImagesRaw);
               if (Array.isArray(storedImages) && storedImages.length > 0) {
-                const latestImage = storedImages[storedImages.length - 1];
                 setShopImages(storedImages);
                 setShopImageIndex(0);
-                setProfileImage(latestImage);
-                await AsyncStorage.setItem('merchant_profile_image', latestImage);
+                if (!storedProfileImage) {
+                  const firstImage = storedImages[0];
+                  setProfileImage(firstImage);
+                  await AsyncStorage.setItem('merchant_profile_image', firstImage);
+                }
               }
             } catch {
               // ignore parse issues
@@ -368,6 +370,9 @@ export default function MerchantDashboard() {
 
   const loadMerchantImages = async (id: string) => {
     try {
+      const storedProfileImage =
+        (await AsyncStorage.getItem('merchant_profile_image')) ??
+        (await AsyncStorage.getItem('user_profile_image'));
       const storedImagesRaw = await AsyncStorage.getItem('merchant_shop_images');
       if (storedImagesRaw) {
         try {
@@ -375,8 +380,10 @@ export default function MerchantDashboard() {
           if (Array.isArray(storedImages) && storedImages.length > 0) {
             setShopImages(storedImages);
             setShopImageIndex(0);
-            if (!profileImage) {
-              setProfileImage(storedImages[0]);
+            if (!storedProfileImage) {
+              const firstImage = storedImages[0];
+              setProfileImage(firstImage);
+              await AsyncStorage.setItem('merchant_profile_image', firstImage);
             }
             return;
           }
@@ -392,11 +399,13 @@ export default function MerchantDashboard() {
       const data = await res.json();
       const images = Array.isArray(data?.s3ImageUrl) ? data.s3ImageUrl : [];
       if (images.length > 0) {
-        const latestImage = images[images.length - 1];
         setShopImages(images);
         setShopImageIndex(0);
-        setProfileImage(latestImage);
-        await AsyncStorage.setItem('merchant_profile_image', latestImage);
+        if (!storedProfileImage) {
+          const firstImage = images[0];
+          setProfileImage(firstImage);
+          await AsyncStorage.setItem('merchant_profile_image', firstImage);
+        }
         await AsyncStorage.setItem('merchant_shop_images', JSON.stringify(images));
       }
     } catch (error) {

@@ -26,15 +26,28 @@ export default function Account() {
   useEffect(() => {
     const loadProfileImage = async () => {
       try {
-        const [storedImage, storedUserType] = await Promise.all([
+        const [storedImage, storedUserType, storedCustomerImages] = await Promise.all([
           AsyncStorage.getItem('user_profile_image'),
           AsyncStorage.getItem('user_type'),
+          AsyncStorage.getItem('customer_profile_images'),
         ]);
         if (storedImage) {
           setProfileImage(storedImage);
         }
         if (storedUserType) {
           setUserType(storedUserType);
+        }
+        if (storedCustomerImages) {
+          try {
+            const parsedImages = JSON.parse(storedCustomerImages);
+            if (Array.isArray(parsedImages) && parsedImages.length > 0) {
+              const latestImage = parsedImages[parsedImages.length - 1];
+              setProfileImage(latestImage);
+              await AsyncStorage.setItem('user_profile_image', latestImage);
+            }
+          } catch {
+            // ignore parse issues
+          }
         }
       } catch (error) {
         console.error('Error loading profile image:', error);
@@ -182,12 +195,18 @@ export default function Account() {
       if (!res.ok) {
         throw new Error(typeof parsed === 'string' ? parsed : JSON.stringify(parsed));
       }
-      await AsyncStorage.setItem('user_profile_image', pendingImageUri);
+      const uploadedUrl = Array.isArray(parsed)
+        ? parsed[parsed.length - 1]?.url
+        : parsed?.url;
+      const resolvedImage = uploadedUrl || pendingImageUri;
+      await AsyncStorage.setItem('user_profile_image', resolvedImage);
       if (isMerchant) {
-        await AsyncStorage.setItem('merchant_profile_image', pendingImageUri);
+        await AsyncStorage.setItem('merchant_profile_image', resolvedImage);
       }
-      setProfileImage(pendingImageUri);
-      await fetchLatestProfileImage(isMerchant, inTownId);
+      setProfileImage(resolvedImage);
+      if (isMerchant) {
+        await fetchLatestProfileImage(true, inTownId);
+      }
       setPendingImageUri(null);
       setPendingImageBase64(null);
     } catch (error) {
