@@ -90,7 +90,7 @@ export default function LoginScreen() {
           <View style={styles.headerCard}>
             <View style={styles.logoBox}>
               <Image
-                source={require('../assets/images/intown-logo.jpg')}
+                source={{uri:'https://intown-dev.s3.ap-south-1.amazonaws.com/app_logo/intown-logo.jpg'}}
                 style={styles.logo}
                 resizeMode="contain"
               />
