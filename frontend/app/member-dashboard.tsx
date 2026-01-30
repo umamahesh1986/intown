@@ -647,6 +647,40 @@ const handleCategoryClick = (category: Category) => {
     }
   };
 
+  const fetchLatestCustomerImage = async (inTownId: string | number) => {
+    const res = await fetch(`https://devapi.intownlocal.com/IN/s3?customerId=${inTownId}`);
+    if (!res.ok) {
+      throw new Error(`Image fetch failed: ${res.status}`);
+    }
+    const data = await res.json();
+    const images = Array.isArray(data?.s3ImageUrl) ? data.s3ImageUrl : [];
+    if (!images.length) {
+      throw new Error('No image URL returned from image fetch.');
+    }
+    const latestImage = images[0];
+    await AsyncStorage.setItem('user_profile_image', latestImage);
+    setProfileImage(latestImage);
+  };
+
+  const buildImageFormData = async (uri: string, fileName: string) => {
+    const formData = new FormData();
+    if (Platform.OS === 'web') {
+      const response = await fetch(uri);
+      const blob = await response.blob();
+      formData.append('file', blob, fileName);
+    } else {
+      formData.append(
+        'file',
+        {
+          uri,
+          name: fileName,
+          type: 'image/jpeg',
+        } as any
+      );
+    }
+    return formData;
+  };
+
   const uploadPhotoToServer = async (uri: string, base64?: string | null) => {
     setUploading(true);
     try {
@@ -659,24 +693,14 @@ const handleCategoryClick = (category: Category) => {
 
       const uploadUrl = `https://devapi.intownlocal.com/IN/s3/upload?userType=IN_CUSTOMER&inTownId=${inTownId}`;
       const fileName = `customer_${inTownId}_${Date.now()}.jpg`;
-      const urlValue = base64 ? `data:image/jpeg;base64,${base64}` : uri;
-
-      const payload = [
-        {
-          fileName,
-          url: urlValue,
-          status: '',
-          message: '',
-        },
-      ];
+      const formData = await buildImageFormData(uri, fileName);
 
       const res = await fetch(uploadUrl, {
         method: 'POST',
         headers: {
           Accept: 'application/json',
-          'Content-Type': 'multipart/form-data',
         },
-        body: JSON.stringify(payload),
+        body: formData,
       });
       const raw = await res.text();
       let parsed: any = raw;
@@ -688,13 +712,9 @@ const handleCategoryClick = (category: Category) => {
       if (!res.ok) {
         throw new Error(typeof parsed === 'string' ? parsed : JSON.stringify(parsed));
       }
-      const uploadedUrl = Array.isArray(parsed) ? parsed[0]?.url : parsed?.url;
-      if (!uploadedUrl) {
-        throw new Error('Upload succeeded but no image URL was returned.');
-      }
-
-      await AsyncStorage.setItem('user_profile_image', uploadedUrl);
-      setProfileImage(uploadedUrl);
+      await AsyncStorage.setItem('user_profile_image', uri);
+      setProfileImage(uri);
+      await fetchLatestCustomerImage(inTownId);
     } catch (err) {
       console.error('Upload error', err);
       Alert.alert('Upload failed', 'Unable to update profile image. Please try again.');

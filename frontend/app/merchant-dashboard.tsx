@@ -5,7 +5,7 @@ import {
   ScrollView,
   TouchableOpacity,
   TouchableWithoutFeedback,
-  
+
   Image,
   Dimensions,
   Animated,
@@ -20,10 +20,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
 import { useLocationStore } from '../store/locationStore';
-import { 
-  getUserLocationWithDetails, 
-  searchLocations, 
-  setManualLocation 
+import {
+  getUserLocationWithDetails,
+  searchLocations,
+  setManualLocation
 } from '../utils/location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { FontStylesWithFallback } from '../utils/fonts';
@@ -37,13 +37,13 @@ const SLIDE_WIDTH = Math.round(width);
 const CAROUSEL_HEIGHT = 160;
 
 const MERCHANT_CAROUSEL_IMAGES = [
-  {uri: 'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner1.jpg'},
-    {uri:'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner2.png'},
-    {uri:'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner3.png'},
-    {uri:'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner4.png'},
-    {uri:'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner5.png'},
-    {uri:'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner6.png'},
-    {uri:'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner7.png'},
+  { uri: 'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner1.jpg' },
+  { uri: 'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner2.png' },
+  { uri: 'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner3.png' },
+  { uri: 'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner4.png' },
+  { uri: 'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner5.png' },
+  { uri: 'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner6.png' },
+  { uri: 'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner7.png' },
 ];
 // =================================
 
@@ -82,6 +82,8 @@ export default function MerchantDashboard() {
   const [shopName, setShopName] = useState<string | null>(null);
   const [merchantContactName, setMerchantContactName] = useState<string | null>(null);
   const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [shopImages, setShopImages] = useState<string[]>([]);
+  const [shopImageIndex, setShopImageIndex] = useState(0);
   const [sales, setSales] = useState<ApiSale[]>([]);
   const [showAllPayments, setShowAllPayments] = useState(false);
   const [lifetimeTotals, setLifetimeTotals] = useState<ApiSummary | null>(null);
@@ -114,9 +116,11 @@ export default function MerchantDashboard() {
   const [isSearchingLocation, setIsSearchingLocation] = useState(false);
 
   // ===== MERCHANT CAROUSEL STATE =====
-const [carouselIndex, setCarouselIndex] = useState(0);
-const carouselRef = useRef<ScrollView | null>(null);
-// =================================
+  const [carouselIndex, setCarouselIndex] = useState(0);
+  const carouselRef = useRef<ScrollView | null>(null);
+  // =================================
+
+  const shopImageTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
 
   // Merchant shop details (would come from registration)
@@ -131,20 +135,35 @@ const carouselRef = useRef<ScrollView | null>(null);
     loadUserType();
     requestLocationOnMount();
     // ===== MERCHANT CAROUSEL AUTO SLIDE =====
-  const timer = setInterval(() => {
-    setCarouselIndex(prev => {
-      const next = (prev + 1) % MERCHANT_CAROUSEL_IMAGES.length;
-      carouselRef.current?.scrollTo({
-        x: next * SLIDE_WIDTH,
-        animated: true,
+    const timer = setInterval(() => {
+      setCarouselIndex(prev => {
+        const next = (prev + 1) % MERCHANT_CAROUSEL_IMAGES.length;
+        carouselRef.current?.scrollTo({
+          x: next * SLIDE_WIDTH,
+          animated: true,
+        });
+        return next;
       });
-      return next;
-    });
-  }, 3500);
+    }, 3500);
 
-  return () => clearInterval(timer);
-  // =====================================
+    return () => clearInterval(timer);
+    // =====================================
   }, []);
+
+  useEffect(() => {
+    if (shopImages.length <= 1) return;
+    if (shopImageTimerRef.current) {
+      clearInterval(shopImageTimerRef.current);
+    }
+    shopImageTimerRef.current = setInterval(() => {
+      setShopImageIndex((prev) => (prev + 1) % shopImages.length);
+    }, 3000);
+    return () => {
+      if (shopImageTimerRef.current) {
+        clearInterval(shopImageTimerRef.current);
+      }
+    };
+  }, [shopImages]);
 
   useFocusEffect(
     useCallback(() => {
@@ -156,6 +175,21 @@ const carouselRef = useRef<ScrollView | null>(null);
             (await AsyncStorage.getItem('user_profile_image'));
           if (storedProfileImage && isActive) {
             setProfileImage(storedProfileImage);
+          }
+          const storedShopImagesRaw = await AsyncStorage.getItem('merchant_shop_images');
+          if (storedShopImagesRaw && isActive) {
+            try {
+              const storedImages = JSON.parse(storedShopImagesRaw);
+              if (Array.isArray(storedImages) && storedImages.length > 0) {
+                setShopImages(storedImages);
+                setShopImageIndex(0);
+                if (!storedProfileImage) {
+                  setProfileImage(storedImages[0]);
+                }
+              }
+            } catch {
+              // ignore parse issues
+            }
           }
         } catch (error) {
           console.error('Error refreshing profile image:', error);
@@ -296,6 +330,7 @@ const carouselRef = useRef<ScrollView | null>(null);
         if (params.merchantId) {
           await AsyncStorage.setItem('merchant_id', String(params.merchantId));
         }
+        await loadMerchantImages(String(resolvedId));
       } catch (error) {
         console.error('Error initializing merchant data:', error);
       }
@@ -308,6 +343,43 @@ const carouselRef = useRef<ScrollView | null>(null);
     };
   }, [params.merchantId, user?.id]);
 
+  const loadMerchantImages = async (id: string) => {
+    try {
+      const storedImagesRaw = await AsyncStorage.getItem('merchant_shop_images');
+      if (storedImagesRaw) {
+        try {
+          const storedImages = JSON.parse(storedImagesRaw);
+          if (Array.isArray(storedImages) && storedImages.length > 0) {
+            setShopImages(storedImages);
+            setShopImageIndex(0);
+            if (!profileImage) {
+              setProfileImage(storedImages[0]);
+            }
+            return;
+          }
+        } catch {
+          // ignore storage parse errors and fall back to fetch
+        }
+      }
+
+      const res = await fetch(`https://devapi.intownlocal.com/IN/s3?merchantId=${id}`);
+      if (!res.ok) {
+        throw new Error(`S3 image fetch failed: ${res.status}`);
+      }
+      const data = await res.json();
+      const images = Array.isArray(data?.s3ImageUrl) ? data.s3ImageUrl : [];
+      if (images.length > 0) {
+        setShopImages(images);
+        setShopImageIndex(0);
+        setProfileImage(images[0]);
+        await AsyncStorage.setItem('merchant_profile_image', images[0]);
+        await AsyncStorage.setItem('merchant_shop_images', JSON.stringify(images));
+      }
+    } catch (error) {
+      console.error('Error loading merchant images:', error);
+    }
+  };
+
   useEffect(() => {
     if (!merchantId) return;
 
@@ -319,9 +391,9 @@ const carouselRef = useRef<ScrollView | null>(null);
           {
             headers: token
               ? {
-                  Authorization: `Bearer ${token}`,
-                  Accept: 'application/json',
-                }
+                Authorization: `Bearer ${token}`,
+                Accept: 'application/json',
+              }
               : { Accept: 'application/json' },
           }
         );
@@ -349,25 +421,25 @@ const carouselRef = useRef<ScrollView | null>(null);
     fetchSales();
   }, [merchantId, token]);
 
- const handleLogout = async () => {
-  try {
-    const keys = await AsyncStorage.getAllKeys();
-    const preserve = new Set(['user_profile_image', 'merchant_profile_image']);
-    const keysToRemove = keys.filter((key) => !preserve.has(key));
-    if (keysToRemove.length > 0) {
-      await AsyncStorage.multiRemove(keysToRemove);
+  const handleLogout = async () => {
+    try {
+      const keys = await AsyncStorage.getAllKeys();
+      const preserve = new Set(['user_profile_image', 'merchant_profile_image']);
+      const keysToRemove = keys.filter((key) => !preserve.has(key));
+      if (keysToRemove.length > 0) {
+        await AsyncStorage.multiRemove(keysToRemove);
+      }
+
+      // 2️⃣ Clear auth store
+      logout();
+
+      // 3️⃣ Force redirect
+      router.replace('/login');
+    } catch (error) {
+      console.error('Logout error:', error);
+      router.replace('/login');
     }
-
-    // 2️⃣ Clear auth store
-    logout();
-
-    // 3️⃣ Force redirect
-    router.replace('/login');
-  } catch (error) {
-    console.error('Logout error:', error);
-    router.replace('/login');
-  }
-};
+  };
 
 
   return (
@@ -397,7 +469,7 @@ const carouselRef = useRef<ScrollView | null>(null);
             }}
           >
             <View style={styles.profileInfo}>
-              <Text style={styles.userName}>{user?.name ?? 'Merchant'}</Text>
+              <Text style={styles.userName}>{'Merchant'}</Text>
               <Text style={styles.userPhone}>
                 {(user as any)?.phone ?? (user as any)?.email ?? ''}
               </Text>
@@ -419,46 +491,53 @@ const carouselRef = useRef<ScrollView | null>(null);
         </View>
 
         {/* ===== MERCHANT CAROUSEL ===== */}
-<View style={styles.carouselWrapper}>
-  <ScrollView
-    ref={carouselRef}
-    horizontal
-    pagingEnabled
-    showsHorizontalScrollIndicator={false}
-    snapToInterval={SLIDE_WIDTH}
-    decelerationRate="fast"
-    onMomentumScrollEnd={(e) => {
-      const index = Math.round(
-        e.nativeEvent.contentOffset.x / SLIDE_WIDTH
-      );
-      setCarouselIndex(index);
-    }}
-  >
-    {MERCHANT_CAROUSEL_IMAGES.map((img, index) => (
-      <View key={index} style={styles.carouselSlide}>
-        <Image source={img} style={styles.carouselImage} />
-      </View>
-    ))}
-  </ScrollView>
+        <View style={styles.carouselWrapper}>
+          <ScrollView
+            ref={carouselRef}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            snapToInterval={SLIDE_WIDTH}
+            decelerationRate="fast"
+            onMomentumScrollEnd={(e) => {
+              const index = Math.round(
+                e.nativeEvent.contentOffset.x / SLIDE_WIDTH
+              );
+              setCarouselIndex(index);
+            }}
+          >
+            {MERCHANT_CAROUSEL_IMAGES.map((img, index) => (
+              <View key={index} style={styles.carouselSlide}>
+                <Image source={img} style={styles.carouselImage} />
+              </View>
+            ))}
+          </ScrollView>
 
-  <View style={styles.carouselDots}>
-    {MERCHANT_CAROUSEL_IMAGES.map((_, i) => (
-      <View
-        key={i}
-        style={[
-          styles.dot,
-          carouselIndex === i && styles.dotActive,
-        ]}
-      />
-    ))}
-  </View>
-</View>
-{/* === END MERCHANT CAROUSEL === */}
+          <View style={styles.carouselDots}>
+            {MERCHANT_CAROUSEL_IMAGES.map((_, i) => (
+              <View
+                key={i}
+                style={[
+                  styles.dot,
+                  carouselIndex === i && styles.dotActive,
+                ]}
+              />
+            ))}
+          </View>
+        </View>
+        {/* === END MERCHANT CAROUSEL === */}
 
         {/* Shop Details Card */}
         <View style={styles.shopCard}>
           <View style={styles.shopImageContainer}>
-            <Ionicons name="storefront" size={80} color="#2196F3" />
+            {shopImages.length > 0 ? (
+              <Image
+                source={{ uri: shopImages[shopImageIndex] }}
+                style={styles.shopImageCarousel}
+              />
+            ) : (
+              <Ionicons name="storefront" size={80} color="#2196F3" />
+            )}
           </View>
           <Text style={styles.shopName}>{merchantShop.name}</Text>
           <Text style={styles.shopCategory}>{merchantShop.category}</Text>
@@ -559,7 +638,7 @@ const carouselRef = useRef<ScrollView | null>(null);
         </View>
 
         {/* Footer */}
-        <Footer dashboardType="merchant"/>
+        <Footer dashboardType="merchant" />
       </ScrollView>
 
       {showDropdown && (
@@ -677,7 +756,7 @@ const carouselRef = useRef<ScrollView | null>(null);
               </TouchableOpacity>
             </View>
 
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.useCurrentLocationBtn}
               onPress={handleUseCurrentLocation}
               disabled={isLocationLoading}
@@ -721,7 +800,7 @@ const carouselRef = useRef<ScrollView | null>(null);
             {isSearchingLocation && (
               <ActivityIndicator size="small" color="#FF6600" style={{ marginTop: 16 }} />
             )}
-            
+
             <ScrollView style={styles.locationSearchResults}>
               {locationSearchResults.map((item, index) => (
                 <TouchableOpacity
@@ -856,19 +935,25 @@ const styles = StyleSheet.create({
     borderColor: '#EEEEEE',
   },
   shopImageContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+    width: 300,
+    height: 130,
+    borderRadius: 6,
     backgroundColor: '#E3F2FD',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
+    overflow: 'hidden',
+  },
+  shopImageCarousel: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
   },
   shopName: { fontSize: 24, fontWeight: 'bold', color: '#1A1A1A', marginBottom: 4 },
   shopCategory: { fontSize: 16, color: '#666666', marginBottom: 12 },
   ratingContainer: { flexDirection: 'row', alignItems: 'center' },
   ratingText: { fontSize: 16, fontWeight: '600', color: '#666666', marginLeft: 8 },
-  section: { padding: 16},
+  section: { padding: 16 },
   sectionNoHorizontalPadding: {
     paddingHorizontal: 0,
   },
@@ -1013,150 +1098,150 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   // ===== MERCHANT CAROUSEL STYLES =====
-carouselWrapper: {
-  marginTop: 12,
-  marginBottom: 8,
-  height: 160,
-},
+  carouselWrapper: {
+    marginTop: 12,
+    marginBottom: 8,
+    height: 160,
+  },
 
-carouselSlide: {
-  width: SLIDE_WIDTH,
-  height: 160,
-  paddingHorizontal: 16,
-},
-
-
-carouselImage: {
-  width: '100%',
-  height: 160,
-  borderRadius: 12,
-  resizeMode: 'cover',
-},
+  carouselSlide: {
+    width: SLIDE_WIDTH,
+    height: 160,
+    paddingHorizontal: 16,
+  },
 
 
-carouselDots: {
-  flexDirection: 'row',
-  justifyContent: 'center',
-  marginTop: 8,
-},
+  carouselImage: {
+    width: '100%',
+    height: 160,
+    borderRadius: 12,
+    resizeMode: 'cover',
+  },
 
-dot: {
-  width: 8,
-  height: 8,
-  borderRadius: 8,
-  backgroundColor: '#ddd',
-  marginHorizontal: 4,
-},
 
-dotActive: {
-  backgroundColor: '#FF6600',
-},
-// Location Modal Styles
-locationModalContainer: {
-  flex: 1,
-  backgroundColor: 'rgba(0,0,0,0.5)',
-  justifyContent: 'flex-end',
-},
-locationModalContent: {
-  backgroundColor: '#FFFFFF',
-  borderTopLeftRadius: 24,
-  borderTopRightRadius: 24,
-  padding: 20,
-  maxHeight: '80%',
-},
-locationModalHeader: {
-  flexDirection: 'row',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  marginBottom: 20,
-},
-locationModalTitle: {
-  fontSize: 20,
-  fontWeight: '700',
-  color: '#1A1A1A',
-},
-useCurrentLocationBtn: {
-  flexDirection: 'row',
-  alignItems: 'center',
-  backgroundColor: '#FFF3E0',
-  padding: 16,
-  borderRadius: 12,
-  marginBottom: 16,
-},
-useCurrentLocationText: {
-  fontSize: 16,
-  fontWeight: '600',
-  color: '#FF6600',
-  marginLeft: 12,
-},
-currentLocationDisplay: {
-  flexDirection: 'row',
-  alignItems: 'flex-start',
-  backgroundColor: '#E8F5E9',
-  padding: 14,
-  borderRadius: 12,
-  marginBottom: 16,
-},
-currentLocationArea: {
-  fontSize: 16,
-  fontWeight: '600',
-  color: '#333',
-},
-currentLocationFull: {
-  fontSize: 12,
-  color: '#666',
-  marginTop: 2,
-},
-locationDivider: {
-  flexDirection: 'row',
-  alignItems: 'center',
-  marginVertical: 16,
-},
-locationDividerLine: {
-  flex: 1,
-  height: 1,
-  backgroundColor: '#E0E0E0',
-},
-locationDividerText: {
-  marginHorizontal: 16,
-  fontSize: 12,
-  color: '#999',
-  fontWeight: '600',
-},
-locationSearchContainer: {
-  flexDirection: 'row',
-  alignItems: 'center',
-  backgroundColor: '#F5F5F5',
-  borderRadius: 12,
-  paddingHorizontal: 16,
-  paddingVertical: 12,
-},
-locationSearchInput: {
-  flex: 1,
-  fontSize: 16,
-  marginLeft: 12,
-  color: '#333',
-},
-locationSearchResults: {
-  maxHeight: 250,
-  marginTop: 8,
-},
-locationSearchItem: {
-  flexDirection: 'row',
-  alignItems: 'flex-start',
-  paddingVertical: 14,
-  borderBottomWidth: 1,
-  borderBottomColor: '#F0F0F0',
-},
-locationSearchItemName: {
-  fontSize: 15,
-  fontWeight: '600',
-  color: '#333',
-},
-locationSearchItemAddress: {
-  fontSize: 12,
-  color: '#666',
-  marginTop: 2,
-},
+  carouselDots: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 8,
+  },
+
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 8,
+    backgroundColor: '#ddd',
+    marginHorizontal: 4,
+  },
+
+  dotActive: {
+    backgroundColor: '#FF6600',
+  },
+  // Location Modal Styles
+  locationModalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  locationModalContent: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
+    maxHeight: '80%',
+  },
+  locationModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  locationModalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1A1A1A',
+  },
+  useCurrentLocationBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF3E0',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 16,
+  },
+  useCurrentLocationText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FF6600',
+    marginLeft: 12,
+  },
+  currentLocationDisplay: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#E8F5E9',
+    padding: 14,
+    borderRadius: 12,
+    marginBottom: 16,
+  },
+  currentLocationArea: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+  },
+  currentLocationFull: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 2,
+  },
+  locationDivider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 16,
+  },
+  locationDividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#E0E0E0',
+  },
+  locationDividerText: {
+    marginHorizontal: 16,
+    fontSize: 12,
+    color: '#999',
+    fontWeight: '600',
+  },
+  locationSearchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F5F5F5',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  locationSearchInput: {
+    flex: 1,
+    fontSize: 16,
+    marginLeft: 12,
+    color: '#333',
+  },
+  locationSearchResults: {
+    maxHeight: 250,
+    marginTop: 8,
+  },
+  locationSearchItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  locationSearchItemName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#333',
+  },
+  locationSearchItemAddress: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 2,
+  },
 
 });

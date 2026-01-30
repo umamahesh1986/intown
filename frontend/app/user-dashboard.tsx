@@ -129,7 +129,7 @@ export default function UserDashboard() {
   const [categories, setCategories] = useState<Category[]>(DUMMY_CATEGORIES);
   // Nearby shops (real API)
 const [nearbyShops, setNearbyShops] = useState<any[]>([]);
-  const [profileImage, setProfileImage] = useState<string | null>(null);
+  
 
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
   const [monthlySpend, setMonthlySpend] = useState('10000');
@@ -190,7 +190,7 @@ const loadCarouselImages = () => {
 useEffect(() => {
   loadData();
   loadUserType();
-  loadProfileImage();
+  
   requestLocationOnMount();
 
   loadCarouselImages(); 
@@ -333,36 +333,7 @@ useEffect(() => {
     }
   };
 
-  const loadProfileImage = async () => {
-    try {
-      const storedImage = await AsyncStorage.getItem('user_profile_image');
-      if (storedImage) {
-        setProfileImage(storedImage);
-      }
-    } catch (error) {
-      console.log('Error loading profile image:', error);
-    }
-  };
-
-  useFocusEffect(
-    useCallback(() => {
-      let isActive = true;
-      const refreshProfileImage = async () => {
-        try {
-          const storedImage = await AsyncStorage.getItem('user_profile_image');
-          if (storedImage && isActive) {
-            setProfileImage(storedImage);
-          }
-        } catch (error) {
-          console.log('Error refreshing profile image:', error);
-        }
-      };
-      refreshProfileImage();
-      return () => {
-        isActive = false;
-      };
-    }, [])
-  );
+  
 
   const formatUserType = (type: string): string => {
     const lower = type.toLowerCase();
@@ -507,19 +478,7 @@ const loadNearbyShops = async () => {
     return 'Set Location';
   };
 
-  const getProfileImageSource = (value: string | null) => {
-    if (!value) return undefined;
-    if (
-      value.startsWith('http') ||
-      value.startsWith('file:') ||
-      value.startsWith('content:') ||
-      value.startsWith('data:')
-    ) {
-      return { uri: value };
-    }
-    return { uri: `data:image/jpeg;base64,${value}` };
-  };
-
+  
   const handleSearchBlur = () => {
     setTimeout(() => {
       setShowSuggestions(false);
@@ -559,14 +518,7 @@ const loadNearbyShops = async () => {
                   {(user as any)?.phone ?? (user as any)?.email ?? ''}
                 </Text>
               </View>
-              {profileImage ? (
-                <Image
-                  source={getProfileImageSource(profileImage) as any}
-                  style={styles.profileImage}
-                />
-              ) : (
-                <Ionicons name="person" size={20} color="#ff6600" style={styles.profileIconButton} />
-              )}
+              
             </TouchableOpacity>
           </View>
 
@@ -1191,23 +1143,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 0,
-  },
-  profileIconButton: {
-    borderWidth: 2,
-    borderColor: '#ff6600',
-    padding: 4,
-    borderRadius: 30,
-    marginLeft: 10,
-    width: 34,
-    textAlign: 'center',
-  },
-  profileImage: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    borderWidth: 2,
-    borderColor: '#ff6600',
-    marginLeft: 10,
   },
   dropdownMenu: {
     position: 'absolute',

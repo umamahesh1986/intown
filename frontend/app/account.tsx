@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, Alert } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, Alert, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'expo-router';
@@ -47,7 +47,7 @@ export default function Account() {
  
 
   const onSave = () => {
-  updateProfile({ name, gender });
+  updateProfile({ name, gender } as any);
   setEditing(false);
 };
 
@@ -101,6 +101,46 @@ export default function Account() {
     }
   };
 
+  const fetchLatestProfileImage = async (isMerchant: boolean, inTownId: string | number) => {
+    const queryParam = isMerchant ? 'merchantId' : 'customerId';
+    const res = await fetch(`https://devapi.intownlocal.com/IN/s3?${queryParam}=${inTownId}`);
+    if (!res.ok) {
+      throw new Error(`Image fetch failed: ${res.status}`);
+    }
+    const data = await res.json();
+    const images = Array.isArray(data?.s3ImageUrl) ? data.s3ImageUrl : [];
+    if (!images.length) {
+      throw new Error('No image URL returned from image fetch.');
+    }
+    // Use the most recently uploaded image when updating profile
+    const latestImage = images[images.length - 1];
+    await AsyncStorage.setItem('user_profile_image', latestImage);
+    if (isMerchant) {
+      await AsyncStorage.setItem('merchant_profile_image', latestImage);
+      await AsyncStorage.setItem('merchant_shop_images', JSON.stringify(images));
+    }
+    setProfileImage(latestImage);
+  };
+
+  const buildImageFormData = async (uri: string, fileName: string) => {
+    const formData = new FormData();
+    if (Platform.OS === 'web') {
+      const response = await fetch(uri);
+      const blob = await response.blob();
+      formData.append('file', blob, fileName);
+    } else {
+      formData.append(
+        'file',
+        {
+          uri,
+          name: fileName,
+          type: 'image/jpeg',
+        } as any
+      );
+    }
+    return formData;
+  };
+
   const handleUpdateProfileImage = async () => {
     if (!pendingImageUri) return;
     setIsSavingImage(true);
@@ -123,26 +163,14 @@ export default function Account() {
 
       const uploadUrl = `https://devapi.intownlocal.com/IN/s3/upload?userType=${userTypeParam}&inTownId=${inTownId}`;
       const fileName = `${isMerchant ? 'merchant' : 'customer'}_${inTownId}_${Date.now()}.jpg`;
-      const urlValue = pendingImageBase64
-        ? `data:image/jpeg;base64,${pendingImageBase64}`
-        : pendingImageUri;
-
-      const payload = [
-        {
-          fileName,
-          url: urlValue,
-          status: '',
-          message: '',
-        },
-      ];
+      const formData = await buildImageFormData(pendingImageUri, fileName);
 
       const res = await fetch(uploadUrl, {
         method: 'POST',
         headers: {
           Accept: 'application/json',
-          'Content-Type': 'application/json',
         },
-        body: JSON.stringify(payload),
+        body: formData,
       });
       const raw = await res.text();
       let parsed: any = raw;
@@ -154,17 +182,12 @@ export default function Account() {
       if (!res.ok) {
         throw new Error(typeof parsed === 'string' ? parsed : JSON.stringify(parsed));
       }
-
-      const uploadedUrl = Array.isArray(parsed) ? parsed[0]?.url : parsed?.url;
-      if (!uploadedUrl) {
-        throw new Error('Upload succeeded but no image URL was returned.');
-      }
-
-      await AsyncStorage.setItem('user_profile_image', uploadedUrl);
+      await AsyncStorage.setItem('user_profile_image', pendingImageUri);
       if (isMerchant) {
-        await AsyncStorage.setItem('merchant_profile_image', uploadedUrl);
+        await AsyncStorage.setItem('merchant_profile_image', pendingImageUri);
       }
-      setProfileImage(uploadedUrl);
+      setProfileImage(pendingImageUri);
+      await fetchLatestProfileImage(isMerchant, inTownId);
       setPendingImageUri(null);
       setPendingImageBase64(null);
     } catch (error) {

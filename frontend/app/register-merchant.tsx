@@ -78,31 +78,50 @@ export default function RegisterMerchant() {
   const [successMessage, setSuccessMessage] = useState('');
   const [successMerchantId, setSuccessMerchantId] = useState<string | number | null>(null);
   const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const buildImageFormData = async (files: string[], inTownIdValue: string | number) => {
+    const formData = new FormData();
+    for (let index = 0; index < files.length; index += 1) {
+      const img = files[index];
+      const fileName = `merchant_${inTownIdValue}_${index + 1}.jpg`;
+      if (Platform.OS === 'web') {
+        const blobSource = img.startsWith('data:')
+          ? img
+          : img.startsWith('http') || img.startsWith('blob:')
+          ? img
+          : `data:image/jpeg;base64,${img}`;
+        const response = await fetch(blobSource);
+        const blob = await response.blob();
+        formData.append('file', blob, fileName);
+      } else {
+        const uriValue = img.startsWith('data:')
+          ? img
+          : img.startsWith('file:') || img.startsWith('content:')
+          ? img
+          : `data:image/jpeg;base64,${img}`;
+        formData.append(
+          'file',
+          {
+            uri: uriValue,
+            name: fileName,
+            type: 'image/jpeg',
+          } as any
+        );
+      }
+    }
+    return formData;
+  };
+
   const uploadImagesToS3 = async (inTownIdValue: string | number, files: string[]) => {
     if (!files.length) return;
     const url = `https://devapi.intownlocal.com/IN/s3/upload?userType=IN_MERCHANT&inTownId=${inTownIdValue}`;
-    const payload = files.map((img, index) => {
-      const isUri =
-        img.startsWith('http') ||
-        img.startsWith('file:') ||
-        img.startsWith('content:') ||
-        img.startsWith('data:');
-      const urlValue = isUri ? img : `data:image/jpeg;base64,${img}`;
-      return {
-        fileName: `merchant_${inTownIdValue}_${index + 1}.jpg`,
-        url: urlValue,
-        status: '',
-        message: '',
-      };
-    });
+    const formData = await buildImageFormData(files, inTownIdValue);
 
     const res = await fetch(url, {
       method: 'POST',
       headers: {
         Accept: 'application/json',
-        'Content-Type': 'application/json',
       },
-      body: JSON.stringify(payload),
+      body: formData,
     });
     const raw = await res.text();
     let parsed: any = raw;
@@ -117,6 +136,18 @@ export default function RegisterMerchant() {
       );
     }
     return parsed;
+  };
+
+  const fetchMerchantImages = async (merchantIdValue: string | number) => {
+    const res = await fetch(`https://devapi.intownlocal.com/IN/s3?merchantId=${merchantIdValue}`);
+    if (!res.ok) {
+      throw new Error(`Image fetch failed: ${res.status}`);
+    }
+    const data = await res.json();
+    const images = Array.isArray(data?.s3ImageUrl) ? data.s3ImageUrl : [];
+    if (!images.length) return;
+    await AsyncStorage.setItem('merchant_profile_image', images[0]);
+    await AsyncStorage.setItem('merchant_shop_images', JSON.stringify(images));
   };
   const addImages = (newImages: string[]) => {
     setImages((prev) => Array.from(new Set([...prev, ...newImages])));
@@ -152,7 +183,7 @@ export default function RegisterMerchant() {
 
       if (result.canceled) return;
       const newImages =
-        (result as any).assets?.map((asset: any) => asset.base64 || asset.uri) ??
+        (result as any).assets?.map((asset: any) => asset.uri || asset.base64) ??
         [];
       if (newImages.length > 0) addImages(newImages);
     } catch (error) {
@@ -177,8 +208,8 @@ export default function RegisterMerchant() {
 
       if (result.canceled) return;
       const imageValue =
-        (result as any).assets?.[0]?.base64 ??
         (result as any).assets?.[0]?.uri ??
+        (result as any).assets?.[0]?.base64 ??
         null;
       if (imageValue) addImages([imageValue]);
     } catch (error) {
@@ -675,9 +706,6 @@ const productNames = allProducts
         if (shopName) {
           await AsyncStorage.setItem('merchant_shop_name', shopName);
         }
-        if (images.length > 0) {
-          await AsyncStorage.setItem('merchant_profile_image', String(images[0]));
-        }
         await AsyncStorage.removeItem(draftKey);
         if (location?.latitude != null && location?.longitude != null) {
           await AsyncStorage.setItem('merchant_location_lat', String(location.latitude));
@@ -686,6 +714,7 @@ const productNames = allProducts
         if (inTownId) {
           try {
             await uploadImagesToS3(inTownId, images);
+            await fetchMerchantImages(inTownId);
           } catch (error) {
             console.error('S3 upload failed:', error);
           }
