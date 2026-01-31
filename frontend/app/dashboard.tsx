@@ -94,7 +94,7 @@ export default function DashboardScreen() {
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <Image 
-              source={require('../assets/images/intown-logo.jpg')} 
+              source={{uri:'https://intown-dev.s3.ap-south-1.amazonaws.com/app_logo/intown-logo.jpg'}} 
               style={styles.logo}
               resizeMode="contain"
             />
@@ -186,7 +186,7 @@ export default function DashboardScreen() {
         </TouchableOpacity>
 
         <View style={styles.bottomSpacer} />
-        <Footer />
+        <Footer dashboardType="user"/>
       </ScrollView>
     </SafeAreaView>
   );

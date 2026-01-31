@@ -16,7 +16,7 @@ export default function Account() {
 
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(user?.name ?? '');
-  const [gender, setGender] = useState((user as any)?.gender ?? '');
+  
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [pendingImageUri, setPendingImageUri] = useState<string | null>(null);
   const [pendingImageBase64, setPendingImageBase64] = useState<string | null>(null);
@@ -60,7 +60,7 @@ export default function Account() {
  
 
   const onSave = () => {
-  updateProfile({ name, gender } as any);
+  updateProfile({ name } as any);
   setEditing(false);
 };
 
@@ -288,24 +288,9 @@ export default function Account() {
 <Text style={styles.value}>
   {(user as any)?.email ?? 'Not provided'}
 </Text>
-{/* GENDER */}
-<Text style={styles.label}>Gender</Text>
 
-{editing ? (
-  <View style={styles.pickerWrapper}>
-    <Picker
-      selectedValue={gender}
-      onValueChange={(value) => setGender(value)}
-    >
-      <Picker.Item label="Select Gender" value="" />
-      <Picker.Item label="Male" value="Male" />
-      <Picker.Item label="Female" value="Female" />
-      <Picker.Item label="Other" value="Other" />
-    </Picker>
-  </View>
-) : (
-  <Text style={styles.value}>{gender || 'Not specified'}</Text>
-)}
+
+
 
 
 

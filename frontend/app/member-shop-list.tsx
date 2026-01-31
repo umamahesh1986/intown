@@ -14,15 +14,6 @@ import { searchByProductNames } from '../utils/api';
 import { useLocationStore } from '../store/locationStore';
 import { formatDistance } from '../utils/formatDistance';
 
-const DUMMY_SHOPS = [
-  { id: '1', name: 'Fresh Mart Grocery', category: 'Grocery', distance: 0.5, rating: 4.5, image: null },
-  { id: '2', name: 'Style Salon & Spa', category: 'Salon', distance: 0.8, rating: 4.7, image: null },
-  { id: '3', name: 'Quick Bites Restaurant', category: 'Restaurant', distance: 1.2, rating: 4.3, image: null },
-  { id: '4', name: 'Wellness Pharmacy', category: 'Pharmacy', distance: 0.3, rating: 4.8, image: null },
-  { id: '5', name: 'Fashion Hub', category: 'Fashion', distance: 1.5, rating: 4.2, image: null },
-  { id: '6', name: 'Tech Store', category: 'Electronics', distance: 2.0, rating: 4.6, image: null },
-];
-
 export default function MemberShopList() {
   const router = useRouter();
   const { categoryId, categoryName, query, source } = useLocalSearchParams<{
@@ -81,27 +72,12 @@ export default function MemberShopList() {
         // ✅ Product found
         setShops(mappedShops);
       } else {
-        // ✅ Product NOT found (Rice case)
-        fetchNearbyShops();
       }
     } catch (error) {
       console.error('Failed to fetch shops', error);
-      fetchNearbyShops(); // fallback on error
     }
   };
 
-  // 🔹 FALLBACK: NEARBY SHOPS
-  const fetchNearbyShops = async () => {
-    try {
-      if (!location) return;
-
-      // TEMP fallback (replace later with real nearby API)
-      setShops(DUMMY_SHOPS);
-    } catch (error) {
-      console.error('Failed to fetch nearby shops', error);
-      setShops([]);
-    }
-  };
 
   // 🔹 RUN SEARCH WHEN QUERY CHANGES
   useEffect(() => {
