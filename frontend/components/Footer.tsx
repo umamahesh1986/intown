@@ -210,9 +210,9 @@ export default function Footer({ dashboardType }: FooterProps) {
   const getFooterTagline = () => {
   switch (dashboardType) {
     case 'member':
-      return 'You deserve for the best';
+      return 'You Deserve For The Best';
     case 'merchant':
-      return 'Supporting local markets';
+      return 'Supporting Local Markets';
     case 'user':
     default:
       return 'Local Stores. Real Savings.';
