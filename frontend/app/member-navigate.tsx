@@ -42,11 +42,12 @@ export default function MemberNavigate() {
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
   const [customerId, setCustomerId] = useState<string | null>(null);
+  const [originCoords, setOriginCoords] = useState<{ latitude: number; longitude: number } | null>(null);
 
-  const originLat = Number(location?.latitude);
-  const originLng = Number(location?.longitude);
+  const originLat = Number(originCoords?.latitude);
+  const originLng = Number(originCoords?.longitude);
   const hasOrigin = Number.isFinite(originLat) && Number.isFinite(originLng);
-  const directionsUrl = `https://www.google.com/maps/dir/?api=1&origin=${hasOrigin ? `${originLat},${originLng}` : 'Current+Location'}&destination=${destinationLat},${destinationLng}&travelmode=driving`;
+  const directionsUrl = `https://www.google.com/maps/dir/?api=1&origin=${originLat},${originLng}&destination=${destinationLat},${destinationLng}&travelmode=driving`;
 
   const handlePaymentSuccess = (amount: number, savings: number, method: string) => {
     console.log('Payment successful:', { amount, savings, method });
@@ -55,10 +56,21 @@ export default function MemberNavigate() {
   useEffect(() => {
     const ensureLocation = async () => {
       setIsLoadingLocation(true);
-      await loadLocationFromStorage();
-      const storedLocation = useLocationStore.getState().location;
-      if (!storedLocation) {
-        await getUserLocationWithDetails();
+      const freshLocation = await getUserLocationWithDetails();
+      if (freshLocation?.latitude != null && freshLocation?.longitude != null) {
+        setOriginCoords({
+          latitude: freshLocation.latitude,
+          longitude: freshLocation.longitude,
+        });
+      } else {
+        await loadLocationFromStorage();
+        const storedLocation = useLocationStore.getState().location;
+        if (storedLocation?.latitude != null && storedLocation?.longitude != null) {
+          setOriginCoords({
+            latitude: storedLocation.latitude,
+            longitude: storedLocation.longitude,
+          });
+        }
       }
       setIsLoadingLocation(false);
     };

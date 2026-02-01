@@ -6,13 +6,12 @@ import { useRouter } from 'expo-router';
 import { useAuthStore } from '../store/authStore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useState } from 'react';
-import { getCustomerProfile } from '../utils/api';
 
 
 export default function MemberCardScreen() {
   const { user } = useAuthStore();
   const router = useRouter();
-  const customerId = (user as any)?.customerId;
+  const [resolvedCustomerId, setResolvedCustomerId] = useState<string | null>(null);
 
 
 
@@ -20,6 +19,7 @@ export default function MemberCardScreen() {
   const [profile, setProfile] = useState<{
   id: number;
   name: string;
+  contactName?: string;
   validity: string;
   image: string;
 } | null>(null);
@@ -29,10 +29,16 @@ const [loading, setLoading] = useState(true);
   useEffect(() => {
   const fetchProfile = async () => {
     try {
-      if (!customerId) return;
+      const storedCustomerId = await AsyncStorage.getItem('customer_id');
+      const candidateId =
+        storedCustomerId ??
+        String((user as any)?.customerId ?? (user as any)?.id ?? '').trim();
+      const finalId = candidateId ? candidateId : null;
+      setResolvedCustomerId(finalId);
+      if (!finalId) return;
 
       const res = await fetch(
-        `https://devapi.intownlocal.com/IN/customer/${customerId}/profile`
+        `https://devapi.intownlocal.com/IN/customer/${finalId}/profile`
       );
 
       if (!res.ok) {
@@ -55,7 +61,7 @@ const [loading, setLoading] = useState(true);
   };
 
   fetchProfile();
-}, [customerId]);
+}, [user?.id]);
 
 
 
@@ -95,11 +101,13 @@ const [loading, setLoading] = useState(true);
           )}
         </View>
 
-        <Text style={styles.name}>{profile?.name ?? 'Member'}</Text>
+        <Text style={styles.name}>
+          {profile?.contactName ?? profile?.name ?? (user as any)?.name ?? 'Member'}
+        </Text>
 
         <View style={styles.row}>
           <Text style={styles.label}>Member ID</Text>
-          <Text style={styles.value}>{profile?.id ?? '-'}</Text>
+          <Text style={styles.value}>{resolvedCustomerId ?? profile?.id ?? '-'}</Text>
         </View>
 
         <View style={styles.row}>
