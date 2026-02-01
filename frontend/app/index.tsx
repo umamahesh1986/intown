@@ -31,7 +31,7 @@ export default function SplashScreen() {
     <View style={styles.container}>
       <View style={styles.logoContainer}>
         <Image 
-          source={require('../assets/images/intown-logo.jpg')} 
+          source={{uri:'https://intown-dev.s3.ap-south-1.amazonaws.com/app_logo/intown-logo.jpg'}} 
           style={styles.logoImage}
           resizeMode="contain"
         />

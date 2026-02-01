@@ -1117,7 +1117,7 @@ export default function DualDashboard() {
         <View style={styles.supportModalOverlay}>
           <View style={styles.supportModalContent}>
             <Image
-              source={require('../assets/images/intown-logo.jpg')}
+              source={{uri:'https://intown-dev.s3.ap-south-1.amazonaws.com/app_logo/intown-logo.jpg'}}
               style={styles.supportLogo}
             />
             <Text style={styles.supportTitle}>Intown Customer Support</Text>

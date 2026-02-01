@@ -33,6 +33,7 @@ import {
   getNearbyShops,
   getNearbyShopsByCategory,
 } from '../utils/api';
+import { getCustomerProfile } from '../utils/api';
 
 
 import {
@@ -165,6 +166,9 @@ const formatTransactionDate = (value: string) => {
 };
 
 export default function MemberDashboard() {
+  const [customerProfile, setCustomerProfile] = useState<any>(null);
+const [profileLoading, setProfileLoading] = useState(false);
+
   const router = useRouter();
   const params = useLocalSearchParams<{
     userType?: string;
@@ -250,8 +254,10 @@ export default function MemberDashboard() {
 
 
   useEffect(() => {
+    loadCustomerProfile();
     loadCategories();
     loadUserType();
+    
     requestLocationOnMount();
     // ===== MEMBER CAROUSEL AUTO SLIDE =====
     const timer = setInterval(() => {
@@ -267,6 +273,21 @@ export default function MemberDashboard() {
 
     return () => clearInterval(timer);
   }, []);
+  const loadCustomerProfile = async () => {
+  try {
+    setProfileLoading(true);
+
+    const customerId = 100052; // static for now
+
+    const data = await getCustomerProfile(customerId);
+    setCustomerProfile(data);
+  } catch (error) {
+    console.error('Customer profile fetch failed:', error);
+  } finally {
+    setProfileLoading(false);
+  }
+};
+
 
   //  Call nearby shops API when location is available
   useEffect(() => {
@@ -1124,7 +1145,7 @@ const handleCategoryClick = (category: Category) => {
           <View style={styles.supportModalOverlay}>
             <View style={styles.supportModalContent}>
               <Image
-                source={require('../assets/images/intown-logo.jpg')}
+                source={{uri:'https://intown-dev.s3.ap-south-1.amazonaws.com/app_logo/intown-logo.jpg'}}
                 style={styles.supportLogo}
               />
               <Text style={styles.supportTitle}>Intown Customer Support</Text>
