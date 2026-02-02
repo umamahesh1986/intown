@@ -1,5 +1,5 @@
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Platform, Linking } from 'react-native';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,19 +8,18 @@ import { getUserLocationWithDetails } from '../utils/location';
 import PaymentModal from '../components/PaymentModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { WebView } from 'react-native-webview';
-
-const SHOP_DATA: any = {
-  '1': { name: 'Fresh Mart Grocery', lat: 12.9716, lng: 77.5946 },
-  '2': { name: 'Style Salon & Spa', lat: 12.9720, lng: 77.5950 },
-  '3': { name: 'Quick Bites Restaurant', lat: 12.9705, lng: 77.5935 },
-  '4': { name: 'Wellness Pharmacy', lat: 12.9725, lng: 77.5955 },
-  '5': { name: 'Fashion Hub', lat: 12.9730, lng: 77.5960 },
-  '6': { name: 'Tech Store', lat: 12.9700, lng: 77.5930 },
-};
+import * as Location from 'expo-location';
+import MapView, { Marker, Polyline } from 'react-native-maps';
 
 export default function MemberNavigate() {
   const router = useRouter();
-  const params = useLocalSearchParams();
+  const params = useLocalSearchParams<{
+    shopId?: string;
+    shop?: string;
+    source?: string;
+    shopLat?: string;
+    shopLng?: string;
+  }>();
   const shopId = params.shopId as string;
   const redirectTo = params.source === 'dual' ? '/dual-dashboard' : '/member-dashboard';
   const shopFromParams = (() => {
@@ -31,23 +30,42 @@ export default function MemberNavigate() {
       return null;
     }
   })();
-  const fallbackShop = SHOP_DATA[shopId] || SHOP_DATA['1'];
-  const shopName = shopFromParams?.shopName || shopFromParams?.name || fallbackShop.name;
+  const shopName = shopFromParams?.shopName || shopFromParams?.name || 'Shop';
+  const parsedShopLat = Number(params.shopLat);
+  const parsedShopLng = Number(params.shopLng);
   const destinationLat =
-    shopFromParams?.latitude ?? shopFromParams?.lat ?? fallbackShop.lat;
+    (Number.isFinite(parsedShopLat) ? parsedShopLat : null) ??
+    shopFromParams?.latitude ??
+    shopFromParams?.lat ??
+    shopFromParams?.shopLatitude ??
+    null;
   const destinationLng =
-    shopFromParams?.longitude ?? shopFromParams?.lng ?? fallbackShop.lng;
+    (Number.isFinite(parsedShopLng) ? parsedShopLng : null) ??
+    shopFromParams?.longitude ??
+    shopFromParams?.lng ??
+    shopFromParams?.shopLongitude ??
+    null;
   const location = useLocationStore((state) => state.location);
   const loadLocationFromStorage = useLocationStore((state) => state.loadFromStorage);
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
   const [customerId, setCustomerId] = useState<string | null>(null);
   const [originCoords, setOriginCoords] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [routeCoords, setRouteCoords] = useState<{ latitude: number; longitude: number }[]>([]);
+  const [isRouteLoading, setIsRouteLoading] = useState(false);
+  const [routeError, setRouteError] = useState<string | null>(null);
+  const [followUser, setFollowUser] = useState(false);
+  const [autoFitRoute, setAutoFitRoute] = useState(true);
+  const mapRef = useRef<MapView | null>(null);
 
   const originLat = Number(originCoords?.latitude);
   const originLng = Number(originCoords?.longitude);
   const hasOrigin = Number.isFinite(originLat) && Number.isFinite(originLng);
-  const directionsUrl = `https://www.google.com/maps/dir/?api=1&origin=${originLat},${originLng}&destination=${destinationLat},${destinationLng}&travelmode=driving`;
+  const hasDestination =
+    Number.isFinite(destinationLat) && Number.isFinite(destinationLng);
+  const directionsUrl = hasOrigin && hasDestination
+    ? `https://www.google.com/maps/dir/?api=1&origin=${originLat},${originLng}&destination=${destinationLat},${destinationLng}&travelmode=driving`
+    : '';
 
   const handlePaymentSuccess = (amount: number, savings: number, method: string) => {
     console.log('Payment successful:', { amount, savings, method });
@@ -56,12 +74,38 @@ export default function MemberNavigate() {
   useEffect(() => {
     const ensureLocation = async () => {
       setIsLoadingLocation(true);
-      const freshLocation = await getUserLocationWithDetails();
-      if (freshLocation?.latitude != null && freshLocation?.longitude != null) {
-        setOriginCoords({
-          latitude: freshLocation.latitude,
-          longitude: freshLocation.longitude,
-        });
+      const liveCoords = await (async () => {
+        try {
+          if (Platform.OS === 'web') {
+            return await new Promise<{ latitude: number; longitude: number } | null>((resolve) => {
+              if (!navigator.geolocation) return resolve(null);
+              navigator.geolocation.getCurrentPosition(
+                (position) =>
+                  resolve({
+                    latitude: position.coords.latitude,
+                    longitude: position.coords.longitude,
+                  }),
+                () => resolve(null),
+                { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 }
+              );
+            });
+          }
+          const permission = await Location.requestForegroundPermissionsAsync();
+          if (permission.status !== 'granted') return null;
+          const position = await Location.getCurrentPositionAsync({
+            accuracy: Location.Accuracy.Balanced,
+          });
+          return {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          };
+        } catch {
+          return null;
+        }
+      })();
+
+      if (liveCoords) {
+        setOriginCoords(liveCoords);
       } else {
         await loadLocationFromStorage();
         const storedLocation = useLocationStore.getState().location;
@@ -72,6 +116,9 @@ export default function MemberNavigate() {
           });
         }
       }
+
+      // Keep location store updated for other screens
+      await getUserLocationWithDetails();
       setIsLoadingLocation(false);
     };
     ensureLocation();
@@ -90,6 +137,70 @@ export default function MemberNavigate() {
     loadCustomerId();
   }, []);
 
+  useEffect(() => {
+    const fetchRoute = async () => {
+      if (!hasOrigin || !hasDestination) return;
+      setIsRouteLoading(true);
+      setRouteError(null);
+      try {
+        const url = `https://router.project-osrm.org/route/v1/driving/${originLng},${originLat};${destinationLng},${destinationLat}?overview=full&geometries=geojson`;
+        const res = await fetch(url);
+        if (!res.ok) {
+          throw new Error(`Route fetch failed: ${res.status}`);
+        }
+        const data = await res.json();
+        const points = data?.routes?.[0]?.geometry?.coordinates ?? [];
+        if (!Array.isArray(points) || points.length === 0) {
+          throw new Error('No route found');
+        }
+        const mapped = points.map((point: number[]) => ({
+          latitude: point[1],
+          longitude: point[0],
+        }));
+        setRouteCoords(mapped);
+      } catch (error: any) {
+        console.error('Route fetch error', error);
+        setRouteError(error?.message || 'Unable to load route');
+      } finally {
+        setIsRouteLoading(false);
+      }
+    };
+    fetchRoute();
+  }, [hasOrigin, hasDestination, originLat, originLng, destinationLat, destinationLng]);
+
+  useEffect(() => {
+    if (!mapRef.current || routeCoords.length === 0 || !autoFitRoute) return;
+    mapRef.current.fitToCoordinates(routeCoords, {
+      edgePadding: { top: 60, right: 60, bottom: 60, left: 60 },
+      animated: true,
+    });
+  }, [routeCoords, autoFitRoute]);
+
+  const handleStartNavigation = async () => {
+    if (!hasOrigin || !hasDestination) return;
+    if (Platform.OS === 'web') {
+      try {
+        await Linking.openURL(directionsUrl);
+      } catch (error) {
+        console.error('Failed to open maps', error);
+      }
+      return;
+    }
+    setAutoFitRoute(false);
+    setFollowUser(true);
+    if (mapRef.current) {
+      mapRef.current.animateToRegion(
+        {
+          latitude: originLat,
+          longitude: originLng,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        },
+        600
+      );
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -101,28 +212,79 @@ export default function MemberNavigate() {
       </View>
 
       <View style={styles.mapContainer}>
-        {hasOrigin ? (
-          <WebView
-            source={{ uri: directionsUrl }}
-            style={styles.mapWebView}
-            startInLoadingState
-            renderLoading={() => (
-              <View style={styles.mapLoading}>
-                <ActivityIndicator size="small" color="#2196F3" />
-                <Text style={styles.mapLoadingText}>Loading route...</Text>
-              </View>
-            )}
-          />
+        {hasOrigin && hasDestination ? (
+          Platform.OS === 'web' ? (
+            <WebView
+              source={{ uri: directionsUrl }}
+              style={styles.mapWebView}
+              startInLoadingState
+              javaScriptEnabled
+              domStorageEnabled
+              originWhitelist={['*']}
+              renderLoading={() => (
+                <View style={styles.mapLoading}>
+                  <ActivityIndicator size="small" color="#2196F3" />
+                  <Text style={styles.mapLoadingText}>Loading route...</Text>
+                </View>
+              )}
+            />
+          ) : (
+            <MapView
+              ref={mapRef}
+              style={styles.mapWebView}
+              initialRegion={{
+                latitude: (originLat + destinationLat) / 2,
+                longitude: (originLng + destinationLng) / 2,
+                latitudeDelta: Math.abs(originLat - destinationLat) * 2 + 0.02,
+                longitudeDelta: Math.abs(originLng - destinationLng) * 2 + 0.02,
+              }}
+              showsUserLocation
+              followsUserLocation={followUser}
+            >
+              <Marker coordinate={{ latitude: originLat, longitude: originLng }} title="You" />
+              <Marker
+                coordinate={{ latitude: destinationLat, longitude: destinationLng }}
+                title={shopName}
+              />
+              {routeCoords.length > 0 && (
+                <Polyline coordinates={routeCoords} strokeWidth={4} strokeColor="#2196F3" />
+              )}
+            </MapView>
+          )
         ) : (
           <View style={styles.mapPlaceholder}>
             <ActivityIndicator size="small" color="#2196F3" />
             <Text style={styles.mapSubtext}>
-              {isLoadingLocation
+              {!hasDestination
+                ? 'Shop location not available.'
+                : isLoadingLocation
                 ? 'Getting your location...'
                 : 'Waiting for location permission...'}
             </Text>
           </View>
         )}
+        {(isRouteLoading || routeError) && hasOrigin && hasDestination ? (
+          <View style={styles.routeStatus}>
+            {isRouteLoading ? (
+              <>
+                <ActivityIndicator size="small" color="#2196F3" />
+                <Text style={styles.mapLoadingText}>Loading route...</Text>
+              </>
+            ) : (
+              <Text style={styles.routeErrorText}>{routeError}</Text>
+            )}
+          </View>
+        ) : null}
+
+        {hasOrigin && hasDestination ? (
+          <TouchableOpacity
+            style={[styles.startButton, followUser && styles.startButtonActive]}
+            onPress={handleStartNavigation}
+          >
+            <Ionicons name="navigate" size={18} color="#FFF" />
+            <Text style={styles.startButtonText}>Start</Text>
+          </TouchableOpacity>
+        ) : null}
       </View>
 
       <TouchableOpacity style={styles.payButton} onPress={() => setShowPayment(true)}>
@@ -154,6 +316,47 @@ const styles = StyleSheet.create({
   mapPlaceholder: {flex:1, backgroundColor:'#E3F2FD', alignItems:'center', justifyContent:'center', padding:32},
   mapText: {fontSize:24, fontWeight:'bold', color:'#1976D2', marginTop:16},
   mapSubtext: {fontSize:14, color:'#1976D2', marginTop:8, textAlign:'center'},
+  routeStatus: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    bottom: 16,
+    backgroundColor: 'rgba(255,255,255,0.95)',
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  routeErrorText: {
+    color: '#D32F2F',
+    fontSize: 13,
+    textAlign: 'center',
+  },
+  startButton: {
+    position: 'absolute',
+    right: 16,
+    bottom: 80,
+    backgroundColor: '#2196F3',
+    borderRadius: 22,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    elevation: 6,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+  },
+  startButtonActive: {
+    backgroundColor: '#1976D2',
+  },
+  startButtonText: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '700',
+  },
   payButton: {flexDirection:'row', backgroundColor:'#FF6600', margin:16, borderRadius:12, paddingVertical:16, alignItems:'center', justifyContent:'center'},
   payButtonText: {color:'#FFF', fontSize:18, fontWeight:'bold', marginLeft:8},
 });

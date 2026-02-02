@@ -59,12 +59,16 @@ export default function MemberShopList() {
 
       const mappedShops = Array.isArray(data)
         ? data.map((item: any) => ({
-          id: item.id.toString(),
+          id: item.id?.toString?.() ?? String(item.id ?? ''),
           name: item.shopName,
+          shopName: item.shopName,
           contactName: item.contactName,
           category: item.businessCategory,
+          businessCategory: item.businessCategory,
           distance: item.distance,
           image: item.s3ImageUrl,
+          latitude: item.latitude,
+          longitude: item.longitude,
         }))
         : [];
 

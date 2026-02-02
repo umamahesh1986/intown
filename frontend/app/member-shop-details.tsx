@@ -4,65 +4,10 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistance } from '../utils/formatDistance';
+import { getNearbyShops } from '../utils/api';
+import { useLocationStore } from '../store/locationStore';
 import PaymentModal from '../components/PaymentModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
-const SHOP_DATA: any = {
-  '1': {
-    name: 'Fresh Mart Grocery',
-    rating: 4.5,
-    category: 'Grocery',
-    distance: 0.5,
-    phone: '98765 43210',
-    address: 'Market Road, Sector 12',
-    offers: '10% instant savings on all purchases',
-  },
-  '2': {
-    name: 'Style Salon & Spa',
-    rating: 4.7,
-    category: 'Salon',
-    distance: 0.8,
-    phone: '91234 56789',
-    address: 'Main Street, Block B',
-    offers: '15% off on first visit',
-  },
-  '3': {
-    name: 'Quick Bites Restaurant',
-    rating: 4.3,
-    category: 'Restaurant',
-    distance: 1.2,
-    phone: '99887 66554',
-    address: 'Food Plaza, Lane 3',
-    offers: 'Free dessert on orders above ₹499',
-  },
-  '4': {
-    name: 'Wellness Pharmacy',
-    rating: 4.8,
-    category: 'Pharmacy',
-    distance: 0.3,
-    phone: '90123 45678',
-    address: 'Health Park, Sector 4',
-    offers: '5% discount on medicines',
-  },
-  '5': {
-    name: 'Fashion Hub',
-    rating: 4.2,
-    category: 'Fashion',
-    distance: 1.5,
-    phone: '90909 12345',
-    address: 'Mall Road, 2nd Floor',
-    offers: 'Buy 1 Get 1 on select items',
-  },
-  '6': {
-    name: 'Tech Store',
-    rating: 4.6,
-    category: 'Electronics',
-    distance: 2.0,
-    phone: '95555 00011',
-    address: 'Tech Street, Building A',
-    offers: 'Up to 20% off on accessories',
-  },
-};
 
 export default function MemberShopDetails() {
   const router = useRouter();
@@ -76,9 +21,11 @@ export default function MemberShopDetails() {
       return null;
     }
   })();
-  const shopFallback =
-    (shopId && SHOP_DATA[shopId]) || SHOP_DATA['1'];
-  const shop = shopFromParams || shopFallback;
+  const [fetchedShop, setFetchedShop] = useState<any | null>(null);
+  const [isShopLoading, setIsShopLoading] = useState(false);
+  const location = useLocationStore((state) => state.location);
+  const loadLocationFromStorage = useLocationStore((state) => state.loadFromStorage);
+  const shop = shopFromParams || fetchedShop;
   const resolvedMerchantId =
     shop?.merchantId ??
     shop?.merchant?.id ??
@@ -89,10 +36,31 @@ export default function MemberShopDetails() {
   const [showPayment, setShowPayment] = useState(false);
   const [customerId, setCustomerId] = useState<string | null>(null);
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
+  const [shopLoadError, setShopLoadError] = useState<string | null>(null);
 
   const handlePaymentSuccess = (amount: number, savings: number, method: string) => {
     console.log('Payment successful:', { amount, savings, method });
   };
+
+  if (!shop) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <Ionicons name="storefront" size={40} color="#FF6600" />
+          <Text style={styles.loadingText}>
+            {isShopLoading ? 'Loading shop details...' : shopLoadError || 'Shop not found'}
+          </Text>
+          <TouchableOpacity
+            style={[styles.backButton, { flexDirection: 'row', alignItems: 'center', width: 'auto' }]}
+            onPress={() => router.back()}
+          >
+            <Ionicons name="arrow-back" size={20} color="#1A1A1A" />
+            <Text style={styles.backButtonText}>Go Back</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   useEffect(() => {
     const loadCustomerId = async () => {
@@ -108,6 +76,46 @@ export default function MemberShopDetails() {
 
     loadCustomerId();
   }, []);
+
+  useEffect(() => {
+    if (shopFromParams || !shopId) return;
+    let isActive = true;
+    const loadShopFromApi = async () => {
+      try {
+        setIsShopLoading(true);
+        setShopLoadError(null);
+        await loadLocationFromStorage();
+        const storedLocation = useLocationStore.getState().location;
+        const lat = storedLocation?.latitude ?? location?.latitude;
+        const lng = storedLocation?.longitude ?? location?.longitude;
+        if (lat == null || lng == null) {
+          throw new Error('Missing customer location');
+        }
+        const data = await getNearbyShops(lat, lng);
+        const list = Array.isArray(data) ? data : [];
+        const match = list.find((item) => String(item?.id) === String(shopId));
+        if (isActive) {
+          setFetchedShop(match ?? null);
+          if (!match) {
+            setShopLoadError('Shop not found');
+          }
+        }
+      } catch (error: any) {
+        console.error('Failed to load shop details', error);
+        if (isActive) {
+          setShopLoadError(error?.message || 'Failed to load shop details');
+        }
+      } finally {
+        if (isActive) {
+          setIsShopLoading(false);
+        }
+      }
+    };
+    loadShopFromApi();
+    return () => {
+      isActive = false;
+    };
+  }, [shopFromParams, shopId, location?.latitude, location?.longitude]);
 
   const getCategoryBadge = (category?: string) => {
     const value = (category || '').toLowerCase();
@@ -173,7 +181,7 @@ export default function MemberShopDetails() {
 
             <View style={styles.content}>
               <View style={styles.titleRow}>
-                <Text style={styles.shopName}>{shop.shopName || shop.name}</Text>
+                <Text style={styles.shopName}>{shop}</Text>
                 <View style={[styles.badge, { backgroundColor: badge.bg }]}>
                   <Text style={[styles.badgeText, { color: badge.color }]}>
                     {badge.label}
@@ -335,6 +343,12 @@ export default function MemberShopDetails() {
                 shopId,
                 source: params.source,
                 shop: JSON.stringify(shop),
+                shopLat: String(
+                  shop?.latitude ?? shop?.lat ?? shop?.shopLatitude ?? ''
+                ),
+                shopLng: String(
+                  shop?.longitude ?? shop?.lng ?? shop?.shopLongitude ?? ''
+                ),
               },
             });
           }}
@@ -411,6 +425,9 @@ export default function MemberShopDetails() {
 
 const styles = StyleSheet.create({
   container: {flex:1, backgroundColor:'#F5F5F5'},
+  loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
+  loadingText: { marginTop: 12, fontSize: 14, color: '#666', textAlign: 'center' },
+  backButtonText: { marginLeft: 6, color: '#1A1A1A', fontSize: 14, fontWeight: '600' },
   header: {flexDirection:'row', alignItems:'center', justifyContent:'space-between', padding:16, backgroundColor:'#FFF', borderBottomWidth:1, borderBottomColor:'#EEE'},
   backButton: {width:40, height:40, justifyContent:'center'},
   headerTitle: {fontSize:18, fontWeight:'600', color:'#1A1A1A'},
