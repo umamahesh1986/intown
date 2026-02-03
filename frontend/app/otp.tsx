@@ -465,17 +465,6 @@ export default function OTPScreen() {
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      {/* Firebase Recaptcha Modal - ONLY for mobile */}
-      {!isWeb && FirebaseRecaptchaVerifierModal && firebaseConfig && (
-        <FirebaseRecaptchaVerifierModal
-          ref={recaptchaVerifier}
-          firebaseConfig={firebaseConfig}
-          attemptInvisibleVerification={true}
-          androidHardwareAccelerationDisabled={true}
-          androidLayerType="software"
-        />
-      )}
-
       <View style={styles.content}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color="#000" />
@@ -485,11 +474,11 @@ export default function OTPScreen() {
         <Text style={styles.subtitle}>Enter the 6-digit OTP code that we sent to</Text>
         <Text style={styles.phoneNumber}>+91 {phone}</Text>
         
-        {/* Web Test Mode Banner */}
-        {isWeb && (
+        {/* Test Mode Banner */}
+        {USE_TEST_MODE && (
           <View style={styles.testModeBanner}>
             <Ionicons name="information-circle" size={20} color="#1976D2" />
-            <Text style={styles.testModeText}>Web Test Mode: Use OTP 123456</Text>
+            <Text style={styles.testModeText}>Test Mode: Use OTP 123456</Text>
           </View>
         )}
         
