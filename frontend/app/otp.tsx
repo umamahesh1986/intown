@@ -33,6 +33,7 @@ import { auth } from "../firebase/firebaseConfig";
 const OTP_LENGTH = 6;
 const RESEND_SECONDS = 60;
 const WEB_TEST_OTP = "123456"; // Test OTP for web development
+const USE_TEST_MODE = true; // Enable test mode for both web and mobile
 
 /* ===============================
    PHONE FORMATTER
@@ -64,6 +65,7 @@ export default function OTPScreen() {
 
   const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(""));
   const [verificationId, setVerificationId] = useState<string | null>(null);
+  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSendingOtp, setIsSendingOtp] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
@@ -75,9 +77,10 @@ export default function OTPScreen() {
   const [canResend, setCanResend] = useState(false);
 
   const inputRefs = useRef<(TextInput | null)[]>([]);
-  const recaptchaVerifier = useRef<any>(null);
   const shakeAnim = useRef(new Animated.Value(0)).current;
   const popupTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const recaptchaContainerRef = useRef<HTMLDivElement | null>(null);
+  const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null);
 
   const showOtpSentPopup = (message: string) => {
     setOtpPopupMessage(message);
@@ -97,42 +100,6 @@ export default function OTPScreen() {
       }
     };
   }, []);
-
-  useEffect(() => {
-    if (Platform.OS !== 'android' || !SmsRetriever || !otpSent) return;
-    let isActive = true;
-
-    const startListener = async () => {
-      try {
-        await SmsRetriever.startSmsRetriever();
-        SmsRetriever.addSmsListener((event: any) => {
-          if (!isActive) return;
-          const message = event?.message ?? "";
-          const match = message.match(/\b\d{6}\b/);
-          if (!match) return;
-          const digits = match[0].split("");
-          setOtp(digits);
-          if (digits.length >= OTP_LENGTH) {
-            inputRefs.current[OTP_LENGTH - 1]?.focus();
-          }
-          SmsRetriever.removeSmsListener();
-        });
-      } catch (error) {
-        console.log("SMS retriever error:", error);
-      }
-    };
-
-    startListener();
-
-    return () => {
-      isActive = false;
-      try {
-        SmsRetriever.removeSmsListener();
-      } catch (error) {
-        // ignore cleanup errors
-      }
-    };
-  }, [otpSent]);
 
   /* ===============================
      RESEND TIMER
