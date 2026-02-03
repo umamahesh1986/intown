@@ -397,8 +397,8 @@ export default function OTPScreen() {
       let errorMessage = "Verification failed. Please try again.";
       
       if (err.code === 'auth/invalid-verification-code') {
-        errorMessage = isWeb 
-          ? `Invalid OTP. For web testing, use: ${WEB_TEST_OTP}`
+        errorMessage = USE_TEST_MODE 
+          ? `Invalid OTP. For testing, use: ${WEB_TEST_OTP}`
           : "Invalid OTP. Please check the code and try again.";
       } else if (err.code === 'auth/code-expired') {
         errorMessage = "OTP has expired. Please request a new one.";
