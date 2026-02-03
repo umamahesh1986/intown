@@ -240,7 +240,7 @@ export default function OTPScreen() {
   };
 
   /* ===============================
-     VERIFY OTP (WEB vs MOBILE)
+     VERIFY OTP (TEST MODE for both web and mobile)
   ================================ */
   const handleVerifyOTP = async () => {
     if (isLoading) return;
@@ -249,7 +249,7 @@ export default function OTPScreen() {
     console.log("=== VERIFYING OTP ===");
     console.log("Platform:", Platform.OS);
     console.log("Entered OTP:", code);
-    console.log("Has Verification ID:", !!verificationId);
+    console.log("Test Mode:", USE_TEST_MODE);
 
     if (code.length !== OTP_LENGTH) {
       shake();
@@ -257,7 +257,7 @@ export default function OTPScreen() {
       return;
     }
 
-    if (!verificationId) {
+    if (!verificationId && !confirmationResult) {
       Alert.alert(
         "OTP Not Sent", 
         "Please wait for OTP to be sent first, or click 'Resend OTP'",
@@ -276,19 +276,26 @@ export default function OTPScreen() {
       const phoneNumber = formatPhoneNumber(phone || "");
       let userId = `user_${Date.now()}`;
 
-      // WEB: Test Mode Verification
-      if (isWeb) {
-        console.log("=== WEB TEST MODE VERIFICATION ===");
+      // TEST MODE: Verify with static OTP
+      if (USE_TEST_MODE || verificationId === "TEST_MODE" || verificationId === "MOBILE_TEST_MODE") {
+        console.log("=== TEST MODE VERIFICATION ===");
         
         if (code !== WEB_TEST_OTP) {
-          throw { code: 'auth/invalid-verification-code', message: 'Invalid OTP. For web testing, use: 123456' };
+          throw { code: 'auth/invalid-verification-code', message: 'Invalid OTP. For testing, use: 123456' };
         }
         
-        console.log("Web test OTP verified successfully!");
-        userId = `web_test_${Date.now()}`;
+        console.log("Test OTP verified successfully!");
+        userId = `test_${Date.now()}`;
       } 
-      // MOBILE: Real Firebase Verification
-      else {
+      // PRODUCTION MODE: Real Firebase Verification
+      else if (confirmationResult) {
+        console.log("Verifying with Firebase confirmation result...");
+        const result = await confirmationResult.confirm(code);
+        console.log("=== OTP VERIFIED SUCCESSFULLY ===");
+        console.log("User UID:", result.user.uid);
+        userId = result.user.uid;
+      }
+      else if (verificationId) {
         console.log("Creating Firebase credential...");
         const credential = PhoneAuthProvider.credential(verificationId, code);
         
