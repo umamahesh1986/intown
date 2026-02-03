@@ -120,7 +120,7 @@ export default function OTPScreen() {
   }, [timer, canResend]);
 
   /* ===============================
-     SEND OTP (WEB vs MOBILE)
+     SEND OTP (TEST MODE for both web and mobile)
   ================================ */
   const sendOtp = async () => {
     if (isSendingOtp) return;
@@ -129,6 +129,7 @@ export default function OTPScreen() {
     console.log("=== SENDING OTP ===");
     console.log("Platform:", Platform.OS);
     console.log("Phone:", formattedPhone);
+    console.log("Test Mode:", USE_TEST_MODE);
     
     setStatusMessage("Initializing...");
     setIsSendingOtp(true);
@@ -137,15 +138,15 @@ export default function OTPScreen() {
     setOtp(Array(OTP_LENGTH).fill(""));
     setOtpSent(false);
 
-    // WEB: Use Test Mode (no Firebase)
-    if (isWeb) {
-      console.log("=== WEB TEST MODE ===");
+    // TEST MODE: Use static OTP for development
+    if (USE_TEST_MODE) {
+      console.log("=== TEST MODE ===");
       setStatusMessage("Test Mode: Use OTP 123456");
       
       // Simulate OTP sent
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      setVerificationId("WEB_TEST_MODE");
+      setVerificationId("TEST_MODE");
       setOtpSent(true);
       setStatusMessage("Test OTP: 123456");
       setIsSendingOtp(false);
@@ -154,42 +155,42 @@ export default function OTPScreen() {
       return;
     }
 
-    // MOBILE: Use Real Firebase OTP
+    // PRODUCTION MODE: Real Firebase OTP (for future use)
     try {
-      if (!recaptchaVerifier.current) {
-        console.log("Waiting for reCAPTCHA...");
-        setStatusMessage("Loading reCAPTCHA...");
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        if (!recaptchaVerifier.current) {
-          Alert.alert(
-            "Error", 
-            "reCAPTCHA not ready. Please wait a moment and try again.",
-            [{ text: "Retry", onPress: () => sendOtp() }]
-          );
-          setIsSendingOtp(false);
-          setStatusMessage("");
-          return;
-        }
-      }
-
-      console.log("reCAPTCHA ready, sending OTP...");
       setStatusMessage("Sending SMS...");
       
-      const provider = new PhoneAuthProvider(auth);
-      const id = await provider.verifyPhoneNumber(
-        formattedPhone,
-        recaptchaVerifier.current
-      );
-      
-      console.log("=== OTP SENT SUCCESSFULLY ===");
-      console.log("Verification ID:", id);
-      
-      setVerificationId(id);
-      setOtpSent(true);
-      setStatusMessage("OTP sent! Enter the code.");
-      
-      showOtpSentPopup("OTP sent successfully");
+      // For web, we need to set up reCAPTCHA
+      if (isWeb) {
+        if (!recaptchaContainerRef.current) {
+          // Create container for reCAPTCHA
+          const container = document.createElement('div');
+          container.id = 'recaptcha-container';
+          document.body.appendChild(container);
+          recaptchaContainerRef.current = container;
+        }
+
+        if (!recaptchaVerifierRef.current) {
+          recaptchaVerifierRef.current = new RecaptchaVerifier(auth, 'recaptcha-container', {
+            size: 'invisible',
+            callback: () => {
+              console.log('reCAPTCHA solved');
+            }
+          });
+        }
+
+        const result = await signInWithPhoneNumber(auth, formattedPhone, recaptchaVerifierRef.current);
+        setConfirmationResult(result);
+        setOtpSent(true);
+        setStatusMessage("OTP sent! Enter the code.");
+        showOtpSentPopup("OTP sent successfully");
+      } else {
+        // For mobile without expo-firebase-recaptcha, use test mode
+        console.log("Mobile production mode not fully implemented - using test mode");
+        setVerificationId("MOBILE_TEST_MODE");
+        setOtpSent(true);
+        setStatusMessage("Test OTP: 123456");
+        showOtpSentPopup("OTP sent successfully (Test Mode)");
+      }
       
     } catch (err: any) {
       console.error("=== SEND OTP ERROR ===");
@@ -209,8 +210,6 @@ export default function OTPScreen() {
         errorMessage = "SMS limit reached. Please try again later.";
       } else if (err.code === 'auth/network-request-failed') {
         errorMessage = "Network error. Please check your internet connection.";
-      } else if (err.code === 'auth/captcha-check-failed') {
-        errorMessage = "Verification failed. Please try again.";
       } else if (err.message) {
         errorMessage = err.message;
       }
