@@ -3,7 +3,7 @@
 ## Original Problem Statement
 Build a React Native (Expo) application for InTown Local that enables:
 1. Firebase Phone OTP Authentication
-2. API Integration with `https://devapi.intownlocal.com/IN/search/{phoneNumber}`
+2. API Integration with `https://api.intownlocal.com/IN/search/{phoneNumber}`
 3. Role-Based Redirection based on userType (`new_user`, `in_Customer`, `in_Merchant`)
 4. Dashboard screens for User, Customer, Merchant, and Dual roles
 
@@ -82,10 +82,10 @@ Build a React Native (Expo) application for InTown Local that enables:
 - This bypasses Firebase which doesn't work in web preview environment
 
 ## API Endpoints
-- `GET https://devapi.intownlocal.com/IN/search/{phone}` - User lookup
-- `POST https://devapi.intownlocal.com/IN/customer/` - Customer registration
-- `POST https://devapi.intownlocal.com/IN/merchant/` - Merchant registration
-- `GET https://devapi.intownlocal.com/IN/categories` - Categories list
+- `GET https://api.intownlocal.com/IN/search/{phone}` - User lookup
+- `POST https://api.intownlocal.com/IN/customer/` - Customer registration
+- `POST https://api.intownlocal.com/IN/merchant/` - Merchant registration
+- `GET https://api.intownlocal.com/IN/categories` - Categories list
 
 ## Testing Notes
 - **Web OTP**: Use `123456` as test OTP

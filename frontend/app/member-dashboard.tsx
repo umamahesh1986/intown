@@ -414,7 +414,7 @@ const [profileLoading, setProfileLoading] = useState(false);
       setIsTransactionsLoading(true);
       try {
         const res = await fetch(
-          `https://devapi.intownlocal.com/IN/transactions/customers/${effectiveCustomerId}`,
+          `https://api.intownlocal.com/IN/transactions/customers/${effectiveCustomerId}`,
           {
             headers: token
               ? {
@@ -693,7 +693,7 @@ const handleCategoryClick = (category: Category) => {
   };
 
   const fetchLatestCustomerImage = async (inTownId: string | number) => {
-    const res = await fetch(`https://devapi.intownlocal.com/IN/s3?customerId=${inTownId}`);
+    const res = await fetch(`https://api.intownlocal.com/IN/s3?customerId=${inTownId}`);
     if (!res.ok) {
       throw new Error(`Image fetch failed: ${res.status}`);
     }
@@ -737,7 +737,7 @@ const handleCategoryClick = (category: Category) => {
         throw new Error('Missing customer id for image upload.');
       }
 
-      const uploadUrl = `https://devapi.intownlocal.com/IN/s3/upload?userType=IN_CUSTOMER&inTownId=${inTownId}`;
+      const uploadUrl = `https://api.intownlocal.com/IN/s3/upload?userType=IN_CUSTOMER&inTownId=${inTownId}`;
       const fileName = `customer_${inTownId}_${Date.now()}.jpg`;
       const formData = await buildImageFormData(uri, fileName);
 

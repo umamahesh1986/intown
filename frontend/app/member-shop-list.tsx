@@ -32,7 +32,7 @@ export default function MemberShopList() {
     if (!categoryId || !location?.latitude || !location?.longitude) return;
 
     const res = await fetch(
-      `https://devapi.intownlocal.com/IN/search/by-product-names?categoryId=${categoryId}&customerLatitude=${location.latitude}&customerLongitude=${location.longitude}`
+      `https://api.intownlocal.com/IN/search/by-product-names?categoryId=${categoryId}&customerLatitude=${location.latitude}&customerLongitude=${location.longitude}`
     );
 
     const data = await res.json();

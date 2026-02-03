@@ -466,7 +466,7 @@ export default function DualDashboard() {
       setIsCustomerLoading(true);
       try {
         const res = await fetch(
-          `https://devapi.intownlocal.com/IN/transactions/customers/${id}`,
+          `https://api.intownlocal.com/IN/transactions/customers/${id}`,
           {
             headers: token
               ? {
@@ -515,7 +515,7 @@ export default function DualDashboard() {
       setIsMerchantLoading(true);
       try {
         const res = await fetch(
-          `https://devapi.intownlocal.com/IN/transactions/merchants/${id}`,
+          `https://api.intownlocal.com/IN/transactions/merchants/${id}`,
           {
             headers: token
               ? {

@@ -1,6 +1,6 @@
 import axios from "axios";
 import { Platform } from "react-native";
-const BASE_URL = 'https://devapi.intownlocal.com';
+const BASE_URL = 'https://api.intownlocal.com';
 
 
 /* ===============================
@@ -144,7 +144,7 @@ export const getPlans = async () => {
    CUSTOMER REGISTRATION API
 ================================ */
 
-const INTOWN_API_BASE = "https://devapi.intownlocal.com/IN";
+const INTOWN_API_BASE = "https://api.intownlocal.com/IN";
 
 export const registerMember = async (memberData: any) => {
   try {
@@ -494,7 +494,7 @@ export const searchByProductNames = async (
   longitude: number
 ) => {
   const url =
-    `https://devapi.intownlocal.com/IN/search/by-product-names` +
+    `https://api.intownlocal.com/IN/search/by-product-names` +
     `?productNames=${encodeURIComponent(productName)}` +
     `&customerLatitude=${latitude}` +
     `&customerLongitude=${longitude}`;
@@ -543,7 +543,7 @@ export const getProductsByCategory = async (categoryId: number) => {
 };
 export const getCustomerProfile = async (customerId: number) => {
   const res = await fetch(
-    `https://devapi.intownlocal.com/IN/customer/${customerId}/profile`,
+    `https://api.intownlocal.com/IN/customer/${customerId}/profile`,
     {
       method: 'GET',
       headers: {
@@ -565,7 +565,7 @@ export const getCustomerProfile = async (customerId: number) => {
 
 export const searchProducts = async (text: string) => {
   const res = await fetch(
-    'https://devapi.intownlocal.com/IN/products/'
+    'https://api.intownlocal.com/IN/products/'
   );
 
   if (!res.ok) {
@@ -592,7 +592,7 @@ export const getNearbyShops = async (
   latitude: number,
   longitude: number
 ) => {
-  const url = `https://devapi.intownlocal.com/IN/search/by-product-names?customerLatitude=${latitude}&customerLongitude=${longitude}`;
+  const url = `https://api.intownlocal.com/IN/search/by-product-names?customerLatitude=${latitude}&customerLongitude=${longitude}`;
 
   const res = await fetch(url);
   if (!res.ok) throw new Error('Failed to fetch nearby shops');
@@ -608,7 +608,7 @@ export const getNearbyShopsByCategory = async (
   latitude: number,
   longitude: number
 ) => {
-  const url = `https://devapi.intownlocal.com/IN/search/by-product-names?categoryId=${categoryId}&customerLatitude=${latitude}&customerLongitude=${longitude}`;
+  const url = `https://api.intownlocal.com/IN/search/by-product-names?categoryId=${categoryId}&customerLatitude=${latitude}&customerLongitude=${longitude}`;
 
   const response = await fetch(url, {
     method: 'GET',
@@ -634,7 +634,7 @@ export const assignCategoryToMerchant = async (
   categoryId: number
 ) => {
   const response = await fetch(
-    'https://devapi.intownlocal.com/IN/merchant/assign-to-merchant',
+    'https://api.intownlocal.com/IN/merchant/assign-to-merchant',
     {
       method: 'POST',
       headers: {

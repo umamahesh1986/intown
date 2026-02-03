@@ -75,7 +75,7 @@ export default function RegisterMember() {
 
   const uploadImagesToS3 = async (inTownIdValue: string | number, files: string[]) => {
     if (!files.length) return;
-    const url = `https://devapi.intownlocal.com/IN/s3/upload?userType=IN_CUSTOMER&inTownId=${inTownIdValue}`;
+    const url = `https://api.intownlocal.com/IN/s3/upload?userType=IN_CUSTOMER&inTownId=${inTownIdValue}`;
     const formData = await buildImageFormData(files, inTownIdValue);
 
     const res = await fetch(url, {

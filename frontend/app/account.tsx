@@ -116,7 +116,7 @@ export default function Account() {
 
   const fetchLatestProfileImage = async (isMerchant: boolean, inTownId: string | number) => {
     const queryParam = isMerchant ? 'merchantId' : 'customerId';
-    const res = await fetch(`https://devapi.intownlocal.com/IN/s3?${queryParam}=${inTownId}`);
+    const res = await fetch(`https://api.intownlocal.com/IN/s3?${queryParam}=${inTownId}`);
     if (!res.ok) {
       throw new Error(`Image fetch failed: ${res.status}`);
     }
@@ -174,7 +174,7 @@ export default function Account() {
         throw new Error('Missing user id for image upload.');
       }
 
-      const uploadUrl = `https://devapi.intownlocal.com/IN/s3/upload?userType=${userTypeParam}&inTownId=${inTownId}`;
+      const uploadUrl = `https://api.intownlocal.com/IN/s3/upload?userType=${userTypeParam}&inTownId=${inTownId}`;
       const fileName = `${isMerchant ? 'merchant' : 'customer'}_${inTownId}_${Date.now()}.jpg`;
       const formData = await buildImageFormData(pendingImageUri, fileName);
 

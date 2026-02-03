@@ -38,7 +38,7 @@ const [loading, setLoading] = useState(true);
       if (!finalId) return;
 
       const res = await fetch(
-        `https://devapi.intownlocal.com/IN/customer/${finalId}/profile`
+        `https://api.intownlocal.com/IN/customer/${finalId}/profile`
       );
 
       if (!res.ok) {

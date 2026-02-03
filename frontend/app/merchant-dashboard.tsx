@@ -392,7 +392,7 @@ export default function MerchantDashboard() {
         }
       }
 
-      const res = await fetch(`https://devapi.intownlocal.com/IN/s3?merchantId=${id}`);
+      const res = await fetch(`https://api.intownlocal.com/IN/s3?merchantId=${id}`);
       if (!res.ok) {
         throw new Error(`S3 image fetch failed: ${res.status}`);
       }
@@ -420,7 +420,7 @@ export default function MerchantDashboard() {
       setIsSalesLoading(true);
       try {
         const res = await fetch(
-          `https://devapi.intownlocal.com/IN/transactions/merchants/${merchantId}`,
+          `https://api.intownlocal.com/IN/transactions/merchants/${merchantId}`,
           {
             headers: token
               ? {

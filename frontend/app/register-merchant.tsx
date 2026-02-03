@@ -113,7 +113,7 @@ export default function RegisterMerchant() {
 
   const uploadImagesToS3 = async (inTownIdValue: string | number, files: string[]) => {
     if (!files.length) return;
-    const url = `https://devapi.intownlocal.com/IN/s3/upload?userType=IN_MERCHANT&inTownId=${inTownIdValue}`;
+    const url = `https://api.intownlocal.com/IN/s3/upload?userType=IN_MERCHANT&inTownId=${inTownIdValue}`;
     const formData = await buildImageFormData(files, inTownIdValue);
 
     const res = await fetch(url, {
@@ -139,7 +139,7 @@ export default function RegisterMerchant() {
   };
 
   const fetchMerchantImages = async (merchantIdValue: string | number) => {
-    const res = await fetch(`https://devapi.intownlocal.com/IN/s3?merchantId=${merchantIdValue}`);
+    const res = await fetch(`https://api.intownlocal.com/IN/s3?merchantId=${merchantIdValue}`);
     if (!res.ok) {
       throw new Error(`Image fetch failed: ${res.status}`);
     }

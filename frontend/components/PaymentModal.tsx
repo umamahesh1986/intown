@@ -92,7 +92,7 @@ export default function PaymentModal({
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 15000);
 
-      const res = await fetch('https://devapi.intownlocal.com/IN/transactions/', {
+      const res = await fetch('https://api.intownlocal.com/IN/transactions/', {
         method: 'POST',
         headers: {
           Accept: 'application/json',
