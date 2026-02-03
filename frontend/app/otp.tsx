@@ -15,39 +15,17 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
+import { 
+  PhoneAuthProvider, 
+  signInWithCredential,
+  RecaptchaVerifier,
+  signInWithPhoneNumber,
+  ConfirmationResult
+} from "firebase/auth";
 
 import { useAuthStore } from "../store/authStore";
 import { searchUserByPhone, determineUserRole } from "../utils/api";
-
-// Only import Firebase for mobile
-let FirebaseRecaptchaVerifierModal: any = null;
-let PhoneAuthProvider: any = null;
-let signInWithCredential: any = null;
-let auth: any = null;
-let firebaseConfig: any = null;
-let SmsRetriever: any = null;
-
-if (Platform.OS !== 'web') {
-  // Dynamic imports for mobile only
-  const firebaseRecaptcha = require('expo-firebase-recaptcha');
-  FirebaseRecaptchaVerifierModal = firebaseRecaptcha.FirebaseRecaptchaVerifierModal;
-  
-  const firebaseAuth = require('firebase/auth');
-  PhoneAuthProvider = firebaseAuth.PhoneAuthProvider;
-  signInWithCredential = firebaseAuth.signInWithCredential;
-  
-  const firebaseConfigModule = require('../firebase/firebaseConfig');
-  auth = firebaseConfigModule.auth;
-  firebaseConfig = firebaseConfigModule.firebaseConfig;
-}
-
-if (Platform.OS === 'android') {
-  try {
-    SmsRetriever = require('react-native-android-sms-retriever');
-  } catch (error) {
-    SmsRetriever = null;
-  }
-}
+import { auth } from "../firebase/firebaseConfig";
 
 /* ===============================
    CONFIG
