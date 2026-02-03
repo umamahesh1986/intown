@@ -44,10 +44,15 @@ Build a React Native (Expo) application for InTown Local that enables:
 
 ### Completed Features (Jan 22, 2026)
 - [x] Firebase Phone Authentication setup
-- [x] **Web Test Mode with static OTP (123456)** - Bypasses Firebase reCAPTCHA on web
-- [x] Mobile real OTP flow with reCAPTCHA (conditional import)
+- [x] **Test Mode with static OTP (123456)** - Works on both web and mobile
 - [x] API integration for user search
 - [x] Role determination logic
+
+### Android Build Fix (Dec 2025)
+- [x] **Removed `expo-firebase-recaptcha`** - Deprecated native module causing Gradle build failures
+- [x] **Removed `react-native-android-sms-retriever`** - Incompatible native module
+- [x] Rewrote `otp.tsx` to use Firebase JS SDK directly
+- [x] Enabled Test Mode for both web and mobile (OTP: 123456)
 - [x] Dashboard screens (User, Member, Merchant, Dual)
 - [x] User Type Label in Headers
 - [x] Enhanced API error logging for mobile debugging
