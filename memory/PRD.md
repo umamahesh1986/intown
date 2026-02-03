@@ -51,8 +51,10 @@ Build a React Native (Expo) application for InTown Local that enables:
 ### Android Build Fix (Dec 2025)
 - [x] **Removed `expo-firebase-recaptcha`** - Deprecated native module causing Gradle build failures
 - [x] **Removed `react-native-android-sms-retriever`** - Incompatible native module
-- [x] Rewrote `otp.tsx` to use Firebase JS SDK directly
-- [x] Enabled Test Mode for both web and mobile (OTP: 123456)
+- [x] Implemented `@react-native-firebase/auth` for real SMS OTP on mobile
+- [x] Added `expo-dev-client` for development builds
+- [x] Updated `app.json` with Firebase plugin configuration
+- [x] Web uses test mode (OTP: 123456), mobile uses real SMS
 - [x] Dashboard screens (User, Member, Merchant, Dual)
 - [x] User Type Label in Headers
 - [x] Enhanced API error logging for mobile debugging
