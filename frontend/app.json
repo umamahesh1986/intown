@@ -33,7 +33,7 @@
           "apiKey": "AIzaSyBTPqSDYbyIbJZetJ8Shd_DOqywUJN55AA"
         }
       },
-      "package": "com.vinod_reddy.intownlocal"
+      "package": "com.intown.andriod"
     },
     "web": {
       "bundler": "metro",
