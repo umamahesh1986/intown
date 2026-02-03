@@ -487,14 +487,14 @@ export default function OTPScreen() {
           <View style={styles.successContainer}>
             <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
             <Text style={styles.successText}>
-              {isWeb ? "Ready to verify (Test Mode)" : "OTP sent successfully"}
+              {USE_TEST_MODE ? "Ready to verify (Test Mode)" : "OTP sent successfully"}
             </Text>
           </View>
         ) : (
           <View style={styles.waitingContainer}>
             <Ionicons name="time" size={20} color="#FF9800" />
             <Text style={styles.waitingText}>
-              {isWeb ? "Initializing test mode..." : "Waiting for OTP..."}
+              {USE_TEST_MODE ? "Initializing test mode..." : "Waiting for OTP..."}
             </Text>
           </View>
         )}
