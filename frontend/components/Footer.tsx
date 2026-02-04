@@ -18,8 +18,8 @@ import { WebView } from 'react-native-webview';
 const SOCIAL_LINKS = {
   instagram: 'https://www.instagram.com/intown830',
   facebook: 'https://www.facebook.com/share/171uBhNRZa/',
-  linkedin: 'https://www.linkedin.com/in/vinodintown?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=android_app',
-  youtube: 'https://youtube.com/@intownprivilege?si=dpk7wf9bffUWmFFA',
+  linkedin: 'https://www.linkedin.com/in/vinodintown/',
+  youtube: 'https://www.youtube.com/@intownprivilege',
 };
 
 // --- LEGAL CONTENT HTML ---
