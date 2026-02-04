@@ -274,19 +274,21 @@ const [profileLoading, setProfileLoading] = useState(false);
     return () => clearInterval(timer);
   }, []);
   const loadCustomerProfile = async () => {
-  try {
-    setProfileLoading(true);
-
-    const customerId = 100052; // static for now
-
-    const data = await getCustomerProfile(customerId);
-    setCustomerProfile(data);
-  } catch (error) {
-    console.error('Customer profile fetch failed:', error);
-  } finally {
-    setProfileLoading(false);
-  }
-};
+    try {
+      setProfileLoading(true);
+      const resolvedCustomerId =
+        customerId ??
+        (await AsyncStorage.getItem('customer_id')) ??
+        (user?.id != null ? String(user.id) : null);
+      if (!resolvedCustomerId) return;
+      const data = await getCustomerProfile(Number(resolvedCustomerId));
+      setCustomerProfile(data);
+    } catch (error) {
+      console.error('Customer profile fetch failed:', error);
+    } finally {
+      setProfileLoading(false);
+    }
+  };
 
 
   //  Call nearby shops API when location is available
