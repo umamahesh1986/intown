@@ -311,8 +311,8 @@ export default function OTPScreen() {
       const phoneNumber = formatPhoneNumber(phone || "");
       let userId = `user_${Date.now()}`;
 
-      // WEB TEST MODE or MOBILE FALLBACK
-      if (verificationId === "WEB_TEST_MODE" || verificationId === "MOBILE_TEST_MODE") {
+      // WEB TEST MODE or MOBILE FALLBACK or FIREBASE CONFIG PENDING
+      if (verificationId === "WEB_TEST_MODE" || verificationId === "MOBILE_TEST_MODE" || verificationId === "FIREBASE_CONFIG_PENDING") {
         console.log("=== TEST MODE VERIFICATION ===");
         
         if (code !== WEB_TEST_OTP) {
