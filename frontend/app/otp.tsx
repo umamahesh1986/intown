@@ -485,7 +485,7 @@ export default function OTPScreen() {
   };
 
   // Check if we're in test mode
-  const isTestMode = verificationId === "WEB_TEST_MODE" || verificationId === "MOBILE_TEST_MODE";
+  const isTestMode = verificationId === "WEB_TEST_MODE" || verificationId === "MOBILE_TEST_MODE" || verificationId === "FIREBASE_CONFIG_PENDING";
 
   /* ===============================
      UI
