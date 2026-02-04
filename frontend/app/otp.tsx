@@ -178,8 +178,16 @@ export default function OTPScreen() {
         setStatusMessage("Sending SMS...");
         
         try {
-          // Try with forceResendingToken for better reliability
-          const confirmation = await firebaseAuth().signInWithPhoneNumber(formattedPhone, true);
+          // Configure phone auth settings for better compatibility
+          const auth = firebaseAuth();
+          
+          // Set app verification to use reCAPTCHA if Play Integrity fails
+          if (auth.settings) {
+            auth.settings.appVerificationDisabledForTesting = false;
+          }
+          
+          // Send OTP
+          const confirmation = await auth.signInWithPhoneNumber(formattedPhone);
           
           console.log("=== OTP SENT SUCCESSFULLY ===");
           setConfirmationResult(confirmation);
@@ -205,9 +213,9 @@ export default function OTPScreen() {
             Alert.alert(
               "Firebase Setup Required",
               "To enable real SMS OTP:\n\n" +
-              "1. Add SHA-1 & SHA-256 fingerprints to Firebase Console\n" +
-              "2. Enable Play Integrity API in Google Cloud\n" +
-              "3. Add test phone numbers in Firebase Auth\n\n" +
+              "1. Enable Play Integrity API in Google Cloud Console\n" +
+              "2. Configure App Check in Firebase Console\n" +
+              "3. Or add test phone number in Firebase Auth\n\n" +
               "For now, use test OTP: 123456",
               [{ text: "OK" }]
             );
