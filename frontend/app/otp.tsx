@@ -177,13 +177,44 @@ export default function OTPScreen() {
         console.log("=== MOBILE REAL OTP ===");
         setStatusMessage("Sending SMS...");
         
-        const confirmation = await firebaseAuth().signInWithPhoneNumber(formattedPhone);
-        
-        console.log("=== OTP SENT SUCCESSFULLY ===");
-        setConfirmationResult(confirmation);
-        setOtpSent(true);
-        setStatusMessage("OTP sent! Check your SMS.");
-        showOtpSentPopup("OTP sent successfully");
+        try {
+          // Try with forceResendingToken for better reliability
+          const confirmation = await firebaseAuth().signInWithPhoneNumber(formattedPhone, true);
+          
+          console.log("=== OTP SENT SUCCESSFULLY ===");
+          setConfirmationResult(confirmation);
+          setOtpSent(true);
+          setStatusMessage("OTP sent! Check your SMS.");
+          showOtpSentPopup("OTP sent successfully");
+        } catch (firebaseError: any) {
+          console.error("Firebase Phone Auth Error:", firebaseError.code, firebaseError.message);
+          
+          // Handle specific error: missing-client-identifier
+          if (firebaseError.code === 'auth/missing-client-identifier' || 
+              firebaseError.code === 'auth/app-not-authorized' ||
+              firebaseError.code === 'auth/invalid-app-credential') {
+            // Fallback to test mode when Firebase config is incomplete
+            console.log("=== FALLING BACK TO TEST MODE ===");
+            setStatusMessage("Using Test Mode (Firebase config pending)");
+            await new Promise(resolve => setTimeout(resolve, 500));
+            setVerificationId("FIREBASE_CONFIG_PENDING");
+            setOtpSent(true);
+            setStatusMessage("Test OTP: 123456");
+            showOtpSentPopup("Test Mode: Use OTP 123456");
+            
+            Alert.alert(
+              "Firebase Setup Required",
+              "To enable real SMS OTP:\n\n" +
+              "1. Add SHA-1 & SHA-256 fingerprints to Firebase Console\n" +
+              "2. Enable Play Integrity API in Google Cloud\n" +
+              "3. Add test phone numbers in Firebase Auth\n\n" +
+              "For now, use test OTP: 123456",
+              [{ text: "OK" }]
+            );
+          } else {
+            throw firebaseError; // Re-throw other errors
+          }
+        }
       } else {
         // Fallback for mobile without native Firebase
         console.log("=== MOBILE FALLBACK TEST MODE ===");
