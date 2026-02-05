@@ -53,7 +53,7 @@ export default function RegisterMerchant() {
   /* ================= ORIGINAL STATES (UNCHANGED) ================= */
 
   const [contactName, setContactName] = useState('');
-  const [shopName, setShopName] = useState('');
+  const [businessName, setBusinessName] = useState('');
 
   const [businessCategory, setBusinessCategory] = useState('');
   const [categorySearch, setCategorySearch] = useState('');
@@ -420,7 +420,7 @@ export default function RegisterMerchant() {
     try {
       const draft = {
         contactName,
-        shopName,
+        businessName,
         businessCategory,
         description,
         yearsInBusiness,
@@ -451,7 +451,7 @@ export default function RegisterMerchant() {
       const draft = JSON.parse(stored);
       if (!draft) return;
       setContactName(draft.contactName ?? '');
-      setShopName(draft.shopName ?? '');
+      setBusinessName(draft.businessName ?? '');
       setBusinessCategory(draft.businessCategory ?? '');
       setDescription(draft.description ?? '');
       setYearsInBusiness(draft.yearsInBusiness ?? '');
@@ -671,8 +671,8 @@ export default function RegisterMerchant() {
 
 
     const payload = {
+      businessName,
       contactName,
-      shopName,
       businessCategory,
       description,
       fromYears: yearsInBusiness,
@@ -688,10 +688,8 @@ export default function RegisterMerchant() {
       images,
       agreedToTerms,
       categoryList: selectedCategoryId ? [selectedCategoryId] : [],
-
+      productIds: selectedProductIds.map(id => id.toString()),
       productNames,
-
-
     };
 
     try {
@@ -717,8 +715,8 @@ export default function RegisterMerchant() {
       if (contactName) {
         await AsyncStorage.setItem('merchant_contact_name', contactName);
       }
-      if (shopName) {
-        await AsyncStorage.setItem('merchant_shop_name', shopName);
+      if (businessName) {
+        await AsyncStorage.setItem('merchant_shop_name', businessName);
       }
       await AsyncStorage.removeItem(draftKey);
       if (location?.latitude != null && location?.longitude != null) {
@@ -819,11 +817,11 @@ export default function RegisterMerchant() {
 
           {/* SHOP NAME */}
           <View style={styles.formGroup}>
-            <Text style={styles.label}>Shop Name *</Text>
+            <Text style={styles.label}>Business Name *</Text>
             <TextInput
               style={styles.input}
-              value={shopName}
-              onChangeText={setShopName}
+              value={businessName}
+              onChangeText={setBusinessName}
             />
           </View>
 

@@ -1104,7 +1104,7 @@ const handleCategoryClick = (category: Category) => {
                   </View>
 
                   <Text style={styles.shopCardName} numberOfLines={1}>
-                    {shop.shopName || shop.merchantName || 'Shop'}
+                    {shop.businessName || shop.merchantName || 'Shop'}
                   </Text>
 
                   <Text style={styles.shopCardCategory}>
