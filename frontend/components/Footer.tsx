@@ -16,7 +16,7 @@ import { WebView } from 'react-native-webview';
 
 // --- LINKS ---
 const SOCIAL_LINKS = {
-  instagram: 'https://www.instagram.com/intown830',
+  instagram: 'https://www.instagram.com/intown830/',
   facebook: 'https://www.facebook.com/share/171uBhNRZa/',
   linkedin: 'https://www.linkedin.com/in/vinodintown/',
   youtube: 'https://www.youtube.com/@intownprivilege',
@@ -387,13 +387,12 @@ const LEGAL_CONTENT = {
 
 const openExternalURL = async (url: string) => {
   try {
-    const supported = await Linking.canOpenURL(url);
-    if (supported) await Linking.openURL(url);
-    else Alert.alert('Error', `Cannot open URL: ${url}`);
+    await Linking.openURL(url);
   } catch (error) {
     Alert.alert('Error', 'Failed to open link');
   }
 };
+
 type FooterProps = {
   dashboardType: 'user' | 'member' | 'merchant';
 };

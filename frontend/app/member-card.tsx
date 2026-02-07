@@ -73,7 +73,7 @@ const [loading, setLoading] = useState(true);
   if (loading) {
   return (
     <SafeAreaView style={styles.container}>
-      <Text>Loading member card...</Text>
+      <Text>Loading customer card...</Text>
     </SafeAreaView>
   );
 }
@@ -106,13 +106,13 @@ const [loading, setLoading] = useState(true);
         </Text>
 
         <View style={styles.row}>
-          <Text style={styles.label}>Member ID</Text>
+          <Text style={styles.label}>Customer ID</Text>
           <Text style={styles.value}>{resolvedCustomerId ?? profile?.id ?? '-'}</Text>
         </View>
 
         <View style={styles.row}>
           <Text style={styles.label}>Plan</Text>
-          <Text style={styles.value}>INtown Member</Text>
+          <Text style={styles.value}>INtown Customer</Text>
         </View>
 
         <View style={styles.row}>

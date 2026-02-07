@@ -833,7 +833,7 @@ const handleCategoryClick = (category: Category) => {
           <View style={styles.membershipBanner}>
             <Ionicons name="ribbon-outline" size={18} color="#FF6600" />
             <View style={{ marginLeft: 8 }}>
-              <Text style={styles.membershipBannerTitle}>{currentPlan} Member</Text>
+              <Text style={styles.membershipBannerTitle}>{currentPlan} Customer</Text>
               <Text style={styles.membershipBannerSubtitle}>
                 Enjoy instant savings at partnered local shops.
               </Text>
@@ -1265,7 +1265,7 @@ const handleCategoryClick = (category: Category) => {
               }}
             >
               <Ionicons name="card-outline" size={22} color="#FF6600" />
-              <Text style={styles.userPanelText}>Member Card</Text>
+              <Text style={styles.userPanelText}>Customer Card</Text>
             </TouchableOpacity>
 
 
