@@ -197,27 +197,54 @@ export default function MemberNavigate() {
 
   const handleStartNavigation = async () => {
     if (!hasOrigin || !hasDestination) return;
-    if (Platform.OS === 'web') {
+    
+    // Open Google Maps for turn-by-turn navigation
+    const googleMapsUrl = Platform.select({
+      ios: `comgooglemaps://?saddr=${originLat},${originLng}&daddr=${destinationLat},${destinationLng}&directionsmode=driving`,
+      android: `google.navigation:q=${destinationLat},${destinationLng}&mode=d`,
+      default: directionsUrl,
+    });
+    
+    try {
+      const canOpen = await Linking.canOpenURL(googleMapsUrl);
+      if (canOpen) {
+        await Linking.openURL(googleMapsUrl);
+      } else {
+        await Linking.openURL(directionsUrl);
+      }
+    } catch (error) {
+      console.error('Failed to open maps', error);
       try {
         await Linking.openURL(directionsUrl);
-      } catch (error) {
-        console.error('Failed to open maps', error);
+      } catch (e) {
+        console.error('Failed to open web maps', e);
       }
-      return;
     }
-    setAutoFitRoute(false);
+  };
+
+  const handleFocusRoute = () => {
+    if (!mapRef.current || routeCoords.length === 0) return;
+    setFollowUser(false);
+    setAutoFitRoute(true);
+    mapRef.current.fitToCoordinates(routeCoords, {
+      edgePadding: { top: 100, right: 60, bottom: 180, left: 60 },
+      animated: true,
+    });
+  };
+
+  const handleFocusUser = () => {
+    if (!mapRef.current || !hasOrigin) return;
     setFollowUser(true);
-    if (mapRef.current) {
-      mapRef.current.animateToRegion(
-        {
-          latitude: originLat,
-          longitude: originLng,
-          latitudeDelta: 0.01,
-          longitudeDelta: 0.01,
-        },
-        600
-      );
-    }
+    setAutoFitRoute(false);
+    mapRef.current.animateToRegion(
+      {
+        latitude: originLat,
+        longitude: originLng,
+        latitudeDelta: 0.005,
+        longitudeDelta: 0.005,
+      },
+      600
+    );
   };
 
   return (
