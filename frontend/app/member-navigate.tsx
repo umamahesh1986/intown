@@ -151,7 +151,8 @@ export default function MemberNavigate() {
           throw new Error(`Route fetch failed: ${res.status}`);
         }
         const data = await res.json();
-        const points = data?.routes?.[0]?.geometry?.coordinates ?? [];
+        const route = data?.routes?.[0];
+        const points = route?.geometry?.coordinates ?? [];
         if (!Array.isArray(points) || points.length === 0) {
           throw new Error('No route found');
         }
@@ -160,6 +161,22 @@ export default function MemberNavigate() {
           longitude: point[0],
         }));
         setRouteCoords(mapped);
+        
+        // Extract distance and duration
+        if (route?.distance) {
+          const distanceKm = (route.distance / 1000).toFixed(1);
+          setRouteDistance(`${distanceKm} km`);
+        }
+        if (route?.duration) {
+          const durationMin = Math.round(route.duration / 60);
+          if (durationMin < 60) {
+            setRouteDuration(`${durationMin} min`);
+          } else {
+            const hours = Math.floor(durationMin / 60);
+            const mins = durationMin % 60;
+            setRouteDuration(`${hours} hr ${mins} min`);
+          }
+        }
       } catch (error: any) {
         console.error('Route fetch error', error);
         setRouteError(error?.message || 'Unable to load route');
