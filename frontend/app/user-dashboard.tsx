@@ -1557,7 +1557,7 @@ const styles = StyleSheet.create({
   },
 
   themeSection: {
-    backgroundColor: '#008080',
+    backgroundColor: '#CF5300',
     padding: 24,
     alignItems: 'center',
   },
@@ -1644,14 +1644,14 @@ const styles = StyleSheet.create({
   },
   calculatorHintContainer: {
     alignSelf: 'stretch',
-    backgroundColor: '#008080',
+    backgroundColor: '#CF5300',
     paddingVertical: 10,
     paddingHorizontal: 16,
     marginTop: 12,
     marginHorizontal: -16,
     marginBottom: -16,
     borderTopWidth: 1,
-    borderTopColor: '#008080',
+    borderTopColor: '#CF5300',
     borderBottomLeftRadius: 12,
     borderBottomRightRadius: 12,
   },
@@ -1666,7 +1666,7 @@ const styles = StyleSheet.create({
   popularPlan: {
   },
   popularBadge: {
-    backgroundColor: '#008080',
+    backgroundColor: '#CF5300',
     paddingVertical: 4,
     paddingHorizontal: 12,
     borderRadius: 12,

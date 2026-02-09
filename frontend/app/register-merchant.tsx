@@ -718,6 +718,9 @@ export default function RegisterMerchant() {
       if (businessName) {
         await AsyncStorage.setItem('merchant_shop_name', businessName);
       }
+      if (description) {
+        await AsyncStorage.setItem('merchant_description', description);
+      }
       await AsyncStorage.removeItem(draftKey);
       if (location?.latitude != null && location?.longitude != null) {
         await AsyncStorage.setItem('merchant_location_lat', String(location.latitude));

@@ -1602,20 +1602,20 @@ const styles = StyleSheet.create({
   summaryItem: {
     flex: 1,
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FF6600',
     paddingVertical: 12,
     marginHorizontal: 6,
     borderRadius: 10,
   },
   summaryLabel: {
     ...FontStylesWithFallback.caption,
-    color: '#777777',
+    color: '#FFFFFF',
     fontSize: 11,
     fontWeight: '700',
   },
   summaryValue: {
     ...FontStylesWithFallback.h3,
-    color: '#fe6f09',
+    color: '#FFFFFF',
     fontWeight: '700',
     marginTop: 6,
   },

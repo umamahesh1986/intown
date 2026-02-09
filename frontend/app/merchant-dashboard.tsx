@@ -83,6 +83,7 @@ export default function MerchantDashboard() {
   const [merchantId, setMerchantId] = useState<string | null>(null);
   const [shopName, setShopName] = useState<string | null>(null);
   const [merchantContactName, setMerchantContactName] = useState<string | null>(null);
+  const [merchantDescription, setMerchantDescription] = useState<string | null>(null);
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [shopImages, setShopImages] = useState<string[]>([]);
   const [shopImageIndex, setShopImageIndex] = useState(0);
@@ -326,6 +327,10 @@ export default function MerchantDashboard() {
         if (storedShopName && isMounted) {
           setShopName(storedShopName);
         }
+        const storedDescription = await AsyncStorage.getItem('merchant_description');
+        if (storedDescription && isMounted) {
+          setMerchantDescription(storedDescription);
+        }
         const storedContactName = await AsyncStorage.getItem('merchant_contact_name');
         if (storedContactName && isMounted) {
           setMerchantContactName(storedContactName);
@@ -487,7 +492,7 @@ export default function MerchantDashboard() {
             <Ionicons name="location" size={16} color="#FF6600" />
             <View style={styles.locationTextContainer}>
               <Text style={styles.welcomeText}>
-                Welcome {shopName || merchantContactName || user?.name || 'My Shop'}
+                Welcome {merchantShop.name || merchantContactName || user?.name || 'My Shop'}
               </Text>
               <Text style={styles.locationText} numberOfLines={1}>
                 {getLocationDisplayText()}
@@ -616,6 +621,16 @@ export default function MerchantDashboard() {
               />
             ))}
             <Text style={styles.ratingText}>{merchantShop.rating}</Text>
+          </View>
+        </View>
+
+        {/* Description Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Description</Text>
+          <View style={styles.descriptionCard}>
+            <Text style={styles.descriptionText}>
+              {merchantDescription || 'No description available'}
+            </Text>
           </View>
         </View>
 
@@ -1043,6 +1058,8 @@ const styles = StyleSheet.create({
   shopCategory: { fontSize: 16, color: '#666666', marginBottom: 12 },
   ratingContainer: { flexDirection: 'row', alignItems: 'center' },
   ratingText: { fontSize: 16, fontWeight: '600', color: '#666666', marginLeft: 8 },
+  descriptionCard: { backgroundColor: '#FFFFFF', borderRadius: 12, padding: 16, borderWidth: 1, borderColor: '#EEEEEE' },
+  descriptionText: { fontSize: 14, color: '#666666', lineHeight: 20 },
   section: { padding: 16 },
   sectionNoHorizontalPadding: {
     paddingHorizontal: 0,

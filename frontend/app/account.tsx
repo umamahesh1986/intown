@@ -310,7 +310,7 @@ export default function Account() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 16, backgroundColor: '#F5F5F5' },
-  header: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
+  header: { flexDirection: 'row', alignItems: 'center', marginBottom: 16, marginTop: 32 },
   backButton: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
   title: { flex: 1, fontSize: 22, fontWeight: '700', marginLeft: 8 },
   editBtn: { color: '#FF6600', fontWeight: '600', fontSize: 16 },
