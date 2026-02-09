@@ -345,6 +345,22 @@ export default function MemberNavigate() {
             </Text>
           </View>
         )}
+        
+        {/* Route Info Card - Distance & Duration */}
+        {routeDistance && routeDuration && !isRouteLoading && (
+          <View style={styles.routeInfoCard}>
+            <View style={styles.routeInfoRow}>
+              <Ionicons name="time-outline" size={20} color="#1976D2" />
+              <Text style={styles.routeInfoText}>{routeDuration}</Text>
+            </View>
+            <View style={styles.routeInfoDivider} />
+            <View style={styles.routeInfoRow}>
+              <Ionicons name="navigate-outline" size={20} color="#1976D2" />
+              <Text style={styles.routeInfoText}>{routeDistance}</Text>
+            </View>
+          </View>
+        )}
+        
         {(isRouteLoading || routeError) && hasOrigin && hasDestination ? (
           <View style={styles.routeStatus}>
             {isRouteLoading ? (
@@ -358,13 +374,29 @@ export default function MemberNavigate() {
           </View>
         ) : null}
 
+        {/* Map Control Buttons */}
+        {hasOrigin && hasDestination && (
+          <View style={styles.mapControls}>
+            <TouchableOpacity style={styles.mapControlButton} onPress={handleFocusRoute}>
+              <Ionicons name="expand-outline" size={22} color="#1976D2" />
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.mapControlButton, followUser && styles.mapControlButtonActive]} 
+              onPress={handleFocusUser}
+            >
+              <Ionicons name="locate" size={22} color={followUser ? "#FFF" : "#1976D2"} />
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Start Navigation Button */}
         {hasOrigin && hasDestination ? (
           <TouchableOpacity
-            style={[styles.startButton, followUser && styles.startButtonActive]}
+            style={styles.startButton}
             onPress={handleStartNavigation}
           >
-            <Ionicons name="navigate" size={18} color="#FFF" />
-            <Text style={styles.startButtonText}>Start</Text>
+            <Ionicons name="navigate" size={20} color="#FFF" />
+            <Text style={styles.startButtonText}>Start Navigation</Text>
           </TouchableOpacity>
         ) : null}
       </View>
