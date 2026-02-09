@@ -56,6 +56,8 @@ export default function MemberNavigate() {
   const [routeError, setRouteError] = useState<string | null>(null);
   const [followUser, setFollowUser] = useState(false);
   const [autoFitRoute, setAutoFitRoute] = useState(true);
+  const [routeDistance, setRouteDistance] = useState<string | null>(null);
+  const [routeDuration, setRouteDuration] = useState<string | null>(null);
   const mapRef = useRef<MapView | null>(null);
 
   const originLat = Number(originCoords?.latitude);
