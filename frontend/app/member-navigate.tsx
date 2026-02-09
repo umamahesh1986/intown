@@ -285,15 +285,51 @@ export default function MemberNavigate() {
                 longitudeDelta: Math.abs(originLng - destinationLng) * 2 + 0.02,
               }}
               showsUserLocation
+              showsMyLocationButton={false}
+              showsCompass={true}
               followsUserLocation={followUser}
+              showsTraffic={true}
             >
-              <Marker coordinate={{ latitude: originLat, longitude: originLng }} title="You" />
+              {/* Origin Marker - Your Location */}
+              <Marker 
+                coordinate={{ latitude: originLat, longitude: originLng }} 
+                title="Your Location"
+                anchor={{ x: 0.5, y: 0.5 }}
+              >
+                <View style={styles.originMarker}>
+                  <View style={styles.originMarkerInner} />
+                </View>
+              </Marker>
+              
+              {/* Destination Marker - Shop */}
               <Marker
                 coordinate={{ latitude: destinationLat, longitude: destinationLng }}
                 title={shopName}
-              />
+                anchor={{ x: 0.5, y: 1 }}
+              >
+                <View style={styles.destinationMarker}>
+                  <Ionicons name="location" size={40} color="#D32F2F" />
+                </View>
+              </Marker>
+              
+              {/* Route Polyline with border effect */}
               {routeCoords.length > 0 && (
-                <Polyline coordinates={routeCoords} strokeWidth={4} strokeColor="#2196F3" />
+                <>
+                  <Polyline 
+                    coordinates={routeCoords} 
+                    strokeWidth={8} 
+                    strokeColor="#1565C0"
+                    lineCap="round"
+                    lineJoin="round"
+                  />
+                  <Polyline 
+                    coordinates={routeCoords} 
+                    strokeWidth={5} 
+                    strokeColor="#4FC3F7"
+                    lineCap="round"
+                    lineJoin="round"
+                  />
+                </>
               )}
             </MapView>
           )
