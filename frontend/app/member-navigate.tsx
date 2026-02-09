@@ -430,11 +430,71 @@ const styles = StyleSheet.create({
   mapPlaceholder: {flex:1, backgroundColor:'#E3F2FD', alignItems:'center', justifyContent:'center', padding:32},
   mapText: {fontSize:24, fontWeight:'bold', color:'#1976D2', marginTop:16},
   mapSubtext: {fontSize:14, color:'#1976D2', marginTop:8, textAlign:'center'},
+  
+  // Custom Markers
+  originMarker: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(33, 150, 243, 0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#2196F3',
+  },
+  originMarkerInner: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#2196F3',
+  },
+  destinationMarker: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  
+  // Route Info Card
+  routeInfoCard: {
+    position: 'absolute',
+    top: 16,
+    left: 16,
+    right: 16,
+    backgroundColor: '#FFF',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  routeInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  routeInfoText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1976D2',
+  },
+  routeInfoDivider: {
+    width: 1,
+    height: 24,
+    backgroundColor: '#E0E0E0',
+    marginHorizontal: 20,
+  },
+  
+  // Route Status
   routeStatus: {
     position: 'absolute',
     left: 16,
     right: 16,
-    bottom: 16,
+    bottom: 90,
     backgroundColor: 'rgba(255,255,255,0.95)',
     borderRadius: 12,
     paddingVertical: 10,
@@ -447,30 +507,55 @@ const styles = StyleSheet.create({
     fontSize: 13,
     textAlign: 'center',
   },
-  startButton: {
+  
+  // Map Controls
+  mapControls: {
     position: 'absolute',
     right: 16,
-    bottom: 80,
-    backgroundColor: '#2196F3',
+    top: 80,
+    gap: 8,
+  },
+  mapControlButton: {
+    width: 44,
+    height: 44,
     borderRadius: 22,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    backgroundColor: '#FFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  mapControlButtonActive: {
+    backgroundColor: '#1976D2',
+  },
+  
+  // Start Navigation Button
+  startButton: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    bottom: 16,
+    backgroundColor: '#4CAF50',
+    borderRadius: 12,
+    paddingVertical: 14,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    justifyContent: 'center',
+    gap: 8,
     elevation: 6,
     shadowColor: '#000',
     shadowOpacity: 0.2,
     shadowRadius: 6,
   },
-  startButtonActive: {
-    backgroundColor: '#1976D2',
-  },
   startButtonText: {
     color: '#FFF',
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '700',
   },
+  
   payButton: {flexDirection:'row', backgroundColor:'#FF6600', margin:16, borderRadius:12, paddingVertical:16, alignItems:'center', justifyContent:'center'},
   payButtonText: {color:'#FFF', fontSize:18, fontWeight:'bold', marginLeft:8},
 });
