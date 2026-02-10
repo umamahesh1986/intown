@@ -1325,7 +1325,13 @@ const handleCategoryClick = (category: Category) => {
         animationType="slide"
         onRequestClose={() => setShowLocationModal(false)}
       >
-        <View style={styles.locationModalContainer}>
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.locationModalContainer}
+        >
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <View style={styles.locationModalOverlay} />
+          </TouchableWithoutFeedback>
           <View style={styles.locationModalContent}>
             <View style={styles.locationModalHeader}>
               <Text style={styles.locationModalTitle}>Select Location</Text>
@@ -1334,36 +1340,7 @@ const handleCategoryClick = (category: Category) => {
               </TouchableOpacity>
             </View>
 
-            <TouchableOpacity
-              style={styles.useCurrentLocationBtn}
-              onPress={handleUseCurrentLocation}
-              disabled={isLocationLoading}
-            >
-              <Ionicons name="locate" size={20} color="#FF6600" />
-              <Text style={styles.useCurrentLocationText}>
-                {isLocationLoading ? 'Getting location...' : 'Use Current Location'}
-              </Text>
-              {isLocationLoading && <ActivityIndicator size="small" color="#FF6600" style={{ marginLeft: 8 }} />}
-            </TouchableOpacity>
-
-            {location && (
-              <View style={styles.currentLocationDisplay}>
-                <Ionicons name="location" size={18} color="#4CAF50" />
-                <View style={{ marginLeft: 10, flex: 1 }}>
-                  <Text style={styles.currentLocationArea}>{location.area || location.city}</Text>
-                  <Text style={styles.currentLocationFull} numberOfLines={2}>
-                    {location.fullAddress}
-                  </Text>
-                </View>
-              </View>
-            )}
-
-            <View style={styles.locationDivider}>
-              <View style={styles.locationDividerLine} />
-              <Text style={styles.locationDividerText}>OR</Text>
-              <View style={styles.locationDividerLine} />
-            </View>
-
+            {/* Search Input - At the top for visibility */}
             <View style={styles.locationSearchContainer}>
               <Ionicons name="search" size={20} color="#999" />
               <TextInput
@@ -1372,32 +1349,70 @@ const handleCategoryClick = (category: Category) => {
                 placeholderTextColor="#999"
                 value={locationSearchQuery}
                 onChangeText={handleLocationSearch}
+                returnKeyType="search"
               />
+              {locationSearchQuery.length > 0 && (
+                <TouchableOpacity onPress={() => setLocationSearchQuery('')}>
+                  <Ionicons name="close-circle" size={20} color="#999" />
+                </TouchableOpacity>
+              )}
             </View>
 
             {isSearchingLocation && (
-              <ActivityIndicator size="small" color="#FF6600" style={{ marginTop: 16 }} />
+              <ActivityIndicator size="small" color="#FF6600" style={{ marginTop: 12 }} />
             )}
 
-            <ScrollView style={styles.locationSearchResults}>
-              {locationSearchResults.map((item, index) => (
+            {/* Search Results */}
+            {locationSearchResults.length > 0 ? (
+              <ScrollView 
+                style={styles.locationSearchResults}
+                keyboardShouldPersistTaps="handled"
+              >
+                {locationSearchResults.map((item, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={styles.locationSearchItem}
+                    onPress={() => handleSelectLocation(item)}
+                  >
+                    <Ionicons name="location-outline" size={20} color="#666" />
+                    <View style={{ marginLeft: 12, flex: 1 }}>
+                      <Text style={styles.locationSearchItemName}>{item.name}</Text>
+                      <Text style={styles.locationSearchItemAddress} numberOfLines={2}>
+                        {item.fullAddress}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            ) : (
+              <>
                 <TouchableOpacity
-                  key={index}
-                  style={styles.locationSearchItem}
-                  onPress={() => handleSelectLocation(item)}
+                  style={styles.useCurrentLocationBtn}
+                  onPress={handleUseCurrentLocation}
+                  disabled={isLocationLoading}
                 >
-                  <Ionicons name="location-outline" size={20} color="#666" />
-                  <View style={{ marginLeft: 12, flex: 1 }}>
-                    <Text style={styles.locationSearchItemName}>{item.name}</Text>
-                    <Text style={styles.locationSearchItemAddress} numberOfLines={2}>
-                      {item.fullAddress}
-                    </Text>
-                  </View>
+                  <Ionicons name="locate" size={20} color="#FF6600" />
+                  <Text style={styles.useCurrentLocationText}>
+                    {isLocationLoading ? 'Getting location...' : 'Use Current Location'}
+                  </Text>
+                  {isLocationLoading && <ActivityIndicator size="small" color="#FF6600" style={{ marginLeft: 8 }} />}
                 </TouchableOpacity>
-              ))}
-            </ScrollView>
+
+                {location && (
+                  <View style={styles.currentLocationDisplay}>
+                    <Ionicons name="location" size={18} color="#4CAF50" />
+                    <View style={{ marginLeft: 10, flex: 1 }}>
+                      <Text style={styles.currentLocationArea}>{location.area || location.city}</Text>
+                      <Text style={styles.currentLocationFull} numberOfLines={2}>
+                        {location.fullAddress}
+                      </Text>
+                    </View>
+                  </View>
+                )}
+              </>
+            )}
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );
