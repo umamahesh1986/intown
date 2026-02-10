@@ -182,14 +182,24 @@ export default function RegisterMerchant() {
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsMultipleSelection: true,
         quality: 0.5,
-        base64: true,
+        base64: false,
       });
 
       if (result.canceled) return;
-      const newImages =
-        (result as any).assets?.map((asset: any) => asset.uri || asset.base64) ??
-        [];
-      if (newImages.length > 0) addImages(newImages);
+      
+      const newImages: string[] = [];
+      if (result.assets && result.assets.length > 0) {
+        result.assets.forEach((asset: any) => {
+          if (asset.uri) {
+            newImages.push(asset.uri);
+          }
+        });
+      }
+      
+      console.log('Selected images:', newImages);
+      if (newImages.length > 0) {
+        addImages(newImages);
+      }
     } catch (error) {
       console.error('Image pick error:', error);
       Alert.alert('Error', 'Unable to pick images');
@@ -207,15 +217,16 @@ export default function RegisterMerchant() {
       const result = await ImagePicker.launchCameraAsync({
         quality: 0.5,
         allowsEditing: true,
-        base64: true,
+        base64: false,
       });
 
       if (result.canceled) return;
-      const imageValue =
-        (result as any).assets?.[0]?.uri ??
-        (result as any).assets?.[0]?.base64 ??
-        null;
-      if (imageValue) addImages([imageValue]);
+      
+      const imageUri = result.assets?.[0]?.uri;
+      console.log('Camera image:', imageUri);
+      if (imageUri) {
+        addImages([imageUri]);
+      }
     } catch (error) {
       console.error('Camera error:', error);
       Alert.alert('Error', 'Unable to open camera');
