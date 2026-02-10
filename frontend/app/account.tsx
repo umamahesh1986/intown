@@ -106,10 +106,63 @@ export default function Account() {
 
  
 
-  const onSave = () => {
-  updateProfile({ name } as any);
-  setEditing(false);
-};
+  const onSave = async () => {
+    setIsSaving(true);
+    try {
+      // Update local auth store
+      updateProfile({ name } as any);
+      
+      // Save to AsyncStorage
+      const lowerUserType = (userType ?? '').toLowerCase();
+      const isMerchant = lowerUserType.includes('merchant');
+      
+      // Update user_data in AsyncStorage
+      const storedUserData = await AsyncStorage.getItem('user_data');
+      if (storedUserData) {
+        try {
+          const userData = JSON.parse(storedUserData);
+          userData.name = name;
+          userData.email = email;
+          await AsyncStorage.setItem('user_data', JSON.stringify(userData));
+        } catch {
+          // ignore parse errors
+        }
+      }
+      
+      // Save name based on user type
+      if (isMerchant) {
+        await AsyncStorage.setItem('merchant_contact_name', name);
+      } else {
+        await AsyncStorage.setItem('customer_name', name);
+      }
+      
+      // Update user search response with new email
+      const userSearchResponse = await AsyncStorage.getItem('user_search_response');
+      if (userSearchResponse) {
+        try {
+          const searchData = JSON.parse(userSearchResponse);
+          if (isMerchant && searchData.merchant) {
+            searchData.merchant.email = email;
+            searchData.merchant.contactName = name;
+          } else if (searchData.customer) {
+            searchData.customer.email = email;
+            searchData.customer.name = name;
+          }
+          await AsyncStorage.setItem('user_search_response', JSON.stringify(searchData));
+        } catch {
+          // ignore parse errors
+        }
+      }
+      
+      Alert.alert('Success', 'Your profile has been updated successfully.');
+      setEditing(false);
+    } catch (error) {
+      console.error('Error saving profile:', error);
+      Alert.alert('Error', 'Failed to save profile. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const requestCameraPermission = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
