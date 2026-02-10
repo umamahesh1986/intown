@@ -47,11 +47,24 @@ const [loading, setLoading] = useState(true);
 
       const data = await res.json();
 
-      console.log('Profile API response:', data); // ← should log John Doe
-      setProfile(data); // ✅ DIRECTLY SET (no .data)
+      console.log('Profile API response:', data);
+      setProfile(data);
 
-      if (data.image) {
+      // Check multiple possible image fields: s3ImageUrl array, image, profileImage
+      const images = Array.isArray(data?.s3ImageUrl) ? data.s3ImageUrl : [];
+      if (images.length > 0) {
+        // Use the latest image from s3ImageUrl array
+        setPhotoUri(images[images.length - 1]);
+      } else if (data.image) {
         setPhotoUri(data.image);
+      } else if (data.profileImage) {
+        setPhotoUri(data.profileImage);
+      } else {
+        // Also try to load from AsyncStorage as fallback
+        const storedImage = await AsyncStorage.getItem('user_profile_image');
+        if (storedImage) {
+          setPhotoUri(storedImage);
+        }
       }
     } catch (err) {
       console.error('Profile fetch error:', err);
