@@ -798,33 +798,11 @@ export default function MerchantDashboard() {
             style={styles.userPanelItem}
             onPress={() => {
               closeDropdown();
-              router.push('/merchant-card');
-            }}
-          >
-            <Ionicons name="card-outline" size={22} color="#FF6600" />
-            <Text style={styles.userPanelText}>Merchant Card</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.userPanelItem}
-            onPress={() => {
-              closeDropdown();
               // TODO: Navigate to offers page
             }}
           >
             <Ionicons name="pricetag-outline" size={22} color="#FF6600" />
             <Text style={styles.userPanelText}>My Offers</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.userPanelItem}
-            onPress={() => {
-              closeDropdown();
-              router.push('/qr-generator');
-            }}
-          >
-            <Ionicons name="qr-code-outline" size={22} color="#FF6600" />
-            <Text style={styles.userPanelText}>QR Code</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
