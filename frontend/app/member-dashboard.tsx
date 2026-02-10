@@ -14,6 +14,8 @@ import {
   ActivityIndicator,
   Modal,
   Platform,
+  KeyboardAvoidingView,
+  Keyboard,
 } from 'react-native';
 import {
   CATEGORY_IMAGE_LIST,
