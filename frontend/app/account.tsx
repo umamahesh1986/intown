@@ -376,7 +376,13 @@ export default function Account() {
         {/* NAME */}
         <Text style={styles.label}>Name</Text>
         {editing ? (
-          <TextInput style={styles.input} value={name} onChangeText={setName} />
+          <TextInput 
+            style={styles.input} 
+            value={name} 
+            onChangeText={setName}
+            placeholder="Enter your name"
+            placeholderTextColor="#999"
+          />
         ) : (
           <Text style={styles.value}>{name || '-'}</Text>
         )}
