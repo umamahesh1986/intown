@@ -1069,6 +1069,68 @@ const styles = StyleSheet.create({
   profileInfo: { alignItems: 'flex-end', marginRight: 8 },
   userName: { fontSize: 14, fontWeight: '600', color: '#1A1A1A' },
   userPhone: { fontSize: 10, color: '#666666', marginTop: 2 },
+  
+  // Backdrop
+  backdrop: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    zIndex: 999,
+  },
+  
+  // User Panel (same as member dashboard)
+  userPanel: {
+    position: 'absolute',
+    top: 70,
+    right: 16,
+    width: 280,
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    padding: 12,
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 10,
+    zIndex: 2000,
+  },
+  userPanelHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  panelAvatar: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    borderWidth: 2,
+    borderColor: '#FF6600',
+  },
+  panelAvatarPlaceholder: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#FF6600',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  userPanelName: { fontSize: 16, fontWeight: '700', color: '#1A1A1A' },
+  userPanelPhone: { fontSize: 12, color: '#888', marginTop: 2 },
+  userPanelTag: { fontSize: 12, color: '#FF6600', marginTop: 2, fontWeight: '600' },
+  userPanelItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 6,
+    borderRadius: 8,
+  },
+  userPanelText: { fontSize: 15, marginLeft: 12, color: '#333' },
+  
+  // Old dropdown styles (keeping for backwards compatibility)
   dropdownBackdrop: {
     position: 'absolute',
     top: 0,
