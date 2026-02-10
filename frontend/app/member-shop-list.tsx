@@ -5,6 +5,7 @@ import {
   FlatList,
   TouchableOpacity,
   Image,
+  ActivityIndicator,
 } from 'react-native';
 import { useState, useEffect } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -26,10 +27,15 @@ export default function MemberShopList() {
   const { location } = useLocationStore();
 
   const [shops, setShops] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const fetchShopsByCategory = async () => {
+  setIsLoading(true);
   try {
-    if (!categoryId || !location?.latitude || !location?.longitude) return;
+    if (!categoryId || !location?.latitude || !location?.longitude) {
+      setIsLoading(false);
+      return;
+    }
 
     const res = await fetch(
       `https://api.intownlocal.com/IN/search/by-product-names?categoryId=${categoryId}&customerLatitude=${location.latitude}&customerLongitude=${location.longitude}`
@@ -42,6 +48,8 @@ export default function MemberShopList() {
   } catch (error) {
     console.error('Failed to fetch category shops', error);
     setShops([]);
+  } finally {
+    setIsLoading(false);
   }
 };
 
