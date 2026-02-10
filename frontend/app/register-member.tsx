@@ -759,12 +759,27 @@ const styles = StyleSheet.create({
   imagesPreview: {
     marginTop: 12,
   },
+  imageThumbContainer: {
+    position: 'relative',
+    marginRight: 12,
+  },
   imageThumb: {
     width: 80,
     height: 80,
     borderRadius: 8,
-    marginRight: 8,
     backgroundColor: '#F0F0F0',
+  },
+  removeImageButton: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 1 },
   },
   termsContainer: {
     marginTop: 8,
