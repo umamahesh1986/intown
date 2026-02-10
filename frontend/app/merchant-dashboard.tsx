@@ -525,7 +525,7 @@ export default function MerchantDashboard() {
             }}
           >
             <View style={styles.profileInfo}>
-              <Text style={styles.userName}>{'Merchant'}</Text>
+              <Text style={styles.userName}>{shopName || merchantContactName || 'Merchant'}</Text>
               <Text style={styles.userPhone}>
                 {(user as any)?.phone ?? (user as any)?.email ?? ''}
               </Text>
