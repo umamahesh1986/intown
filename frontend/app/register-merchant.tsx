@@ -1044,26 +1044,29 @@ export default function RegisterMerchant() {
               </TouchableOpacity>
             </View>
             {images.length > 0 && (
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                style={styles.imagesPreview}
-              >
-                {images.map((uri, index) => (
-                  <View key={`${uri}-${index}`} style={styles.imageThumbContainer}>
-                    <Image
-                      source={getImagePreviewSource(uri) ?? { uri }}
-                      style={styles.imageThumb}
-                    />
-                    <TouchableOpacity
-                      style={styles.removeImageButton}
-                      onPress={() => removeImage(index)}
-                    >
-                      <Ionicons name="close-circle" size={24} color="#FF3B30" />
-                    </TouchableOpacity>
-                  </View>
-                ))}
-              </ScrollView>
+              <View style={styles.imagesPreviewContainer}>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  style={styles.imagesPreview}
+                  contentContainerStyle={styles.imagesPreviewContent}
+                >
+                  {images.map((uri, index) => (
+                    <View key={`${uri}-${index}`} style={styles.imageThumbContainer}>
+                      <Image
+                        source={getImagePreviewSource(uri) ?? { uri }}
+                        style={styles.imageThumb}
+                      />
+                      <TouchableOpacity
+                        style={styles.removeImageButton}
+                        onPress={() => removeImage(index)}
+                      >
+                        <Ionicons name="close-circle" size={24} color="#FF3B30" />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </ScrollView>
+              </View>
             )}
           </View>
 
