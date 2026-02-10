@@ -68,6 +68,15 @@ const [loading, setLoading] = useState(true);
       }
     } catch (err) {
       console.error('Profile fetch error:', err);
+      // Try to load profile image from AsyncStorage as fallback
+      try {
+        const storedImage = await AsyncStorage.getItem('user_profile_image');
+        if (storedImage) {
+          setPhotoUri(storedImage);
+        }
+      } catch (storageErr) {
+        console.error('AsyncStorage fallback error:', storageErr);
+      }
     } finally {
       setLoading(false);
     }
