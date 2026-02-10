@@ -159,15 +159,8 @@ export default function RegisterMerchant() {
 
   const getImagePreviewSource = (value: string) => {
     if (!value) return null;
-    if (
-      value.startsWith('http') ||
-      value.startsWith('file:') ||
-      value.startsWith('content:') ||
-      value.startsWith('data:')
-    ) {
-      return { uri: value };
-    }
-    return { uri: `data:image/jpeg;base64,${value}` };
+    // Return as-is for URIs
+    return { uri: value };
   };
 
   const handlePickFromGallery = async () => {
