@@ -153,6 +153,10 @@ export default function RegisterMerchant() {
     setImages((prev) => Array.from(new Set([...prev, ...newImages])));
   };
 
+  const removeImage = (indexToRemove: number) => {
+    setImages((prev) => prev.filter((_, index) => index !== indexToRemove));
+  };
+
   const getImagePreviewSource = (value: string) => {
     if (!value) return null;
     if (
