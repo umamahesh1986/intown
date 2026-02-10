@@ -1954,13 +1954,17 @@ const styles = StyleSheet.create({
     backgroundColor: '#F5F5F5',
     borderRadius: 12,
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
   },
   locationSearchInput: {
     flex: 1,
     fontSize: 16,
     marginLeft: 12,
     color: '#333',
+    paddingVertical: 0,
   },
   locationSearchResults: {
     maxHeight: 250,
