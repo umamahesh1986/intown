@@ -7,7 +7,6 @@ import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { useAuthStore } from '../store/authStore';
-import { Picker } from '@react-native-picker/picker';
 
 
 export default function Account() {
