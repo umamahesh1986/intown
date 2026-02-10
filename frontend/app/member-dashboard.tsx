@@ -347,10 +347,28 @@ const [profileLoading, setProfileLoading] = useState(false);
   useEffect(() => {
     const loadCustomerMeta = async () => {
       try {
-        const storedName = await AsyncStorage.getItem('customer_contact_name');
-        if (storedName) {
-          setCustomerName(storedName);
+        // Try multiple sources for customer name
+        let name = await AsyncStorage.getItem('customer_contact_name');
+        if (!name) {
+          name = await AsyncStorage.getItem('customer_name');
         }
+        if (!name) {
+          const userSearchResponse = await AsyncStorage.getItem('user_search_response');
+          if (userSearchResponse) {
+            try {
+              const searchData = JSON.parse(userSearchResponse);
+              name = searchData?.customer?.contactName || searchData?.customer?.name || null;
+            } catch {
+              // ignore parse errors
+            }
+          }
+        }
+        if (name) {
+          setCustomerName(name);
+          // Also save to standard key for consistency
+          await AsyncStorage.setItem('customer_name', name);
+        }
+        
         const storedProfileImage = await AsyncStorage.getItem('user_profile_image');
         if (storedProfileImage) {
           setProfileImage(storedProfileImage);
