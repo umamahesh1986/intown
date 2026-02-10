@@ -129,70 +129,91 @@ export default function MemberShopList() {
         <View style={styles.placeholder} />
       </View>
 
-      <FlatList
-        data={shops}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
-        renderItem={({ item }) => (
-          <View style={styles.shopCard}>
+      {isLoading ? (
+        <View style={styles.emptyContainer}>
+          <ActivityIndicator size="large" color="#FF6600" />
+          <Text style={styles.loadingText}>Searching shops...</Text>
+        </View>
+      ) : shops.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <Ionicons name="location-outline" size={64} color="#FF6600" />
+          <Text style={styles.emptyTitle}>Coming Soon!</Text>
+          <Text style={styles.emptyMessage}>
+            We are working on to serve at your location
+          </Text>
+          <TouchableOpacity 
+            style={styles.goBackButton}
+            onPress={() => router.back()}
+          >
+            <Text style={styles.goBackButtonText}>Go Back</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <FlatList
+          data={shops}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.listContent}
+          renderItem={({ item }) => (
+            <View style={styles.shopCard}>
 
-            {/* TOP ROW */}
-            <View style={styles.shopRow}>
+              {/* TOP ROW */}
+              <View style={styles.shopRow}>
 
-              {/* LEFT: ICON */}
-              <View style={styles.shopImageContainer}>
-                {item.image ? (
-                  <Image
-                    source={{ uri: item.image }}
-                    style={{ width: 40, height: 40, borderRadius: 10 }}
-                  />
-                ) : (
-                  <Ionicons name="storefront" size={40} color="#FF6600" />
-                )}
-              </View>
-
-              {/* RIGHT: INFO */}
-              <View style={styles.shopInfoRight}>
-                <View style={styles.shopInfoRightnew}>
-                  <Text style={styles.shopName} numberOfLines={1}>
-                    {item.shopName || item.name || item.contactName || 'Shop'}
-                  </Text>
-
-                  <Text style={styles.categoryText}>
-                    {item.businessCategory || item.category || 'General'}
-                  </Text>
-
-                  {!!(item.contactName && item.contactName !== item.shopName) && (
-                    <Text style={styles.contactNameText} numberOfLines={1}>
-                      {item.contactName}
-                    </Text>
+                {/* LEFT: ICON */}
+                <View style={styles.shopImageContainer}>
+                  {item.image ? (
+                    <Image
+                      source={{ uri: item.image }}
+                      style={{ width: 40, height: 40, borderRadius: 10 }}
+                    />
+                  ) : (
+                    <Ionicons name="storefront" size={40} color="#FF6600" />
                   )}
+                </View>
 
+                {/* RIGHT: INFO */}
+                <View style={styles.shopInfoRight}>
+                  <View style={styles.shopInfoRightnew}>
+                    <Text style={styles.shopName} numberOfLines={1}>
+                      {item.shopName || item.name || item.contactName || 'Shop'}
+                    </Text>
+
+                    <Text style={styles.categoryText}>
+                      {item.businessCategory || item.category || 'General'}
+                    </Text>
+
+                    {!!(item.contactName && item.contactName !== item.shopName) && (
+                      <Text style={styles.contactNameText} numberOfLines={1}>
+                        {item.contactName}
+                      </Text>
+                    )}
+
+                  </View>
+                  <View style={styles.distanceRow}>
+                    <Ionicons name="location" size={14} color="#ff6600" />
+                    <Text style={styles.distanceText}>
+                      {formatDistance(item.distance)}
+                    </Text>
+                  </View>
                 </View>
-                <View style={styles.distanceRow}>
-                  <Ionicons name="location" size={14} color="#ff6600" />
-                  <Text style={styles.distanceText}>
-                    {formatDistance(item.distance)}
-                  </Text>
-                </View>
+
+              </View>
+
+              {/* BUTTON */}
+              <View style={styles.buttonContainer}>
+                <TouchableOpacity
+                  style={styles.viewButton}
+                  onPress={() => handleViewShop(item)}
+                >
+                  <Text style={styles.viewButtonText}>View</Text>
+                </TouchableOpacity>
               </View>
 
             </View>
 
-            {/* BUTTON */}
-            <View style={styles.buttonContainer}>
-              <TouchableOpacity
-                style={styles.viewButton}
-                onPress={() => handleViewShop(item)}
-              >
-                <Text style={styles.viewButtonText}>View</Text>
-              </TouchableOpacity>
-            </View>
-
-          </View>
-
-        )}
-      />
+          )}
+        />
+      )}
     </SafeAreaView>
   );
 }
