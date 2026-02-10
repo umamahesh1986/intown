@@ -1240,7 +1240,7 @@ const handleCategoryClick = (category: Category) => {
 
 
               <View style={{ marginLeft: 10 }}>
-                <Text style={styles.userPanelName}>{user?.name ?? 'Member'}</Text>
+                <Text style={styles.userPanelName}>{customerName || user?.name || 'Member'}</Text>
                 <Text style={styles.userPanelPhone}>{(user as any)?.phone ?? (user as any)?.email ?? ''}</Text>
                 <Text style={styles.userPanelTag}>Plan: {currentPlan}</Text>
               </View>
