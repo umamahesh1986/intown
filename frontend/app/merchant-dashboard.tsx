@@ -739,37 +739,116 @@ export default function MerchantDashboard() {
         <Footer dashboardType="merchant" />
       </ScrollView>
 
+      {/* BACKDROP */}
       {showDropdown && (
-        <>
-          <TouchableWithoutFeedback onPress={() => setShowDropdown(false)}>
-            <View style={styles.dropdownBackdrop} />
-          </TouchableWithoutFeedback>
-          <View style={styles.dropdownPanel}>
-            <TouchableOpacity
-              style={styles.dropdownItem}
-              onPress={() => {
-                setShowDropdown(false);
-                router.push('/account');
-              }}
-            >
-              <Ionicons name="person-outline" size={20} color="#666666" />
-              <Text style={styles.dropdownText}>Account Details</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.dropdownItem}
-              onPress={() => {
-                setShowDropdown(false);
-              }}
-            >
-              <Ionicons name="storefront-outline" size={20} color="#666666" />
-              <Text style={styles.dropdownText}>My Offers</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.dropdownItem} onPress={handleLogout}>
-              <Ionicons name="log-out-outline" size={20} color="#FF0000" />
-              <Text style={[styles.dropdownText, { color: '#FF0000' }]}>Logout</Text>
-            </TouchableOpacity>
+        <TouchableWithoutFeedback onPress={closeDropdown}>
+          <View style={styles.backdrop} />
+        </TouchableWithoutFeedback>
+      )}
+
+      {/* MERCHANT DROPDOWN PANEL */}
+      {showDropdown && (
+        <Animated.View
+          style={[
+            styles.userPanel,
+            {
+              opacity: dropdownAnim,
+              transform: [
+                {
+                  translateY: dropdownAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [-8, 0],
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
+          <View style={styles.userPanelHeader}>
+            {profileImage ? (
+              <Image
+                source={getProfileImageSource(profileImage) ?? undefined}
+                style={styles.panelAvatar}
+              />
+            ) : (
+              <View style={styles.panelAvatarPlaceholder}>
+                <Ionicons name="storefront" size={22} color="#fff" />
+              </View>
+            )}
+
+            <View style={{ marginLeft: 10 }}>
+              <Text style={styles.userPanelName}>{shopName || merchantContactName || user?.name || 'Merchant'}</Text>
+              <Text style={styles.userPanelPhone}>{(user as any)?.phone ?? (user as any)?.email ?? ''}</Text>
+              <Text style={styles.userPanelTag}>Merchant Account</Text>
+            </View>
           </View>
-        </>
+
+          <TouchableOpacity
+            style={styles.userPanelItem}
+            onPress={() => {
+              closeDropdown();
+              router.push('/account');
+            }}
+          >
+            <Ionicons name="person-outline" size={22} color="#FF6600" />
+            <Text style={styles.userPanelText}>My Account</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.userPanelItem}
+            onPress={() => {
+              closeDropdown();
+              router.push('/merchant-card');
+            }}
+          >
+            <Ionicons name="card-outline" size={22} color="#FF6600" />
+            <Text style={styles.userPanelText}>Merchant Card</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.userPanelItem}
+            onPress={() => {
+              closeDropdown();
+              // TODO: Navigate to offers page
+            }}
+          >
+            <Ionicons name="pricetag-outline" size={22} color="#FF6600" />
+            <Text style={styles.userPanelText}>My Offers</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.userPanelItem}
+            onPress={() => {
+              closeDropdown();
+              router.push('/qr-generator');
+            }}
+          >
+            <Ionicons name="qr-code-outline" size={22} color="#FF6600" />
+            <Text style={styles.userPanelText}>QR Code</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.userPanelItem}
+            onPress={() => {
+              closeDropdown();
+              setShowAllPayments(true);
+            }}
+          >
+            <Ionicons name="receipt-outline" size={22} color="#FF6600" />
+            <Text style={styles.userPanelText}>All Transactions</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.userPanelItem}
+            onPress={() => {
+              closeDropdown();
+              handleLogout();
+            }}
+          >
+            <Ionicons name="log-out-outline" size={22} color="#FF0000" />
+            <Text style={[styles.userPanelText, { color: '#FF0000' }]}>Logout</Text>
+          </TouchableOpacity>
+        </Animated.View>
       )}
 
       {/* All Payments Modal */}
