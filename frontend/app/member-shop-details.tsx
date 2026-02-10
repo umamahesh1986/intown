@@ -131,27 +131,6 @@ export default function MemberShopDetails() {
       </SafeAreaView>
     );
   }
-    const value = (category || '').toLowerCase();
-    if (value.includes('grocery') || value.includes('kirana')) {
-      return { label: 'Grocery', bg: '#E3F2FD', color: '#1565C0' };
-    }
-    if (value.includes('salon') || value.includes('spa')) {
-      return { label: 'Salon', bg: '#FCE4EC', color: '#C2185B' };
-    }
-    if (value.includes('restaurant') || value.includes('food')) {
-      return { label: 'Restaurant', bg: '#FFF3E0', color: '#E65100' };
-    }
-    if (value.includes('pharmacy') || value.includes('medical')) {
-      return { label: 'Pharmacy', bg: '#E8F5E9', color: '#2E7D32' };
-    }
-    if (value.includes('fashion') || value.includes('apparel')) {
-      return { label: 'Fashion', bg: '#F3E5F5', color: '#6A1B9A' };
-    }
-    if (value.includes('electronics') || value.includes('tech')) {
-      return { label: 'Electronics', bg: '#E0F7FA', color: '#006064' };
-    }
-    return { label: category || 'General', bg: '#ECEFF1', color: '#455A64' };
-  };
 
   const badge = getCategoryBadge(shop.category || shop.businessCategory);
   const ratingValue =
