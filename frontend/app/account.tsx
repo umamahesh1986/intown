@@ -415,8 +415,12 @@ export default function Account() {
         
 
         {editing && (
-          <TouchableOpacity style={styles.saveBtn} onPress={onSave}>
-            <Text style={styles.saveText}>Save Changes</Text>
+          <TouchableOpacity 
+            style={[styles.saveBtn, isSaving && styles.saveBtnDisabled]} 
+            onPress={onSave}
+            disabled={isSaving}
+          >
+            <Text style={styles.saveText}>{isSaving ? 'Saving...' : 'Save Changes'}</Text>
           </TouchableOpacity>
         )}
       </View>
