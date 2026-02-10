@@ -149,7 +149,7 @@ export default function ShopDetailsScreen() {
                   </View>
                 </View>
                 <Text style={styles.savingsDescription}>
-                  Save ₹{shop.savings} on your purchases at this merchant. This is an exclusive IntownLocal offer!
+                  Save ₹{shop.savings} on your purchases at this merchant. This is an exclusive INtown offer!
                 </Text>
               </View>
 
@@ -158,7 +158,7 @@ export default function ShopDetailsScreen() {
                 <Text style={styles.sectionTitle}>Why Shop Here?</Text>
                 <View style={styles.featureItem}>
                   <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
-                  <Text style={styles.featureText}>Verified IntownLocal partner</Text>
+                  <Text style={styles.featureText}>Verified INtown partner</Text>
                 </View>
                 <View style={styles.featureItem}>
                   <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
@@ -247,7 +247,7 @@ export default function ShopDetailsScreen() {
                 </View>
               </View>
               <Text style={styles.savingsDescription}>
-                Save ₹{shop.savings} on your purchases at this merchant. This is an exclusive IntownLocal offer!
+                Save ₹{shop.savings} on your purchases at this merchant. This is an exclusive INtown offer!
               </Text>
             </View>
 
@@ -256,7 +256,7 @@ export default function ShopDetailsScreen() {
               <Text style={styles.sectionTitle}>Why Shop Here?</Text>
               <View style={styles.featureItem}>
                 <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
-                <Text style={styles.featureText}>Verified IntownLocal partner</Text>
+                <Text style={styles.featureText}>Verified INtown partner</Text>
               </View>
               <View style={styles.featureItem}>
                 <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />

@@ -398,8 +398,7 @@ export default function MerchantDashboard() {
           // ignore storage parse errors and fall back to fetch
         }
       }
-
-      const res = await fetch(`https://api.intownlocal.com/IN/s3?merchantId=${id}`);
+      const res = await fetch(`https://api.intownlocal.com/IN/s3/upload?userType=IN_MERCHANT&?merchantId=${id}`);
       if (!res.ok) {
         throw new Error(`S3 image fetch failed: ${res.status}`);
       }

@@ -812,9 +812,9 @@ const handleCategoryClick = (category: Category) => {
             >
               <Ionicons name="location" size={16} color="#FF6600" />
               <View style={styles.locationTextContainer}>
-              <Text style={styles.welcomeText}>
+              {/* <Text style={styles.welcomeText}>
                 Welcome {customerName || user?.name || 'Member'}
-              </Text>
+              </Text> */}
                 <Text style={styles.locationText} numberOfLines={1}>
                   {getLocationDisplayText()}
                 </Text>
@@ -1170,7 +1170,7 @@ const handleCategoryClick = (category: Category) => {
                 source={{uri:'https://intown-dev.s3.ap-south-1.amazonaws.com/app_logo/intown-logo.jpg'}}
                 style={styles.supportLogo}
               />
-              <Text style={styles.supportTitle}>Intown Customer Support</Text>
+              <Text style={styles.supportTitle}>INtown Customer Support</Text>
               <Text style={styles.supportText}>Phone: 9390932585</Text>
               <Text style={styles.supportText}>Email: support@intownlocal.com</Text>
               <TouchableOpacity
