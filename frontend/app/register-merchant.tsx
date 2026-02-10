@@ -1289,10 +1289,17 @@ const styles = StyleSheet.create({
     color: '#FF6600',
     fontWeight: '600',
   },
+  imagesPreviewContainer: {
+    overflow: 'visible',
+    marginTop: 8,
+  },
   imagesPreview: {
-    marginTop: 12,
-    paddingTop: 10,
+    paddingTop: 12,
     paddingBottom: 4,
+    paddingLeft: 4,
+  },
+  imagesPreviewContent: {
+    paddingRight: 16,
   },
   imageThumbContainer: {
     position: 'relative',
