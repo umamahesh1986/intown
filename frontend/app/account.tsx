@@ -501,5 +501,8 @@ const styles = StyleSheet.create({
     marginTop: 20,
     alignItems: 'center',
   },
+  saveBtnDisabled: {
+    backgroundColor: '#F4B183',
+  },
   saveText: { color: '#fff', fontWeight: '700' },
 });
