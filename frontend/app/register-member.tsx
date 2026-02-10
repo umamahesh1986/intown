@@ -813,6 +813,12 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     zIndex: 10,
   },
+  imageCountText: {
+    marginTop: 8,
+    fontSize: 13,
+    color: '#666',
+    fontStyle: 'italic',
+  },
   termsContainer: {
     marginTop: 8,
     marginBottom: 24,
