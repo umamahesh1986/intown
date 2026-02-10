@@ -5,7 +5,6 @@ import {
   ScrollView,
   TouchableOpacity,
   TouchableWithoutFeedback,
-
   Image,
   Dimensions,
   Animated,
@@ -13,6 +12,8 @@ import {
   TextInput,
   ActivityIndicator,
   Platform,
+  KeyboardAvoidingView,
+  Keyboard,
 } from 'react-native';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
