@@ -173,7 +173,7 @@ export default function MemberShopDetails() {
 
             <View style={styles.content}>
               <View style={styles.titleRow}>
-                <Text style={styles.shopName}>{shop}</Text>
+                <Text style={styles.shopName}>{shop.shopName || shop.name}</Text>
                 <View style={[styles.badge, { backgroundColor: badge.bg }]}>
                   <Text style={[styles.badgeText, { color: badge.color }]}>
                     {badge.label}
