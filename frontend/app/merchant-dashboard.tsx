@@ -121,6 +121,7 @@ export default function MerchantDashboard() {
   // ===== MERCHANT CAROUSEL STATE =====
   const [carouselIndex, setCarouselIndex] = useState(0);
   const carouselRef = useRef<ScrollView | null>(null);
+  const dropdownAnim = useRef(new Animated.Value(0)).current;
   // =================================
 
   const shopImageTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
