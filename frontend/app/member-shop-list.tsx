@@ -56,8 +56,12 @@ export default function MemberShopList() {
 
   // 🔹 PRODUCT SEARCH (EXISTING LOGIC + FALLBACK)
   const fetchRealShops = async () => {
+    setIsLoading(true);
     try {
-      if (!query || !location) return;
+      if (!query || !location) {
+        setIsLoading(false);
+        return;
+      }
 
       const data = await searchByProductNames(
         query,
@@ -84,9 +88,13 @@ export default function MemberShopList() {
         // ✅ Product found
         setShops(mappedShops);
       } else {
+        setShops([]);
       }
     } catch (error) {
       console.error('Failed to fetch shops', error);
+      setShops([]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
