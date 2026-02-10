@@ -385,9 +385,19 @@ export default function Account() {
         <Text style={styles.label}>Phone</Text>
         <Text style={styles.value}>{user?.phone ?? '-'}</Text>
         <Text style={styles.label}>Email</Text>
-<Text style={styles.value}>
-  {(user as any)?.email ?? 'Not provided'}
-</Text>
+        {editing ? (
+          <TextInput 
+            style={styles.input} 
+            value={email} 
+            onChangeText={setEmail}
+            placeholder="Enter your email"
+            placeholderTextColor="#999"
+            keyboardType="email-address"
+            autoCapitalize="none"
+          />
+        ) : (
+          <Text style={styles.value}>{email || 'Not provided'}</Text>
+        )}
 
 
 
