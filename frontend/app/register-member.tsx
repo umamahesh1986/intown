@@ -553,12 +553,19 @@ export default function RegisterMember() {
                 showsHorizontalScrollIndicator={false}
                 style={styles.imagesPreview}
               >
-                {images.map((uri) => (
-                  <Image
-                    key={uri}
-                    source={getImagePreviewSource(uri) ?? { uri }}
-                    style={styles.imageThumb}
-                  />
+                {images.map((uri, index) => (
+                  <View key={`${uri}-${index}`} style={styles.imageThumbContainer}>
+                    <Image
+                      source={getImagePreviewSource(uri) ?? { uri }}
+                      style={styles.imageThumb}
+                    />
+                    <TouchableOpacity
+                      style={styles.removeImageButton}
+                      onPress={() => removeImage(index)}
+                    >
+                      <Ionicons name="close-circle" size={24} color="#FF3B30" />
+                    </TouchableOpacity>
+                  </View>
                 ))}
               </ScrollView>
             )}
