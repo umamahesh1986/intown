@@ -100,15 +100,15 @@ export default function MemberShopDetails() {
   }, [shopFromParams, shopId, location?.latitude, location?.longitude]);
 
   const getCategoryBadge = (category?: string) => {
-    const icons: Record<string, string> = {
-      restaurant: 'restaurant',
-      grocery: 'cart',
-      salon: 'cut',
-      pharmacy: 'medical',
-      electronics: 'phone-portrait',
+    const badges: Record<string, { bg: string; color: string; label: string }> = {
+      restaurant: { bg: '#FFF3E0', color: '#FF6600', label: 'Restaurant' },
+      grocery: { bg: '#E8F5E9', color: '#4CAF50', label: 'Grocery' },
+      salon: { bg: '#F3E5F5', color: '#9C27B0', label: 'Salon' },
+      pharmacy: { bg: '#E3F2FD', color: '#2196F3', label: 'Pharmacy' },
+      electronics: { bg: '#ECEFF1', color: '#607D8B', label: 'Electronics' },
     };
     const key = (category ?? '').toLowerCase();
-    return icons[key] ?? 'storefront';
+    return badges[key] ?? { bg: '#FFF3E0', color: '#FF6600', label: category || 'General' };
   };
 
   // Show loading/error state if shop is not available
