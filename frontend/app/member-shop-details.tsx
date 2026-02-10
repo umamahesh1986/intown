@@ -42,26 +42,7 @@ export default function MemberShopDetails() {
     console.log('Payment successful:', { amount, savings, method });
   };
 
-  if (!shop) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <Ionicons name="storefront" size={40} color="#FF6600" />
-          <Text style={styles.loadingText}>
-            {isShopLoading ? 'Loading shop details...' : shopLoadError || 'Shop not found'}
-          </Text>
-          <TouchableOpacity
-            style={[styles.backButton, { flexDirection: 'row', alignItems: 'center', width: 'auto' }]}
-            onPress={() => router.back()}
-          >
-            <Ionicons name="arrow-back" size={20} color="#1A1A1A" />
-            <Text style={styles.backButtonText}>Go Back</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
+  // Load customer ID on mount
   useEffect(() => {
     const loadCustomerId = async () => {
       try {
@@ -77,6 +58,7 @@ export default function MemberShopDetails() {
     loadCustomerId();
   }, []);
 
+  // Load shop from API if not provided in params
   useEffect(() => {
     if (shopFromParams || !shopId) return;
     let isActive = true;
@@ -118,6 +100,37 @@ export default function MemberShopDetails() {
   }, [shopFromParams, shopId, location?.latitude, location?.longitude]);
 
   const getCategoryBadge = (category?: string) => {
+    const icons: Record<string, string> = {
+      restaurant: 'restaurant',
+      grocery: 'cart',
+      salon: 'cut',
+      pharmacy: 'medical',
+      electronics: 'phone-portrait',
+    };
+    const key = (category ?? '').toLowerCase();
+    return icons[key] ?? 'storefront';
+  };
+
+  // Show loading/error state if shop is not available
+  if (!shop) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <Ionicons name="storefront" size={40} color="#FF6600" />
+          <Text style={styles.loadingText}>
+            {isShopLoading ? 'Loading shop details...' : shopLoadError || 'Shop not found'}
+          </Text>
+          <TouchableOpacity
+            style={[styles.backButton, { flexDirection: 'row', alignItems: 'center', width: 'auto' }]}
+            onPress={() => router.back()}
+          >
+            <Ionicons name="arrow-back" size={20} color="#1A1A1A" />
+            <Text style={styles.backButtonText}>Go Back</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
     const value = (category || '').toLowerCase();
     if (value.includes('grocery') || value.includes('kirana')) {
       return { label: 'Grocery', bg: '#E3F2FD', color: '#1565C0' };
