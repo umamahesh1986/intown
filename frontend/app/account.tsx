@@ -150,22 +150,28 @@ export default function Account() {
       
       // Save name based on user type
       if (isMerchant) {
+        // For merchant: save as shop name (business name)
+        await AsyncStorage.setItem('merchant_shop_name', name);
         await AsyncStorage.setItem('merchant_contact_name', name);
       } else {
+        // For customer
         await AsyncStorage.setItem('customer_name', name);
+        await AsyncStorage.setItem('customer_contact_name', name);
       }
       
-      // Update user search response with new email
+      // Update user search response with new data
       const userSearchResponse = await AsyncStorage.getItem('user_search_response');
       if (userSearchResponse) {
         try {
           const searchData = JSON.parse(userSearchResponse);
           if (isMerchant && searchData.merchant) {
             searchData.merchant.email = email;
+            searchData.merchant.shopName = name;
             searchData.merchant.contactName = name;
           } else if (searchData.customer) {
             searchData.customer.email = email;
             searchData.customer.name = name;
+            searchData.customer.contactName = name;
           }
           await AsyncStorage.setItem('user_search_response', JSON.stringify(searchData));
         } catch {
