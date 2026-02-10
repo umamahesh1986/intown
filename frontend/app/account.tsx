@@ -27,13 +27,14 @@ export default function Account() {
   useEffect(() => {
     const loadProfileData = async () => {
       try {
-        const [storedImage, storedUserType, storedCustomerImages, storedUserData, merchantName, customerName] = await Promise.all([
+        const [storedImage, storedUserType, storedCustomerImages, storedUserData, merchantName, customerName, merchantShopName] = await Promise.all([
           AsyncStorage.getItem('user_profile_image'),
           AsyncStorage.getItem('user_type'),
           AsyncStorage.getItem('customer_profile_images'),
           AsyncStorage.getItem('user_data'),
           AsyncStorage.getItem('merchant_contact_name'),
           AsyncStorage.getItem('customer_name'),
+          AsyncStorage.getItem('merchant_shop_name'),
         ]);
         
         if (storedImage) {
@@ -58,25 +59,44 @@ export default function Account() {
           }
         }
         
-        // Prioritize merchant name for merchants
+        // Prioritize based on user type
         const lowerUserType = (storedUserType ?? '').toLowerCase();
-        if (lowerUserType.includes('merchant') && merchantName) {
-          setName(merchantName);
+        if (lowerUserType.includes('merchant')) {
+          // For merchant: use shop name (business name) or contact name
+          if (merchantShopName) {
+            setName(merchantShopName);
+          } else if (merchantName) {
+            setName(merchantName);
+          }
         } else if (customerName) {
+          // For customer: use customer name
           setName(customerName);
         }
         
-        // Load email from user search response
+        // Also try to load name from user search response
         const userSearchResponse = await AsyncStorage.getItem('user_search_response');
         if (userSearchResponse) {
           try {
             const searchData = JSON.parse(userSearchResponse);
-            const merchantEmail = searchData?.merchant?.email;
-            const customerEmail = searchData?.customer?.email;
-            if (lowerUserType.includes('merchant') && merchantEmail) {
-              setEmail(merchantEmail);
-            } else if (customerEmail) {
-              setEmail(customerEmail);
+            
+            if (lowerUserType.includes('merchant')) {
+              // For merchant: prioritize shopName (business name)
+              const businessName = searchData?.merchant?.shopName || searchData?.merchant?.contactName;
+              if (businessName && !merchantShopName) {
+                setName(businessName);
+              }
+              if (searchData?.merchant?.email) {
+                setEmail(searchData.merchant.email);
+              }
+            } else {
+              // For customer
+              const custName = searchData?.customer?.contactName || searchData?.customer?.name;
+              if (custName && !customerName) {
+                setName(custName);
+              }
+              if (searchData?.customer?.email) {
+                setEmail(searchData.customer.email);
+              }
             }
           } catch {
             // ignore parse errors
