@@ -521,7 +521,7 @@ export default function MerchantDashboard() {
             style={styles.profileButton}
             onPress={(e) => {
               e.stopPropagation();
-              setShowDropdown(!showDropdown);
+              showDropdown ? closeDropdown() : openDropdown();
             }}
           >
             <View style={styles.profileInfo}>
