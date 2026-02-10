@@ -407,13 +407,6 @@ export default function Account() {
 
 
 
-
-
-
-       
-
-        
-
         {editing && (
           <TouchableOpacity 
             style={[styles.saveBtn, isSaving && styles.saveBtnDisabled]} 
