@@ -1056,10 +1056,11 @@ export default function RegisterMerchant() {
                   contentContainerStyle={styles.imagesPreviewContent}
                 >
                   {images.map((uri, index) => (
-                    <View key={`${uri}-${index}`} style={styles.imageThumbContainer}>
+                    <View key={`img-${index}`} style={styles.imageThumbContainer}>
                       <Image
-                        source={getImagePreviewSource(uri) ?? { uri }}
+                        source={{ uri: uri }}
                         style={styles.imageThumb}
+                        resizeMode="cover"
                       />
                       <TouchableOpacity
                         style={styles.removeImageButton}
@@ -1071,6 +1072,9 @@ export default function RegisterMerchant() {
                   ))}
                 </ScrollView>
               </View>
+            )}
+            {images.length > 0 && (
+              <Text style={styles.imageCountText}>{images.length} image(s) selected</Text>
             )}
           </View>
 
