@@ -16,6 +16,8 @@ export default function Account() {
 
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(user?.name ?? '');
+  const [email, setEmail] = useState((user as any)?.email ?? '');
+  const [isSaving, setIsSaving] = useState(false);
   
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [pendingImageUri, setPendingImageUri] = useState<string | null>(null);
@@ -24,19 +26,64 @@ export default function Account() {
   const [userType, setUserType] = useState<string | null>(null);
 
   useEffect(() => {
-    const loadProfileImage = async () => {
+    const loadProfileData = async () => {
       try {
-        const [storedImage, storedUserType, storedCustomerImages] = await Promise.all([
+        const [storedImage, storedUserType, storedCustomerImages, storedUserData, merchantName, customerName] = await Promise.all([
           AsyncStorage.getItem('user_profile_image'),
           AsyncStorage.getItem('user_type'),
           AsyncStorage.getItem('customer_profile_images'),
+          AsyncStorage.getItem('user_data'),
+          AsyncStorage.getItem('merchant_contact_name'),
+          AsyncStorage.getItem('customer_name'),
         ]);
+        
         if (storedImage) {
           setProfileImage(storedImage);
         }
         if (storedUserType) {
           setUserType(storedUserType);
         }
+        
+        // Load name based on user type
+        if (storedUserData) {
+          try {
+            const userData = JSON.parse(storedUserData);
+            if (userData.name) {
+              setName(userData.name);
+            }
+            if (userData.email) {
+              setEmail(userData.email);
+            }
+          } catch {
+            // ignore parse errors
+          }
+        }
+        
+        // Prioritize merchant name for merchants
+        const lowerUserType = (storedUserType ?? '').toLowerCase();
+        if (lowerUserType.includes('merchant') && merchantName) {
+          setName(merchantName);
+        } else if (customerName) {
+          setName(customerName);
+        }
+        
+        // Load email from user search response
+        const userSearchResponse = await AsyncStorage.getItem('user_search_response');
+        if (userSearchResponse) {
+          try {
+            const searchData = JSON.parse(userSearchResponse);
+            const merchantEmail = searchData?.merchant?.email;
+            const customerEmail = searchData?.customer?.email;
+            if (lowerUserType.includes('merchant') && merchantEmail) {
+              setEmail(merchantEmail);
+            } else if (customerEmail) {
+              setEmail(customerEmail);
+            }
+          } catch {
+            // ignore parse errors
+          }
+        }
+        
         if (storedCustomerImages) {
           try {
             const parsedImages = JSON.parse(storedCustomerImages);
@@ -50,11 +97,11 @@ export default function Account() {
           }
         }
       } catch (error) {
-        console.error('Error loading profile image:', error);
+        console.error('Error loading profile data:', error);
       }
     };
 
-    loadProfileImage();
+    loadProfileData();
   }, []);
 
  
