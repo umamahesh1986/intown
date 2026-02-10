@@ -808,7 +808,7 @@ const handleCategoryClick = (category: Category) => {
               style={styles.profileButton}
             >
               <View style={styles.profileInfo}>
-                <Text style={styles.userName}>{'Customer'}</Text>
+                <Text style={styles.userName}>{customerName || user?.name || 'Customer'}</Text>
                 <Text style={styles.userPhone}>
                   {(user as any)?.phone ?? (user as any)?.email ?? ''}
                 </Text>
