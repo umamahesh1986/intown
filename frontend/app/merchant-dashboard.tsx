@@ -480,6 +480,23 @@ export default function MerchantDashboard() {
     }
   };
 
+  const openDropdown = () => {
+    setShowDropdown(true);
+    Animated.timing(dropdownAnim, {
+      toValue: 1,
+      duration: 200,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const closeDropdown = () => {
+    Animated.timing(dropdownAnim, {
+      toValue: 0,
+      duration: 150,
+      useNativeDriver: true,
+    }).start(() => setShowDropdown(false));
+  };
+
 
   return (
     <SafeAreaView style={styles.container}>
