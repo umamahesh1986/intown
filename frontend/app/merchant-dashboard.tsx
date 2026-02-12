@@ -31,13 +31,17 @@ import { FontStylesWithFallback } from '../utils/fonts';
 import Footer from '../components/Footer'
 import { useFocusEffect } from '@react-navigation/native';
 
-const { width } = Dimensions.get('window');
+
 
 // ===== MERCHANT CAROUSEL CONFIG (SAME AS MEMBER) =====
+const { width } = Dimensions.get('window');
+
 const SLIDE_WIDTH = Math.round(width);
 const CAROUSEL_HEIGHT = 160;
-const SHOP_IMAGE_WIDTH = 300;
-const SHOP_IMAGE_HEIGHT = 130;
+
+const SHOP_IMAGE_WIDTH = width - 64;
+
+
 
 const MERCHANT_CAROUSEL_IMAGES = [
   { uri: 'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner1.jpg' },
@@ -593,6 +597,8 @@ export default function MerchantDashboard() {
                   horizontal
                   pagingEnabled
                   showsHorizontalScrollIndicator={false}
+                    scrollEventThrottle={16}
+
                   style={styles.shopImageScroll}
                   contentContainerStyle={styles.shopImageScrollContent}
                   onMomentumScrollEnd={(e) => {
@@ -604,10 +610,12 @@ export default function MerchantDashboard() {
                 >
                   {shopImages.map((img, index) => (
                     <Image
-                      key={`${img}-${index}`}
-                      source={{ uri: img }}
-                      style={styles.shopImageCarousel}
-                    />
+  key={`${img}-${index}`}
+  source={{ uri: img }}
+  style={styles.shopImageCarousel}
+  resizeMode="cover"
+/>
+
                   ))}
                 </ScrollView>
                 <TouchableOpacity
@@ -1166,29 +1174,33 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#EEEEEE',
   },
-  shopImageContainer: {
-    width: SHOP_IMAGE_WIDTH,
-    height: SHOP_IMAGE_HEIGHT,
-    borderRadius: 6,
-    backgroundColor: '#E3F2FD',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-    overflow: 'hidden',
-    position: 'relative',
-  },
+ shopImageContainer: {
+  width: SHOP_IMAGE_WIDTH,
+  aspectRatio: 16 / 9,
+  borderRadius: 10,
+  overflow: 'hidden',
+  marginBottom: 16,
+  position: 'relative',
+},
+
+
   shopImageScroll: {
-    width: SHOP_IMAGE_WIDTH,
-    height: SHOP_IMAGE_HEIGHT,
-  },
-  shopImageScrollContent: {
-    height: SHOP_IMAGE_HEIGHT,
-  },
-  shopImageCarousel: {
-    width: SHOP_IMAGE_WIDTH,
-    height: SHOP_IMAGE_HEIGHT,
-    resizeMode: 'cover',
-  },
+  flex: 1,
+},
+
+shopImageScrollContent: {
+  flexGrow: 1,
+},
+
+
+shopImageCarousel: {
+  width: SHOP_IMAGE_WIDTH,
+  height: '100%',
+  resizeMode: 'cover',
+},
+
+
+
   shopArrow: {
     position: 'absolute',
     top: '50%',
@@ -1363,19 +1375,23 @@ const styles = StyleSheet.create({
     height: 160,
   },
 
-  carouselSlide: {
-    width: SLIDE_WIDTH,
-    height: 160,
-    paddingHorizontal: 16,
-  },
+ carouselSlide: {
+  width: SLIDE_WIDTH,
+  height: 160,
+  paddingHorizontal: 16,
+  backgroundColor: '#FFFFFF',  
+  justifyContent: 'center',
+  alignItems: 'center',
+},
+
 
 
   carouselImage: {
-    width: '100%',
-    height: 160,
-    borderRadius: 12,
-    resizeMode: 'cover',
-  },
+  width: '100%',
+  height: 160,
+  borderRadius: 12,
+  resizeMode: 'contain',
+},
 
 
   carouselDots: {
