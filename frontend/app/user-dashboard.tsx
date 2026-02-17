@@ -720,7 +720,7 @@ const loadNearbyShops = async () => {
 
           {/* Membership Plans */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Membership Plans</Text>
+            <Text style={styles.sectionTitle}>Customer Plans</Text>
 
             {/* Tab Navigation */}
             <View style={styles.tabContainer}>
