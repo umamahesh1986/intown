@@ -56,7 +56,6 @@ export default function RegisterMerchant() {
   const [businessName, setBusinessName] = useState('');
 
   const [businessCategory, setBusinessCategory] = useState('');
-  const [categorySearch, setCategorySearch] = useState('');
   const [description, setDescription] = useState('');
   const [yearsInBusiness, setYearsInBusiness] = useState('');
   const [branches, setBranches] = useState('');
@@ -793,7 +792,7 @@ export default function RegisterMerchant() {
   }, []);
 
   const filteredCategories = categories.filter(cat =>
-    cat.name.toLowerCase().includes(categorySearch.toLowerCase())
+    cat.name.toLowerCase().includes(businessCategory.toLowerCase())
   );
 
   const displayedCategories = showAllCategories
@@ -846,16 +845,13 @@ export default function RegisterMerchant() {
           {/* BUSINESS CATEGORY */}
           <View style={styles.formGroup}>
             <Text style={styles.label}>Business Category *</Text>
-            <TextInput style={styles.input} value={businessCategory} editable={false} />
+            <TextInput
+              style={styles.input}
+              value={businessCategory}
+              onChangeText={setBusinessCategory}
+              placeholder="Search categories..."
+            />
           </View>
-
-          <Text style={styles.label}>Select Categories</Text>
-          <TextInput
-            placeholder="Search categories..."
-            style={styles.input}
-            value={categorySearch}
-            onChangeText={setCategorySearch}
-          />
 
           <View style={styles.categoryGrid}>
             {displayedCategories.map(cat => {
