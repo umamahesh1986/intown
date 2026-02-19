@@ -28,6 +28,7 @@ const PAYMENT_METHODS = [
   { id: 'googlepay', name: 'Google Pay', icon: 'logo-google' },
   { id: 'paytm', name: 'Paytm', icon: 'wallet' },
   { id: 'amazonpay', name: 'Amazon Pay', icon: 'cart' },
+  { id: 'cash', name: 'Cash', icon: 'cash' },
 ];
 
 export default function PaymentModal({
@@ -263,9 +264,9 @@ export default function PaymentModal({
           ) : (
             <>
               <View style={styles.modalHeader}>
-                <TouchableOpacity onPress={() => setShowMethods(false)}>
+                {/* <TouchableOpacity onPress={() => setShowMethods(false)}>
                   <Ionicons name="arrow-back" size={24} color="#666" />
-                </TouchableOpacity>
+                </TouchableOpacity> */}
                 <Text style={styles.modalTitle}>Select Payment App</Text>
                 <View style={{width: 28}} />
               </View>

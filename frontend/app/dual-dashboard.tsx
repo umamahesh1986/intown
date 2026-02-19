@@ -26,7 +26,11 @@ import { useAuthStore } from '../store/authStore';
 import { useLocationStore } from '../store/locationStore';
 import { useFocusEffect } from '@react-navigation/native';
 import Footer from '../components/Footer';
-import { getNearbyShops } from '../utils/api';
+import { getNearbyShops, getCategories, getMerchantImageByShopId } from '../utils/api';
+import {
+  CATEGORY_IMAGE_LIST,
+  FALLBACK_CATEGORY_IMAGE,
+} from '../utils/categoryImageList';
 import { 
   getUserLocationWithDetails, 
   searchLocations, 
@@ -59,6 +63,17 @@ const SEARCH_PRODUCTS = [
   'Shampoo',
   'Soap',
 ];
+
+const DUMMY_CATEGORIES = [
+  { id: '1', name: 'Grocery' },
+  { id: '2', name: 'Salon' },
+  { id: '3', name: 'Restaurant' },
+  { id: '4', name: 'Pharmacy' },
+  { id: '5', name: 'Fashion' },
+  { id: '6', name: 'Electronics' },
+];
+const CATEGORY_CARD_WIDTH = 100;
+const CATEGORY_CARD_GAP = 12;
 
 /* ===============================
    INTERFACES
@@ -103,6 +118,12 @@ interface MerchantSummary {
   totalDiscountGiven: number;
   totalAmountReceived: number;
   salesCount: number;
+}
+
+interface Category {
+  id: string | number;
+  name: string;
+  icon?: string;
 }
 
 interface TabProps {
@@ -184,6 +205,10 @@ const TransactionCard = ({ transaction }: { transaction: Transaction }) => (
   </View>
 );
 
+const getCategoryImageByIndex = (index: number) => {
+  return CATEGORY_IMAGE_LIST[index] ?? FALLBACK_CATEGORY_IMAGE;
+};
+
 /* ===============================
    MAIN COMPONENT
 ================================ */
@@ -208,6 +233,7 @@ export default function DualDashboard() {
   const [merchantContactName, setMerchantContactName] = useState<string | null>(null);
   const [merchantShopName, setMerchantShopName] = useState<string | null>(null);
   const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [categories, setCategories] = useState<Category[]>(DUMMY_CATEGORIES);
   const [customerTotals, setCustomerTotals] = useState<{
     today: CustomerSummary | null;
     thisMonth: CustomerSummary | null;
@@ -247,6 +273,11 @@ export default function DualDashboard() {
   const [showAllTransactions, setShowAllTransactions] = useState(false);
   const CARD_WIDTH = 172;
 
+  const categoryColumns = [];
+  for (let i = 0; i < categories.length; i += 2) {
+    categoryColumns.push(categories.slice(i, i + 2));
+  }
+
   /* ===============================
      LOAD USER DATA
   ================================ */
@@ -255,6 +286,7 @@ export default function DualDashboard() {
     loadTransactions();
     loadUserType();
     requestLocationOnMount();
+    loadCategories();
   }, []);
 
   useFocusEffect(
@@ -333,12 +365,30 @@ export default function DualDashboard() {
         location.latitude,
         location.longitude
       );
-      setNearbyShops(Array.isArray(response) ? response : []);
+      const list = Array.isArray(response) ? response : [];
+      const enriched = await Promise.all(
+        list.map(async (shop: any) => {
+          const shopId = shop?.id ?? shop?.merchantId ?? shop?.merchant_id;
+          const image = await getMerchantImageByShopId(shopId);
+          return { ...shop, image: image ?? shop?.image ?? shop?.s3ImageUrl };
+        })
+      );
+      setNearbyShops(enriched);
     } catch (error) {
       console.error('Failed to load nearby shops:', error);
       setNearbyShops([]);
     } finally {
       setIsNearbyLoading(false);
+    }
+  };
+
+  const loadCategories = async () => {
+    try {
+      const data = await getCategories();
+      setCategories(Array.isArray(data) && data.length > 0 ? data : DUMMY_CATEGORIES);
+    } catch (error) {
+      console.error('Error loading categories:', error);
+      setCategories(DUMMY_CATEGORIES);
     }
   };
 
@@ -855,7 +905,6 @@ export default function DualDashboard() {
           onPress={() => setActiveTab('merchant')}
         />
       </View>
-
       {/* Content */}
       <ScrollView
         ref={contentScrollRef}
@@ -884,6 +933,58 @@ export default function DualDashboard() {
             </Text>
           </View>
         </View>
+        {/* Popular Categories (Customer Only) */}
+      {activeTab === 'customer' && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Popular Categories</Text>
+            {categories.length > 0 ? (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                snapToInterval={CATEGORY_CARD_WIDTH + CATEGORY_CARD_GAP}
+                decelerationRate="fast"
+                contentContainerStyle={styles.categoriesCarouselContent}
+              >
+                {categoryColumns.map((column, columnIndex) => (
+                  <View key={`col-${columnIndex}`} style={styles.categoryColumn}>
+                    {column.map((category, rowIndex) => {
+                      const index = columnIndex * 2 + rowIndex;
+                      return (
+                        <TouchableOpacity
+                          key={String(category.id)}
+                          style={styles.categoryCard}
+                          onPress={() =>
+                            router.push({
+                              pathname: '/member-shop-list',
+                              params: {
+                                categoryId: String(category.id),
+                                categoryName: category.name,
+                                source: 'dual',
+                              },
+                            })
+                          }
+                          activeOpacity={0.8}
+                        >
+                          <View style={styles.categoryImageContainer}>
+                            <Image
+                              source={getCategoryImageByIndex(index)}
+                              style={styles.categoryImage}
+                              resizeMode="cover"
+                            />
+                            <View style={styles.categoryGradient} />
+                            <Text style={styles.categoryName}>{category.name}</Text>
+                          </View>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                ))}
+              </ScrollView>
+            ) : (
+              <Text style={styles.noCategoriesText}>No categories available</Text>
+            )}
+          </View>
+        )}
 
         {/* Quick Stats */}
         <View style={styles.statsContainer}>
@@ -1069,7 +1170,14 @@ export default function DualDashboard() {
                     }
                   >
                     <View style={styles.nearbyImagePlaceholder}>
-                      <Ionicons name="storefront" size={36} color="#FF6600" />
+                      {shop.image || shop.s3ImageUrl ? (
+                        <Image
+                          source={{ uri: shop.image || shop.s3ImageUrl }}
+                          style={styles.nearbyImage}
+                        />
+                      ) : (
+                        <Ionicons name="storefront" size={36} color="#FF6600" />
+                      )}
                     </View>
                     <Text style={styles.nearbyName} numberOfLines={1}>
                       {shop.shopName || shop.merchantName || shop.contactName || 'Shop'}
@@ -1209,6 +1317,23 @@ export default function DualDashboard() {
               </TouchableOpacity>
             </View>
 
+            <View style={styles.locationSearchContainerModal}>
+              <Ionicons name="search" size={20} color="#999" />
+              <TextInput
+                style={styles.locationSearchInput}
+                placeholder="Search for area, street name..."
+                placeholderTextColor="#999"
+                value={locationSearchQuery}
+                onChangeText={handleLocationSearch}
+              />
+            </View>
+
+            <View style={styles.locationDivider}>
+              <View style={styles.locationDividerLine} />
+              <Text style={styles.locationDividerText}>OR</Text>
+              <View style={styles.locationDividerLine} />
+            </View>
+
             <TouchableOpacity 
               style={styles.useCurrentLocationBtn}
               onPress={handleUseCurrentLocation}
@@ -1232,23 +1357,6 @@ export default function DualDashboard() {
                 </View>
               </View>
             )}
-
-            <View style={styles.locationDivider}>
-              <View style={styles.locationDividerLine} />
-              <Text style={styles.locationDividerText}>OR</Text>
-              <View style={styles.locationDividerLine} />
-            </View>
-
-            <View style={styles.locationSearchContainerModal}>
-              <Ionicons name="search" size={20} color="#999" />
-              <TextInput
-                style={styles.locationSearchInput}
-                placeholder="Search for area, street name..."
-                placeholderTextColor="#999"
-                value={locationSearchQuery}
-                onChangeText={handleLocationSearch}
-              />
-            </View>
 
             {isSearchingLocation && (
               <ActivityIndicator size="small" color="#FF6600" style={{ marginTop: 16 }} />
@@ -1653,6 +1761,69 @@ const styles = StyleSheet.create({
     color: '#1A1A1A',
     marginBottom: 8,
   },
+  section: {
+    padding: 16,
+  },
+  categoriesCarouselContent: {
+    flexDirection: 'row',
+    paddingVertical: 4,
+    paddingRight: 12,
+  },
+  categoryColumn: {
+    width: 100,
+    marginRight: 12,
+  },
+  categoryCard: {
+    width: 100,
+    height: 100,
+    marginBottom: 12,
+  },
+  categoryImageContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#f0f0f0',
+    position: 'relative',
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 8,
+    elevation: 5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  categoryImage: {
+    width: '100%',
+    height: '100%',
+  },
+  categoryGradient: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: '50%',
+    backgroundColor: 'rgba(0,0,0,0.4)',
+  },
+  categoryName: {
+    position: 'absolute',
+    bottom: 6,
+    left: 6,
+    right: 6,
+    color: '#FFFFFF',
+    textAlign: 'center',
+    fontWeight: '600',
+    fontSize: 11,
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
+  },
+  noCategoriesText: {
+    fontSize: 14,
+    color: '#999999',
+    textAlign: 'center',
+    marginTop: 8,
+  },
   viewAllText: {
     fontSize: 14,
     color: '#FF6600',
@@ -1781,6 +1952,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 8,
   },
+  nearbyImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 8,
+  },
   nearbyName: {
     fontSize: 14,
     fontWeight: '600',
@@ -1826,6 +2002,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 20,
+    paddingBottom: 60,
     maxHeight: '80%',
   },
   locationModalHeader: {

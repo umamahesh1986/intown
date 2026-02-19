@@ -35,7 +35,7 @@ import {
   getNearbyShops,
   getNearbyShopsByCategory,
 } from '../utils/api';
-import { getCustomerProfile } from '../utils/api';
+import { getCustomerProfile, getMerchantImageByShopId } from '../utils/api';
 
 
 import {
@@ -302,6 +302,11 @@ const [profileLoading, setProfileLoading] = useState(false);
 
   const stopCategoriesAutoScroll = () => {};
   const stopNearbyAutoScroll = () => {};
+
+  const categoryColumns = [];
+  for (let i = 0; i < categories.length; i += 2) {
+    categoryColumns.push(categories.slice(i, i + 2));
+  }
 
   const placeholderItems = [
     'Grocery', 
@@ -591,8 +596,15 @@ const [profileLoading, setProfileLoading] = useState(false);
       );
 
 
-      // Backend response format: { data: [...] }
-      setNearbyShops(Array.isArray(response) ? response : []);
+      const list = Array.isArray(response) ? response : [];
+      const enriched = await Promise.all(
+        list.map(async (shop: any) => {
+          const shopId = shop?.id ?? shop?.merchantId ?? shop?.merchant_id;
+          const image = await getMerchantImageByShopId(shopId);
+          return { ...shop, image: image ?? shop?.image ?? shop?.s3ImageUrl };
+        })
+      );
+      setNearbyShops(enriched);
 
     } catch (error) {
       console.error('Failed to load nearby shops:', error);
@@ -988,23 +1000,30 @@ const handleCategoryClick = (category: Category) => {
               contentContainerStyle={styles.categoriesCarouselContent}
               onScrollBeginDrag={stopCategoriesAutoScroll}
             >
-              {categories.map((category, index) => (
-                <TouchableOpacity
-                  key={category.id}
-                  style={styles.categoryCard}
-                  onPress={() => handleCategoryClick(category)}
-                  activeOpacity={0.8}
-                >
-                  <View style={styles.categoryImageContainer}>
-                    <Image
-                      source={getCategoryImageByIndex(index)}
-                      style={styles.categoryImage}
-                      resizeMode="cover"
-                    />
-                    <View style={styles.categoryGradient} />
-                    <Text style={styles.categoryName}>{category.name}</Text>
-                  </View>
-                </TouchableOpacity>
+              {categoryColumns.map((column, columnIndex) => (
+                <View key={`col-${columnIndex}`} style={styles.categoryColumn}>
+                  {column.map((category, rowIndex) => {
+                    const index = columnIndex * 2 + rowIndex;
+                    return (
+                      <TouchableOpacity
+                        key={category.id}
+                        style={styles.categoryCard}
+                        onPress={() => handleCategoryClick(category)}
+                        activeOpacity={0.8}
+                      >
+                        <View style={styles.categoryImageContainer}>
+                          <Image
+                            source={getCategoryImageByIndex(index)}
+                            style={styles.categoryImage}
+                            resizeMode="cover"
+                          />
+                          <View style={styles.categoryGradient} />
+                          <Text style={styles.categoryName}>{category.name}</Text>
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
               ))}
             </ScrollView>
           </View>
@@ -1120,11 +1139,18 @@ const handleCategoryClick = (category: Category) => {
                   }
                 >
                   <View style={styles.shopImagePlaceholder}>
-                    <Ionicons name="storefront" size={40} color="#FF6600" />
+                    {shop.image || shop.s3ImageUrl ? (
+                      <Image
+                        source={{ uri: shop.image || shop.s3ImageUrl }}
+                        style={styles.shopImageThumb}
+                      />
+                    ) : (
+                      <Ionicons name="storefront" size={40} color="#FF6600" />
+                    )}
                   </View>
 
                   <Text style={styles.shopCardName} numberOfLines={1}>
-                    {shop.businessName || shop.merchantName || 'Shop'}
+                    {shop.businessName || shop.contactName || 'Shop'}
                   </Text>
 
                   <Text style={styles.shopCardCategory}>
@@ -1577,12 +1603,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   categoriesCarouselContent: {
+    flexDirection: 'row',
+    paddingVertical: 4,
     paddingRight: 12,
+  },
+  categoryColumn: {
+    width: 100,
+    marginRight: 12,
   },
   categoryCard: {
     width: 100,
     height: 100,
-    marginRight: 12,
+    marginBottom: 12,
   },
   categoryImageContainer: {
     width: 100,
@@ -1785,6 +1817,11 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  shopImageThumb: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 8,
   },
   shopCardName: { fontSize: 14, fontWeight: '600', color: '#1A1A1A', marginTop: 8 },
   shopCardCategory: { fontSize: 12, color: '#777', marginTop: 2 },
@@ -2041,6 +2078,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 20,
+    paddingBottom: 60,
     maxHeight: '85%',
     minHeight: 300,
   },

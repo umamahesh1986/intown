@@ -11,7 +11,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { searchByProductNames } from '../utils/api';
+import { searchByProductNames, getMerchantImageByShopId } from '../utils/api';
 import { useLocationStore } from '../store/locationStore';
 import { formatDistance } from '../utils/formatDistance';
 
@@ -43,8 +43,15 @@ export default function MemberShopList() {
 
     const data = await res.json();
 
-    // ✅ YOUR API RETURNS ARRAY DIRECTLY
-    setShops(Array.isArray(data) ? data : []);
+    const list = Array.isArray(data) ? data : [];
+    const enriched = await Promise.all(
+      list.map(async (shop: any) => {
+        const shopId = shop?.id ?? shop?.merchantId ?? shop?.merchant_id;
+        const image = await getMerchantImageByShopId(shopId);
+        return { ...shop, image: image ?? shop?.image ?? shop?.s3ImageUrl };
+      })
+    );
+    setShops(enriched);
   } catch (error) {
     console.error('Failed to fetch category shops', error);
     setShops([]);
@@ -85,8 +92,14 @@ export default function MemberShopList() {
         : [];
 
       if (mappedShops.length > 0) {
-        // ✅ Product found
-        setShops(mappedShops);
+        const enriched = await Promise.all(
+          mappedShops.map(async (shop: any) => {
+            const shopId = shop?.id ?? shop?.merchantId ?? shop?.merchant_id;
+            const image = await getMerchantImageByShopId(shopId);
+            return { ...shop, image: image ?? shop?.image ?? shop?.s3ImageUrl };
+          })
+        );
+        setShops(enriched);
       } else {
         setShops([]);
       }
@@ -164,7 +177,7 @@ export default function MemberShopList() {
                   {item.image ? (
                     <Image
                       source={{ uri: item.image }}
-                      style={{ width: 40, height: 40, borderRadius: 10 }}
+                      style={{ width: 60, height: 60, borderRadius: 10 }}
                     />
                   ) : (
                     <Ionicons name="storefront" size={40} color="#FF6600" />

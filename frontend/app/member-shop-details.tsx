@@ -1,9 +1,10 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Modal, Pressable } from 'react-native';
-import { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Modal, Pressable, Dimensions } from 'react-native';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistance } from '../utils/formatDistance';
+import { getMerchantImageByShopId, getMerchantImagesByShopId } from '../utils/api';
 import { getNearbyShops } from '../utils/api';
 import { useLocationStore } from '../store/locationStore';
 import PaymentModal from '../components/PaymentModal';
@@ -13,14 +14,14 @@ export default function MemberShopDetails() {
   const router = useRouter();
   const params = useLocalSearchParams<{ shopId?: string; shop?: string; source?: string }>();
   const shopId = params.shopId as string | undefined;
-  const shopFromParams = (() => {
+  const shopFromParams = useMemo(() => {
     if (!params.shop) return null;
     try {
       return JSON.parse(params.shop);
     } catch {
       return null;
     }
-  })();
+  }, [params.shop]);
   const [fetchedShop, setFetchedShop] = useState<any | null>(null);
   const [isShopLoading, setIsShopLoading] = useState(false);
   const location = useLocationStore((state) => state.location);
@@ -37,6 +38,12 @@ export default function MemberShopDetails() {
   const [customerId, setCustomerId] = useState<string | null>(null);
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
   const [shopLoadError, setShopLoadError] = useState<string | null>(null);
+  const [shopImage, setShopImage] = useState<string | null>(null);
+  const [shopImages, setShopImages] = useState<string[]>([]);
+  const [shopImageIndex, setShopImageIndex] = useState(0);
+  const shopImageScrollRef = useRef<ScrollView | null>(null);
+  const shopImageTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const SHOP_IMAGE_WIDTH = Dimensions.get('window').width;
 
   const handlePaymentSuccess = (amount: number, savings: number, method: string) => {
     console.log('Payment successful:', { amount, savings, method });
@@ -98,6 +105,122 @@ export default function MemberShopDetails() {
       isActive = false;
     };
   }, [shopFromParams, shopId, location?.latitude, location?.longitude]);
+
+  useEffect(() => {
+    if (!shop) return;
+    const loadImage = async () => {
+      const image = await getMerchantImageByShopId(shop?.id ?? shopId);
+      if (image && image !== shopImage) setShopImage(image);
+    };
+    loadImage();
+  }, [shop, shopId, shopImage]);
+
+  const isSameImages = (a: string[], b: string[]) =>
+    a.length === b.length && a.every((val, idx) => val === b[idx]);
+
+  useEffect(() => {
+    if (!shop) return;
+    const fromShop = Array.isArray(shop.s3ImageUrl)
+      ? shop.s3ImageUrl
+      : shop.s3ImageUrl
+      ? [shop.s3ImageUrl]
+      : shop.image
+      ? [shop.image]
+      : shopImage
+      ? [shopImage]
+      : [];
+    const nextImages = fromShop.filter(Boolean);
+    if (nextImages.length > 0) {
+      setShopImages((prev) => (isSameImages(prev, nextImages) ? prev : nextImages));
+      return;
+    }
+    const loadImages = async () => {
+      const images = await getMerchantImagesByShopId(shop?.id ?? shopId);
+      if (images.length > 0) {
+        setShopImages((prev) => (isSameImages(prev, images) ? prev : images));
+      }
+    };
+    loadImages();
+  }, [shop, shopImage, shopId]);
+
+  useEffect(() => {
+    if (shopImages.length <= 1) return;
+    if (shopImageTimerRef.current) {
+      clearInterval(shopImageTimerRef.current);
+    }
+    shopImageTimerRef.current = setInterval(() => {
+      setShopImageIndex((prev) => (prev + 1) % shopImages.length);
+    }, 3000);
+    return () => {
+      if (shopImageTimerRef.current) {
+        clearInterval(shopImageTimerRef.current);
+      }
+    };
+  }, [shopImages]);
+
+  useEffect(() => {
+    if (!shopImageScrollRef.current || shopImages.length === 0) return;
+    shopImageScrollRef.current.scrollTo({
+      x: shopImageIndex * SHOP_IMAGE_WIDTH,
+      animated: true,
+    });
+  }, [shopImageIndex, shopImages.length, SHOP_IMAGE_WIDTH]);
+
+  const handlePrevShopImage = () => {
+    if (shopImages.length === 0) return;
+    setShopImageIndex((prev) =>
+      prev === 0 ? shopImages.length - 1 : prev - 1
+    );
+  };
+
+  const handleNextShopImage = () => {
+    if (shopImages.length === 0) return;
+    setShopImageIndex((prev) => (prev + 1) % shopImages.length);
+  };
+
+  const renderShopImageCarousel = () => {
+    if (shopImages.length === 0) {
+      return <Ionicons name="storefront" size={100} color="#FF6600" />;
+    }
+    return (
+      <>
+        <ScrollView
+          ref={shopImageScrollRef}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          onMomentumScrollEnd={(e) => {
+            const index = Math.round(e.nativeEvent.contentOffset.x / SHOP_IMAGE_WIDTH);
+            setShopImageIndex(index);
+          }}
+        >
+          {shopImages.map((img, index) => (
+            <Image
+              key={`${img}-${index}`}
+              source={{ uri: img }}
+              style={[styles.shopImageFull, { width: SHOP_IMAGE_WIDTH }]}
+            />
+          ))}
+        </ScrollView>
+        {shopImages.length > 1 && (
+          <>
+            <TouchableOpacity
+              style={[styles.shopArrow, styles.shopArrowLeft]}
+              onPress={handlePrevShopImage}
+            >
+              <Ionicons name="chevron-back" size={22} color="#FFFFFF" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.shopArrow, styles.shopArrowRight]}
+              onPress={handleNextShopImage}
+            >
+              <Ionicons name="chevron-forward" size={22} color="#FFFFFF" />
+            </TouchableOpacity>
+          </>
+        )}
+      </>
+    );
+  };
 
   const getCategoryBadge = (category?: string) => {
     const badges: Record<string, { bg: string; color: string; label: string }> = {
@@ -161,14 +284,7 @@ export default function MemberShopDetails() {
         <Pressable style={styles.userFlowPressable} onPress={handleUserTap}>
           <ScrollView>
             <View style={styles.shopImage}>
-              {shop.image || shop.s3ImageUrl ? (
-                <Image
-                  source={{ uri: shop.image || shop.s3ImageUrl }}
-                  style={styles.shopImageFull}
-                />
-              ) : (
-                <Ionicons name="storefront" size={100} color="#FF6600" />
-              )}
+              {renderShopImageCarousel()}
             </View>
 
             <View style={styles.content}>
@@ -242,14 +358,7 @@ export default function MemberShopDetails() {
       ) : (
         <ScrollView>
           <View style={styles.shopImage}>
-            {shop.image || shop.s3ImageUrl ? (
-              <Image
-                source={{ uri: shop.image || shop.s3ImageUrl }}
-                style={styles.shopImageFull}
-              />
-            ) : (
-              <Ionicons name="storefront" size={100} color="#FF6600" />
-            )}
+            {renderShopImageCarousel()}
           </View>
 
           <View style={styles.content}>
@@ -425,6 +534,19 @@ const styles = StyleSheet.create({
   headerTitle: {fontSize:18, fontWeight:'600', color:'#1A1A1A'},
   shopImage: {width:'100%', height:250, backgroundColor:'#FFF3E0', alignItems:'center', justifyContent:'center'},
   shopImageFull: { width: '100%', height: '100%', resizeMode: 'cover' },
+  shopArrow: {
+    position: 'absolute',
+    top: '50%',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    transform: [{ translateY: -16 }],
+  },
+  shopArrowLeft: { left: 10 },
+  shopArrowRight: { right: 10 },
   content: {padding:16},
   userFlowPressable: { flex: 1 },
   titleRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 8 },

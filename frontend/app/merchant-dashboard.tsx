@@ -1426,6 +1426,7 @@ shopImageCarousel: {
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 20,
+    paddingBottom: 60,
     maxHeight: '85%',
     minHeight: 300,
   },

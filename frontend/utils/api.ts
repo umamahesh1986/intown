@@ -1,5 +1,6 @@
 import axios from "axios";
 import { Platform } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 const BASE_URL = 'https://api.intownlocal.com';
 
 
@@ -560,6 +561,144 @@ export const getCustomerProfile = async (customerId: number) => {
   }
 
   return res.json();
+};
+
+const merchantImageCache = new Map<string, string | null>();
+const merchantImageListCache = new Map<string, string[]>();
+const MERCHANT_IMAGE_CACHE_KEY = "merchant_image_cache";
+const MERCHANT_IMAGE_LIST_CACHE_KEY = "merchant_image_list_cache";
+
+const loadMerchantImageCache = async () => {
+  try {
+    const raw = await AsyncStorage.getItem(MERCHANT_IMAGE_CACHE_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === "object") {
+      Object.entries(parsed).forEach(([key, value]) => {
+        if (!merchantImageCache.has(key)) {
+          merchantImageCache.set(key, typeof value === "string" ? value : null);
+        }
+      });
+    }
+  } catch {
+    // ignore cache load errors
+  }
+};
+
+const loadMerchantImageListCache = async () => {
+  try {
+    const raw = await AsyncStorage.getItem(MERCHANT_IMAGE_LIST_CACHE_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === "object") {
+      Object.entries(parsed).forEach(([key, value]) => {
+        if (!merchantImageListCache.has(key) && Array.isArray(value)) {
+          merchantImageListCache.set(
+            key,
+            value.filter((item) => typeof item === "string")
+          );
+        }
+      });
+    }
+  } catch {
+    // ignore cache load errors
+  }
+};
+
+const persistMerchantImageCache = async () => {
+  try {
+    const obj: Record<string, string | null> = {};
+    merchantImageCache.forEach((value, key) => {
+      obj[key] = value ?? null;
+    });
+    await AsyncStorage.setItem(MERCHANT_IMAGE_CACHE_KEY, JSON.stringify(obj));
+  } catch {
+    // ignore cache save errors
+  }
+};
+
+const persistMerchantImageListCache = async () => {
+  try {
+    const obj: Record<string, string[]> = {};
+    merchantImageListCache.forEach((value, key) => {
+      obj[key] = value ?? [];
+    });
+    await AsyncStorage.setItem(
+      MERCHANT_IMAGE_LIST_CACHE_KEY,
+      JSON.stringify(obj)
+    );
+  } catch {
+    // ignore cache save errors
+  }
+};
+
+export const getMerchantImageByShopId = async (
+  shopId?: string | number | null
+): Promise<string | null> => {
+  if (shopId == null) return null;
+  const key = String(shopId);
+  if (merchantImageCache.has(key)) {
+    return merchantImageCache.get(key) ?? null;
+  }
+  await loadMerchantImageCache();
+  if (merchantImageCache.has(key)) {
+    return merchantImageCache.get(key) ?? null;
+  }
+  try {
+    const res = await fetch(`https://api.intownlocal.com/IN/customer/${key}`);
+    if (!res.ok) {
+      merchantImageCache.set(key, null);
+      await persistMerchantImageCache();
+      return null;
+    }
+    const data = await res.json();
+    const images = Array.isArray(data?.s3ImageUrl) ? data.s3ImageUrl : [];
+    const firstImage = images[0] ?? null;
+    merchantImageCache.set(key, firstImage);
+    await persistMerchantImageCache();
+    return firstImage;
+  } catch {
+    merchantImageCache.set(key, null);
+    await persistMerchantImageCache();
+    return null;
+  }
+};
+
+export const getMerchantImagesByShopId = async (
+  shopId?: string | number | null
+): Promise<string[]> => {
+  if (shopId == null) return [];
+  const key = String(shopId);
+  if (merchantImageListCache.has(key)) {
+    return merchantImageListCache.get(key) ?? [];
+  }
+  await loadMerchantImageListCache();
+  if (merchantImageListCache.has(key)) {
+    return merchantImageListCache.get(key) ?? [];
+  }
+  try {
+    const res = await fetch(`https://api.intownlocal.com/IN/customer/${key}`);
+    if (!res.ok) {
+      merchantImageListCache.set(key, []);
+      await persistMerchantImageListCache();
+      return [];
+    }
+    const data = await res.json();
+    const images = Array.isArray(data?.s3ImageUrl)
+      ? data.s3ImageUrl.filter((item: any) => typeof item === "string")
+      : [];
+    merchantImageListCache.set(key, images);
+    if (images.length > 0) {
+      merchantImageCache.set(key, images[0]);
+      await persistMerchantImageCache();
+    }
+    await persistMerchantImageListCache();
+    return images;
+  } catch {
+    merchantImageListCache.set(key, []);
+    await persistMerchantImageListCache();
+    return [];
+  }
 };
 
 

@@ -34,7 +34,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAuthStore } from '../store/authStore';
 import { useLocationStore, LocationDetails } from '../store/locationStore';
-import { getPlans, getCategories, getNearbyShops } from '../utils/api';
+import { getPlans, getCategories, getNearbyShops, getMerchantImageByShopId } from '../utils/api';
 
 import {
   getUserLocationWithDetails,
@@ -216,6 +216,11 @@ useEffect(() => {
   const stopCategoriesAutoScroll = () => {};
   const stopNearbyAutoScroll = () => {};
 
+  const categoryColumns = [];
+  for (let i = 0; i < categories.length; i += 2) {
+    categoryColumns.push(categories.slice(i, i + 2));
+  }
+
 
   useEffect(() => {
   if (location?.latitude && location?.longitude) {
@@ -378,7 +383,15 @@ const loadNearbyShops = async () => {
     );
 
     // backend returns ARRAY, not { data: [] }
-    setNearbyShops(Array.isArray(response) ? response : []);
+    const list = Array.isArray(response) ? response : [];
+    const enriched = await Promise.all(
+      list.map(async (shop: any) => {
+        const shopId = shop?.id ?? shop?.merchantId ?? shop?.merchant_id;
+        const image = await getMerchantImageByShopId(shopId);
+        return { ...shop, image: image ?? shop?.image ?? shop?.s3ImageUrl };
+      })
+    );
+    setNearbyShops(enriched);
   } catch (error) {
     console.error('Failed to load nearby shops', error);
     setNearbyShops([]);
@@ -640,32 +653,44 @@ const loadNearbyShops = async () => {
                 contentContainerStyle={styles.categoriesCarouselContent}
                 onScrollBeginDrag={stopCategoriesAutoScroll}
               >
-                {categories.map((category, index) => (
-                  <TouchableOpacity
-                    key={category.id}
-                    style={styles.categoryCard}
-                    onPress={() =>
-                      router.push({
-                        pathname: '/member-shop-list',
-                        params: {
-                          categoryId: String(category.id),
-                          categoryName: category.name,
-                          source: 'user',
-                        },
-                      })
-                    }
-                    activeOpacity={0.8}
+                {categoryColumns.map((column, columnIndex) => (
+                  <View
+                    key={`col-${columnIndex}`}
+                    style={styles.categoryColumn}
                   >
-                    <View style={styles.categoryImageContainer}>
-                      <Image
-                        source={getCategoryImageByIndex(index)}
-                        style={styles.categoryImage}
-                        resizeMode="cover"
-                      />
-                      <View style={styles.categoryGradient} />
-                      <Text style={styles.categoryName}>{category.name}</Text>
-                    </View>
-                  </TouchableOpacity>
+                    {column.map((category, rowIndex) => {
+                      const index = columnIndex * 2 + rowIndex;
+                      return (
+                        <TouchableOpacity
+                          key={category.id}
+                          style={styles.categoryCard}
+                          onPress={() =>
+                            router.push({
+                              pathname: '/member-shop-list',
+                              params: {
+                                categoryId: String(category.id),
+                                categoryName: category.name,
+                                source: 'user',
+                              },
+                            })
+                          }
+                          activeOpacity={0.8}
+                        >
+                          <View style={styles.categoryImageContainer}>
+                            <Image
+                              source={getCategoryImageByIndex(index)}
+                              style={styles.categoryImage}
+                              resizeMode="cover"
+                            />
+                            <View style={styles.categoryGradient} />
+                            <Text style={styles.categoryName}>
+                              {category.name}
+                            </Text>
+                          </View>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
                 ))}
               </ScrollView>
             ) : (
@@ -856,7 +881,14 @@ const loadNearbyShops = async () => {
                   }
                 >
                   <View style={styles.shopImagePlaceholder}>
-                    <Ionicons name="storefront" size={40} color="#FF6600" />
+                    {shop.image || shop.s3ImageUrl ? (
+                      <Image
+                        source={{ uri: shop.image || shop.s3ImageUrl }}
+                        style={styles.shopImageThumb}
+                      />
+                    ) : (
+                      <Ionicons name="storefront" size={40} color="#FF6600" />
+                    )}
                   </View>
                   <Text style={styles.shopCardName} numberOfLines={1}>
                     {shop.shopName}
@@ -1507,12 +1539,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   categoriesCarouselContent: {
+    flexDirection: 'row',
+    paddingVertical: 4,
     paddingRight: 12,
+  },
+  categoryColumn: {
+    width: 100,
+    marginRight: 12,
   },
   categoryCard: {
     width: 100,
     height: 100,
-    marginRight: 12,
+    marginBottom: 12,
   },
   categoryImageContainer: {
     width: 100,
@@ -1786,6 +1824,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 8,
   },
+  shopImageThumb: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 8,
+  },
   shopCardName: {
     fontSize: 14,
     fontWeight: '600',
@@ -1886,6 +1929,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 20,
+    paddingBottom: 60,
     maxHeight: '85%',
     minHeight: 300,
   },
