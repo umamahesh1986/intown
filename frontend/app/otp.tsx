@@ -513,12 +513,12 @@ export default function OTPScreen() {
         <Text style={styles.phoneNumber}>+91 {phone}</Text>
         
         {/* Test Mode Banner */}
-        {isTestMode && (
+        {/* {isTestMode && (
           <View style={styles.testModeBanner}>
             <Ionicons name="information-circle" size={20} color="#1976D2" />
             <Text style={styles.testModeText}>Test Mode: Use OTP 123456</Text>
           </View>
-        )}
+        )} */}
         
         {/* Real SMS Banner for Mobile */}
         {isMobile && !isTestMode && otpSent && (
