@@ -1250,7 +1250,7 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', marginVertical: 6 },
   rowText: { marginLeft: 8 },
   submitBtn: {
-    backgroundColor: '#2196F3',
+    backgroundColor: '#FF6600',
     padding: 14,
     borderRadius: 8,
     marginTop: 24,
