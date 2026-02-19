@@ -1608,7 +1608,7 @@ const styles = StyleSheet.create({
   },
 
   themeSection: {
-    backgroundColor: '#CF5300',
+    backgroundColor: '#FF8C00',
     padding: 24,
     alignItems: 'center',
   },
@@ -1695,14 +1695,14 @@ const styles = StyleSheet.create({
   },
   calculatorHintContainer: {
     alignSelf: 'stretch',
-    backgroundColor: '#CF5300',
+    backgroundColor: '#FF8C00',
     paddingVertical: 10,
     paddingHorizontal: 16,
     marginTop: 12,
     marginHorizontal: -16,
     marginBottom: -16,
     borderTopWidth: 1,
-    borderTopColor: '#CF5300',
+    borderTopColor: '#FF8C00',
     borderBottomLeftRadius: 12,
     borderBottomRightRadius: 12,
   },
@@ -1717,7 +1717,7 @@ const styles = StyleSheet.create({
   popularPlan: {
   },
   popularBadge: {
-    backgroundColor: '#CF5300',
+    backgroundColor: '#FF8C00',
     paddingVertical: 4,
     paddingHorizontal: 12,
     borderRadius: 12,
@@ -1770,7 +1770,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   purchaseButton: {
-    backgroundColor: '#f2b949',
+    backgroundColor: '#FF8C00',
     borderRadius: 8,
     paddingVertical: 14,
     alignItems: 'center',
