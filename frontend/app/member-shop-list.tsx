@@ -150,9 +150,9 @@ export default function MemberShopList() {
       ) : shops.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Ionicons name="location-outline" size={64} color="#FF6600" />
-          <Text style={styles.emptyTitle}>Coming Soon!</Text>
+          {/* <Text style={styles.emptyTitle}>Coming Soon!</Text> */}
           <Text style={styles.emptyMessage}>
-            We are working on to serve at your location
+            We are onboarding stores in your area.
           </Text>
           <TouchableOpacity 
             style={styles.goBackButton}
@@ -268,7 +268,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   emptyMessage: {
-    fontSize: 16,
+    fontSize: 25,
     color: '#666',
     marginTop: 12,
     textAlign: 'center',

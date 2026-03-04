@@ -139,19 +139,19 @@ const TransactionRow = ({
       <View style={styles.transactionAmountBlock}>
         <Text style={styles.transactionAmountLabel}>Bill</Text>
         <Text style={styles.transactionAmountValue}>
-          ₹{transaction.totalBillAmount.toFixed(2)}
+          {transaction.totalBillAmount.toFixed(2)}
         </Text>
       </View>
       <View style={styles.transactionAmountBlock}>
         <Text style={styles.transactionAmountLabel}>Saved</Text>
         <Text style={styles.transactionAmountValue}>
-          ₹{transaction.savedAmount.toFixed(2)}
+          {transaction.savedAmount.toFixed(2)}
         </Text>
       </View>
       <View style={styles.transactionAmountBlock}>
         <Text style={styles.transactionAmountLabel}>Paid</Text>
         <Text style={styles.transactionAmountValue}>
-          ₹{transaction.finalPaidAmount.toFixed(2)}
+          {transaction.finalPaidAmount.toFixed(2)}
         </Text>
       </View>
     </View>
@@ -862,7 +862,7 @@ const handleCategoryClick = (category: Category) => {
           </View>
 
           {/* Membership Banner */}
-          <View style={styles.membershipBanner}>
+          {/* <View style={styles.membershipBanner}>
             <Ionicons name="ribbon-outline" size={18} color="#FF6600" />
             <View style={{ marginLeft: 8 }}>
               <Text style={styles.membershipBannerTitle}>{currentPlan} Customer</Text>
@@ -870,7 +870,7 @@ const handleCategoryClick = (category: Category) => {
                 Enjoy instant savings at partnered local shops.
               </Text>
             </View>
-          </View>
+          </View> */}
 
 
 
@@ -949,7 +949,7 @@ const handleCategoryClick = (category: Category) => {
           </TouchableWithoutFeedback>
 
           {/* ===== MEMBER CAROUSEL ===== */}
-          <View style={styles.carouselWrapper}>
+          {/* <View style={styles.carouselWrapper}>
             <ScrollView
               ref={carouselRef}
               horizontal
@@ -982,7 +982,7 @@ const handleCategoryClick = (category: Category) => {
                 />
               ))}
             </View>
-          </View>
+          </View> */}
           {/* === END MEMBER CAROUSEL === */}
 
 
@@ -990,7 +990,8 @@ const handleCategoryClick = (category: Category) => {
 
           {/* CATEGORIES */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Popular Categories</Text>
+            <Text style={styles.sectionTitle}>Feature Categories </Text>
+            <Text style={styles.normalText}>(Complete list will be displayed once stores onboarded):</Text>
             <ScrollView
               ref={categoriesScrollRef}
               horizontal
@@ -1030,18 +1031,20 @@ const handleCategoryClick = (category: Category) => {
 
           {/* SUMMARY SECTION */}
           <View style={styles.summarySection}>
+             <Text style={styles.sectionTitle}>Savings History </Text>
+           <Text style={styles.normalText}>(Depends on Participating at Stores):</Text>
             <View style={styles.summaryRow}>
               <View style={styles.summaryItem}>
                 <Text style={styles.summaryLabel}>Today's Savings </Text>
-                <Text style={styles.summaryValue}>₹{todaySavedAmount.toFixed(0)}</Text>
+                <Text style={styles.summaryValue}>{todaySavedAmount.toFixed(0)}</Text>
               </View>
               <View style={styles.summaryItem}>
-                <Text style={styles.summaryLabel}>Month's Savings</Text>
-                <Text style={styles.summaryValue}>₹{monthSavedAmount.toFixed(0)}</Text>
+                <Text style={styles.summaryLabel}>This Month's Savings</Text>
+                <Text style={styles.summaryValue}>{monthSavedAmount.toFixed(0)}</Text>
               </View>
               <View style={styles.summaryItem}>
-                <Text style={styles.summaryLabel}>Year's Savings</Text>
-                <Text style={styles.summaryValue}>₹{yearSavedAmount.toFixed(0)}</Text>
+                <Text style={styles.summaryLabel}>This Year's Savings</Text>
+                <Text style={styles.summaryValue}>{yearSavedAmount.toFixed(0)}</Text>
               </View>
             </View>
           </View>
@@ -1073,7 +1076,7 @@ const handleCategoryClick = (category: Category) => {
             )}
           </View>
 
-          {/* Quick Actions */}
+          {/* Quick Actions
           <View style={styles.quickActions}>
             <Text style={styles.sectionTitle}>Quick Actions</Text>
             <View style={styles.actionsGrid}>
@@ -1115,7 +1118,7 @@ const handleCategoryClick = (category: Category) => {
           </View>
 
           {/* NEARBY SHOPS */}
-          <View style={styles.section}>
+          {/* <View style={styles.section}>
             <Text style={styles.sectionTitle}>Nearby Shops</Text>
 
             <ScrollView
@@ -1155,17 +1158,17 @@ const handleCategoryClick = (category: Category) => {
 
                   <Text style={styles.shopCardCategory}>
                     {shop.businessCategory || 'General'}
-                  </Text>
+                  </Text> */}
 
-                  <View style={styles.shopCardFooter}>
+                  {/* <View style={styles.shopCardFooter}>
                     <View style={styles.ratingContainer}>
                       <Ionicons name="star" size={14} color="#FFA500" />
                       <Text style={styles.ratingText}>
                         {shop.rating ?? '4.0'}
                       </Text>
-                    </View>
+                    </View> */}
 
-                    <View style={styles.distanceContainer}>
+                    {/* <View style={styles.distanceContainer}>
                       <Ionicons name="location" size={14} color="#FF6600" />
                       <Text style={styles.distanceText}>
                         {formatDistance(
@@ -1173,11 +1176,11 @@ const handleCategoryClick = (category: Category) => {
                         )}
                       </Text>
                     </View>
-                  </View>
+                 
                 </TouchableOpacity>
               ))}
             </ScrollView>
-          </View>
+          </View> */} 
 
           {/* FOOTER */}
           <Footer dashboardType="member"/>
@@ -2179,6 +2182,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
     marginTop: 2,
+  },
+  normalText: {
+    fontWeight: 'normal',  
+    color: '#666',         
   },
 
 });

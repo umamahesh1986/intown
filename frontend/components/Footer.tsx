@@ -19,370 +19,195 @@ const SOCIAL_LINKS = {
   instagram: 'https://www.instagram.com/intown830/',
   facebook: 'https://www.facebook.com/share/171uBhNRZa/',
   linkedin: 'https://www.linkedin.com/in/vinodintown/',
-  youtube: 'https://www.youtube.com/@intownprivilege',
+  youtube: 'https://www.youtube.com/@intown830',
 };
 
 // --- LEGAL CONTENT HTML ---
 const LEGAL_CONTENT = {
-  terms: `
-    <!DOCTYPE html>
+  terms: `<!DOCTYPE html>
 <html>
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-      padding: 20px;
-      line-height: 1.6;
-      color: #333;
+      padding: 20px; line-height: 1.6; color: #333;
     }
     h1 {
-      color: #FF6600;
-      font-size: 24px;
-      border-bottom: 2px solid #eee;
-      padding-bottom: 10px;
-      margin-bottom: 20px;
+      color: #FF6600; font-size: 24px; border-bottom: 2px solid #eee;
+      padding-bottom: 10px; margin-bottom: 20px;
     }
     h2 {
-      color: #1A1A1A;
-      font-size: 18px;
-      margin-top: 25px;
-      margin-bottom: 10px;
-      font-weight: bold;
+      color: #1A1A1A; font-size: 18px; margin-top: 25px;
+      margin-bottom: 10px; font-weight: bold;
     }
-    p {
-      margin-bottom: 12px;
-      font-size: 14px;
-    }
-    ul {
-      margin-left: 20px;
-      margin-bottom: 15px;
-      font-size: 14px;
-    }
-    li {
-      margin-bottom: 6px;
-    }
-    strong {
-      color: #000;
-    }
+    p { margin-bottom: 12px; font-size: 14px; }
+    ul { margin-left: 20px; margin-bottom: 15px; font-size: 14px; }
+    li { margin-bottom: 6px; }
+    strong { color: #000; }
   </style>
 </head>
 <body>
-
-  <p><strong>Effective Date:</strong> 31/01/2026</p>
-
-  <p>
-    Welcome to INtown (“we”, “our”, “us”).  
-    These Terms &amp; Conditions govern your use of the INtown mobile application (“App”).
-    By downloading or using the App, you agree to these Terms.
-  </p>
+  <h1>Terms and Conditions – Intown</h1>
+  <p><strong>Effective Date:</strong> 04 March 2026</p>
 
   <p>
-    If you do not agree to these Terms, please do not use the App.
+    Welcome to Intown. These Terms and Conditions (“Terms”) govern your use of the Intown mobile application and related services. By accessing or using the Intown app, you agree to comply with and be bound by these Terms.
   </p>
+  <p>If you do not agree with these Terms, please do not use the application.</p>
 
-  <h2>1. Use of the App</h2>
+  <h2>1. About Intown</h2>
   <p>
-    INtown is a platform that connects users with local merchants offering savings and services.
-    We do not own or operate the listed businesses.
+    Intown is a platform that helps users discover nearby participating merchants and explore available in-store benefits. The app connects customers with local businesses for discovery and information purposes.
   </p>
-  <p>You agree to:</p>
-  <ul>
-    <li>Use the App for lawful purposes only</li>
-    <li>Provide accurate information</li>
-    <li>Not misuse the App or its services</li>
-  </ul>
+  <p>
+    Intown does not sell products directly and does not process in-store transactions between customers and merchants.
+  </p>
 
   <h2>2. User Accounts</h2>
-  <p>
-    To use certain features, you may need to register using your mobile number or email.
-  </p>
-  <p>You are responsible for:</p>
+  <p>To access certain features, users may need to create an account using phone number verification (OTP).</p>
+  <p>Users agree to:</p>
   <ul>
-    <li>Maintaining confidentiality of your login credentials</li>
-    <li>All activities conducted under your account</li>
+    <li>Provide accurate and valid information</li>
+    <li>Maintain the security of their account</li>
+    <li>Use the app only for lawful purposes</li>
   </ul>
-  <p>
-    We reserve the right to suspend or terminate accounts that violate these Terms.
-  </p>
+  <p>Users are responsible for all activities that occur under their account.</p>
 
-  <h2>3. Merchant Offers &amp; savings</h2>
-  <p>
-    All offers and savings shown in the App are provided by partner merchants.
-  </p>
-  <p>INtown:</p>
+  <h2>3. Merchant Listings</h2>
+  <p>Businesses may register and list their stores on the Intown platform. Merchant information such as:</p>
   <ul>
-    <li>Does not guarantee the quality of products or services</li>
-    <li>Is not responsible for merchant behavior</li>
-    <li>Is not responsible for pricing disputes</li>
+    <li>Business name</li>
+    <li>Address</li>
+    <li>Contact details</li>
+    <li>Description</li>
   </ul>
-  <p>
-    Any transaction between a user and a merchant is strictly between them.
-  </p>
+  <p>may be displayed in the app to help users discover nearby services. Intown does not guarantee the availability, quality, or accuracy of services offered by merchants.</p>
 
-  <h2>4. Payments (If Applicable)</h2>
-  <p>If payments are enabled:</p>
+  <h2>4. Benefits and Offers</h2>
+  <p>Some participating merchants may provide benefits to Intown users. Important:</p>
   <ul>
-    <li>All payments are processed via third-party payment gateways</li>
-    <li>INtown is not responsible for payment failures</li>
-    <li>Refunds are subject to merchant policies</li>
+    <li>Benefits are determined by individual merchants.</li>
+    <li>Availability and terms may vary by location or merchant.</li>
+    <li>Intown does not guarantee specific savings or benefits.</li>
+    <li>Users should confirm details directly with the merchant before making purchases.</li>
   </ul>
 
-  <h2>5. Intellectual Property</h2>
-  <p>
-    All content in the App including logos, design elements, text, and software
-    is owned by or licensed to INtown and protected by applicable laws.
-  </p>
-  <p>
-    You may not copy, modify, or distribute any content without written permission.
-  </p>
-
-  <h2>6. Prohibited Activities</h2>
-  <p>You agree not to:</p>
+  <h2>5. Subscription and Payments</h2>
+  <p>Certain features of the Intown app may require a subscription. Subscriptions may be offered through Google Play Billing. By purchasing a subscription:</p>
   <ul>
-    <li>Use the App for illegal purposes</li>
-    <li>Post false or misleading information</li>
-    <li>Attempt to hack or reverse engineer the App</li>
-    <li>Interfere with the App’s security</li>
-    <li>Abuse merchants or other users</li>
+    <li>You agree to the pricing and billing terms displayed at the time of purchase.</li>
+    <li>Subscriptions may renew automatically unless cancelled through your Google Play account.</li>
+    <li>Refunds and billing management are handled by Google Play according to their policies.</li>
   </ul>
 
-  <h2>7. Limitation of Liability</h2>
-  <p>INtown is not liable for:</p>
+  <h2>6. Acceptable Use</h2>
+  <p>Users agree not to:</p>
   <ul>
-    <li>Any indirect or incidental damages</li>
-    <li>Losses arising from merchant services</li>
-    <li>App downtime or service interruptions</li>
-    <li>Loss of data</li>
+    <li>Use the app for unlawful purposes</li>
+    <li>Upload false or misleading information</li>
+    <li>Attempt to disrupt or interfere with the app’s operation</li>
+    <li>Misuse merchant listings or platform services</li>
   </ul>
-  <p>
-    Use of the App is entirely at your own risk.
-  </p>
 
-  <h2>8. Termination</h2>
-  <p>
-    We may suspend or terminate your access to the App without notice
-    if you violate these Terms.
-  </p>
-  <p>
-    You may stop using the App at any time.
-  </p>
+  <h2>7. Intellectual Property</h2>
+  <p>All content within the Intown app, including logos, design, software, and branding, is the property of Intown unless otherwise stated. Users may not copy, reproduce, distribute, or modify any content without permission.</p>
 
-  <h2>9. Privacy</h2>
-  <p>
-    Your use of the App is also governed by our Privacy Policy.
-    Please review it carefully.
-  </p>
+  <h2>8. Limitation of Liability</h2>
+  <p>Intown is not responsible for: Transactions between users and merchants; Merchant service quality; Disputes between customers and businesses; Any loss or damages resulting from merchant interactions.</p>
+
+  <h2>9. Termination</h2>
+  <p>Intown reserves the right to suspend or terminate user accounts if users violate these Terms or misuse the platform.</p>
 
   <h2>10. Changes to Terms</h2>
-  <p>
-    We may update these Terms from time to time.
-    Changes will be effective when posted in the App or on the website.
-  </p>
+  <p>We may update these Terms from time to time. Continued use of the app after changes indicates acceptance of the updated Terms.</p>
 
   <h2>11. Governing Law</h2>
-  <p>
-    These Terms shall be governed by and interpreted in accordance
-    with the laws of India.
-  </p>
+  <p>These Terms are governed by the laws of India. Any disputes shall be subject to the jurisdiction of courts in India.</p>
 
   <h2>12. Contact Information</h2>
   <p>
-    <strong>Company Name:</strong> Yagnavihar lifestyle private limited<br>
     <strong>Email:</strong> support@intownlocal.com<br>
-    <strong>Website:</strong> www.intownlocal.com
+    <strong>Company:</strong> Yagnavihar Lifestyle Private Limited<br>
+    <strong>Location:</strong> Hyderabad, India
   </p>
-
 </body>
-</html>
+</html>`,
 
-  `,
-  // NOTE: You did not provide the full text for Privacy Policy, so this is a placeholder. 
-  // Please replace this string with your specific Privacy Policy text when ready.
-  privacy: `
-    <!DOCTYPE html>
+  privacy: `<!DOCTYPE html>
 <html>
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-      padding: 20px;
-      line-height: 1.6;
-      color: #333;
+      padding: 20px; line-height: 1.6; color: #333;
     }
     h1 {
-      color: #FF6600;
-      font-size: 24px;
-      border-bottom: 2px solid #eee;
-      padding-bottom: 10px;
-      margin-bottom: 20px;
+      color: #FF6600; font-size: 24px; border-bottom: 2px solid #eee;
+      padding-bottom: 10px; margin-bottom: 20px;
     }
     h2 {
-      color: #1A1A1A;
-      font-size: 18px;
-      margin-top: 25px;
-      margin-bottom: 10px;
-      font-weight: bold;
+      color: #1A1A1A; font-size: 18px; margin-top: 25px;
+      margin-bottom: 10px; font-weight: bold;
     }
-    p {
-      margin-bottom: 12px;
-      font-size: 14px;
-    }
-    ul {
-      margin-left: 20px;
-      font-size: 14px;
-    }
-    .contact-box {
-      background-color: #f9f9f9;
-      padding: 15px;
-      border-radius: 8px;
-      border: 1px solid #eee;
-    }
+    p { margin-bottom: 12px; font-size: 14px; }
+    ul { margin-left: 20px; margin-bottom: 15px; font-size: 14px; }
+    li { margin-bottom: 6px; }
   </style>
 </head>
 <body>
-
-
-  <p><strong>Effective Date:</strong> 31/01/2026</p>
-
+  <h1>Privacy Policy – Intown</h1>
+  <p><strong>Effective Date:</strong> 04 March 2026</p>
   <p>
-    INtown (“we”, “our”, “us”) operates the INtown mobile application (“App”).
-    This Privacy Policy explains how we collect, use, disclose, and safeguard
-    your information when you use our App.
-  </p>
-
-  <p>
-    By using INtown, you agree to the collection and use of information in accordance
-    with this Privacy Policy.
+    Intown (“we”, “our”, or “us”) operates the Intown mobile application (the “App”). This Privacy Policy explains how we collect, use, disclose, and protect your information.
   </p>
 
   <h2>1. Information We Collect</h2>
-
-  <p><strong>a. Personal Information</strong></p>
-  <ul>
-    <li>Name</li>
-    <li>Mobile number</li>
-    <li>Email address (if provided)</li>
-  </ul>
-
-  <p><strong>b. Location Information</strong></p>
-  <p>
-    We may collect your approximate location to show nearby local businesses and offers.
-  </p>
-
-  <p><strong>c. Usage Data</strong></p>
-  <ul>
-    <li>App interaction data</li>
-    <li>Pages or screens viewed</li>
-    <li>Device type and operating system</li>
-    <li>IP address</li>
-  </ul>
-
-  <p><strong>d. Merchant Information</strong></p>
-  <p>For merchant partners, we may collect:</p>
-  <ul>
-    <li>Business name</li>
-    <li>Contact details</li>
-    <li>Store location</li>
-    <li>Offer information</li>
-  </ul>
+  <p><strong>Personal Information:</strong> Phone number (for OTP verification), basic account info, and preferences.</p>
+  <p><strong>Location Information:</strong> Approximate location data to help show nearby participating merchants.</p>
+  <p><strong>Usage Information:</strong> App activity, device info, and performance data to improve the experience.</p>
 
   <h2>2. How We Use Your Information</h2>
   <ul>
-    <li>Provide and maintain the App</li>
-    <li>Display nearby merchants and offers</li>
-    <li>Improve user experience</li>
-    <li>Communicate important updates</li>
-    <li>Provide customer support</li>
-    <li>Prevent fraud and abuse</li>
-    <li>Comply with legal obligations</li>
+    <li>To manage user accounts and OTP authentication</li>
+    <li>To display nearby participating merchants</li>
+    <li>To provide customer support and prevent misuse</li>
   </ul>
+  <p>We do not sell your personal information to third parties.</p>
 
-  <h2>3. Sharing of Information</h2>
-  <p>We do not sell or rent your personal information.</p>
-  <p>We may share information with:</p>
-  <ul>
-    <li>Partner merchants (only for service delivery)</li>
-    <li>Service providers (hosting, analytics, communication)</li>
-    <li>Government or legal authorities if required by law</li>
-  </ul>
+  <h2>3. Merchant Listings</h2>
+  <p>Merchant information (business name, address, contact details) may be visible to users to help discover services.</p>
 
-  <h2>4. Data Retention</h2>
-  <p>
-    We retain your information only for as long as necessary to fulfill the purposes
-    described in this Privacy Policy or as required by law.
-  </p>
+  <h2>4. Data Sharing</h2>
+  <p>We may share limited info with trusted service providers (Cloud hosting, Auth, Analytics) who are required to protect user data.</p>
 
   <h2>5. Data Security</h2>
-  <p>
-    We use reasonable administrative, technical, and physical security measures to protect
-    your personal information from unauthorized access, disclosure, or misuse.
-  </p>
-  <p>
-    However, no method of transmission over the internet is 100% secure.
-  </p>
+  <p>We take reasonable measures to protect user data, though no digital platform is 100% secure.</p>
 
-  <h2>6. User Rights</h2>
-  <p>You have the right to:</p>
-  <ul>
-    <li>Access your personal data</li>
-    <li>Request correction</li>
-    <li>Request deletion of your data</li>
-    <li>Withdraw consent</li>
-  </ul>
-  <p>To exercise these rights, contact us at:</p>
-  <p>📧 support@intownlocal.com</p>
+  <h2>6. Data Retention</h2>
+  <p>We retain info as long as necessary for services or legal obligations. Users may request account deletion.</p>
 
-  <h2>7. Location Data</h2>
-  <p>Location data is used only to:</p>
-  <ul>
-    <li>Show nearby stores</li>
-    <li>Improve user experience</li>
-  </ul>
-  <p>We do not use location data for advertising or tracking.</p>
+  <h2>7. Children's Privacy</h2>
+  <p>Intown is not intended for children under 13. We do not knowingly collect their info.</p>
 
-  <h2>8. Children’s Privacy</h2>
-  <p>
-    INtown is not intended for users under the age of 13.
-    We do not knowingly collect personal information from children.
-  </p>
-  <p>
-    If we become aware that we have collected information from a child,
-    we will delete it immediately.
-  </p>
+  <h2>8. User Rights</h2>
+  <p>Users may request access, correction, or deletion of their personal information via the contact info below.</p>
 
   <h2>9. Third-Party Services</h2>
-  <p>The App may use third-party services such as:</p>
-  <ul>
-    <li>Google Maps</li>
-    <li>Firebase</li>
-    <li>Payment gateways</li>
-  </ul>
-  <p>
-    These services have their own privacy policies governing their use of data.
-  </p>
+  <p>The app uses services like Firebase Authentication and Cloud infrastructure which have their own privacy policies.</p>
 
-  <h2>10. Changes to This Privacy Policy</h2>
-  <p>
-    We may update this Privacy Policy from time to time.
-    We will notify users of any changes by updating the Effective Date.
-  </p>
+  <h2>10. Changes to This Policy</h2>
+  <p>Updates will be posted on this page and become effective immediately upon publication.</p>
 
   <h2>11. Contact Us</h2>
-  <div class="contact-box">
-    <p><strong>Company Name:</strong> INtown</p>
-    <p><strong>Email:</strong> support@intownlocal.com</p>
-    <p><strong>Website:</strong> www.intownlocal.com</p>
-  </div>
-
-  <p style="margin-top:20px; font-size:13px; color:#555;">
-    This Privacy Policy applies only to information collected through the INtown mobile application.
+  <p>
+    <strong>Email:</strong> support@intownlocal.com<br>
+    <strong>Company:</strong> Yagnavihar Lifestyle Private Limited<br>
+    <strong>Location:</strong> Hyderabad, India
   </p>
-
 </body>
-</html>
-  `
+</html>`
 };
 
 const openExternalURL = async (url: string) => {
@@ -396,7 +221,6 @@ const openExternalURL = async (url: string) => {
 type FooterProps = {
   dashboardType: 'user' | 'member' | 'merchant';
 };
-
 
 export default function Footer({ dashboardType }: FooterProps) {
   const iconSize = 18;
@@ -413,28 +237,8 @@ export default function Footer({ dashboardType }: FooterProps) {
     setModalVisible(true);
   };
 
-  const getFooterTagline = () => {
-  switch (dashboardType) {
-    case 'member':
-      return 'You Deserve For The Best';
-    case 'merchant':
-      return 'Supporting Local Markets';
-    case 'user':
-    default:
-      return 'Local Stores. Real Savings.';
-  }
-};
-
   return (
     <View style={styles.footer}>
-      <Text style={styles.footerTagline}>
-           {getFooterTagline()}
-      </Text>
-      <Text style={styles.footerDescription}>
-        India's most trusted local savings network, helping customers save
-        instantly while enabling small businesses to thrive.
-      </Text>
-
       {/* --- Social Media Links --- */}
       <View style={styles.socialContainer}>
         <TouchableOpacity style={styles.socialButton} onPress={() => openExternalURL(SOCIAL_LINKS.instagram)}>
@@ -456,14 +260,22 @@ export default function Footer({ dashboardType }: FooterProps) {
         <TouchableOpacity onPress={() => openInApp(LEGAL_CONTENT.terms, 'Terms and Conditions')}>
           <Text style={styles.linkText}>Terms and Conditions</Text>
         </TouchableOpacity>
+        
         <Text style={styles.separator}>|</Text>
+        
         <TouchableOpacity onPress={() => openInApp(LEGAL_CONTENT.privacy, 'Privacy Policy')}>
           <Text style={styles.linkText}>Privacy Policy</Text>
+        </TouchableOpacity>
+
+        <Text style={styles.separator}>|</Text>
+        
+        <TouchableOpacity onPress={() => openExternalURL('https://www.intownlocal.com/delete-account')}>
+          <Text style={styles.linkText}>Delete Account</Text>
         </TouchableOpacity>
       </View>
 
       <Text style={styles.footerCopyright}>
-        Copyright © 2025, Yagnavihar Lifestyle Pvt. Ltd.
+        Copyright © 2026, Yagnavihar Lifestyle Private Limited
       </Text>
 
       {/* --- MODAL --- */}
@@ -474,7 +286,6 @@ export default function Footer({ dashboardType }: FooterProps) {
         onRequestClose={() => setModalVisible(false)}
       >
         <Pressable style={styles.modalOverlay} onPress={() => setModalVisible(false)}>
-          
           <Pressable 
             style={[
               styles.modalContainer,
@@ -483,11 +294,8 @@ export default function Footer({ dashboardType }: FooterProps) {
                 height: isLargeScreen ? '95%' : '80%' 
               }
             ]}
-            onPress={(e) => {
-              e.stopPropagation();
-            }}
+            onPress={(e) => e.stopPropagation()}
           >
-            
             {/* Header */}
             <View style={styles.modalHeader}>
               <View style={{ width: 30 }} /> 
@@ -520,7 +328,6 @@ export default function Footer({ dashboardType }: FooterProps) {
                   />
               )}
             </View>
-
           </Pressable>
         </Pressable>
       </Modal>
@@ -534,20 +341,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 24,
     alignItems: 'center',
-  },
-  footerTagline: {
-    fontSize: Platform.select({ android: 16, default: 18 }),
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  footerDescription: {
-    fontSize: Platform.select({ android: 12, default: 14 }),
-    color: '#CCCCCC',
-    textAlign: 'center',
-    lineHeight: Platform.select({ android: 18, default: 22 }),
-    marginBottom: 28,
   },
   socialContainer: {
     flexDirection: 'row',
@@ -587,8 +380,6 @@ const styles = StyleSheet.create({
     color: '#999999',
     textAlign: 'center',
   },
-
-  // --- MODAL STYLES ---
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
@@ -600,21 +391,9 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     maxWidth: 1000, 
     ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 5,
-      },
-      android: {
-        elevation: 10,
-      },
-      web: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 5,
-      }
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 5 },
+      android: { elevation: 10 },
+      web: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 5 }
     }),
   },
   modalHeader: {

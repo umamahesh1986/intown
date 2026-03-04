@@ -906,13 +906,13 @@ export default function DualDashboard() {
         />
       </View>
       {/* Content */}
-      <ScrollView
+      {/* <ScrollView
         ref={contentScrollRef}
         style={styles.content}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
-      >
+      > */}
         {/* Role Info Card */}
         <View style={styles.roleCard}>
           <View style={styles.roleIconContainer}>
@@ -936,7 +936,8 @@ export default function DualDashboard() {
         {/* Popular Categories (Customer Only) */}
       {activeTab === 'customer' && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Popular Categories</Text>
+            <Text style={styles.sectionTitle}>Feature Categories </Text>
+            <Text style={styles.normalText}>(Complete list will be displayed once stores onboarded):</Text>
             {categories.length > 0 ? (
               <ScrollView
                 horizontal
@@ -988,20 +989,22 @@ export default function DualDashboard() {
 
         {/* Quick Stats */}
         <View style={styles.statsContainer}>
+          
           <View style={styles.statCard}>
+            
             <Text style={styles.statValue}>
-              ₹
+              
               {activeTab === 'customer'
                 ? customerTodaySaved.toFixed(0)
                 : merchantTodaySales.toFixed(0)}
             </Text>
             <Text style={styles.statLabel}>
-              {activeTab === 'customer' ? "Today's Savings" : "Today's Sales"}
+              {activeTab === 'customer' ? "Today's Savings" : "Today's Business"}
             </Text>
           </View>
           <View style={styles.statCard}>
             <Text style={styles.statValue}>
-              ₹
+              
               {activeTab === 'customer'
                 ? customerMonthSaved.toFixed(0)
                 : merchantMonthSales.toFixed(0)}
@@ -1009,12 +1012,12 @@ export default function DualDashboard() {
             <Text style={styles.statLabel}>
               {activeTab === 'customer'
                 ? "This Month's Savings"
-                : "This Month's Sales"}
+                : "This Month's Business"}
             </Text>
           </View>
           <View style={styles.statCard}>
             <Text style={styles.statValue}>
-              ₹
+              
               {activeTab === 'customer'
                 ? customerYearSaved.toFixed(0)
                 : merchantYearSales.toFixed(0)}
@@ -1022,7 +1025,7 @@ export default function DualDashboard() {
             <Text style={styles.statLabel}>
               {activeTab === 'customer'
                 ? "This Year's Savings"
-                : "This Year's Sales"}
+                : "This Year's Business"}
             </Text>
           </View>
         </View>
@@ -1030,7 +1033,8 @@ export default function DualDashboard() {
         {/* Transactions Section */}
         <View style={styles.transactionsSection}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Recent Transactions</Text>
+            <Text style={styles.sectionTitle}>Recent Business </Text>
+            <Text style={styles.normalText}>(Will be calculated on customervisits):</Text>
             <TouchableOpacity onPress={() => setShowAllTransactions(true)}>
               <Text style={styles.viewAllText}>View All</Text>
             </TouchableOpacity>
@@ -1057,7 +1061,7 @@ export default function DualDashboard() {
         </View>
 
         {/* Quick Actions */}
-        <View style={styles.quickActions}>
+        {/* <View style={styles.quickActions}>
           <Text style={styles.sectionTitle}>Quick Actions</Text>
           <View style={styles.actionsGrid}>
             {activeTab === 'customer' ? (
@@ -1136,9 +1140,9 @@ export default function DualDashboard() {
               </>
             )}
           </View>
-        </View>
+        </View> */}
         {/* Nearby Shops (Customer Only) */}
-        {activeTab === 'customer' && (
+        {/* {activeTab === 'customer' && (
           <View style={styles.nearbyShopsSection}>
             <Text style={styles.sectionTitle}>Nearby Shops</Text>
             {isNearbyLoading ? (
@@ -1185,14 +1189,14 @@ export default function DualDashboard() {
                     <Text style={styles.nearbyMeta}>
                       {shop.businessCategory || 'General'}
                     </Text>
-                    <View style={styles.nearbyFooter}>
-                      <View style={styles.nearbyRating}>
+                    <View style={styles.nearbyFooter}> */}
+                      {/* <View style={styles.nearbyRating}>
                         <Ionicons name="star" size={12} color="#FFA500" />
                         <Text style={styles.nearbyRatingText}>
                           {shop.rating ?? '4.0'}
                         </Text>
-                      </View>
-                      <View style={styles.nearbyDistance}>
+                      </View> */}
+                      {/* <View style={styles.nearbyDistance}>
                         <Ionicons name="location" size={12} color="#FF6600" />
                         <Text style={styles.nearbyDistanceText}>
                           {formatDistance(
@@ -1213,7 +1217,7 @@ export default function DualDashboard() {
           </View>
         )}
         <Footer dashboardType={activeTab === 'customer' ? 'member' : 'merchant'} />
-      </ScrollView>
+      </ScrollView> */}
 
       {/* Support Modal */}
       <Modal
@@ -2098,5 +2102,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
     marginTop: 2,
+  },
+  normalText: {
+    fontWeight: 'normal',  
+    color: '#666',         
   },
 });

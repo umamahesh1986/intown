@@ -43,15 +43,15 @@ const SHOP_IMAGE_WIDTH = width - 64;
 
 
 
-const MERCHANT_CAROUSEL_IMAGES = [
-  { uri: 'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner1.jpg' },
-  { uri: 'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner2.png' },
-  { uri: 'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner3.png' },
-  { uri: 'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner4.png' },
-  { uri: 'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner5.png' },
-  { uri: 'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner6.png' },
-  { uri: 'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner7.png' },
-];
+// const MERCHANT_CAROUSEL_IMAGES = [
+//   { uri: 'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner1.jpg' },
+//   { uri: 'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner2.png' },
+//   { uri: 'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner3.png' },
+//   { uri: 'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner4.png' },
+//   { uri: 'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner5.png' },
+//   { uri: 'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner6.png' },
+//   { uri: 'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner7.png' },
+// ];
 // =================================
 
 
@@ -145,18 +145,18 @@ export default function MerchantDashboard() {
     loadUserType();
     requestLocationOnMount();
     // ===== MERCHANT CAROUSEL AUTO SLIDE =====
-    const timer = setInterval(() => {
-      setCarouselIndex(prev => {
-        const next = (prev + 1) % MERCHANT_CAROUSEL_IMAGES.length;
-        carouselRef.current?.scrollTo({
-          x: next * SLIDE_WIDTH,
-          animated: true,
-        });
-        return next;
-      });
-    }, 3500);
+    // const timer = setInterval(() => {
+    //   setCarouselIndex(prev => {
+    //     const next = (prev + 1) % MERCHANT_CAROUSEL_IMAGES.length;
+    //     carouselRef.current?.scrollTo({
+    //       x: next * SLIDE_WIDTH,
+    //       animated: true,
+    //     });
+    //     return next;
+    //   });
+    // }, 3500);
 
-    return () => clearInterval(timer);
+    // return () => clearInterval(timer);
     // =====================================
   }, []);
 
@@ -551,7 +551,7 @@ export default function MerchantDashboard() {
         </View>
 
         {/* ===== MERCHANT CAROUSEL ===== */}
-        <View style={styles.carouselWrapper}>
+        {/* <View style={styles.carouselWrapper}>
           <ScrollView
             ref={carouselRef}
             horizontal
@@ -584,7 +584,7 @@ export default function MerchantDashboard() {
               />
             ))}
           </View>
-        </View>
+        </View> */}
         {/* === END MERCHANT CAROUSEL === */}
 
         {/* Shop Details Card */}
@@ -637,7 +637,7 @@ export default function MerchantDashboard() {
           </View>
           <Text style={styles.shopName}>{merchantShop.name}</Text>
           <Text style={styles.shopCategory}>{merchantShop.category}</Text>
-          <View style={styles.ratingContainer}>
+          {/* <View style={styles.ratingContainer}>
             {[1, 2, 3, 4, 5].map((i) => (
               <Ionicons
                 key={i}
@@ -647,40 +647,43 @@ export default function MerchantDashboard() {
               />
             ))}
             <Text style={styles.ratingText}>{merchantShop.rating}</Text>
-          </View>
+          </View> */}
         </View>
 
         {/* Description Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Description</Text>
-          <View style={styles.descriptionCard}>
-            <Text style={styles.descriptionText}>
-              {merchantDescription || 'No description available'}
-            </Text>
-          </View>
-        </View>
+        <View style={{ paddingHorizontal: 16, marginTop: 10 }}>
+  <Text style={[styles.sectionTitle, { margin: 0, marginBottom: 8, fontSize: 18 }]}>Description</Text>
+  <View style={[styles.descriptionCard, { padding: 14, backgroundColor: '#FFF' }]}>
+    <Text style={[styles.descriptionText, { textAlign: 'left', lineHeight: 20 }]}>
+      {merchantDescription || 'No description available'}
+    </Text>
+  </View>
+</View>
 
         {/* Total Summary Section */}
         <View style={[styles.section, styles.sectionNoHorizontalPadding]}>
-          <Text style={styles.sectionTitle}>Payment Summary</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginTop: 16 }}>
+  <Text style={[styles.sectionTitle, { margin: 0 }]}>Business Summary</Text>
+  <Text style={[styles.normalText, { marginLeft: 6, fontSize: 12 }]}>(Depends on Customer Visits)</Text>
+</View>
           <View style={styles.summarySection}>
             <View style={styles.summaryRow}>
               <View style={styles.summaryItem}>
-                <Text style={styles.summaryLabel}>Today's Sales</Text>
+                <Text style={styles.summaryLabel}>Today's Business</Text>
                 <Text style={styles.summaryValue}>
-                  ₹{(periodTotals.today?.totalSalesValue ?? 0).toFixed(0)}
+                  {(periodTotals.today?.totalSalesValue ?? 0).toFixed(0)}
                 </Text>
               </View>
               <View style={styles.summaryItem}>
-                <Text style={styles.summaryLabel}>This Month's Sales</Text>
+                <Text style={styles.summaryLabel}>This Month's Business</Text>
                 <Text style={styles.summaryValue}>
-                  ₹{(periodTotals.thisMonth?.totalSalesValue ?? 0).toFixed(0)}
+                  {(periodTotals.thisMonth?.totalSalesValue ?? 0).toFixed(0)}
                 </Text>
               </View>
               <View style={styles.summaryItem}>
-                <Text style={styles.summaryLabel}>This Year's Sales</Text>
+                <Text style={styles.summaryLabel}>This Year's Business</Text>
                 <Text style={styles.summaryValue}>
-                  ₹{(periodTotals.thisYear?.totalSalesValue ?? 0).toFixed(0)}
+                  {(periodTotals.thisYear?.totalSalesValue ?? 0).toFixed(0)}
                 </Text>
               </View>
             </View>
@@ -688,13 +691,24 @@ export default function MerchantDashboard() {
         </View>
 
         {/* Payments List */}
-        <View style={styles.section}>
-          <View style={styles.sectionPaymentHeader}>
-            <Text style={styles.sectionTitle}>Recent Payments</Text>
-            <TouchableOpacity onPress={() => setShowAllPayments(true)}>
-              <Text style={styles.viewAllText}>View All</Text>
-            </TouchableOpacity>
-          </View>
+    <View style={styles.section}>
+  <View style={[styles.sectionPaymentHeader, { paddingHorizontal: 16, marginTop: 10, alignItems: 'center' }]}>
+    {/* This View below uses row direction to keep title and brackets together */}
+    <View style={{ flexDirection: 'row', alignItems: 'baseline', flex: 1 }}>
+      <Text style={[styles.sectionTitle, { margin: 0, fontSize: 18 }]}>Recent Business</Text>
+      <Text style={[styles.normalText, { fontSize: 10, color: '#888', marginLeft: 6 }]}>
+        (Calculated on visits)
+      </Text>
+    </View>
+
+    <TouchableOpacity 
+      onPress={() => setShowAllPayments(true)}
+      style={{ paddingVertical: 5 }}
+    >
+      <Text style={styles.viewAllText}>View All</Text>
+    </TouchableOpacity>
+  </View>
+  
           {isSalesLoading ? (
             <View style={styles.emptyState}>
               <ActivityIndicator size="small" color="#FF6600" />
@@ -702,38 +716,33 @@ export default function MerchantDashboard() {
           ) : sales.length > 0 ? (
             sales.slice(0, 10).map((sale) => (
               <View key={sale.transactionId} style={styles.transactionRow}>
-                <View style={styles.transactionLeft}>
-                  <Text style={styles.transactionMerchant} numberOfLines={1}>
-                    {sale.customerName}
-                  </Text>
-                  <Text style={styles.transactionDate}>
-                    {sale.customerPhone}
-                  </Text>
-                  <Text style={styles.transactionDate}>
-                    {formatTransactionDate(sale.transactionDate)}
-                  </Text>
-                </View>
-                <View style={styles.transactionRight}>
-                  <View style={styles.transactionAmountBlock}>
-                    <Text style={styles.transactionAmountLabel}>Sales</Text>
-                    <Text style={styles.transactionAmountValue}>
-                      ₹{sale.totalSalesValue.toFixed(2)}
-                    </Text>
-                  </View>
-                  <View style={styles.transactionAmountBlock}>
-                    <Text style={styles.transactionAmountLabel}>Discount</Text>
-                    <Text style={styles.transactionAmountValue}>
-                      ₹{sale.totalDiscountGiven.toFixed(2)}
-                    </Text>
-                  </View>
-                  <View style={styles.transactionAmountBlock}>
-                    <Text style={styles.transactionAmountLabel}>Received</Text>
-                    <Text style={styles.transactionAmountValue}>
-                      ₹{sale.totalAmountReceived.toFixed(2)}
-                    </Text>
-                  </View>
-                </View>
-              </View>
+  {/* Left: Customer Info */}
+  <View style={{ flex: 1.5 }}>
+    <Text style={styles.transactionMerchant} numberOfLines={1}>{sale.customerName}</Text>
+    <Text style={styles.transactionDate}>{sale.customerPhone}</Text>
+    <Text style={[styles.transactionDate, { color: '#bbb' }]}>
+      {formatTransactionDate(sale.transactionDate)}
+    </Text>
+  </View>
+
+  {/* Right: Amounts aligned in columns */}
+  <View style={{ flex: 2.5, flexDirection: 'row', justifyContent: 'flex-end', gap: 5 }}>
+    <View style={styles.transactionAmountBlock}>
+      <Text style={styles.transactionAmountLabel}>Sales</Text>
+      <Text style={styles.transactionAmountValue}>₹{sale.totalSalesValue.toFixed(0)}</Text>
+    </View>
+    <View style={styles.transactionAmountBlock}>
+      <Text style={styles.transactionAmountLabel}>Disc.</Text>
+      <Text style={styles.transactionAmountValue}>₹{sale.totalDiscountGiven.toFixed(0)}</Text>
+    </View>
+    <View style={styles.transactionAmountBlock}>
+      <Text style={styles.transactionAmountLabel}>Recv.</Text>
+      <Text style={[styles.transactionAmountValue, { color: '#4CAF50' }]}>
+        ₹{sale.totalAmountReceived.toFixed(0)}
+      </Text>
+    </View>
+  </View>
+</View>
             ))
           ) : (
             <View style={styles.emptyState}>
@@ -802,7 +811,7 @@ export default function MerchantDashboard() {
             <Text style={styles.userPanelText}>My Account</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity
+          {/* <TouchableOpacity
             style={styles.userPanelItem}
             onPress={() => {
               closeDropdown();
@@ -811,7 +820,7 @@ export default function MerchantDashboard() {
           >
             <Ionicons name="pricetag-outline" size={22} color="#FF6600" />
             <Text style={styles.userPanelText}>My Offers</Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
 
           <TouchableOpacity
             style={styles.userPanelItem}
@@ -1265,14 +1274,16 @@ shopImageCarousel: {
     fontWeight: '700',
     marginTop: 6,
   },
-  transactionRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-  },
+ transactionRow: {
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  paddingVertical: 12,
+  paddingHorizontal: 16, // Important for edge spacing
+  borderBottomWidth: 1,
+  borderBottomColor: '#F0F0F0',
+  backgroundColor: '#FFF',
+},
   transactionLeft: {
     flexDirection: 'column',
     flex: 1,
@@ -1293,9 +1304,9 @@ shopImageCarousel: {
     gap: 12,
   },
   transactionAmountBlock: {
-    alignItems: 'flex-end',
-    minWidth: 70,
-  },
+  alignItems: 'center',
+  width: 58, // This keeps the columns perfectly straight
+},
   transactionAmountLabel: {
     fontSize: 10,
     color: '#999999',
@@ -1316,12 +1327,11 @@ shopImageCarousel: {
     color: '#999999',
     marginTop: 8,
   },
-  viewAllText: {
-    fontSize: 14,
-    color: '#FF6600',
-    fontWeight: '600',
-    marginBottom: 8,
-  },
+viewAllText: {
+  fontSize: 14,
+  color: '#FF6600',
+  fontWeight: '700',
+},
   transactionsModalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
@@ -1527,6 +1537,10 @@ shopImageCarousel: {
     fontSize: 12,
     color: '#666',
     marginTop: 2,
+  },
+  normalText: {
+    fontWeight: 'normal',  
+    color: '#666',         
   },
 
 });
