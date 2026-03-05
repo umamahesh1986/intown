@@ -906,13 +906,15 @@ export default function DualDashboard() {
         />
       </View>
       {/* Content */}
-      {/* <ScrollView
+      <ScrollView
         ref={contentScrollRef}
         style={styles.content}
+        contentContainerStyle={{ paddingBottom: 24 }}
+        showsVerticalScrollIndicator={true}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
-      > */}
+      >
         {/* Role Info Card */}
         <View style={styles.roleCard}>
           <View style={styles.roleIconContainer}>
@@ -1189,7 +1191,7 @@ export default function DualDashboard() {
                     <Text style={styles.nearbyMeta}>
                       {shop.businessCategory || 'General'}
                     </Text>
-                    <View style={styles.nearbyFooter}> */}
+                    <View style={styles.nearbyFooter}>
                       {/* <View style={styles.nearbyRating}>
                         <Ionicons name="star" size={12} color="#FFA500" />
                         <Text style={styles.nearbyRatingText}>
@@ -1215,9 +1217,9 @@ export default function DualDashboard() {
               </View>
             )}
           </View>
-        )}
+        )} */}
         <Footer dashboardType={activeTab === 'customer' ? 'member' : 'merchant'} />
-      </ScrollView> */}
+      </ScrollView>
 
       {/* Support Modal */}
       <Modal
