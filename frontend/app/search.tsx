@@ -188,7 +188,7 @@ export default function Search() {
         </View>
 
         {/* POPULAR CHIPS */}
-        <View style={styles.chipsContainer}>
+        {/* <View style={styles.chipsContainer}>
           {POPULAR_PRODUCTS.map((item) => (
             <TouchableOpacity
               key={item}
@@ -198,7 +198,7 @@ export default function Search() {
               <Text style={styles.chipText}>{item}</Text>
             </TouchableOpacity>
           ))}
-        </View>
+        </View> */}
 
         {/* LOADING */}
         {loading && (
