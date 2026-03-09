@@ -43,15 +43,15 @@ const SHOP_IMAGE_WIDTH = width - 64;
 
 
 
-const MERCHANT_CAROUSEL_IMAGES = [
-  { uri: 'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner1.jpg' },
-  { uri: 'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner2.png' },
-  { uri: 'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner3.png' },
-  { uri: 'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner4.png' },
-  { uri: 'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner5.png' },
-  { uri: 'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner6.png' },
-  { uri: 'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner7.png' },
-];
+// const MERCHANT_CAROUSEL_IMAGES = [
+//   { uri: 'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner1.jpg' },
+//   { uri: 'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner2.png' },
+//   { uri: 'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner3.png' },
+//   { uri: 'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner4.png' },
+//   { uri: 'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner5.png' },
+//   { uri: 'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner6.png' },
+//   { uri: 'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner7.png' },
+// ];
 // =================================
 
 
@@ -145,18 +145,18 @@ export default function MerchantDashboard() {
     loadUserType();
     requestLocationOnMount();
     // ===== MERCHANT CAROUSEL AUTO SLIDE =====
-    const timer = setInterval(() => {
-      setCarouselIndex(prev => {
-        const next = (prev + 1) % MERCHANT_CAROUSEL_IMAGES.length;
-        carouselRef.current?.scrollTo({
-          x: next * SLIDE_WIDTH,
-          animated: true,
-        });
-        return next;
-      });
-    }, 3500);
+    // const timer = setInterval(() => {
+    //   setCarouselIndex(prev => {
+    //     const next = (prev + 1) % MERCHANT_CAROUSEL_IMAGES.length;
+    //     carouselRef.current?.scrollTo({
+    //       x: next * SLIDE_WIDTH,
+    //       animated: true,
+    //     });
+    //     return next;
+    //   });
+    // }, 3500);
 
-    return () => clearInterval(timer);
+    // return () => clearInterval(timer);
     // =====================================
   }, []);
 
@@ -551,7 +551,7 @@ export default function MerchantDashboard() {
         </View>
 
         {/* ===== MERCHANT CAROUSEL ===== */}
-        <View style={styles.carouselWrapper}>
+        {/* <View style={styles.carouselWrapper}>
           <ScrollView
             ref={carouselRef}
             horizontal
@@ -584,7 +584,7 @@ export default function MerchantDashboard() {
               />
             ))}
           </View>
-        </View>
+        </View> */}
         {/* === END MERCHANT CAROUSEL === */}
 
         {/* Shop Details Card */}
@@ -597,7 +597,7 @@ export default function MerchantDashboard() {
                   horizontal
                   pagingEnabled
                   showsHorizontalScrollIndicator={false}
-                    scrollEventThrottle={16}
+                  scrollEventThrottle={16}
 
                   style={styles.shopImageScroll}
                   contentContainerStyle={styles.shopImageScrollContent}
@@ -610,11 +610,11 @@ export default function MerchantDashboard() {
                 >
                   {shopImages.map((img, index) => (
                     <Image
-  key={`${img}-${index}`}
-  source={{ uri: img }}
-  style={styles.shopImageCarousel}
-  resizeMode="cover"
-/>
+                      key={`${img}-${index}`}
+                      source={{ uri: img }}
+                      style={styles.shopImageCarousel}
+                      resizeMode="cover"
+                    />
 
                   ))}
                 </ScrollView>
@@ -632,12 +632,12 @@ export default function MerchantDashboard() {
                 </TouchableOpacity>
               </>
             ) : (
-              <Ionicons name="storefront" size={80} color="#2196F3" />
+            <Ionicons name="storefront" size={80} color="#2196F3" style={{ textAlign: 'center' }} />
             )}
           </View>
           <Text style={styles.shopName}>{merchantShop.name}</Text>
           <Text style={styles.shopCategory}>{merchantShop.category}</Text>
-          <View style={styles.ratingContainer}>
+          {/* <View style={styles.ratingContainer}>
             {[1, 2, 3, 4, 5].map((i) => (
               <Ionicons
                 key={i}
@@ -647,14 +647,14 @@ export default function MerchantDashboard() {
               />
             ))}
             <Text style={styles.ratingText}>{merchantShop.rating}</Text>
-          </View>
+          </View> */}
         </View>
 
         {/* Description Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Description</Text>
-          <View style={styles.descriptionCard}>
-            <Text style={styles.descriptionText}>
+        <View style={{ paddingHorizontal: 16, marginTop: 10 }}>
+          <Text style={[styles.sectionTitle, { margin: 0, marginBottom: 8, fontSize: 18 }]}>Description</Text>
+          <View style={[styles.descriptionCard, { padding: 14, backgroundColor: '#FFF' }]}>
+            <Text style={[styles.descriptionText, { textAlign: 'left', lineHeight: 20 }]}>
               {merchantDescription || 'No description available'}
             </Text>
           </View>
@@ -662,25 +662,28 @@ export default function MerchantDashboard() {
 
         {/* Total Summary Section */}
         <View style={[styles.section, styles.sectionNoHorizontalPadding]}>
-          <Text style={styles.sectionTitle}>Payment Summary</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginTop: 16 }}>
+            <Text style={[styles.sectionTitle, { margin: 0 }]}>Business Summary</Text>
+            <Text style={[styles.normalText, { marginLeft: 6, fontSize: 12 }]}>(Depends on Customer Visits)</Text>
+          </View>
           <View style={styles.summarySection}>
             <View style={styles.summaryRow}>
               <View style={styles.summaryItem}>
-                <Text style={styles.summaryLabel}>Today's Sales</Text>
+                <Text style={styles.summaryLabel}>Today's Business</Text>
                 <Text style={styles.summaryValue}>
-                  ₹{(periodTotals.today?.totalSalesValue ?? 0).toFixed(0)}
+                  {(periodTotals.today?.totalSalesValue ?? 0).toFixed(0)}
                 </Text>
               </View>
               <View style={styles.summaryItem}>
-                <Text style={styles.summaryLabel}>This Month's Sales</Text>
+                <Text style={styles.summaryLabel}>This Month's Business</Text>
                 <Text style={styles.summaryValue}>
-                  ₹{(periodTotals.thisMonth?.totalSalesValue ?? 0).toFixed(0)}
+                  {(periodTotals.thisMonth?.totalSalesValue ?? 0).toFixed(0)}
                 </Text>
               </View>
               <View style={styles.summaryItem}>
-                <Text style={styles.summaryLabel}>This Year's Sales</Text>
+                <Text style={styles.summaryLabel}>This Year's Business</Text>
                 <Text style={styles.summaryValue}>
-                  ₹{(periodTotals.thisYear?.totalSalesValue ?? 0).toFixed(0)}
+                  {(periodTotals.thisYear?.totalSalesValue ?? 0).toFixed(0)}
                 </Text>
               </View>
             </View>
@@ -689,12 +692,23 @@ export default function MerchantDashboard() {
 
         {/* Payments List */}
         <View style={styles.section}>
-          <View style={styles.sectionPaymentHeader}>
-            <Text style={styles.sectionTitle}>Recent Payments</Text>
-            <TouchableOpacity onPress={() => setShowAllPayments(true)}>
+          <View style={[styles.sectionPaymentHeader, { marginTop: 10, alignItems: 'center' }]}>
+            {/* This View below uses row direction to keep title and brackets together */}
+            <View style={{ flexDirection: 'row', alignItems: 'baseline', flex: 1 }}>
+              <Text style={[styles.sectionTitle, { margin: 0, fontSize: 18 }]}>Recent Business</Text>
+              <Text style={[styles.normalText, { fontSize: 10, color: '#888', marginLeft: 6 }]}>
+                (Calculated on visits)
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              onPress={() => setShowAllPayments(true)}
+              style={{ paddingVertical: 5 }}
+            >
               <Text style={styles.viewAllText}>View All</Text>
             </TouchableOpacity>
           </View>
+
           {isSalesLoading ? (
             <View style={styles.emptyState}>
               <ActivityIndicator size="small" color="#FF6600" />
@@ -702,34 +716,29 @@ export default function MerchantDashboard() {
           ) : sales.length > 0 ? (
             sales.slice(0, 10).map((sale) => (
               <View key={sale.transactionId} style={styles.transactionRow}>
-                <View style={styles.transactionLeft}>
-                  <Text style={styles.transactionMerchant} numberOfLines={1}>
-                    {sale.customerName}
-                  </Text>
-                  <Text style={styles.transactionDate}>
-                    {sale.customerPhone}
-                  </Text>
-                  <Text style={styles.transactionDate}>
+                {/* Left: Customer Info */}
+                <View style={{ flex: 1.5 }}>
+                  <Text style={styles.transactionMerchant} numberOfLines={1}>{sale.customerName}</Text>
+                  <Text style={styles.transactionDate}>{sale.customerPhone}</Text>
+                  <Text style={[styles.transactionDate, { color: '#bbb' }]}>
                     {formatTransactionDate(sale.transactionDate)}
                   </Text>
                 </View>
-                <View style={styles.transactionRight}>
+
+                {/* Right: Amounts aligned in columns */}
+                <View style={{ flex: 2.5, flexDirection: 'row', justifyContent: 'flex-end', gap: 5 }}>
                   <View style={styles.transactionAmountBlock}>
                     <Text style={styles.transactionAmountLabel}>Sales</Text>
-                    <Text style={styles.transactionAmountValue}>
-                      ₹{sale.totalSalesValue.toFixed(2)}
-                    </Text>
+                    <Text style={styles.transactionAmountValue}>₹{sale.totalSalesValue.toFixed(0)}</Text>
                   </View>
                   <View style={styles.transactionAmountBlock}>
-                    <Text style={styles.transactionAmountLabel}>Discount</Text>
-                    <Text style={styles.transactionAmountValue}>
-                      ₹{sale.totalDiscountGiven.toFixed(2)}
-                    </Text>
+                    <Text style={styles.transactionAmountLabel}>Disc.</Text>
+                    <Text style={styles.transactionAmountValue}>₹{sale.totalDiscountGiven.toFixed(0)}</Text>
                   </View>
                   <View style={styles.transactionAmountBlock}>
-                    <Text style={styles.transactionAmountLabel}>Received</Text>
-                    <Text style={styles.transactionAmountValue}>
-                      ₹{sale.totalAmountReceived.toFixed(2)}
+                    <Text style={styles.transactionAmountLabel}>Recv.</Text>
+                    <Text style={[styles.transactionAmountValue, { color: '#4CAF50' }]}>
+                      ₹{sale.totalAmountReceived.toFixed(0)}
                     </Text>
                   </View>
                 </View>
@@ -802,7 +811,7 @@ export default function MerchantDashboard() {
             <Text style={styles.userPanelText}>My Account</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity
+          {/* <TouchableOpacity
             style={styles.userPanelItem}
             onPress={() => {
               closeDropdown();
@@ -811,7 +820,7 @@ export default function MerchantDashboard() {
           >
             <Ionicons name="pricetag-outline" size={22} color="#FF6600" />
             <Text style={styles.userPanelText}>My Offers</Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
 
           <TouchableOpacity
             style={styles.userPanelItem}
@@ -910,7 +919,7 @@ export default function MerchantDashboard() {
         animationType="slide"
         onRequestClose={() => setShowLocationModal(false)}
       >
-        <KeyboardAvoidingView 
+        <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.locationModalContainer}
         >
@@ -949,7 +958,7 @@ export default function MerchantDashboard() {
 
             {/* Search Results */}
             {locationSearchResults.length > 0 ? (
-              <ScrollView 
+              <ScrollView
                 style={styles.locationSearchResults}
                 keyboardShouldPersistTaps="handled"
               >
@@ -1070,7 +1079,7 @@ const styles = StyleSheet.create({
   profileInfo: { alignItems: 'flex-end', marginRight: 8 },
   userName: { fontSize: 14, fontWeight: '600', color: '#1A1A1A' },
   userPhone: { fontSize: 10, color: '#666666', marginTop: 2 },
-  
+
   // Backdrop
   backdrop: {
     position: 'absolute',
@@ -1081,7 +1090,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.3)',
     zIndex: 999,
   },
-  
+
   // User Panel (same as member dashboard)
   userPanel: {
     position: 'absolute',
@@ -1130,7 +1139,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   userPanelText: { fontSize: 15, marginLeft: 12, color: '#333' },
-  
+
   // Old dropdown styles (keeping for backwards compatibility)
   dropdownBackdrop: {
     position: 'absolute',
@@ -1174,30 +1183,30 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#EEEEEE',
   },
- shopImageContainer: {
-  width: SHOP_IMAGE_WIDTH,
-  aspectRatio: 16 / 9,
-  borderRadius: 10,
-  overflow: 'hidden',
-  marginBottom: 16,
-  position: 'relative',
-},
+  shopImageContainer: {
+    width: SHOP_IMAGE_WIDTH,
+    aspectRatio: 16 / 9,
+    borderRadius: 10,
+    overflow: 'hidden',
+    marginBottom: 16,
+    position: 'relative',
+  },
 
 
   shopImageScroll: {
-  flex: 1,
-},
+    flex: 1,
+  },
 
-shopImageScrollContent: {
-  flexGrow: 1,
-},
+  shopImageScrollContent: {
+    flexGrow: 1,
+  },
 
 
-shopImageCarousel: {
-  width: SHOP_IMAGE_WIDTH,
-  height: '100%',
-  resizeMode: 'cover',
-},
+  shopImageCarousel: {
+    width: SHOP_IMAGE_WIDTH,
+    height: '100%',
+    resizeMode: 'cover',
+  },
 
 
 
@@ -1270,8 +1279,10 @@ shopImageCarousel: {
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: 12,
+    paddingHorizontal: 16, // Important for edge spacing
     borderBottomWidth: 1,
     borderBottomColor: '#F0F0F0',
+    backgroundColor: '#FFF',
   },
   transactionLeft: {
     flexDirection: 'column',
@@ -1293,8 +1304,8 @@ shopImageCarousel: {
     gap: 12,
   },
   transactionAmountBlock: {
-    alignItems: 'flex-end',
-    minWidth: 70,
+    alignItems: 'center',
+    width: 58, // This keeps the columns perfectly straight
   },
   transactionAmountLabel: {
     fontSize: 10,
@@ -1319,8 +1330,7 @@ shopImageCarousel: {
   viewAllText: {
     fontSize: 14,
     color: '#FF6600',
-    fontWeight: '600',
-    marginBottom: 8,
+    fontWeight: '700',
   },
   transactionsModalOverlay: {
     flex: 1,
@@ -1375,23 +1385,23 @@ shopImageCarousel: {
     height: 160,
   },
 
- carouselSlide: {
-  width: SLIDE_WIDTH,
-  height: 160,
-  paddingHorizontal: 16,
-  backgroundColor: '#FFFFFF',  
-  justifyContent: 'center',
-  alignItems: 'center',
-},
+  carouselSlide: {
+    width: SLIDE_WIDTH,
+    height: 160,
+    paddingHorizontal: 16,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 
 
 
   carouselImage: {
-  width: '100%',
-  height: 160,
-  borderRadius: 12,
-  resizeMode: 'contain',
-},
+    width: '100%',
+    height: 160,
+    borderRadius: 12,
+    resizeMode: 'contain',
+  },
 
 
   carouselDots: {
@@ -1527,6 +1537,10 @@ shopImageCarousel: {
     fontSize: 12,
     color: '#666',
     marginTop: 2,
+  },
+  normalText: {
+    fontWeight: 'normal',
+    color: '#666',
   },
 
 });

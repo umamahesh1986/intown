@@ -166,18 +166,18 @@ const [nearbyShops, setNearbyShops] = useState<any[]>([]);
   const nearbyScrollRef = useRef<ScrollView | null>(null);
 
 // ================= CAROUSEL IMAGES FROM S3 =================
-const loadCarouselImages = () => {
-  setCarouselImages([
-    'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner1.jpg',
-    'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner2.png',
-    'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner3.png',
-    'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner4.png',
-    'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner5.png',
-    'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner6.png',
-    'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner7.png',
+// const loadCarouselImages = () => {
+//   setCarouselImages([
+//     'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner1.jpg',
+//     'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner2.png',
+//     'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner3.png',
+//     'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner4.png',
+//     'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner5.png',
+//     'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner6.png',
+//     'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner7.png',
 
-  ]);
-};
+//   ]);
+// };
 // ==========================================================
 
 
@@ -194,7 +194,7 @@ useEffect(() => {
   
   requestLocationOnMount();
 
-  loadCarouselImages(); 
+ // loadCarouselImages(); 
 }, []);
 useEffect(() => {
   if (carouselImages.length === 0) return;
@@ -642,7 +642,8 @@ const loadNearbyShops = async () => {
 
           {/* Popular Categories */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Popular Categories</Text>
+            <Text style={styles.sectionTitle}>Feature Categories  </Text>
+            <Text style={styles.normalText}> (Real data will be displayed once stores onboarded):</Text>
             {categories.length > 0 ? (
               <ScrollView
                 ref={categoriesScrollRef}
@@ -701,12 +702,13 @@ const loadNearbyShops = async () => {
           {/* Theme Section */}
           <View style={styles.themeSection}>
             <Text style={styles.themeTitle}>Instant Savings ! </Text>
-            <Text style={styles.themeSubtitle}> Walk-in. Show App and Save on Every Purchase</Text>
+            <Text style={styles.themeSubtitle}> (Depends on in-store, may vary from store to store)</Text>
           </View>
 
           {/* Savings Calculator */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Estimated Savings Calculator</Text>
+            <Text style={styles.sectionTitle}>Estimated Savings Calculator </Text>
+            <Text style={styles.normalText}>(This is for illustration purpose. Savings depend on store, location and customer)</Text>
             <View style={styles.calculatorCard}>
               <View style={styles.calculatorRow}>
                 <Text style={[styles.calculatorLabel, styles.calculatorLabelSpend]}>
@@ -724,7 +726,7 @@ const loadNearbyShops = async () => {
                 />
               </View>
               <View style={styles.calculatorRow}>
-                <Text style={styles.calculatorLabel}>Estimated Monthly Savings</Text>
+                <Text style={styles.calculatorLabel}>Estimated Monthly Savings  </Text>
                 <Text style={styles.calculatorValue}>₹{monthlySavings.toFixed(0)}</Text>
               </View>
               <View style={[styles.calculatorRow, styles.calculatorRowLast]}>
@@ -732,9 +734,9 @@ const loadNearbyShops = async () => {
                 <Text style={styles.calculatorValueLarge}>₹{annualSavings.toFixed(0)}</Text>
               </View>
               <View style={styles.calculatorHintContainer}>
-                <Text style={styles.calculatorHint}>
+                {/* <Text style={styles.calculatorHint}>
                   You can save 8%-20% monthly on your daily spend.
-                </Text>
+                </Text> */}
               </View>
             </View>
           </View>
@@ -774,16 +776,16 @@ const loadNearbyShops = async () => {
                     <Text style={styles.strikePrice}>₹999 / Year</Text>
                   </View>
 
-                  <Text style={styles.planDescription}>
-                    Premium individual membership with exclusive benefits and unlimited access to all partner stores.
-                  </Text>
+                  {/* <Text style={styles.planDescription}>
+                    (Individual Plan)
+                  </Text> */}
                   <TouchableOpacity style={styles.purchaseButton} onPress={() => router.push('/register-member')}>
                     <Text style={styles.purchaseButtonText}>Register Now</Text>
                   </TouchableOpacity>
                 </View>
 
                 {/* IT Max Plus Plan */}
-                <View style={[styles.planCard, styles.popularPlan]}>
+                {/* <View style={[styles.planCard, styles.popularPlan]}>
                   <View style={styles.popularBadge}>
                     <Text style={styles.popularBadgeText}>Most Popular</Text>
                   </View>
@@ -794,7 +796,7 @@ const loadNearbyShops = async () => {
                   </View>
 
                   <Text style={styles.planDescription}>
-                    Premium couple membership with exclusive benefits and unlimited access to all partner stores.
+                   (Couple plan)
                   </Text>
                   <TouchableOpacity
                     style={[styles.purchaseButton, styles.purchaseButtonPrimary]}
@@ -802,7 +804,7 @@ const loadNearbyShops = async () => {
                   >
                     <Text style={styles.purchaseButtonText}>Register Now</Text>
                   </TouchableOpacity>
-                </View>
+                </View> */}
               </View>
             )}
 
@@ -816,13 +818,13 @@ const loadNearbyShops = async () => {
                   </Text>
 
                   <View style={styles.featuresList}>
-                    <View style={styles.featureItem}>
+                    {/* <View style={styles.featureItem}>
                       <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
                       <Text style={styles.featureText}>Zero Commissions</Text>
-                    </View>
+                    </View> */}
                     <View style={styles.featureItem}>
                       <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
-                      <Text style={styles.featureText}>No Joining Fee</Text>
+                      <Text style={styles.featureText}>Hassle free onboard</Text>
                     </View>
                     <View style={styles.featureItem}>
                       <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
@@ -834,7 +836,7 @@ const loadNearbyShops = async () => {
                     </View>
                     <View style={styles.featureItem}>
                       <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
-                      <Text style={styles.featureText}>Free Promotion</Text>
+                      <Text style={styles.featureText}>Effective  Promotion</Text>
                     </View>
                     <View style={styles.featureItem}>
                       <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
@@ -854,8 +856,9 @@ const loadNearbyShops = async () => {
           </View>
 
           {/* Nearby Shops Section */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Nearby Shops</Text>
+          {/* <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Nearby Stores </Text>
+            <Text style={styles.normalText}>(Based on Location):</Text>
             <ScrollView
               ref={nearbyScrollRef}
               horizontal
@@ -907,7 +910,7 @@ const loadNearbyShops = async () => {
                 </TouchableOpacity>
               ))}
             </ScrollView>
-          </View>
+          </View> */}
 
           {/* Footer */}
           <Footer dashboardType="user"/>
@@ -1450,6 +1453,10 @@ const styles = StyleSheet.create({
     color: '#1A1A1A',
     marginBottom: 16,
   },
+  normalText: {
+    fontWeight: 'normal',  
+    color: '#666',         
+  },
 
   tabContainer: {
     flexDirection: 'row',
@@ -1626,7 +1633,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontWeight: '600',
     fontSize: 14,
-    textTransform: 'uppercase',
+    textTransform: 'none',
   },
 
   calculatorCard: {

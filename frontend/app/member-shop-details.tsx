@@ -256,8 +256,8 @@ export default function MemberShopDetails() {
   }
 
   const badge = getCategoryBadge(shop.category || shop.businessCategory);
-  const ratingValue =
-    typeof shop.rating === 'number' ? shop.rating : Number(shop.rating) || 0;
+  // const ratingValue =
+  //   typeof shop.rating === 'number' ? shop.rating : Number(shop.rating) || 0;
   const addressText =
     shop.address ||
     shop.fullAddress ||
@@ -296,12 +296,12 @@ export default function MemberShopDetails() {
                   </Text>
                 </View>
               </View>
-              <View style={styles.ratingContainer}>
+              {/* <View style={styles.ratingContainer}>
                 {[1,2,3,4,5].map(i => (
                   <Ionicons key={i} name={i <= ratingValue ? "star" : "star-outline"} size={20} color="#FFA500" />
                 ))}
                 <Text style={styles.ratingText}>{ratingValue.toFixed(1)}</Text>
-              </View>
+              </View>  */}
 
             <View style={styles.descriptionCard}>
               <Text style={styles.descriptionTitle}>Description</Text>
@@ -325,11 +325,11 @@ export default function MemberShopDetails() {
                     )}
                   </Text>
                 </View>
-                <View style={styles.infoRow}>
+                {/* <View style={styles.infoRow}>
                   <Ionicons name="star" size={20} color="#FF6600" />
                   <Text style={styles.infoLabel}>Rating:</Text>
                   <Text style={styles.infoValue}>{ratingValue.toFixed(1)} / 5</Text>
-                </View>
+                </View> */}
                 <View style={styles.infoRow}>
                   <Ionicons name="call" size={20} color="#FF6600" />
                   <Text style={styles.infoLabel}>Phone:</Text>
@@ -370,12 +370,12 @@ export default function MemberShopDetails() {
                 </Text>
               </View>
             </View>
-            <View style={styles.ratingContainer}>
+            {/* <View style={styles.ratingContainer}>
               {[1,2,3,4,5].map(i => (
                 <Ionicons key={i} name={i <= ratingValue ? "star" : "star-outline"} size={20} color="#FFA500" />
               ))}
               <Text style={styles.ratingText}>{ratingValue.toFixed(1)}</Text>
-            </View>
+            </View> */}
 
             <View style={styles.descriptionCard}>
               <Text style={styles.descriptionTitle}>Description</Text>
@@ -399,11 +399,11 @@ export default function MemberShopDetails() {
                   )}
                 </Text>
               </View>
-              <View style={styles.infoRow}>
+              {/* <View style={styles.infoRow}>
                 <Ionicons name="star" size={20} color="#FF6600" />
                 <Text style={styles.infoLabel}>Rating:</Text>
                 <Text style={styles.infoValue}>{ratingValue.toFixed(1)} / 5</Text>
-              </View>
+              </View> */}
               <View style={styles.infoRow}>
                 <Ionicons name="call" size={20} color="#FF6600" />
                 <Text style={styles.infoLabel}>Phone:</Text>
