@@ -507,65 +507,89 @@ const loadNearbyShops = async () => {
       <View style={styles.container}>
         <ScrollView showsVerticalScrollIndicator={false}>
           {/* Header */}
-          <View style={styles.header}>
-            <TouchableOpacity
-              style={styles.locationButton}
-              onPress={() => setShowLocationModal(true)}
-            >
-              <Ionicons name="location" size={16} color="#FF6600" />
-              <View style={styles.locationTextContainer}>
-                <Text style={styles.locationText} numberOfLines={1}>
-                  {getLocationDisplayText()}
-                </Text>
-              </View>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={(e) => {
-                e.stopPropagation();
-                toggleDropdown(e);
-              }}
-              style={styles.profileButton}
-            >
-              <View style={styles.profileInfo}>
-                <Text style={styles.userName}>{user?.name ?? 'User'}</Text>
-                <Text style={styles.userPhone}>
-                  {(user as any)?.phone ?? (user as any)?.email ?? ''}
-                </Text>
-              </View>
-              <Ionicons name="chevron-down" size={16} color="#666666" />
-            </TouchableOpacity>
-          </View>
+
+<View style={styles.headerRow}>
+
+  <TouchableOpacity
+    style={styles.locationWrapper}
+    onPress={() => setShowLocationModal(true)}
+  >
+    <View style={styles.locationIcon}>
+      <Ionicons name="location-outline" size={18} color="#FF7A00" />
+    </View>
+
+    <View>
+      <Text style={styles.locationLabel}>YOUR LOCATION</Text>
+
+      <Text style={styles.locationText}>
+        {getLocationDisplayText()}
+      </Text>
+    </View>
+  </TouchableOpacity>
+
+  <View style={styles.headerIcons}>
+
+     <TouchableOpacity style={styles.iconCircle}>
+    <Ionicons name="notifications-outline" size={20} color="#333" />
+  </TouchableOpacity>
+
+    <TouchableOpacity
+  style={styles.iconCircleActive}
+  onPress={() => router.push("/profile-menu")}
+>
+  <Ionicons name="person-outline" size={20} color="#FF7A00" />
+</TouchableOpacity>
+
+  </View>
+
+</View>
 
           {/* Search Box */}
-          <View style={styles.searchContainer}>
-            <View style={styles.searchBox}>
-              <Ionicons name="search" size={24} color="#999999" style={styles.searchIcon} />
-              <TextInput
-                style={styles.searchInput}
-                placeholder=""
-                value={searchQuery}
-                onChangeText={handleSearchChange}
-                onFocus={() => {
-                  router.push({ pathname: '/search', params: { source: 'user' } });
-                }}
-                onBlur={handleSearchBlur}
-                placeholderTextColor="#999999"
-              />
-              {searchQuery.length === 0 && (
-                <View pointerEvents="none" style={styles.animatedPlaceholder}>
-                  <Text style={styles.animatedPlaceholderPrefix}>Search for </Text>
-                  <Animated.Text
-                    style={[
-                      styles.animatedPlaceholderWord,
-                      { opacity: placeholderOpacity, transform: [{ translateY: placeholderTranslateY }] },
-                    ]}
-                  >
-                    {placeholderItems[placeholderIndex]}
-                  </Animated.Text>
-                </View>
-              )}
-            </View>
-          </View>
+          <View style={styles.searchBox}>
+  
+  <Ionicons
+    name="search-outline"
+    size={20}
+    color="#8A97A6"
+    style={styles.searchIcon}
+  />
+
+  <TextInput
+    style={styles.searchInput}
+    placeholder=""
+    value={searchQuery}
+    onChangeText={handleSearchChange}
+    onFocus={() => {
+      router.push({ pathname: '/search', params: { source: 'user' } });
+    }}
+    onBlur={handleSearchBlur}
+    placeholderTextColor="#999999"
+  />
+
+  {/* Filter Icon */}
+  <TouchableOpacity style={styles.filterButton}>
+    <Ionicons name="options-outline" size={20} color="#FF7A00" />
+  </TouchableOpacity>
+
+  {searchQuery.length === 0 && (
+    <View pointerEvents="none" style={styles.animatedPlaceholder}>
+      <Text style={styles.animatedPlaceholderPrefix}>Search for </Text>
+
+      <Animated.Text
+        style={[
+          styles.animatedPlaceholderWord,
+          {
+            opacity: placeholderOpacity,
+            transform: [{ translateY: placeholderTranslateY }],
+          },
+        ]}
+      >
+        {placeholderItems[placeholderIndex]}
+      </Animated.Text>
+    </View>
+  )}
+
+</View>
 
           {/* Search Dropdown */}
           {showSuggestions && suggestions.length > 0 && (
@@ -595,6 +619,25 @@ const loadNearbyShops = async () => {
               </View>
             </TouchableOpacity>
           )}
+          {/* Exclusive Offer Card */}
+
+<View style={styles.offerCard}>
+
+  <View style={styles.offerTag}>
+    <Text style={styles.offerTagText}>EXCLUSIVE OFFER</Text>
+  </View>
+
+  <Text style={styles.offerTitle}>
+    Accountability by InTown
+  </Text>
+
+  <Text style={styles.offerSubtitle}>
+    Unlock verified savings at 200+ local partners.
+  </Text>
+
+</View>
+
+
 
           {/* ===== MEMBER CAROUSEL ===== */}
           <View style={styles.carouselWrapper}>
@@ -642,8 +685,14 @@ const loadNearbyShops = async () => {
 
           {/* Popular Categories */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Feature Categories  </Text>
-            <Text style={styles.normalText}> (Real data will be displayed once stores onboarded):</Text>
+            <View style={styles.sectionHeader}>
+  <Text style={styles.sectionTitle}>Popular Categories</Text>
+
+  <TouchableOpacity>
+    <Text style={styles.viewAll}>View All</Text>
+  </TouchableOpacity>
+</View>
+            
             {categories.length > 0 ? (
               <ScrollView
                 ref={categoriesScrollRef}
@@ -699,71 +748,102 @@ const loadNearbyShops = async () => {
             )}
           </View>
 
-          {/* Theme Section */}
-          <View style={styles.themeSection}>
-            <Text style={styles.themeTitle}>Instant Savings ! </Text>
-            <Text style={styles.themeSubtitle}> (Depends on in-store, may vary from store to store)</Text>
-          </View>
+         {/* Savings Calculator */}
 
-          {/* Savings Calculator */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Estimated Savings Calculator </Text>
-            <Text style={styles.normalText}>(This is for illustration purpose. Savings depend on store, location and customer)</Text>
-            <View style={styles.calculatorCard}>
-              <View style={styles.calculatorRow}>
-                <Text style={[styles.calculatorLabel, styles.calculatorLabelSpend]}>
-                  Estimated Monthly Spend{' '}
-                  <Text style={styles.calculatorLabelNote}>
-                    (Please enter your monthly spend)
-                  </Text>
-                </Text>
-                <TextInput
-                  style={styles.calculatorInput}
-                  value={monthlySpend}
-                  onChangeText={setMonthlySpend}
-                  keyboardType="numeric"
-                  placeholder="10000"
-                />
-              </View>
-              <View style={styles.calculatorRow}>
-                <Text style={styles.calculatorLabel}>Estimated Monthly Savings  </Text>
-                <Text style={styles.calculatorValue}>₹{monthlySavings.toFixed(0)}</Text>
-              </View>
-              <View style={[styles.calculatorRow, styles.calculatorRowLast]}>
-                <Text style={styles.calculatorLabel}>Estimated Annual Savings</Text>
-                <Text style={styles.calculatorValueLarge}>₹{annualSavings.toFixed(0)}</Text>
-              </View>
-              <View style={styles.calculatorHintContainer}>
-                {/* <Text style={styles.calculatorHint}>
-                  You can save 8%-20% monthly on your daily spend.
-                </Text> */}
-              </View>
-            </View>
-          </View>
+<View style={styles.savingsCard}>
 
+  {/* Title */}
+  <View style={styles.savingsHeader}>
+    <Ionicons name="calculator-outline" size={22} color="#FF7A00" />
+    <Text style={styles.savingsTitle}>Savings Calculator</Text>
+  </View>
+
+  {/* Monthly Spend Label */}
+  <Text style={styles.savingsLabel}>
+    ESTIMATED MONTHLY SPEND
+  </Text>
+
+  {/* Input */}
+  <View style={styles.inputBox}>
+    <Text style={styles.currency}>₹</Text>
+
+    <TextInput
+      style={styles.savingsInput}
+      keyboardType="numeric"
+      value={monthlySpend}
+      onChangeText={setMonthlySpend}
+    />
+  </View>
+
+  {/* Savings Result Row */}
+  <View style={styles.resultRow}>
+
+    <View style={styles.monthlyBox}>
+      <Text style={styles.resultLabel}>MONTHLY SAVINGS</Text>
+
+      <Text style={styles.monthlyValue}>
+        ₹ {Math.floor(Number(monthlySpend) * 0.15)}
+      </Text>
+    </View>
+
+    <View style={styles.annualBox}>
+      <Text style={styles.annualLabel}>ANNUAL SAVINGS</Text>
+
+      <Text style={styles.annualValue}>
+        ₹ {Math.floor(Number(monthlySpend) * 0.15 * 12)}
+      </Text>
+    </View>
+
+  </View>
+
+</View>
 
 
 
 
           {/* Membership Plans */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Customer Plans</Text>
+            {/* <Text style={styles.sectionTitle}>Customer Plans</Text> */}
 
-            {/* Tab Navigation */}
-            <View style={styles.tabContainer}>
-              <TouchableOpacity
-                style={[styles.tab, activeTab === 'customer' && styles.activeTab]}
-                onPress={() => setActiveTab('customer')}
-              >
-                <Text style={[styles.tabText, activeTab === 'customer' && styles.activeTabText]}>Customer</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.tab, activeTab === 'merchant' && styles.activeTab]}
-                onPress={() => setActiveTab('merchant')}
-              >
-                <Text style={[styles.tabText, activeTab === 'merchant' && styles.activeTabText]}>Merchant</Text>
-              </TouchableOpacity>
-            </View>
+           {/* Tab Navigation */}
+
+<View style={styles.toggleContainer}>
+
+  <TouchableOpacity
+    style={[
+      styles.toggleButton,
+      activeTab === 'customer' && styles.activeToggle
+    ]}
+    onPress={() => setActiveTab('customer')}
+  >
+    <Text
+      style={[
+        styles.toggleText,
+        activeTab === 'customer' && styles.activeToggleText
+      ]}
+    >
+      Customer
+    </Text>
+  </TouchableOpacity>
+
+  <TouchableOpacity
+    style={[
+      styles.toggleButton,
+      activeTab === 'merchant' && styles.activeToggle
+    ]}
+    onPress={() => setActiveTab('merchant')}
+  >
+    <Text
+      style={[
+        styles.toggleText,
+        activeTab === 'merchant' && styles.activeToggleText
+      ]}
+    >
+      Merchant
+    </Text>
+  </TouchableOpacity>
+
+</View>
 
             {/* Customer Tab Content */}
             {activeTab === 'customer' && (
@@ -776,18 +856,21 @@ const loadNearbyShops = async () => {
                     <Text style={styles.strikePrice}>₹999 / Year</Text>
                   </View>
 
-                  {/* <Text style={styles.planDescription}>
-                    (Individual Plan)
-                  </Text> */}
-                  <TouchableOpacity style={styles.purchaseButton} onPress={() => router.push('/register-member')}>
-                    <Text style={styles.purchaseButtonText}>Register Now</Text>
-                  </TouchableOpacity>
+                  <Text style={styles.planDescription}>
+                    Essential savings for families
+                  </Text>
+                  <TouchableOpacity
+  style={styles.registerButton}
+  onPress={() => router.push('/register-member')}
+>
+  <Text style={styles.registerButtonText}>Register Now</Text>
+</TouchableOpacity>
                 </View>
 
                 {/* IT Max Plus Plan */}
-                {/* <View style={[styles.planCard, styles.popularPlan]}>
+                <View style={[styles.planCard, styles.popularPlan]}>
                   <View style={styles.popularBadge}>
-                    <Text style={styles.popularBadgeText}>Most Popular</Text>
+                    <Text style={styles.popularBadgeText}>MOST POPULAR</Text>
                   </View>
                   <Text style={styles.planName}>IT Max Plus</Text>
                   <View style={styles.planPriceRow}>
@@ -796,7 +879,7 @@ const loadNearbyShops = async () => {
                   </View>
 
                   <Text style={styles.planDescription}>
-                   (Couple plan)
+                   Maximum rewards for power users
                   </Text>
                   <TouchableOpacity
                     style={[styles.purchaseButton, styles.purchaseButtonPrimary]}
@@ -804,7 +887,7 @@ const loadNearbyShops = async () => {
                   >
                     <Text style={styles.purchaseButtonText}>Register Now</Text>
                   </TouchableOpacity>
-                </View> */}
+                </View>
               </View>
             )}
 
@@ -1142,7 +1225,7 @@ const loadNearbyShops = async () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#F2F2F2',
   },
   header: {
     flexDirection: 'row',
@@ -1151,7 +1234,7 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 8,
     paddingHorizontal: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F2F2F2',
     borderBottomWidth: 1,
     borderBottomColor: '#EEEEEE',
   },
@@ -1721,21 +1804,26 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#EEEEEE',
   },
-  popularPlan: {
-  },
-  popularBadge: {
-    backgroundColor: '#FF8C00',
-    paddingVertical: 4,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    alignSelf: 'flex-start',
-    marginBottom: 12,
-  },
-  popularBadgeText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '600',
-  },
+  popularPlan:{
+  borderColor:"#FF8A00",
+  borderWidth:2
+},
+ popularBadge:{
+  position:"absolute",
+  right:-1,
+  top:-1,
+  backgroundColor:"#FF8A00",
+  paddingHorizontal:14,
+  paddingVertical:6,
+  borderTopRightRadius:12,
+  borderBottomLeftRadius:12
+},
+popularBadgeText:{
+  color:"#FFFFFF",
+  fontSize:11,
+  fontWeight:"700",
+  letterSpacing:0.5
+},
   planName: {
     fontSize: 24,
     fontWeight: 'bold',
@@ -1776,20 +1864,27 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     marginBottom: 16,
   },
-  purchaseButton: {
-    backgroundColor: '#FF8C00',
-    borderRadius: 8,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
+ purchaseButton:{
+  backgroundColor:"#FF8A00",
+  borderRadius:30,
+  height:52,
+  justifyContent:"center",
+  alignItems:"center",
+  marginTop:18,
+  shadowColor:"#FF8A00",
+  shadowOpacity:0.25,
+  shadowRadius:8,
+  shadowOffset:{width:0,height:4},
+  elevation:5
+},
   purchaseButtonPrimary: {
     backgroundColor: '#FF6600',
   },
-  purchaseButtonText: {
-    color: '#1A1A1A',
-    fontSize: 16,
-    fontWeight: '600',
-  },
+ purchaseButtonText:{
+  color:"#FFFFFF",
+  fontSize:16,
+  fontWeight:"700"
+},
   merchantButton: {
     flexDirection: 'row',
     backgroundColor: '#2196F3',
@@ -2043,6 +2138,255 @@ const styles = StyleSheet.create({
   color: '#666666',
   marginLeft: 4,
 },
+offerCard: {
+  marginHorizontal: 16,
+  marginTop: 15,
+  padding: 20,
+  borderRadius: 18,
+  backgroundColor: "#FF8A00",
+},
+
+offerTag: {
+  backgroundColor: "rgba(255,255,255,0.25)",
+  alignSelf: "flex-start",
+  paddingHorizontal: 10,
+  paddingVertical: 4,
+  borderRadius: 10,
+  marginBottom: 10,
+},
+
+offerTagText: {
+  color: "#fff",
+  fontSize: 10,
+  fontWeight: "700",
+},
+
+offerTitle: {
+  color: "#fff",
+  fontSize: 20,
+  fontWeight: "700",
+  marginBottom: 6,
+},
+
+offerSubtitle: {
+  color: "#fff",
+  fontSize: 14,
+  opacity: 0.9,
+},
+sectionHeader: {
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "center",
+  marginHorizontal: 16,
+  marginTop: 20,
+},
+viewAll: {
+  color: "#FF6600",
+  fontWeight: "600",
+},
+
+savingsCard: {
+  marginHorizontal: 16,
+  marginTop: 20,
+  backgroundColor: "#fff",
+  borderRadius: 20,
+  padding: 20,
+  elevation: 3,
+},
+
+savingsHeader: {
+  flexDirection: "row",
+  alignItems: "center",
+  marginBottom: 15,
+},
+
+savingsTitle: {
+  fontSize: 18,
+  fontWeight: "700",
+  marginLeft: 8,
+},
+
+savingsLabel: {
+  fontSize: 12,
+  fontWeight: "600",
+  color: "#777",
+  marginBottom: 10,
+},
+
+inputBox: {
+  flexDirection: "row",
+  alignItems: "center",
+  backgroundColor: "#F2F2F2",
+  borderRadius: 30,
+  paddingHorizontal: 15,
+  height: 50,
+  marginBottom: 20,
+},
+
+currency: {
+  fontSize: 20,
+  fontWeight: "700",
+  marginRight: 6,
+},
+
+savingsInput: {
+  flex: 1,
+  fontSize: 20,
+  fontWeight: "700",
+},
+
+resultRow: {
+  flexDirection: "row",
+  justifyContent: "space-between",
+},
+
+monthlyBox: {
+  flex: 1,
+  backgroundColor: "#F7EFE6",
+  borderRadius: 20,
+  padding: 15,
+  marginRight: 10,
+},
+
+annualBox: {
+  flex: 1,
+  backgroundColor: "#FF8A00",
+  borderRadius: 20,
+  padding: 15,
+},
+
+resultLabel: {
+  fontSize: 11,
+  color: "#666",
+},
+
+monthlyValue: {
+  fontSize: 22,
+  fontWeight: "700",
+  color: "#FF8A00",
+  marginTop: 5,
+},
+
+annualLabel: {
+  fontSize: 11,
+  color: "#fff",
+},
+
+annualValue: {
+  fontSize: 22,
+  fontWeight: "700",
+  color: "#fff",
+  marginTop: 5,
+},
 
 
+toggleContainer: {
+  flexDirection: 'row',
+  backgroundColor: '#E9EEF5',
+  borderRadius: 30,
+  marginTop: 10,
+  marginBottom: 15,
+  padding: 4,
+},
+
+toggleButton: {
+  flex: 1,
+  paddingVertical: 10,
+  borderRadius: 25,
+  alignItems: 'center',
+},
+
+activeToggle: {
+  backgroundColor: '#FFFFFF',
+},
+
+toggleText: {
+  fontSize: 15,
+  color: '#7A8A9A',
+  fontWeight: '600',
+},
+
+activeToggleText: {
+  color: '#000',
+  fontWeight: '700',
+},
+
+
+headerRow:{
+flexDirection:"row",
+justifyContent:"space-between",
+alignItems:"center",
+paddingHorizontal:16,
+marginTop:10
+},
+
+locationWrapper:{
+flexDirection:"row",
+alignItems:"center"
+},
+
+locationIcon:{
+width:40,
+height:40,
+borderRadius:20,
+backgroundColor:"#FFE9D6",
+alignItems:"center",
+justifyContent:"center",
+marginRight:10
+},
+
+locationLabel:{
+fontSize:11,
+color:"#8A97A6",
+fontWeight:"600"
+},
+
+
+
+headerIcons:{
+  flexDirection:"row",
+  alignItems:"center"
+},
+
+iconCircle:{
+  width:40,
+  height:40,
+  borderRadius:20,
+  backgroundColor:"#F1F4F8",
+  alignItems:"center",
+  justifyContent:"center",
+  marginRight:10
+},
+
+iconCircleActive:{
+  width:40,
+  height:40,
+  borderRadius:20,
+  borderWidth:2,
+  borderColor:"#FF7A00",
+  alignItems:"center",
+  justifyContent:"center"
+},
+
+filterButton:{
+width:36,
+height:36,
+borderRadius:18,
+alignItems:"center",
+justifyContent:"center"
+},
+registerButton:{
+  backgroundColor:"#E5E8ED",
+  borderRadius:30,
+  height:50,
+  alignItems:"center",
+  justifyContent:"center",
+  marginTop:15
+},
+
+registerButtonText:{
+  fontSize:16,
+  fontWeight:"700",
+  color:"#1A1A1A"
+},
 });

@@ -37,6 +37,7 @@ import {
   setManualLocation 
 } from '../utils/location';
 import { formatDistance } from '../utils/formatDistance';
+import CommonBottomTabs from "../components/CommonBottomTabs";
 
 const { width } = Dimensions.get('window');
 
@@ -706,46 +707,42 @@ export default function DualDashboard() {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.locationButton}
-          onPress={() => setShowLocationModal(true)}
-        >
-          <Ionicons name="location" size={16} color="#FF6600" />
-          <View style={styles.locationTextContainer}>
-            <Text style={styles.welcomeText}>Welcome {getWelcomeName()}</Text>
-            <Text style={styles.locationText} numberOfLines={1}>
-              {getLocationDisplayText()}
-            </Text>
-          </View>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.profileButton}
-          onPress={(e) => {
-            e.stopPropagation();
-            toggleDropdown();
-          }}
-        >
-          <View style={styles.profileInfo}>
-            <Text style={styles.userName}>{getProfileDisplayName()}</Text>
-            <Text style={styles.userPhone}>
-              {(user as any)?.phone ?? (user as any)?.email ?? ''}
-            </Text>
-          </View>
-          {profileImage ? (
-            <Image
-              source={getProfileImageSource(profileImage) as any}
-              style={styles.profileImage}
-            />
-          ) : (
-            <Ionicons
-              name="person"
-              size={20}
-              color="#ff6600"
-              style={styles.profileIconButton}
-            />
-          )}
-        </TouchableOpacity>
-      </View>
+
+  {/* LOCATION */}
+  <TouchableOpacity
+    style={styles.locationButton}
+    onPress={() => setShowLocationModal(true)}
+  >
+    <Ionicons name="location-outline" size={18} color="#FF6600" />
+
+    <View style={styles.locationTextContainer}>
+      <Text style={styles.welcomeText}>YOUR LOCATION</Text>
+      <Text style={styles.locationText}>
+        {getLocationDisplayText()}
+      </Text>
+    </View>
+  </TouchableOpacity>
+
+  <View style={{ flexDirection: "row", alignItems: "center" }}>
+
+    {/* Notification */}
+    <TouchableOpacity style={styles.notificationCircle}>
+      <Ionicons name="notifications-outline" size={20} color="#333" />
+    </TouchableOpacity>
+
+    {/* Profile */}
+    <TouchableOpacity
+  style={styles.profileButton}
+  onPress={(e) => {
+    e.stopPropagation();
+    toggleDropdown();
+  }}
+>
+  <Ionicons name="person-outline" size={22} color="#FF6600" />
+</TouchableOpacity>
+ </View>
+
+</View>
 
       {/* Dropdown Panel */}
       {showDropdown && (
@@ -938,8 +935,14 @@ export default function DualDashboard() {
         {/* Popular Categories (Customer Only) */}
       {activeTab === 'customer' && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Feature Categories </Text>
-            <Text style={styles.normalText}>(Complete list will be displayed once stores onboarded):</Text>
+           <View style={styles.sectionHeader}>
+  <Text style={styles.sectionTitle}>Popular Categories</Text>
+
+  <TouchableOpacity>
+    <Text style={styles.viewAllText}>View All</Text>
+  </TouchableOpacity>
+</View>
+            {/* <Text style={styles.normalText}>(Complete list will be displayed once stores onboarded):</Text> */}
             {categories.length > 0 ? (
               <ScrollView
                 horizontal
@@ -1036,7 +1039,7 @@ export default function DualDashboard() {
         <View style={styles.transactionsSection}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Recent Business </Text>
-            <Text style={styles.normalText}>(Will be calculated on customervisits):</Text>
+            {/* <Text style={styles.normalText}>(Will be calculated on customervisits):</Text> */}
             <TouchableOpacity onPress={() => setShowAllTransactions(true)}>
               <Text style={styles.viewAllText}>View All</Text>
             </TouchableOpacity>
@@ -1398,7 +1401,7 @@ export default function DualDashboard() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#F2F2F2',
   },
   header: {
     flexDirection: 'row',
@@ -1667,7 +1670,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 8,
     marginHorizontal: 4,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#F2F2F2',
   },
   tabButtonActive: {
     backgroundColor: '#FFF3E0',
@@ -1725,18 +1728,18 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   statCard: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-    marginHorizontal: 4,
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-  },
+  flex: 1,
+  backgroundColor: "#FFFFFF",
+  marginHorizontal: 6,
+  paddingVertical: 18,
+  borderRadius: 18,
+  alignItems: "center",
+  shadowColor: "#000",
+  shadowOpacity: 0.12,
+  shadowRadius: 8,
+  shadowOffset: { width: 0, height: 4 },
+  elevation: 5,
+},
   statValue: {
     fontSize: 18,
     fontWeight: 'bold',
@@ -1748,13 +1751,19 @@ const styles = StyleSheet.create({
     marginTop: 4,
     textAlign: 'center',
   },
-  transactionsSection: {
-    backgroundColor: '#FFFFFF',
-    marginHorizontal: 16,
-    marginBottom: 16,
-    padding: 16,
-    borderRadius: 12,
-  },
+ transactionsSection: {
+  backgroundColor: "#FFFFFF",
+  marginHorizontal: 16,
+  marginTop: 16,
+  marginBottom: 20,
+  padding: 18,
+  borderRadius: 20,
+  shadowColor: "#000",
+  shadowOpacity: 0.08,
+  shadowRadius: 10,
+  shadowOffset: { width: 0, height: 4 },
+  elevation: 4,
+},
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -2073,7 +2082,7 @@ const styles = StyleSheet.create({
   locationSearchContainerModal: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#F2F2F2',
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
@@ -2109,4 +2118,16 @@ const styles = StyleSheet.create({
     fontWeight: 'normal',  
     color: '#666',         
   },
+  notificationCircle: {
+  width: 36,
+  height: 36,
+  borderRadius: 18,
+  borderWidth: 1,
+  borderColor: "#E0E0E0",
+  backgroundColor: "#FFFFFF",
+  justifyContent: "center",
+  alignItems: "center",
+  marginRight: 12,
+},
+
 });

@@ -48,7 +48,7 @@ import Footer from '../components/Footer'
 import { CATEGORY_ICON_MAP } from '../utils/categoryIconMap';
 import { FontStylesWithFallback } from '../utils/fonts';
 import { formatDistance } from '../utils/formatDistance';
-
+import CommonBottomTabs from "../components/CommonBottomTabs";
 
 
 const { width } = Dimensions.get('window');
@@ -816,50 +816,49 @@ const handleCategoryClick = (category: Category) => {
       <View style={{ flex: 1 }}>
         <ScrollView ref={contentScrollRef} showsVerticalScrollIndicator={false}>
 
-          {/* HEADER */}
-          <View style={styles.header}>
-            <TouchableOpacity
-              style={styles.locationButton}
-              onPress={() => setShowLocationModal(true)}
-            >
-              <Ionicons name="location" size={16} color="#FF6600" />
-              <View style={styles.locationTextContainer}>
-              {/* <Text style={styles.welcomeText}>
-                Welcome {customerName || user?.name || 'Member'}
-              </Text> */}
-                <Text style={styles.locationText} numberOfLines={1}>
-                  {getLocationDisplayText()}
-                </Text>
-              </View>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={(e) => {
-                e.stopPropagation();
-                toggleDropdown();
-              }}
-              style={styles.profileButton}
-            >
-              <View style={styles.profileInfo}>
-                <Text style={styles.userName}>{customerName || user?.name || 'Customer'}</Text>
-                <Text style={styles.userPhone}>
-                  {(user as any)?.phone ?? (user as any)?.email ?? ''}
-                </Text>
-              </View>
-              {profileImage ? (
-                <Image
-                  source={getProfileImageSource(profileImage) as any}
-                  style={styles.profileImage}
-                />
-              ) : (
-                <Ionicons
-                  name="person"
-                  size={20}
-                  color="#ff6600"
-                  style={styles.profileIconButton}
-                />
-              )}
-            </TouchableOpacity>
-          </View>
+          
+         {/* HEADER */}
+<View style={styles.header}>
+
+  {/* LOCATION */}
+  <TouchableOpacity
+    style={styles.locationSection}
+    onPress={() => setShowLocationModal(true)}
+  >
+    <View style={styles.locationIconBox}>
+      <Ionicons name="location-outline" size={20} color="#FF6600" />
+    </View>
+
+    <View>
+      <Text style={styles.locationLabel}>YOUR LOCATION</Text>
+      <Text style={styles.locationName}>
+        {getLocationDisplayText()}
+      </Text>
+    </View>
+  </TouchableOpacity>
+
+  {/* RIGHT ICONS */}
+  <View style={styles.headerIcons}>
+
+    {/* Notification */}
+   <TouchableOpacity style={styles.notificationIconBtn}>
+    <Ionicons name="notifications-outline" size={20} color="#333" />
+  </TouchableOpacity>
+
+    {/* Profile */}
+    <TouchableOpacity
+      style={styles.headerIconBtn}
+      onPress={(e) => {
+        e.stopPropagation();
+        toggleDropdown();
+      }}
+    >
+      <Ionicons name="person-outline" size={22} color="#FF6600" />
+    </TouchableOpacity>
+
+  </View>
+
+</View>
 
           {/* Membership Banner */}
           {/* <View style={styles.membershipBanner}>
@@ -909,6 +908,10 @@ const handleCategoryClick = (category: Category) => {
                   onSubmitEditing={handleSearch}
                   placeholderTextColor="#999"
                 />
+                 {/* FILTER BUTTON */}
+  <TouchableOpacity style={styles.filterButton}>
+    <Ionicons name="options-outline" size={22} color="#FF6600" />
+  </TouchableOpacity>
                 {searchQuery.length === 0 && (
                   <View pointerEvents="none" style={styles.animatedPlaceholder}>
                     <Text style={styles.animatedPlaceholderPrefix}>Search for </Text>
@@ -985,22 +988,40 @@ const handleCategoryClick = (category: Category) => {
           </View> */}
           {/* === END MEMBER CAROUSEL === */}
 
+{/* EXCLUSIVE OFFER BANNER */}
+{/* <View style={styles.offerBanner}>
+  <View style={styles.offerTag}>
+    <Text style={styles.offerTagText}>EXCLUSIVE OFFER</Text>
+  </View>
 
+  <Text style={styles.offerTitle}>Accountability by InTown</Text>
 
+  <Text style={styles.offerSubtitle}>
+    Unlock verified savings at 200+ local partners.
+  </Text>
+</View> */}
 
-          {/* CATEGORIES */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Feature Categories </Text>
-            <Text style={styles.normalText}>(Complete list will be displayed once stores onboarded):</Text>
-            <ScrollView
-              ref={categoriesScrollRef}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              snapToInterval={CATEGORY_CARD_WIDTH + CATEGORY_CARD_GAP}
-              decelerationRate="fast"
-              contentContainerStyle={styles.categoriesCarouselContent}
-              onScrollBeginDrag={stopCategoriesAutoScroll}
-            >
+{/* CATEGORIES */}
+<View style={styles.section}>
+
+  {/* TITLE ROW */}
+  <View style={styles.sectionHeader}>
+    <Text style={styles.sectionTitle}>Popular Categories</Text>
+
+    <TouchableOpacity>
+      <Text style={styles.viewAll}>View All</Text>
+    </TouchableOpacity>
+  </View>
+
+  <ScrollView
+    ref={categoriesScrollRef}
+    horizontal
+    showsHorizontalScrollIndicator={false}
+    snapToInterval={CATEGORY_CARD_WIDTH + CATEGORY_CARD_GAP}
+    decelerationRate="fast"
+    contentContainerStyle={styles.categoriesCarouselContent}
+    onScrollBeginDrag={stopCategoriesAutoScroll}
+  >
               {categoryColumns.map((column, columnIndex) => (
                 <View key={`col-${columnIndex}`} style={styles.categoryColumn}>
                   {column.map((category, rowIndex) => {
@@ -1032,7 +1053,7 @@ const handleCategoryClick = (category: Category) => {
           {/* SUMMARY SECTION */}
           <View style={styles.summarySection}>
              <Text style={styles.sectionTitle}>Savings History </Text>
-           <Text style={styles.normalText}>(Depends on Participating at Stores):</Text>
+           {/* <Text style={styles.normalText}>(Depends on Participating at Stores):</Text> */}
             <View style={styles.summaryRow}>
               <View style={styles.summaryItem}>
                 <Text style={styles.summaryLabel}>Today's Savings </Text>
@@ -1448,19 +1469,17 @@ const handleCategoryClick = (category: Category) => {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F5F5F5' },
+  container: { flex: 1, backgroundColor: '#F2F2F2' },
 
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: 8,
-    paddingBottom: 8,
-    paddingHorizontal: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#EEEEEE',
-  },
+ header: {
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  paddingTop: 8,
+  paddingBottom: 8,
+  paddingHorizontal: 16,
+  backgroundColor: '#F2F2F2',
+},
   rightContainer: {
     display: 'flex',
     flexDirection: 'row',
@@ -1568,7 +1587,10 @@ const styles = StyleSheet.create({
   },
   uploadBtnText: { color: '#fff', fontWeight: '600', marginLeft: 6 },
 
-  searchContainer: { padding: 16, backgroundColor: '#fff' },
+  searchContainer: {
+  padding: 16,
+  backgroundColor: '#F2F2F2',
+},
   searchBox: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1660,50 +1682,69 @@ const styles = StyleSheet.create({
     textShadowRadius: 4,
   },
 
-  summarySection: {
-    backgroundColor: '#FFF3E0',
-    paddingVertical: 18,
-    paddingHorizontal: 12,
-  },
+ summarySection: {
+  backgroundColor: '#F7EFE3',
+  paddingVertical: 20,
+  paddingHorizontal: 16,
+  borderRadius: 18,
+  marginHorizontal: 16,
+  marginTop: 12,
+},
   summaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
-  summaryItem: {
-    flex: 1,
-    alignItems: 'center',
-    backgroundColor: '#FF6600',
-    paddingVertical: 12,
-    marginHorizontal: 6,
-    borderRadius: 10,
-  },
+ summaryItem: {
+  flex: 1,
+  alignItems: 'center',
+  justifyContent: 'center',
+  backgroundColor: '#FF6600',
+  paddingVertical: 18,
+  marginHorizontal: 6,
+  borderRadius: 18,   // bigger rounded curve
+  shadowColor: '#000',
+  shadowOpacity: 0.15,
+  shadowRadius: 8,
+  shadowOffset: { width: 0, height: 4 },
+  elevation: 6,
+},
   summaryLabel: {
     ...FontStylesWithFallback.caption,
     color: '#FFFFFF',
     fontSize: 11,
     fontWeight: '700',
   },
-  summaryValue: {
-    ...FontStylesWithFallback.h3,
-    color: '#FFFFFF',
-    fontWeight: '700',
-    marginTop: 6,
-  },
+ summaryValue: {
+  fontSize: 22,
+  fontWeight: '700',
+  color: '#FFFFFF',
+  marginTop: 6,
+},
 
-  transactionsSection: {
-    backgroundColor: '#FFFFFF',
-    marginHorizontal: 16,
-    marginTop: 16,
-    marginBottom: 16,
-    padding: 16,
-    borderRadius: 12,
-  },
+transactionsSection: {
+  backgroundColor: '#F5F5F5',
+  marginHorizontal: 16,
+  marginTop: 20,
+  marginBottom: 20,
+  padding: 20,
+  borderRadius: 20,
+  shadowColor: '#000',
+  shadowOpacity: 0.08,
+  shadowRadius: 10,
+  shadowOffset: { width: 0, height: 4 },
+  elevation: 4,
+},
   sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
+  flexDirection: "row",
+  justifyContent: "space-between",
+  alignItems: "center",
+  marginHorizontal: 16,
+  marginTop: 20,
+},
+viewAll: {
+  color: "#FF6600",
+  fontWeight: "600",
+},
   viewAllText: {
     fontSize: 14,
     color: '#FF6600',
@@ -1766,14 +1807,15 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   emptyState: {
-    alignItems: 'center',
-    paddingVertical: 32,
-  },
-  emptyText: {
-    fontSize: 14,
-    color: '#999999',
-    marginTop: 8,
-  },
+  alignItems: 'center',
+  justifyContent: 'center',
+  paddingVertical: 40,
+},
+ emptyText: {
+  fontSize: 15,
+  color: '#9E9E9E',
+  marginTop: 10,
+},
   quickActions: {
     backgroundColor: '#FFFFFF',
     marginHorizontal: 16,
@@ -2187,5 +2229,101 @@ const styles = StyleSheet.create({
     fontWeight: 'normal',  
     color: '#666',         
   },
+offerBanner: {
+  backgroundColor: '#FF7A00',
+  marginHorizontal: 16,
+  marginTop: 8,
+  marginBottom: 10,
+  padding: 18,
+  borderRadius: 18,
+},
+
+offerTag: {
+  backgroundColor: 'rgba(255,255,255,0.25)',
+  alignSelf: 'flex-start',
+  paddingHorizontal: 10,
+  paddingVertical: 4,
+  borderRadius: 10,
+  marginBottom: 8,
+},
+
+offerTagText: {
+  color: '#fff',
+  fontSize: 11,
+  fontWeight: '600',
+},
+
+offerTitle: {
+  color: '#fff',
+  fontSize: 20,
+  fontWeight: '700',
+  marginBottom: 6,
+},
+
+offerSubtitle: {
+  color: '#fff',
+  fontSize: 14,
+  opacity: 0.95,
+},
+locationSection: {
+  flexDirection: 'row',
+  alignItems: 'center',
+},
+
+locationIconBox: {
+  width: 40,
+  height: 40,
+  borderRadius: 20,
+  backgroundColor: '#FFE8D6',
+  justifyContent: 'center',
+  alignItems: 'center',
+  marginRight: 10,
+},
+
+locationLabel: {
+  fontSize: 11,
+  color: '#999',
+  fontWeight: '600',
+},
+
+locationName: {
+  fontSize: 16,
+  fontWeight: '700',
+  color: '#FF6600',
+},
+
+headerIcons: {
+  flexDirection: 'row',
+  alignItems: 'center',
+},
+
+headerIconBtn: {
+  width: 36,
+  height: 36,
+  borderRadius: 18,
+  borderWidth: 2,
+  borderColor: "#FF6600",
+  justifyContent: "center",
+  alignItems: "center",
+  marginLeft: 12,
+  backgroundColor: "#fff",
+},
+filterButton: {
+  padding: 6,
+  marginLeft: 6,
+},
+notificationIconBtn: {
+  width: 36,
+  height: 36,
+  borderRadius: 18,
+  borderWidth: 1,
+  borderColor: "#E0E0E0",
+  backgroundColor: "#FFFFFF",
+  justifyContent: "center",
+  alignItems: "center",
+  marginRight: 12,
+},
+
+
 
 });

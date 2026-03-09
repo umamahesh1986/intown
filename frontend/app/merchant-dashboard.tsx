@@ -31,7 +31,7 @@ import { FontStylesWithFallback } from '../utils/fonts';
 import Footer from '../components/Footer'
 import { useFocusEffect } from '@react-navigation/native';
 
-
+import CommonBottomTabs from "../components/CommonBottomTabs";
 
 // ===== MERCHANT CAROUSEL CONFIG (SAME AS MEMBER) =====
 const { width } = Dimensions.get('window');
@@ -506,49 +506,47 @@ export default function MerchantDashboard() {
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.locationButton}
-            onPress={() => setShowLocationModal(true)}
-          >
-            <Ionicons name="location" size={16} color="#FF6600" />
-            <View style={styles.locationTextContainer}>
-              <Text style={styles.welcomeText}>
-                Welcome {merchantShop.name || merchantContactName || user?.name || 'My Shop'}
-              </Text>
-              <Text style={styles.locationText} numberOfLines={1}>
-                {getLocationDisplayText()}
-              </Text>
-            </View>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.profileButton}
-            onPress={(e) => {
-              e.stopPropagation();
-              showDropdown ? closeDropdown() : openDropdown();
-            }}
-          >
-            <View style={styles.profileInfo}>
-              <Text style={styles.userName}>{shopName || merchantContactName || 'Merchant'}</Text>
-              <Text style={styles.userPhone}>
-                {(user as any)?.phone ?? (user as any)?.email ?? ''}
-              </Text>
-            </View>
-            {profileImage ? (
-              <Image
-                source={getProfileImageSource(profileImage) ?? undefined}
-                style={styles.profileImage}
-              />
-            ) : (
-              <Ionicons
-                name="person"
-                size={20}
-                color="#ff6600"
-                style={styles.profileIconButton}
-              />
-            )}
-          </TouchableOpacity>
-        </View>
+       <View style={styles.header}>
+
+  {/* LOCATION */}
+  <TouchableOpacity
+    style={styles.locationSection}
+    onPress={() => setShowLocationModal(true)}
+  >
+    <View style={styles.locationIconBox}>
+      <Ionicons name="location-outline" size={20} color="#FF6600" />
+    </View>
+
+    <View>
+      <Text style={styles.locationLabel}>YOUR LOCATION</Text>
+      <Text style={styles.locationName}>
+        {getLocationDisplayText()}
+      </Text>
+    </View>
+  </TouchableOpacity>
+
+  {/* RIGHT ICONS */}
+  <View style={styles.headerIcons}>
+
+    {/* Notification */}
+    <TouchableOpacity style={styles.notificationIconBtn}>
+      <Ionicons name="notifications-outline" size={22} color="#333" />
+    </TouchableOpacity>
+
+    {/* Profile */}
+    <TouchableOpacity
+      style={styles.headerIconBtn}
+      onPress={(e) => {
+        e.stopPropagation();
+        showDropdown ? closeDropdown() : openDropdown();
+      }}
+    >
+      <Ionicons name="person-outline" size={22} color="#FF6600" />
+    </TouchableOpacity>
+
+  </View>
+
+</View>
 
         {/* ===== MERCHANT CAROUSEL ===== */}
         {/* <View style={styles.carouselWrapper}>
@@ -664,7 +662,7 @@ export default function MerchantDashboard() {
         <View style={[styles.section, styles.sectionNoHorizontalPadding]}>
           <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginTop: 16 }}>
             <Text style={[styles.sectionTitle, { margin: 0 }]}>Business Summary</Text>
-            <Text style={[styles.normalText, { marginLeft: 6, fontSize: 12 }]}>(Depends on Customer Visits)</Text>
+            {/* <Text style={[styles.normalText, { marginLeft: 6, fontSize: 12 }]}>(Depends on Customer Visits)</Text> */}
           </View>
           <View style={styles.summarySection}>
             <View style={styles.summaryRow}>
@@ -696,9 +694,9 @@ export default function MerchantDashboard() {
             {/* This View below uses row direction to keep title and brackets together */}
             <View style={{ flexDirection: 'row', alignItems: 'baseline', flex: 1 }}>
               <Text style={[styles.sectionTitle, { margin: 0, fontSize: 18 }]}>Recent Business</Text>
-              <Text style={[styles.normalText, { fontSize: 10, color: '#888', marginLeft: 6 }]}>
+              {/* <Text style={[styles.normalText, { fontSize: 10, color: '#888', marginLeft: 6 }]}>
                 (Calculated on visits)
-              </Text>
+              </Text> */}
             </View>
 
             <TouchableOpacity
@@ -1013,7 +1011,10 @@ export default function MerchantDashboard() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F5F5F5' },
+container: {
+  flex: 1,
+  backgroundColor: '#F2F2F2',
+},
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1021,7 +1022,7 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 8,
     paddingHorizontal: 16,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F2F2F2',
     borderBottomWidth: 1,
     borderBottomColor: '#EEEEEE',
   },
@@ -1233,34 +1234,46 @@ const styles = StyleSheet.create({
   ratingText: { fontSize: 16, fontWeight: '600', color: '#666666', marginLeft: 8 },
   descriptionCard: { backgroundColor: '#FFFFFF', borderRadius: 12, padding: 16, borderWidth: 1, borderColor: '#EEEEEE' },
   descriptionText: { fontSize: 14, color: '#666666', lineHeight: 20 },
-  section: { padding: 16 },
-  sectionNoHorizontalPadding: {
-    paddingHorizontal: 0,
-  },
+ section: {
+  padding: 16,
+  backgroundColor: '#FFFFFF',
+  borderRadius: 20,
+  marginHorizontal: 16,
+  marginTop: 16,
+},
   sectionPaymentHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  sectionTitle: { fontSize: 20, fontWeight: 'bold', color: '#1A1A1A', margin: 16 },
+  sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#1A1A1A', margin: 16 },
   summarySection: {
-    backgroundColor: '#ff6600',
-    paddingVertical: 18,
-    paddingHorizontal: 0,
-  },
+  backgroundColor: '#FF6600',
+  paddingVertical: 20,
+  paddingHorizontal: 10,
+  borderRadius: 20,
+  marginHorizontal: 16,
+  marginTop: 10,
+},
   summaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginHorizontal: 10,
   },
-  summaryItem: {
-    flex: 1,
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    paddingVertical: 12,
-    marginHorizontal: 6,
-    borderRadius: 10,
-  },
+summaryItem: {
+  flex: 1,
+  alignItems: 'center',
+  justifyContent: 'center',
+  backgroundColor: '#FFFFFF',
+  paddingVertical: 18,
+  marginHorizontal: 6,
+  borderRadius: 18,
+  shadowColor: '#000',
+  shadowOpacity: 0.12,
+  shadowRadius: 8,
+  shadowOffset: { width: 0, height: 4 },
+  elevation: 6,
+},
   summaryLabel: {
     ...FontStylesWithFallback.caption,
     color: '#777777',
@@ -1319,9 +1332,9 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   emptyState: {
-    alignItems: 'center',
-    paddingVertical: 32,
-  },
+  alignItems: 'center',
+  paddingVertical: 32,
+},
   emptyText: {
     fontSize: 14,
     color: '#999999',
@@ -1543,4 +1556,58 @@ const styles = StyleSheet.create({
     color: '#666',
   },
 
+  locationSection: {
+  flexDirection: "row",
+  alignItems: "center",
+},
+
+locationIconBox: {
+  width: 40,
+  height: 40,
+  borderRadius: 20,
+  backgroundColor: "#FFE8D6",
+  justifyContent: "center",
+  alignItems: "center",
+  marginRight: 10,
+},
+
+locationLabel: {
+  fontSize: 11,
+  color: "#999",
+  fontWeight: "600",
+},
+
+locationName: {
+  fontSize: 16,
+  fontWeight: "700",
+  color: "#FF6600",
+},
+
+headerIcons: {
+  flexDirection: "row",
+  alignItems: "center",
+},
+
+notificationIconBtn: {
+  width: 36,
+  height: 36,
+  borderRadius: 18,
+  borderWidth: 1,
+  borderColor: "#E0E0E0",
+  backgroundColor: "#FFFFFF",
+  justifyContent: "center",
+  alignItems: "center",
+  marginRight: 12,
+},
+
+headerIconBtn: {
+  width: 36,
+  height: 36,
+  borderRadius: 18,
+  borderWidth: 2,
+  borderColor: "#FF6600",
+  backgroundColor: "#FFFFFF",
+  justifyContent: "center",
+  alignItems: "center",
+},
 });

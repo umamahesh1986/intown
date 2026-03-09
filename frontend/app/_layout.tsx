@@ -26,54 +26,12 @@ export default function RootLayout() {
     '/near-by'
   ].includes(pathname);
 
-  const getDynamicTabs = () => {
-    // --- 1. DUAL DASHBOARD FLOW ---
-    if (pathname === '/dual-dashboard') {
-      return [
-        { name: 'Home', icon: 'home', link: '/dual-dashboard' },
-        { name: 'Member', icon: 'people', link: '/member-dashboard' },
-        { name: 'Merchant', icon: 'business', link: '/merchant-dashboard' },
-        { name: 'Profile', icon: 'person', link: '/account' },
-      ];
-    }
-
-    // --- 2. MERCHANT DASHBOARD FLOW ---
-    // If the path relates to merchant activities
-    else if (pathname === '/merchant-dashboard') {
-      return [
-        { name: 'Home', icon: 'home', link: '/merchant-dashboard' },
-        { name: 'Transactions', icon: 'swap-horizontal', link: '/payment' },
-        { name: 'Profile', icon: 'person', link: '/account' },
-      ];
-    }
-
-    // --- 3. MEMBER DASHBOARD FLOW ---
-    // Includes member home, card, and payment (if accessed from member side)
-    else if (
-      pathname === '/member-dashboard' || 
-      pathname === '/member-card' || 
-      (pathname === '/payment' && !pathname.includes('merchant'))
-    ) {
-      return [
-        { name: 'Home', icon: 'home', link: '/member-dashboard' },
-        { name: 'Card', icon: 'card', link: '/member-card' },
-        { name: 'Search', icon: 'search', link: '/search' },
-        { name: 'Transactions', icon: 'list', link: '/payment' },
-        { name: 'Profile', icon: 'person', link: '/account' },
-      ];
-    }
-
-    // --- 4. DEFAULT USER DASHBOARD FLOW ---
-    // Used for /user-dashboard, /search, /member-shop-list, and /account
-    else {
-      return [
-        { name: 'Home', icon: 'home', link: '/user-dashboard' },
-        { name: 'Search', icon: 'search', link: '/search' },
-        { name: 'Nearby', icon: 'location', link: '/member-shop-list' },
-        { name: 'Profile', icon: 'person', link: '/account' },
-      ];
-    }
-  };
+  const tabs = [
+  { name: 'Home', icon: 'home', link: '/user-dashboard' },
+  { name: 'Savings', icon: 'wallet', link: '/savings' },
+  { name: 'Plans', icon: 'pricetag', link: '/plans' },
+  { name: 'Profile', icon: 'person', link: '/profile-menu' },
+];
 
   return (
     <View style={{ flex: 1 }}>
@@ -100,9 +58,9 @@ export default function RootLayout() {
       </Stack>
 
       {/* Conditionally render the bar with dynamic tabs */}
-      {showTabs && (
-        <CommonBottomTabs tabs={getDynamicTabs()} />
-      )}
+     {showTabs && (
+  <CommonBottomTabs tabs={tabs} />
+)}
     </View>
   );
 }
