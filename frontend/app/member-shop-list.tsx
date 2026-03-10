@@ -11,61 +11,100 @@ import { useState, useEffect } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { searchByProductNames, getMerchantImageByShopId } from '../utils/api';
+import { searchByProductNames, getMerchantImageByShopId, extractImageUrls } from '../utils/api';
 import { useLocationStore } from '../store/locationStore';
 import { formatDistance } from '../utils/formatDistance';
 
+// Normalize param (expo-router can return string | string[] on native)
+const toParam = (v: string | string[] | undefined): string | undefined =>
+  v == null ? undefined : Array.isArray(v) ? v[0] : String(v);
+
 export default function MemberShopList() {
   const router = useRouter();
-  const { categoryId, categoryName, query, source } = useLocalSearchParams<{
-  categoryId?: string;
-  categoryName?: string;
-  query?: string;
-  source?: string;
-}>();
+  const rawParams = useLocalSearchParams<{
+    categoryId?: string;
+    categoryName?: string;
+    query?: string;
+    source?: string;
+  }>();
 
-  const { location } = useLocationStore();
+  const categoryId = toParam(rawParams.categoryId);
+  const categoryName = toParam(rawParams.categoryName);
+  const query = toParam(rawParams.query);
+  const source = toParam(rawParams.source);
+
+  const { location, loadFromStorage } = useLocationStore();
 
   const [shops, setShops] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  useEffect(() => {
+    loadFromStorage();
+  }, [loadFromStorage]);
+
+  const getFirstImageUrl = (img: unknown): string | null => {
+    const urls = extractImageUrls(img);
+    return urls[0] ?? null;
+  };
+
   const fetchShopsByCategory = async () => {
-  setIsLoading(true);
-  try {
-    if (!categoryId || !location?.latitude || !location?.longitude) {
+    setIsLoading(true);
+    try {
+      if (!categoryId || !location?.latitude || !location?.longitude) {
+        setShops([]);
+        setIsLoading(false);
+        return;
+      }
+
+      const res = await fetch(
+        `https://api.intownlocal.com/IN/search/by-product-names?categoryId=${encodeURIComponent(categoryId)}&customerLatitude=${location.latitude}&customerLongitude=${location.longitude}`
+      );
+
+      if (!res.ok) {
+        console.error('Category search failed with status:', res.status);
+        setShops([]);
+        setIsLoading(false);
+        return;
+      }
+
+      const data = await res.json();
+
+      const list = Array.isArray(data) ? data : [];
+      
+      // Process shops with error handling for each item
+      const enriched: any[] = [];
+      for (const shop of list) {
+        try {
+          const shopId = shop?.id ?? shop?.merchantId ?? shop?.merchant_id;
+          let image = null;
+          try {
+            image = await getMerchantImageByShopId(shopId);
+          } catch (imgErr) {
+            console.warn('Failed to get image for shop:', shopId);
+          }
+          const img = image ?? shop?.image ?? shop?.s3ImageUrl;
+          enriched.push({ ...shop, image: getFirstImageUrl(img) });
+        } catch (itemErr) {
+          console.warn('Error processing shop item:', itemErr);
+          enriched.push({ ...shop, image: null });
+        }
+      }
+      setShops(enriched);
+    } catch (error) {
+      console.error('Failed to fetch category shops', error);
+      setShops([]);
+    } finally {
       setIsLoading(false);
-      return;
     }
-
-    const res = await fetch(
-      `https://api.intownlocal.com/IN/search/by-product-names?categoryId=${categoryId}&customerLatitude=${location.latitude}&customerLongitude=${location.longitude}`
-    );
-
-    const data = await res.json();
-
-    const list = Array.isArray(data) ? data : [];
-    const enriched = await Promise.all(
-      list.map(async (shop: any) => {
-        const shopId = shop?.id ?? shop?.merchantId ?? shop?.merchant_id;
-        const image = await getMerchantImageByShopId(shopId);
-        return { ...shop, image: image ?? shop?.image ?? shop?.s3ImageUrl };
-      })
-    );
-    setShops(enriched);
-  } catch (error) {
-    console.error('Failed to fetch category shops', error);
-    setShops([]);
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
 
 
   // 🔹 PRODUCT SEARCH (EXISTING LOGIC + FALLBACK)
   const fetchRealShops = async () => {
     setIsLoading(true);
     try {
-      if (!query || !location) {
+      if (!query || !location?.latitude || !location?.longitude) {
+        setShops([]);
         setIsLoading(false);
         return;
       }
@@ -79,13 +118,14 @@ export default function MemberShopList() {
       const mappedShops = Array.isArray(data)
         ? data.map((item: any) => ({
           id: item.id?.toString?.() ?? String(item.id ?? ''),
-          name: item.shopName,
-          shopName: item.shopName,
+          name: item.businessName ?? item.shopName,
+          businessName: item.businessName,
+          shopName: item.shopName ?? item.businessName,
           contactName: item.contactName,
           category: item.businessCategory,
           businessCategory: item.businessCategory,
           distance: item.distance,
-          image: item.s3ImageUrl,
+          image: getFirstImageUrl(item.s3ImageUrl),
           latitude: item.latitude,
           longitude: item.longitude,
         }))
@@ -96,7 +136,8 @@ export default function MemberShopList() {
           mappedShops.map(async (shop: any) => {
             const shopId = shop?.id ?? shop?.merchantId ?? shop?.merchant_id;
             const image = await getMerchantImageByShopId(shopId);
-            return { ...shop, image: image ?? shop?.image ?? shop?.s3ImageUrl };
+            const img = image ?? shop?.image ?? shop?.s3ImageUrl;
+            return { ...shop, image: getFirstImageUrl(img) };
           })
         );
         setShops(enriched);
@@ -112,21 +153,43 @@ export default function MemberShopList() {
   };
 
 
-  // 🔹 RUN SEARCH WHEN QUERY CHANGES
+  // 🔹 RUN SEARCH WHEN PARAMS OR LOCATION CHANGES
   useEffect(() => {
-  if (categoryId) {
-    fetchShopsByCategory();
-  } else if (query) {
-    fetchRealShops(); // existing product search logic
-  }
-}, [categoryId, query]);
-
+    if (!categoryId && !query) {
+      setIsLoading(false);
+      setShops([]);
+      return;
+    }
+    if (categoryId) {
+      fetchShopsByCategory();
+    } else if (query) {
+      fetchRealShops();
+    }
+  }, [categoryId, query, location?.latitude, location?.longitude]);
 
   const handleViewShop = (shop: any) => {
-    router.push({
-      pathname: '/member-shop-details',
-      params: { shopId: shop.id, shop: JSON.stringify(shop), source },
-    });
+    try {
+      if (!shop) {
+        console.error('handleViewShop: shop is null or undefined');
+        return;
+      }
+      const shopId = shop?.id ?? shop?.merchantId ?? shop?.merchant_id ?? '';
+      if (!shopId) {
+        console.error('handleViewShop: shopId is empty');
+        return;
+      }
+      // Only pass shopId and source - fetch full details in member-shop-details
+      router.push({
+        pathname: '/member-shop-details',
+        params: { 
+          shopId: String(shopId), 
+          categoryId: categoryId ?? '',
+          source: source ?? 'user' 
+        },
+      });
+    } catch (err) {
+      console.error('handleViewShop error', err);
+    }
   };
 
   return (
@@ -164,67 +227,76 @@ export default function MemberShopList() {
       ) : (
         <FlatList
           data={shops}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item, index) => String(item?.id ?? item?.merchantId ?? index)}
           contentContainerStyle={styles.listContent}
-          renderItem={({ item }) => (
-            <View style={styles.shopCard}>
+          renderItem={({ item }) => {
+            // Wrap entire render in try-catch to prevent crashes
+            try {
+              if (!item) return null;
+              const imageUri = getFirstImageUrl(item?.image);
+              const shopName = item?.businessName || item?.shopName || item?.name || item?.contactName || 'Shop';
+              const categoryText = item?.businessCategory || item?.category || 'General';
+              const contactName = item?.contactName;
+              const showContactName = contactName && contactName !== item?.shopName;
+              
+              return (
+                <View style={styles.shopCard}>
+                  {/* TOP ROW */}
+                  <View style={styles.shopRow}>
+                    {/* LEFT: ICON */}
+                    <View style={styles.shopImageContainer}>
+                      {imageUri ? (
+                        <Image
+                          source={{ uri: imageUri }}
+                          style={{ width: 60, height: 60, borderRadius: 10 }}
+                        />
+                      ) : (
+                        <Ionicons name="storefront" size={40} color="#FF6600" />
+                      )}
+                    </View>
 
-              {/* TOP ROW */}
-              <View style={styles.shopRow}>
+                    {/* RIGHT: INFO */}
+                    <View style={styles.shopInfoRight}>
+                      <View style={styles.shopInfoRightnew}>
+                        <Text style={styles.shopName} numberOfLines={1}>
+                          {shopName}
+                        </Text>
 
-                {/* LEFT: ICON */}
-                <View style={styles.shopImageContainer}>
-                  {item.image ? (
-                    <Image
-                      source={{ uri: item.image }}
-                      style={{ width: 60, height: 60, borderRadius: 10 }}
-                    />
-                  ) : (
-                    <Ionicons name="storefront" size={40} color="#FF6600" />
-                  )}
-                </View>
+                        <Text style={styles.categoryText}>
+                          {categoryText}
+                        </Text>
 
-                {/* RIGHT: INFO */}
-                <View style={styles.shopInfoRight}>
-                  <View style={styles.shopInfoRightnew}>
-                    <Text style={styles.shopName} numberOfLines={1}>
-                      {item.shopName || item.name || item.contactName || 'Shop'}
-                    </Text>
-
-                    <Text style={styles.categoryText}>
-                      {item.businessCategory || item.category || 'General'}
-                    </Text>
-
-                    {!!(item.contactName && item.contactName !== item.shopName) && (
-                      <Text style={styles.contactNameText} numberOfLines={1}>
-                        {item.contactName}
-                      </Text>
-                    )}
-
+                        {showContactName && (
+                          <Text style={styles.contactNameText} numberOfLines={1}>
+                            {contactName}
+                          </Text>
+                        )}
+                      </View>
+                      <View style={styles.distanceRow}>
+                        <Ionicons name="location" size={14} color="#ff6600" />
+                        <Text style={styles.distanceText}>
+                          {formatDistance(item?.distance)}
+                        </Text>
+                      </View>
+                    </View>
                   </View>
-                  <View style={styles.distanceRow}>
-                    <Ionicons name="location" size={14} color="#ff6600" />
-                    <Text style={styles.distanceText}>
-                      {formatDistance(item.distance)}
-                    </Text>
+
+                  {/* BUTTON */}
+                  <View style={styles.buttonContainer}>
+                    <TouchableOpacity
+                      style={styles.viewButton}
+                      onPress={() => handleViewShop(item)}
+                    >
+                      <Text style={styles.viewButtonText}>View</Text>
+                    </TouchableOpacity>
                   </View>
                 </View>
-
-              </View>
-
-              {/* BUTTON */}
-              <View style={styles.buttonContainer}>
-                <TouchableOpacity
-                  style={styles.viewButton}
-                  onPress={() => handleViewShop(item)}
-                >
-                  <Text style={styles.viewButtonText}>View</Text>
-                </TouchableOpacity>
-              </View>
-
-            </View>
-
-          )}
+              );
+            } catch (renderErr) {
+              console.error('Error rendering shop item:', renderErr);
+              return null;
+            }
+          }}
         />
       )}
     </SafeAreaView>

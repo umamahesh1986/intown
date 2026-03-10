@@ -1,53 +1,129 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Modal, Pressable, Dimensions } from 'react-native';
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Modal, Pressable, Dimensions, ActivityIndicator } from 'react-native';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistance } from '../utils/formatDistance';
-import { getMerchantImageByShopId, getMerchantImagesByShopId } from '../utils/api';
-import { getNearbyShops } from '../utils/api';
+import { extractImageUrls } from '../utils/api';
 import { useLocationStore } from '../store/locationStore';
+import { useAuthStore } from '../store/authStore';
 import PaymentModal from '../components/PaymentModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+interface ShopData {
+  id: number;
+  businessName: string;
+  contactName: string;
+  address: string;
+  phoneNumber: string;
+  email: string;
+  pincode: number;
+  userType: string;
+  businessCategory: string;
+  description: string;
+  fromYears: string;
+  branchesOfBusiness: string;
+  longitude: number;
+  latitude: number;
+  s3ImageUrl: Array<{
+    id: string;
+    fileName: string;
+    isPrimary: boolean;
+    s3ImageUrl: string;
+  }>;
+  distance: number;
+}
+
 export default function MemberShopDetails() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ shopId?: string; shop?: string; source?: string }>();
-  const shopId = params.shopId as string | undefined;
-  const shopFromParams = useMemo(() => {
-    if (!params.shop) return null;
-    try {
-      return JSON.parse(params.shop);
-    } catch {
-      return null;
-    }
-  }, [params.shop]);
-  const [fetchedShop, setFetchedShop] = useState<any | null>(null);
-  const [isShopLoading, setIsShopLoading] = useState(false);
+  const params = useLocalSearchParams<{ shopId?: string; categoryId?: string; source?: string }>();
+  const shopId = params.shopId;
+  const categoryId = params.categoryId;
+  const source = params.source;
+
+  const [shop, setShop] = useState<ShopData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   const location = useLocationStore((state) => state.location);
   const loadLocationFromStorage = useLocationStore((state) => state.loadFromStorage);
-  const shop = shopFromParams || fetchedShop;
-  const resolvedMerchantId =
-    shop?.merchantId ??
-    shop?.merchant?.id ??
-    shop?.id ??
-    shop?.merchant_id;
-  const redirectTo = params.source === 'dual' ? '/dual-dashboard' : '/member-dashboard';
-  const isUserFlow = params.source === 'user';
+  const { user } = useAuthStore();
+
+  const redirectTo = source === 'dual' ? '/dual-dashboard' : '/member-dashboard';
+  const isUserFlow = source === 'user';
+
   const [showPayment, setShowPayment] = useState(false);
   const [customerId, setCustomerId] = useState<string | null>(null);
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
-  const [shopLoadError, setShopLoadError] = useState<string | null>(null);
-  const [shopImage, setShopImage] = useState<string | null>(null);
+
+  // Image carousel state
   const [shopImages, setShopImages] = useState<string[]>([]);
   const [shopImageIndex, setShopImageIndex] = useState(0);
   const shopImageScrollRef = useRef<ScrollView | null>(null);
   const shopImageTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const SHOP_IMAGE_WIDTH = Dimensions.get('window').width;
 
-  const handlePaymentSuccess = (amount: number, savings: number, method: string) => {
-    console.log('Payment successful:', { amount, savings, method });
+  // Fetch shop details from API
+  const fetchShopDetails = async () => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      await loadLocationFromStorage();
+      const storedLocation = useLocationStore.getState().location;
+      // Use stored location or default to Hyderabad coordinates
+      const lat = storedLocation?.latitude ?? location?.latitude ?? 17.4939602;
+      const lng = storedLocation?.longitude ?? location?.longitude ?? 78.4008412;
+
+      // Build API URL
+      let apiUrl = `https://api.intownlocal.com/IN/search/by-product-names?customerLatitude=${lat}&customerLongitude=${lng}`;
+      if (categoryId) {
+        apiUrl += `&categoryId=${categoryId}`;
+      }
+
+      const res = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          Accept: 'application/json',
+        },
+      });
+      
+      if (!res.ok) {
+        throw new Error('Failed to fetch shop details');
+      }
+
+      const data = await res.json();
+      const shopList = Array.isArray(data) ? data : [];
+
+      // Find the shop by ID
+      const foundShop = shopList.find((s: ShopData) => String(s.id) === String(shopId));
+
+      if (foundShop) {
+        setShop(foundShop);
+        // Extract images
+        const images = extractImageUrls(foundShop.s3ImageUrl);
+        setShopImages(images);
+      } else {
+        setError('Shop not found');
+      }
+    } catch (err: any) {
+      console.error('Error fetching shop details:', err);
+      // CORS error on web - show friendly message
+      if (err.message?.includes('Failed to fetch') || err.name === 'TypeError') {
+        setError('Unable to load shop details. Please use the mobile app for full functionality.');
+      } else {
+        setError(err.message || 'Failed to load shop details');
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  useEffect(() => {
+    if (shopId) {
+      fetchShopDetails();
+    }
+  }, [shopId, categoryId]);
 
   // Load customer ID on mount
   useEffect(() => {
@@ -61,88 +137,10 @@ export default function MemberShopDetails() {
         console.error('Error loading customer id:', error);
       }
     };
-
     loadCustomerId();
   }, []);
 
-  // Load shop from API if not provided in params
-  useEffect(() => {
-    if (shopFromParams || !shopId) return;
-    let isActive = true;
-    const loadShopFromApi = async () => {
-      try {
-        setIsShopLoading(true);
-        setShopLoadError(null);
-        await loadLocationFromStorage();
-        const storedLocation = useLocationStore.getState().location;
-        const lat = storedLocation?.latitude ?? location?.latitude;
-        const lng = storedLocation?.longitude ?? location?.longitude;
-        if (lat == null || lng == null) {
-          throw new Error('Missing customer location');
-        }
-        const data = await getNearbyShops(lat, lng);
-        const list = Array.isArray(data) ? data : [];
-        const match = list.find((item) => String(item?.id) === String(shopId));
-        if (isActive) {
-          setFetchedShop(match ?? null);
-          if (!match) {
-            setShopLoadError('Shop not found');
-          }
-        }
-      } catch (error: any) {
-        console.error('Failed to load shop details', error);
-        if (isActive) {
-          setShopLoadError(error?.message || 'Failed to load shop details');
-        }
-      } finally {
-        if (isActive) {
-          setIsShopLoading(false);
-        }
-      }
-    };
-    loadShopFromApi();
-    return () => {
-      isActive = false;
-    };
-  }, [shopFromParams, shopId, location?.latitude, location?.longitude]);
-
-  useEffect(() => {
-    if (!shop) return;
-    const loadImage = async () => {
-      const image = await getMerchantImageByShopId(shop?.id ?? shopId);
-      if (image && image !== shopImage) setShopImage(image);
-    };
-    loadImage();
-  }, [shop, shopId, shopImage]);
-
-  const isSameImages = (a: string[], b: string[]) =>
-    a.length === b.length && a.every((val, idx) => val === b[idx]);
-
-  useEffect(() => {
-    if (!shop) return;
-    const fromShop = Array.isArray(shop.s3ImageUrl)
-      ? shop.s3ImageUrl
-      : shop.s3ImageUrl
-      ? [shop.s3ImageUrl]
-      : shop.image
-      ? [shop.image]
-      : shopImage
-      ? [shopImage]
-      : [];
-    const nextImages = fromShop.filter(Boolean);
-    if (nextImages.length > 0) {
-      setShopImages((prev) => (isSameImages(prev, nextImages) ? prev : nextImages));
-      return;
-    }
-    const loadImages = async () => {
-      const images = await getMerchantImagesByShopId(shop?.id ?? shopId);
-      if (images.length > 0) {
-        setShopImages((prev) => (isSameImages(prev, images) ? prev : images));
-      }
-    };
-    loadImages();
-  }, [shop, shopImage, shopId]);
-
+  // Image carousel auto-scroll
   useEffect(() => {
     if (shopImages.length <= 1) return;
     if (shopImageTimerRef.current) {
@@ -168,14 +166,16 @@ export default function MemberShopDetails() {
 
   const handlePrevShopImage = () => {
     if (shopImages.length === 0) return;
-    setShopImageIndex((prev) =>
-      prev === 0 ? shopImages.length - 1 : prev - 1
-    );
+    setShopImageIndex((prev) => (prev === 0 ? shopImages.length - 1 : prev - 1));
   };
 
   const handleNextShopImage = () => {
     if (shopImages.length === 0) return;
     setShopImageIndex((prev) => (prev + 1) % shopImages.length);
+  };
+
+  const handlePaymentSuccess = (amount: number, savings: number, method: string) => {
+    console.log('Payment successful:', { amount, savings, method });
   };
 
   const renderShopImageCarousel = () => {
@@ -229,46 +229,160 @@ export default function MemberShopDetails() {
       salon: { bg: '#F3E5F5', color: '#9C27B0', label: 'Salon' },
       pharmacy: { bg: '#E3F2FD', color: '#2196F3', label: 'Pharmacy' },
       electronics: { bg: '#ECEFF1', color: '#607D8B', label: 'Electronics' },
+      dairy: { bg: '#FFF8E1', color: '#FF8F00', label: 'Dairy' },
     };
-    const key = (category ?? '').toLowerCase();
+    const key = (category ?? '').toLowerCase().split(' ')[0];
     return badges[key] ?? { bg: '#FFF3E0', color: '#FF6600', label: category || 'General' };
   };
 
-  // Show loading/error state if shop is not available
-  if (!shop) {
+  const handleUserTap = () => {
+    if (isUserFlow) setShowRegistrationModal(true);
+  };
+
+  // Loading state
+  if (isLoading) {
     return (
       <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color="#1A1A1A" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Shop Details</Text>
+          <View style={{ width: 40 }} />
+        </View>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#FF6600" />
+          <Text style={styles.loadingText}>Loading shop details...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Error state
+  if (error || !shop) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color="#1A1A1A" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Shop Details</Text>
+          <View style={{ width: 40 }} />
+        </View>
         <View style={styles.loadingContainer}>
           <Ionicons name="storefront" size={40} color="#FF6600" />
-          <Text style={styles.loadingText}>
-            {isShopLoading ? 'Loading shop details...' : shopLoadError || 'Shop not found'}
-          </Text>
+          <Text style={styles.loadingText}>{error || 'Shop not found'}</Text>
           <TouchableOpacity
-            style={[styles.backButton, { flexDirection: 'row', alignItems: 'center', width: 'auto' }]}
+            style={styles.retryButton}
             onPress={() => router.back()}
           >
-            <Ionicons name="arrow-back" size={20} color="#1A1A1A" />
-            <Text style={styles.backButtonText}>Go Back</Text>
+            <Ionicons name="arrow-back" size={20} color="#FFF" />
+            <Text style={styles.retryButtonText}>Go Back</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
   }
 
-  const badge = getCategoryBadge(shop.category || shop.businessCategory);
-  // const ratingValue =
-  //   typeof shop.rating === 'number' ? shop.rating : Number(shop.rating) || 0;
-  const addressText =
-    shop.address ||
-    shop.fullAddress ||
-    [shop.area, shop.city].filter(Boolean).join(', ') ||
-    'Not available';
-  const phoneText = shop.phone || shop.phoneNumber || shop.contactNumber || 'Not available';
-  const offerText = shop.offers || shop.offer || 'Guaranty Savings';
+  const badge = getCategoryBadge(shop.businessCategory);
+  // Get logged-in user's phone number
+  const userPhone = user?.phone || user?.phoneNumber || 'Not available';
 
-  const handleUserTap = () => {
-    if (isUserFlow) setShowRegistrationModal(true);
-  };
+  const ShopContent = () => (
+    <ScrollView>
+      <View style={styles.shopImage}>
+        {renderShopImageCarousel()}
+      </View>
+
+      <View style={styles.content}>
+        {/* Business Name & Category Badge */}
+        <View style={styles.titleRow}>
+          <Text style={styles.shopName}>{shop.businessName || 'Shop'}</Text>
+          <View style={[styles.badge, { backgroundColor: badge.bg }]}>
+            <Text style={[styles.badgeText, { color: badge.color }]}>
+              {badge.label}
+            </Text>
+          </View>
+        </View>
+
+        {/* Description Card */}
+        <View style={styles.descriptionCard}>
+          <Text style={styles.descriptionTitle}>Description</Text>
+          <Text style={styles.descriptionText}>
+            {shop.description || 'No description available'}
+          </Text>
+        </View>
+
+        {/* Info Card */}
+        <View style={styles.infoCard}>
+          <View style={styles.infoRow}>
+            <Ionicons name="business" size={20} color="#FF6600" />
+            <Text style={styles.infoLabel}>Business:</Text>
+            <Text style={styles.infoValue}>{shop.businessName || 'N/A'}</Text>
+          </View>
+
+          <View style={styles.infoRow}>
+            <Ionicons name="pricetag" size={20} color="#FF6600" />
+            <Text style={styles.infoLabel}>Category:</Text>
+            <Text style={styles.infoValue}>{shop.businessCategory || 'General'}</Text>
+          </View>
+
+          <View style={styles.infoRow}>
+            <Ionicons name="person" size={20} color="#FF6600" />
+            <Text style={styles.infoLabel}>Contact:</Text>
+            <Text style={styles.infoValue}>{shop.contactName || 'N/A'}</Text>
+          </View>
+
+          <View style={styles.infoRow}>
+            <Ionicons name="location" size={20} color="#FF6600" />
+            <Text style={styles.infoLabel}>Distance:</Text>
+            <Text style={styles.infoValue}>
+              {formatDistance(shop.distance != null ? Number(shop.distance) : null)}
+            </Text>
+          </View>
+
+          <View style={styles.infoRow}>
+            <Ionicons name="call" size={20} color="#FF6600" />
+            <Text style={styles.infoLabel}>Phone:</Text>
+            <Text style={styles.infoValue}>{userPhone}</Text>
+          </View>
+
+          <View style={styles.infoRow}>
+            <Ionicons name="pin" size={20} color="#FF6600" />
+            <Text style={styles.infoLabel}>Address:</Text>
+            <Text style={styles.infoValue} numberOfLines={2}>
+              {shop.address || 'Address not available'}
+            </Text>
+          </View>
+
+          <View style={styles.infoRow}>
+            <Ionicons name="mail" size={20} color="#FF6600" />
+            <Text style={styles.infoLabel}>Pincode:</Text>
+            <Text style={styles.infoValue}>{shop.pincode || 'N/A'}</Text>
+          </View>
+
+          <View style={styles.infoRow}>
+            <Ionicons name="time" size={20} color="#FF6600" />
+            <Text style={styles.infoLabel}>Years:</Text>
+            <Text style={styles.infoValue}>{shop.fromYears ? `${shop.fromYears} years` : 'N/A'}</Text>
+          </View>
+
+          <View style={styles.infoRow}>
+            <Ionicons name="gift" size={20} color="#FF6600" />
+            <Text style={styles.infoLabel}>Offers:</Text>
+            <Text style={styles.infoValue}>Guaranty Savings</Text>
+          </View>
+        </View>
+
+        {/* Savings Card */}
+        <View style={styles.savingsCard}>
+          <Ionicons name="gift" size={32} color="#4CAF50" />
+          <Text style={styles.savingsTitle}>Special Offer</Text>
+          <Text style={styles.savingsText}>Get INtown Guaranty instant savings on your purchases!</Text>
+        </View>
+      </View>
+    </ScrollView>
+  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -277,157 +391,15 @@ export default function MemberShopDetails() {
           <Ionicons name="arrow-back" size={24} color="#1A1A1A" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Shop Details</Text>
-        <View style={{width:40}} />
+        <View style={{ width: 40 }} />
       </View>
 
       {isUserFlow ? (
         <Pressable style={styles.userFlowPressable} onPress={handleUserTap}>
-          <ScrollView>
-            <View style={styles.shopImage}>
-              {renderShopImageCarousel()}
-            </View>
-
-            <View style={styles.content}>
-              <View style={styles.titleRow}>
-                <Text style={styles.shopName}>{shop.shopName || shop.name}</Text>
-                <View style={[styles.badge, { backgroundColor: badge.bg }]}>
-                  <Text style={[styles.badgeText, { color: badge.color }]}>
-                    {badge.label}
-                  </Text>
-                </View>
-              </View>
-              {/* <View style={styles.ratingContainer}>
-                {[1,2,3,4,5].map(i => (
-                  <Ionicons key={i} name={i <= ratingValue ? "star" : "star-outline"} size={20} color="#FFA500" />
-                ))}
-                <Text style={styles.ratingText}>{ratingValue.toFixed(1)}</Text>
-              </View>  */}
-
-            <View style={styles.descriptionCard}>
-              <Text style={styles.descriptionTitle}>Description</Text>
-              <Text style={styles.descriptionText}>
-                {shop.description || 'No description available'}
-              </Text>
-            </View>
-
-              <View style={styles.infoCard}>
-                <View style={styles.infoRow}>
-                  <Ionicons name="pricetag" size={20} color="#FF6600" />
-                  <Text style={styles.infoLabel}>Category:</Text>
-                  <Text style={styles.infoValue}>{shop.category || 'General'}</Text>
-                </View>
-                <View style={styles.infoRow}>
-                  <Ionicons name="location" size={20} color="#FF6600" />
-                  <Text style={styles.infoLabel}>Distance:</Text>
-                  <Text style={styles.infoValue}>
-                    {formatDistance(
-                      shop.distance != null ? Number(shop.distance) : null
-                    )}
-                  </Text>
-                </View>
-                {/* <View style={styles.infoRow}>
-                  <Ionicons name="star" size={20} color="#FF6600" />
-                  <Text style={styles.infoLabel}>Rating:</Text>
-                  <Text style={styles.infoValue}>{ratingValue.toFixed(1)} / 5</Text>
-                </View> */}
-                <View style={styles.infoRow}>
-                  <Ionicons name="call" size={20} color="#FF6600" />
-                  <Text style={styles.infoLabel}>Phone:</Text>
-                  <Text style={styles.infoValue}>{phoneText}</Text>
-                </View>
-                <View style={styles.infoRow}>
-                  <Ionicons name="pin" size={20} color="#FF6600" />
-                  <Text style={styles.infoLabel}>Address:</Text>
-                  <Text style={styles.infoValue}>{addressText}</Text>
-                </View>
-                <View style={styles.infoRow}>
-                  <Ionicons name="gift" size={20} color="#FF6600" />
-                  <Text style={styles.infoLabel}>Offers:</Text>
-                  <Text style={styles.infoValue}>{offerText}</Text>
-                </View>
-              </View>
-
-              <View style={styles.savingsCard}>
-                <Ionicons name="gift" size={32} color="#4CAF50" />
-                <Text style={styles.savingsTitle}>Special Offer</Text>
-                <Text style={styles.savingsText}>Get INtown Guaranty instant savings on your purchases!</Text>
-              </View>
-            </View>
-          </ScrollView>
+          <ShopContent />
         </Pressable>
       ) : (
-        <ScrollView>
-          <View style={styles.shopImage}>
-            {renderShopImageCarousel()}
-          </View>
-
-          <View style={styles.content}>
-            <View style={styles.titleRow}>
-              <Text style={styles.shopName}>{shop.shopName || shop.name}</Text>
-              <View style={[styles.badge, { backgroundColor: badge.bg }]}>
-                <Text style={[styles.badgeText, { color: badge.color }]}>
-                  {badge.label}
-                </Text>
-              </View>
-            </View>
-            {/* <View style={styles.ratingContainer}>
-              {[1,2,3,4,5].map(i => (
-                <Ionicons key={i} name={i <= ratingValue ? "star" : "star-outline"} size={20} color="#FFA500" />
-              ))}
-              <Text style={styles.ratingText}>{ratingValue.toFixed(1)}</Text>
-            </View> */}
-
-            <View style={styles.descriptionCard}>
-              <Text style={styles.descriptionTitle}>Description</Text>
-              <Text style={styles.descriptionText}>
-                {shop.description || 'No description available'}
-              </Text>
-            </View>
-
-            <View style={styles.infoCard}>
-              <View style={styles.infoRow}>
-                <Ionicons name="pricetag" size={20} color="#FF6600" />
-                <Text style={styles.infoLabel}>Category:</Text>
-                <Text style={styles.infoValue}>{shop.category || 'General'}</Text>
-              </View>
-              <View style={styles.infoRow}>
-                <Ionicons name="location" size={20} color="#FF6600" />
-                <Text style={styles.infoLabel}>Distance:</Text>
-                <Text style={styles.infoValue}>
-                  {formatDistance(
-                    shop.distance != null ? Number(shop.distance) : null
-                  )}
-                </Text>
-              </View>
-              {/* <View style={styles.infoRow}>
-                <Ionicons name="star" size={20} color="#FF6600" />
-                <Text style={styles.infoLabel}>Rating:</Text>
-                <Text style={styles.infoValue}>{ratingValue.toFixed(1)} / 5</Text>
-              </View> */}
-              <View style={styles.infoRow}>
-                <Ionicons name="call" size={20} color="#FF6600" />
-                <Text style={styles.infoLabel}>Phone:</Text>
-                <Text style={styles.infoValue}>{phoneText}</Text>
-              </View>
-              <View style={styles.infoRow}>
-                <Ionicons name="pin" size={20} color="#FF6600" />
-                <Text style={styles.infoLabel}>Address:</Text>
-                <Text style={styles.infoValue}>{addressText}</Text>
-              </View>
-              <View style={styles.infoRow}>
-                <Ionicons name="gift" size={20} color="#FF6600" />
-                <Text style={styles.infoLabel}>Offers:</Text>
-                <Text style={styles.infoValue}>{offerText}</Text>
-              </View>
-            </View>
-
-            <View style={styles.savingsCard}>
-              <Ionicons name="gift" size={32} color="#4CAF50" />
-              <Text style={styles.savingsTitle}>Special Offer</Text>
-              <Text style={styles.savingsText}>Get INtown Guaranty instant savings on your purchases!</Text>
-            </View>
-          </View>
-        </ScrollView>
+        <ShopContent />
       )}
 
       <View style={styles.bottomButtons}>
@@ -441,15 +413,11 @@ export default function MemberShopDetails() {
             router.push({
               pathname: '/member-navigate',
               params: {
-                shopId,
-                source: params.source,
-                shop: JSON.stringify(shop),
-                shopLat: String(
-                  shop?.latitude ?? shop?.lat ?? shop?.shopLatitude ?? ''
-                ),
-                shopLng: String(
-                  shop?.longitude ?? shop?.lng ?? shop?.shopLongitude ?? ''
-                ),
+                shopId: String(shop.id),
+                source: source,
+                shopLat: String(shop.latitude ?? ''),
+                shopLng: String(shop.longitude ?? ''),
+                shopName: shop.businessName || 'Shop',
               },
             });
           }}
@@ -476,8 +444,8 @@ export default function MemberShopDetails() {
         visible={showPayment}
         onClose={() => setShowPayment(false)}
         onSuccess={handlePaymentSuccess}
-        merchantId={resolvedMerchantId}
-        customerId={customerId ?? shop.customerId}
+        merchantId={shop.id}
+        customerId={customerId ?? ''}
         redirectTo={redirectTo}
       />
 
@@ -525,15 +493,38 @@ export default function MemberShopDetails() {
 }
 
 const styles = StyleSheet.create({
-  container: {flex:1, backgroundColor:'#F5F5F5'},
+  container: { flex: 1, backgroundColor: '#F5F5F5' },
   loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
-  loadingText: { marginTop: 12, fontSize: 14, color: '#666', textAlign: 'center' },
-  backButtonText: { marginLeft: 6, color: '#1A1A1A', fontSize: 14, fontWeight: '600' },
-  header: {flexDirection:'row', alignItems:'center', justifyContent:'space-between', padding:16, backgroundColor:'#FFF', borderBottomWidth:1, borderBottomColor:'#EEE'},
-  backButton: {width:40, height:40, justifyContent:'center'},
-  headerTitle: {fontSize:18, fontWeight:'600', color:'#1A1A1A'},
-  shopImage: {width:'100%', height:250, backgroundColor:'#FFF3E0', alignItems:'center', justifyContent:'center'},
-  shopImageFull: { width: '100%', height: '100%', resizeMode: 'cover' },
+  loadingText: { marginTop: 12, fontSize: 16, color: '#666', textAlign: 'center' },
+  retryButton: {
+    marginTop: 20,
+    backgroundColor: '#FF6600',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  retryButtonText: { color: '#FFF', fontSize: 16, fontWeight: '600', marginLeft: 8 },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    backgroundColor: '#FFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#EEE',
+  },
+  backButton: { width: 40, height: 40, justifyContent: 'center' },
+  headerTitle: { fontSize: 18, fontWeight: '600', color: '#1A1A1A' },
+  shopImage: {
+    width: '100%',
+    height: 250,
+    backgroundColor: '#FFF3E0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  shopImageFull: { width: '100%', height: 250, resizeMode: 'cover' },
   shopArrow: {
     position: 'absolute',
     top: '50%',
@@ -547,29 +538,66 @@ const styles = StyleSheet.create({
   },
   shopArrowLeft: { left: 10 },
   shopArrowRight: { right: 10 },
-  content: {padding:16},
+  content: { padding: 16 },
   userFlowPressable: { flex: 1 },
-  titleRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 8 },
-  shopName: {fontSize:28, fontWeight:'bold', color:'#1A1A1A'},
-  badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 16,
+  },
+  shopName: { fontSize: 24, fontWeight: 'bold', color: '#1A1A1A', flex: 1 },
+  badge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999 },
   badgeText: { fontSize: 12, fontWeight: '700' },
-  ratingContainer: {flexDirection:'row', alignItems:'center', marginBottom:16},
-  ratingText: {fontSize:18, fontWeight:'600', color:'#666', marginLeft:8},
-  descriptionCard: { backgroundColor: '#FFF', borderRadius: 12, padding: 16, marginBottom: 16 },
-  descriptionTitle: { fontSize: 14, fontWeight: '700', color: '#1A1A1A', marginBottom: 6 },
-  descriptionText: { fontSize: 14, color: '#666666', lineHeight: 20 },
-  infoCard: {backgroundColor:'#FFF', borderRadius:12, padding:16, marginBottom:16},
-  infoRow: {flexDirection:'row', alignItems:'center', marginBottom:12},
-  infoLabel: {fontSize:14, color:'#666', marginLeft:8, width:80},
-  infoValue: {fontSize:16, fontWeight:'600', color:'#1A1A1A'},
-  savingsCard: {backgroundColor:'#E8F5E9', borderRadius:12, padding:20, alignItems:'center'},
-  savingsTitle: {fontSize:20, fontWeight:'bold', color:'#2E7D32', marginTop:8},
-  savingsText: {fontSize:14, color:'#2E7D32', textAlign:'center', marginTop:8},
-  bottomButtons: {flexDirection:'row', padding:16, backgroundColor:'#FFF', borderTopWidth:1, borderTopColor:'#EEE', gap:12},
-  navigateBtn: {flex:1, backgroundColor:'#2196F3', borderRadius:12, paddingVertical:16, flexDirection:'row', alignItems:'center', justifyContent:'center'},
-  navigateBtnText: {color:'#FFF', fontSize:16, fontWeight:'bold', marginLeft:8},
-  payBtn: {flex:1, backgroundColor:'#FF6600', borderRadius:12, paddingVertical:16, flexDirection:'row', alignItems:'center', justifyContent:'center'},
-  payBtnText: {color:'#FFF', fontSize:16, fontWeight:'bold', marginLeft:8},
+  descriptionCard: {
+    backgroundColor: '#FFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+  },
+  descriptionTitle: { fontSize: 16, fontWeight: '700', color: '#1A1A1A', marginBottom: 8 },
+  descriptionText: { fontSize: 14, color: '#666666', lineHeight: 22 },
+  infoCard: { backgroundColor: '#FFF', borderRadius: 12, padding: 16, marginBottom: 16 },
+  infoRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 14 },
+  infoLabel: { fontSize: 14, color: '#666', marginLeft: 10, width: 80 },
+  infoValue: { fontSize: 14, fontWeight: '600', color: '#1A1A1A', flex: 1 },
+  savingsCard: {
+    backgroundColor: '#E8F5E9',
+    borderRadius: 12,
+    padding: 20,
+    alignItems: 'center',
+  },
+  savingsTitle: { fontSize: 20, fontWeight: 'bold', color: '#2E7D32', marginTop: 8 },
+  savingsText: { fontSize: 14, color: '#2E7D32', textAlign: 'center', marginTop: 8 },
+  bottomButtons: {
+    flexDirection: 'row',
+    padding: 16,
+    backgroundColor: '#FFF',
+    borderTopWidth: 1,
+    borderTopColor: '#EEE',
+    gap: 12,
+  },
+  navigateBtn: {
+    flex: 1,
+    backgroundColor: '#2196F3',
+    borderRadius: 12,
+    paddingVertical: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  navigateBtnText: { color: '#FFF', fontSize: 16, fontWeight: 'bold', marginLeft: 8 },
+  payBtn: {
+    flex: 1,
+    backgroundColor: '#FF6600',
+    borderRadius: 12,
+    paddingVertical: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  payBtnText: { color: '#FFF', fontSize: 16, fontWeight: 'bold', marginLeft: 8 },
   modalContainer: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',

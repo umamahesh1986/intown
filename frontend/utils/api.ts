@@ -563,6 +563,28 @@ export const getCustomerProfile = async (customerId: number) => {
   return res.json();
 };
 
+/* Extract image URL(s) from API response. Supports:
+   - string: single URL
+   - string[]: array of URLs
+   - object[]: array of { s3ImageUrl: string, ... } */
+export const extractImageUrls = (raw: unknown): string[] => {
+  if (raw == null) return [];
+  if (typeof raw === 'string') return raw ? [raw] : [];
+  if (Array.isArray(raw)) {
+    return raw
+      .map((item: unknown) => {
+        if (typeof item === 'string') return item;
+        if (item && typeof item === 'object' && 's3ImageUrl' in item) {
+          const url = (item as { s3ImageUrl?: unknown }).s3ImageUrl;
+          return typeof url === 'string' ? url : null;
+        }
+        return null;
+      })
+      .filter((u): u is string => typeof u === 'string');
+  }
+  return [];
+};
+
 const merchantImageCache = new Map<string, string | null>();
 const merchantImageListCache = new Map<string, string[]>();
 const MERCHANT_IMAGE_CACHE_KEY = "merchant_image_cache";
@@ -652,8 +674,8 @@ export const getMerchantImageByShopId = async (
       return null;
     }
     const data = await res.json();
-    const images = Array.isArray(data?.s3ImageUrl) ? data.s3ImageUrl : [];
-    const firstImage = images[0] ?? null;
+    const urls = extractImageUrls(data?.s3ImageUrl);
+    const firstImage = urls[0] ?? null;
     merchantImageCache.set(key, firstImage);
     await persistMerchantImageCache();
     return firstImage;
@@ -684,9 +706,7 @@ export const getMerchantImagesByShopId = async (
       return [];
     }
     const data = await res.json();
-    const images = Array.isArray(data?.s3ImageUrl)
-      ? data.s3ImageUrl.filter((item: any) => typeof item === "string")
-      : [];
+    const images = extractImageUrls(data?.s3ImageUrl);
     merchantImageListCache.set(key, images);
     if (images.length > 0) {
       merchantImageCache.set(key, images[0]);

@@ -24,6 +24,7 @@ import {
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { MaterialIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -35,7 +36,7 @@ import {
   getNearbyShops,
   getNearbyShopsByCategory,
 } from '../utils/api';
-import { getCustomerProfile, getMerchantImageByShopId } from '../utils/api';
+import { getCustomerProfile, getMerchantImageByShopId, extractImageUrls } from '../utils/api';
 
 
 import {
@@ -48,7 +49,7 @@ import Footer from '../components/Footer'
 import { CATEGORY_ICON_MAP } from '../utils/categoryIconMap';
 import { FontStylesWithFallback } from '../utils/fonts';
 import { formatDistance } from '../utils/formatDistance';
-
+import CommonBottomTabs from "../components/CommonBottomTabs";
 
 
 const { width } = Dimensions.get('window');
@@ -58,13 +59,13 @@ const SLIDE_WIDTH = Math.round(width);
 const CAROUSEL_HEIGHT = 160;
 
 const MEMBER_CAROUSEL_IMAGES = [
- {uri: 'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner1.jpg'},
-    {uri:'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner2.png'},
-    {uri:'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner3.png'},
-    {uri:'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner4.png'},
-    {uri:'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner5.png'},
-    {uri:'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner6.png'},
-    {uri:'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner7.png'},
+  { uri: 'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner1.jpg' },
+  { uri: 'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner2.png' },
+  { uri: 'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner3.png' },
+  { uri: 'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner4.png' },
+  { uri: 'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner5.png' },
+  { uri: 'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner6.png' },
+  { uri: 'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner7.png' },
 
 ];
 // =================================
@@ -169,7 +170,7 @@ const formatTransactionDate = (value: string) => {
 
 export default function MemberDashboard() {
   const [customerProfile, setCustomerProfile] = useState<any>(null);
-const [profileLoading, setProfileLoading] = useState(false);
+  const [profileLoading, setProfileLoading] = useState(false);
 
   const router = useRouter();
   const params = useLocalSearchParams<{
@@ -259,7 +260,7 @@ const [profileLoading, setProfileLoading] = useState(false);
     loadCustomerProfile();
     loadCategories();
     loadUserType();
-    
+
     requestLocationOnMount();
     // ===== MEMBER CAROUSEL AUTO SLIDE =====
     const timer = setInterval(() => {
@@ -300,8 +301,8 @@ const [profileLoading, setProfileLoading] = useState(false);
     }
   }, [location?.latitude, location?.longitude]);
 
-  const stopCategoriesAutoScroll = () => {};
-  const stopNearbyAutoScroll = () => {};
+  const stopCategoriesAutoScroll = () => { };
+  const stopNearbyAutoScroll = () => { };
 
   const categoryColumns = [];
   for (let i = 0; i < categories.length; i += 2) {
@@ -309,8 +310,8 @@ const [profileLoading, setProfileLoading] = useState(false);
   }
 
   const placeholderItems = [
-    'Grocery', 
-    'Salon', 
+    'Grocery',
+    'Salon',
     'Fashion',
     'Vegetables',
     'Fruits',
@@ -375,7 +376,7 @@ const [profileLoading, setProfileLoading] = useState(false);
           // Also save to standard key for consistency
           await AsyncStorage.setItem('customer_name', name);
         }
-        
+
         const storedProfileImage = await AsyncStorage.getItem('user_profile_image');
         if (storedProfileImage) {
           setProfileImage(storedProfileImage);
@@ -601,7 +602,9 @@ const [profileLoading, setProfileLoading] = useState(false);
         list.map(async (shop: any) => {
           const shopId = shop?.id ?? shop?.merchantId ?? shop?.merchant_id;
           const image = await getMerchantImageByShopId(shopId);
-          return { ...shop, image: image ?? shop?.image ?? shop?.s3ImageUrl };
+          const img = image ?? shop?.image ?? shop?.s3ImageUrl;
+          const urls = extractImageUrls(img);
+          return { ...shop, image: urls[0] ?? null };
         })
       );
       setNearbyShops(enriched);
@@ -616,22 +619,22 @@ const [profileLoading, setProfileLoading] = useState(false);
 
   /* ================= CATEGORY CLICK HANDLER ================= */
 
-const handleCategoryClick = (category: Category) => {
-  router.push({
-    pathname: '/member-shop-list',
-    params: {
-      categoryId: String(category.id),
-      categoryName: category.name,
-    },
-  });
-};
+  const handleCategoryClick = (category: Category) => {
+    router.push({
+      pathname: '/member-shop-list',
+      params: {
+        categoryId: String(category.id),
+        categoryName: category.name,
+      },
+    });
+  };
 
 
 
 
 
 
- 
+
 
 
   const todaySavedAmount = periodTotals.today?.totalSavedAmount ?? 0;
@@ -816,54 +819,53 @@ const handleCategoryClick = (category: Category) => {
       <View style={{ flex: 1 }}>
         <ScrollView ref={contentScrollRef} showsVerticalScrollIndicator={false}>
 
+
           {/* HEADER */}
           <View style={styles.header}>
+          
+            {/* LOCATION */}
             <TouchableOpacity
-              style={styles.locationButton}
+              style={styles.locationSection}
               onPress={() => setShowLocationModal(true)}
             >
-              <Ionicons name="location" size={16} color="#FF6600" />
-              <View style={styles.locationTextContainer}>
-              {/* <Text style={styles.welcomeText}>
-                Welcome {customerName || user?.name || 'Member'}
-              </Text> */}
-                <Text style={styles.locationText} numberOfLines={1}>
+              <View style={styles.locationIconBox}>
+              <MaterialIcons name="location-on" size={24} color="#FF8C00" />
+              </View>
+
+              <View>
+                <Text style={styles.locationLabel}>YOUR LOCATION</Text>
+                <Text style={styles.locationName}>
                   {getLocationDisplayText()}
                 </Text>
               </View>
             </TouchableOpacity>
-            <TouchableOpacity
-              onPress={(e) => {
-                e.stopPropagation();
-                toggleDropdown();
-              }}
-              style={styles.profileButton}
-            >
-              <View style={styles.profileInfo}>
-                <Text style={styles.userName}>{customerName || user?.name || 'Customer'}</Text>
-                <Text style={styles.userPhone}>
-                  {(user as any)?.phone ?? (user as any)?.email ?? ''}
-                </Text>
-              </View>
-              {profileImage ? (
-                <Image
-                  source={getProfileImageSource(profileImage) as any}
-                  style={styles.profileImage}
-                />
-              ) : (
-                <Ionicons
-                  name="person"
-                  size={20}
-                  color="#ff6600"
-                  style={styles.profileIconButton}
-                />
-              )}
-            </TouchableOpacity>
+
+            {/* RIGHT ICONS */}
+            <View style={styles.headerIcons}>
+
+              {/* Notification */}
+              <TouchableOpacity style={styles.notificationIconBtn}>
+                <Ionicons name="notifications-outline" size={20} color="#333" />
+              </TouchableOpacity>
+
+              {/* Profile */}
+              <TouchableOpacity
+                style={styles.headerIconBtn}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  toggleDropdown();
+                }}
+              >
+                <Ionicons name="person-outline" size={22} color="#FF8C00" />
+              </TouchableOpacity>
+
+            </View>
+
           </View>
 
           {/* Membership Banner */}
           {/* <View style={styles.membershipBanner}>
-            <Ionicons name="ribbon-outline" size={18} color="#FF6600" />
+            <Ionicons name="ribbon-outline" size={18} color="#FF8C00" />
             <View style={{ marginLeft: 8 }}>
               <Text style={styles.membershipBannerTitle}>{currentPlan} Customer</Text>
               <Text style={styles.membershipBannerSubtitle}>
@@ -909,6 +911,10 @@ const handleCategoryClick = (category: Category) => {
                   onSubmitEditing={handleSearch}
                   placeholderTextColor="#999"
                 />
+                {/* FILTER BUTTON */}
+                <TouchableOpacity style={styles.filterButton}>
+                  <Ionicons name="options-outline" size={22} color="#FF8C00" />
+                </TouchableOpacity>
                 {searchQuery.length === 0 && (
                   <View pointerEvents="none" style={styles.animatedPlaceholder}>
                     <Text style={styles.animatedPlaceholderPrefix}>Search for </Text>
@@ -985,13 +991,79 @@ const handleCategoryClick = (category: Category) => {
           </View> */}
           {/* === END MEMBER CAROUSEL === */}
 
+          {/* EXCLUSIVE OFFER BANNER */}
+          {/* <View style={styles.offerBanner}>
+  <View style={styles.offerTag}>
+    <Text style={styles.offerTagText}>EXCLUSIVE OFFER</Text>
+  </View>
 
+  <Text style={styles.offerTitle}>Accountability by InTown</Text>
 
+  <Text style={styles.offerSubtitle}>
+    Unlock verified savings at 200+ local partners.
+  </Text>
+</View> */}
+          {/* SUMMARY SECTION */}
+          <View style={styles.summarySection}>
+            {/* <Text style={styles.sectionTitle}>Savings History </Text> */}
+            {/* <Text style={styles.normalText}>(Depends on Participating at Stores):</Text> */}
+            <View style={styles.summaryRow}>
+              <View style={styles.summaryItem}>
+                <Text style={styles.summaryLabel}>Today's Savings </Text>
+                <Text style={styles.summaryValue}>{todaySavedAmount.toFixed(0)}</Text>
+              </View>
+              <View style={styles.summaryItem}>
+                <Text style={styles.summaryLabel}>This Month's Savings</Text>
+                <Text style={styles.summaryValue}>{monthSavedAmount.toFixed(0)}</Text>
+              </View>
+              <View style={styles.summaryItem}>
+                <Text style={styles.summaryLabel}>This Year's Savings</Text>
+                <Text style={styles.summaryValue}>{yearSavedAmount.toFixed(0)}</Text>
+              </View>
+            </View>
+          </View>
+
+          
+
+          {/* Recent Transactions */}
+          <View style={styles.transactionsSection}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Recent Transactions</Text>
+              <TouchableOpacity onPress={() => setShowAllTransactions(true)}>
+                <Text style={styles.viewAllText}>View All</Text>
+              </TouchableOpacity>
+            </View>
+            {isTransactionsLoading ? (
+              <View style={styles.emptyState}>
+                <ActivityIndicator size="small" color="#FF8C00" />
+              </View>
+            ) : transactions.length > 0 ? (
+              transactions.slice(0, 10).map((transaction) => (
+                <TransactionRow
+                  key={transaction.transactionId}
+                  transaction={transaction}
+                />
+              ))
+            ) : (
+              <View style={styles.emptyState}>
+                <Ionicons name="receipt-outline" size={48} color="#CCCCCC" />
+                <Text style={styles.emptyText}>No transactions yet</Text>
+              </View>
+            )}
+          </View>
 
           {/* CATEGORIES */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Feature Categories </Text>
-            <Text style={styles.normalText}>(Complete list will be displayed once stores onboarded):</Text>
+
+            {/* TITLE ROW */}
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Popular Categories</Text>
+
+              <TouchableOpacity>
+                <Text style={styles.viewAll}>View All</Text>
+              </TouchableOpacity>
+            </View>
+
             <ScrollView
               ref={categoriesScrollRef}
               horizontal
@@ -1029,53 +1101,6 @@ const handleCategoryClick = (category: Category) => {
             </ScrollView>
           </View>
 
-          {/* SUMMARY SECTION */}
-          <View style={styles.summarySection}>
-             <Text style={styles.sectionTitle}>Savings History </Text>
-           <Text style={styles.normalText}>(Depends on Participating at Stores):</Text>
-            <View style={styles.summaryRow}>
-              <View style={styles.summaryItem}>
-                <Text style={styles.summaryLabel}>Today's Savings </Text>
-                <Text style={styles.summaryValue}>{todaySavedAmount.toFixed(0)}</Text>
-              </View>
-              <View style={styles.summaryItem}>
-                <Text style={styles.summaryLabel}>This Month's Savings</Text>
-                <Text style={styles.summaryValue}>{monthSavedAmount.toFixed(0)}</Text>
-              </View>
-              <View style={styles.summaryItem}>
-                <Text style={styles.summaryLabel}>This Year's Savings</Text>
-                <Text style={styles.summaryValue}>{yearSavedAmount.toFixed(0)}</Text>
-              </View>
-            </View>
-          </View>
-
-          {/* Recent Transactions */}
-          <View style={styles.transactionsSection}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Recent Transactions</Text>
-              <TouchableOpacity onPress={() => setShowAllTransactions(true)}>
-                <Text style={styles.viewAllText}>View All</Text>
-              </TouchableOpacity>
-            </View>
-            {isTransactionsLoading ? (
-              <View style={styles.emptyState}>
-                <ActivityIndicator size="small" color="#FF6600" />
-              </View>
-            ) : transactions.length > 0 ? (
-              transactions.slice(0, 10).map((transaction) => (
-                <TransactionRow
-                  key={transaction.transactionId}
-                  transaction={transaction}
-                />
-              ))
-            ) : (
-              <View style={styles.emptyState}>
-                <Ionicons name="receipt-outline" size={48} color="#CCCCCC" />
-                <Text style={styles.emptyText}>No transactions yet</Text>
-              </View>
-            )}
-          </View>
-
           {/* Quick Actions
           <View style={styles.quickActions}>
             <Text style={styles.sectionTitle}>Quick Actions</Text>
@@ -1084,7 +1109,7 @@ const handleCategoryClick = (category: Category) => {
                 style={styles.actionButton}
                 onPress={() => router.push('/search')}
               >
-                <Ionicons name="search" size={24} color="#FF6600" />
+                <Ionicons name="search" size={24} color="#FF8C00" />
                 <Text style={styles.actionText}>Find Shops</Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -1093,7 +1118,7 @@ const handleCategoryClick = (category: Category) => {
                   contentScrollRef.current?.scrollTo({ y: 0, animated: true });
                 }}
               >
-                <Ionicons name="gift" size={24} color="#FF6600" />
+                <Ionicons name="gift" size={24} color="#FF8C00" />
                 <Text style={styles.actionText}>My Rewards</Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -1102,7 +1127,7 @@ const handleCategoryClick = (category: Category) => {
                   contentScrollRef.current?.scrollTo({ y: 0, animated: true });
                 }}
               >
-                <Ionicons name="card" size={24} color="#FF6600" />
+                <Ionicons name="card" size={24} color="#FF8C00" />
                 <Text style={styles.actionText}>Payment</Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -1111,7 +1136,7 @@ const handleCategoryClick = (category: Category) => {
                   setShowSupportModal(true);
                 }}
               >
-                <Ionicons name="help-circle" size={24} color="#FF6600" />
+                <Ionicons name="help-circle" size={24} color="#FF8C00" />
                 <Text style={styles.actionText}>Support</Text>
               </TouchableOpacity>
             </View>
@@ -1142,25 +1167,26 @@ const handleCategoryClick = (category: Category) => {
                   }
                 >
                   <View style={styles.shopImagePlaceholder}>
-                    {shop.image || shop.s3ImageUrl ? (
-                      <Image
-                        source={{ uri: shop.image || shop.s3ImageUrl }}
-                        style={styles.shopImageThumb}
-                      />
-                    ) : (
-                      <Ionicons name="storefront" size={40} color="#FF6600" />
-                    )}
+                    {(() => {
+                      const urls = extractImageUrls(shop.image ?? shop.s3ImageUrl);
+                      const uri = urls[0] ?? (typeof shop.image === 'string' ? shop.image : null);
+                      return uri ? (
+                        <Image source={{ uri }} style={styles.shopImageThumb} />
+                      ) : (
+                        <Ionicons name="storefront" size={40} color="#FF8C00" />
+                      );
+                    })()}
                   </View>
 
                   <Text style={styles.shopCardName} numberOfLines={1}>
-                    {shop.businessName || shop.contactName || 'Shop'}
+                    {shop.businessName || shop.shopName || shop.contactName || 'Shop'}
                   </Text>
 
                   <Text style={styles.shopCardCategory}>
                     {shop.businessCategory || 'General'}
                   </Text> */}
 
-                  {/* <View style={styles.shopCardFooter}>
+          {/* <View style={styles.shopCardFooter}>
                     <View style={styles.ratingContainer}>
                       <Ionicons name="star" size={14} color="#FFA500" />
                       <Text style={styles.ratingText}>
@@ -1168,8 +1194,8 @@ const handleCategoryClick = (category: Category) => {
                       </Text>
                     </View> */}
 
-                    {/* <View style={styles.distanceContainer}>
-                      <Ionicons name="location" size={14} color="#FF6600" />
+          {/* <View style={styles.distanceContainer}>
+                      <Ionicons name="location" size={14} color="#FF8C00" />
                       <Text style={styles.distanceText}>
                         {formatDistance(
                           typeof shop.distance === 'number' ? shop.distance : null
@@ -1180,10 +1206,10 @@ const handleCategoryClick = (category: Category) => {
                 </TouchableOpacity>
               ))}
             </ScrollView>
-          </View> */} 
+          </View> */}
 
           {/* FOOTER */}
-          <Footer dashboardType="member"/>
+          <Footer dashboardType="member" />
         </ScrollView>
 
         {/* Support Modal */}
@@ -1196,7 +1222,7 @@ const handleCategoryClick = (category: Category) => {
           <View style={styles.supportModalOverlay}>
             <View style={styles.supportModalContent}>
               <Image
-                source={{uri:'https://intown-dev.s3.ap-south-1.amazonaws.com/app_logo/intown-logo.jpg'}}
+                source={{ uri: 'https://intown-dev.s3.ap-south-1.amazonaws.com/app_logo/intown-logo.jpg' }}
                 style={styles.supportLogo}
               />
               <Text style={styles.supportTitle}>INtown Customer Support</Text>
@@ -1303,7 +1329,7 @@ const handleCategoryClick = (category: Category) => {
 
               }}
             >
-              <Ionicons name="person-outline" size={22} color="#FF6600" />
+              <Ionicons name="person-outline" size={22} color="#FF8C00" />
               <Text style={styles.userPanelText}>My Account</Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -1313,7 +1339,7 @@ const handleCategoryClick = (category: Category) => {
                 router.push('/member-card');
               }}
             >
-              <Ionicons name="card-outline" size={22} color="#FF6600" />
+              <Ionicons name="card-outline" size={22} color="#FF8C00" />
               <Text style={styles.userPanelText}>Customer Card</Text>
             </TouchableOpacity>
 
@@ -1325,7 +1351,7 @@ const handleCategoryClick = (category: Category) => {
                 router.push('/register-merchant');
               }}
             >
-              <Ionicons name="storefront-outline" size={22} color="#FF6600" />
+              <Ionicons name="storefront-outline" size={22} color="#FF8C00" />
               <Text style={styles.userPanelText}>Become a Merchant</Text>
             </TouchableOpacity>
 
@@ -1354,7 +1380,7 @@ const handleCategoryClick = (category: Category) => {
         animationType="slide"
         onRequestClose={() => setShowLocationModal(false)}
       >
-        <KeyboardAvoidingView 
+        <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.locationModalContainer}
         >
@@ -1365,7 +1391,7 @@ const handleCategoryClick = (category: Category) => {
             <View style={styles.locationModalHeader}>
               <Text style={styles.locationModalTitle}>Select Location</Text>
               <TouchableOpacity onPress={() => setShowLocationModal(false)}>
-                <Ionicons name="close" size={24} color="#ff6600" />
+                <Ionicons name="close" size={24} color="#FF8C00" />
               </TouchableOpacity>
             </View>
 
@@ -1388,12 +1414,12 @@ const handleCategoryClick = (category: Category) => {
             </View>
 
             {isSearchingLocation && (
-              <ActivityIndicator size="small" color="#FF6600" style={{ marginTop: 12 }} />
+              <ActivityIndicator size="small" color="#FF8C00" style={{ marginTop: 12 }} />
             )}
 
             {/* Search Results */}
             {locationSearchResults.length > 0 ? (
-              <ScrollView 
+              <ScrollView
                 style={styles.locationSearchResults}
                 keyboardShouldPersistTaps="handled"
               >
@@ -1420,11 +1446,11 @@ const handleCategoryClick = (category: Category) => {
                   onPress={handleUseCurrentLocation}
                   disabled={isLocationLoading}
                 >
-                  <Ionicons name="locate" size={20} color="#FF6600" />
+                  <Ionicons name="locate" size={20} color="#FF8C00" />
                   <Text style={styles.useCurrentLocationText}>
                     {isLocationLoading ? 'Getting location...' : 'Use Current Location'}
                   </Text>
-                  {isLocationLoading && <ActivityIndicator size="small" color="#FF6600" style={{ marginLeft: 8 }} />}
+                  {isLocationLoading && <ActivityIndicator size="small" color="#FF8C00" style={{ marginLeft: 8 }} />}
                 </TouchableOpacity>
 
                 {location && (
@@ -1448,7 +1474,10 @@ const handleCategoryClick = (category: Category) => {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F5F5F5' },
+  container: { 
+    flex: 1, 
+    backgroundColor: "rgba(248,247,245,1)", 
+  },
 
   header: {
     flexDirection: 'row',
@@ -1457,9 +1486,6 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 8,
     paddingHorizontal: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#EEEEEE',
   },
   rightContainer: {
     display: 'flex',
@@ -1482,7 +1508,7 @@ const styles = StyleSheet.create({
   locationText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FF6600',
+    color: '#FF8C00',
     flex: 1,
   },
   welcomeText: {
@@ -1497,7 +1523,7 @@ const styles = StyleSheet.create({
   },
   profileIconButton: {
     borderWidth: 2,
-    borderColor: '#ff6600',
+    borderColor: '#FF8C00',
     padding: 4,
     borderRadius: 30,
     marginLeft: 10,
@@ -1509,7 +1535,7 @@ const styles = StyleSheet.create({
     height: 34,
     borderRadius: 17,
     borderWidth: 2,
-    borderColor: '#ff6600',
+    borderColor: '#FF8C00',
     marginLeft: 10,
   },
   profileInfo: { alignItems: 'flex-end', marginRight: 8 },
@@ -1561,21 +1587,23 @@ const styles = StyleSheet.create({
   uploadBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FF6600',
+    backgroundColor: '#FF8C00',
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 8,
   },
   uploadBtnText: { color: '#fff', fontWeight: '600', marginLeft: 6 },
 
-  searchContainer: { padding: 16, backgroundColor: '#fff' },
+  searchContainer: {
+    padding: 16,
+  },
   searchBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F5F5F5',
-    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
     paddingHorizontal: 16,
-    height: 56,
+    height: 48,
   },
   searchIcon: { marginRight: 12 },
   searchInput: { flex: 1, fontSize: 16 },
@@ -1592,12 +1620,12 @@ const styles = StyleSheet.create({
   },
   animatedPlaceholderWord: {
     ...FontStylesWithFallback.body,
-    color: '#ff6600',
+    color: '#FF8C00',
     fontWeight: '500',
   },
 
   section: { padding: 16 },
-  sectionTitle: { fontSize: 20, fontWeight: '700', marginBottom: 16, color: '#1A1A1A' },
+  sectionTitle: { fontSize: 16, fontWeight: '700', marginBottom: 16, color: '#1A1A1A' },
 
   categoriesAutoScrollContainer: {
     overflow: 'hidden',
@@ -1622,7 +1650,7 @@ const styles = StyleSheet.create({
   categoryImageContainer: {
     width: 100,
     height: 100,
-    borderRadius: 12,
+    borderRadius: 16,
     overflow: 'hidden',
     backgroundColor: '#f0f0f0',
     position: 'relative',
@@ -1661,9 +1689,10 @@ const styles = StyleSheet.create({
   },
 
   summarySection: {
-    backgroundColor: '#FFF3E0',
-    paddingVertical: 18,
-    paddingHorizontal: 12,
+    paddingVertical: 4,
+    paddingHorizontal: 4,
+    borderRadius: 18,
+    marginHorizontal: 4,
   },
   summaryRow: {
     flexDirection: 'row',
@@ -1672,10 +1701,16 @@ const styles = StyleSheet.create({
   summaryItem: {
     flex: 1,
     alignItems: 'center',
-    backgroundColor: '#FF6600',
-    paddingVertical: 12,
+    justifyContent: 'center',
+    backgroundColor: '#FF8C00',
+    paddingVertical: 18,
     marginHorizontal: 6,
-    borderRadius: 10,
+    borderRadius: 18,   // bigger rounded curve
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
   },
   summaryLabel: {
     ...FontStylesWithFallback.caption,
@@ -1684,29 +1719,37 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   summaryValue: {
-    ...FontStylesWithFallback.h3,
-    color: '#FFFFFF',
+    fontSize: 22,
     fontWeight: '700',
+    color: '#FFFFFF',
     marginTop: 6,
   },
 
   transactionsSection: {
     backgroundColor: '#FFFFFF',
     marginHorizontal: 16,
-    marginTop: 16,
-    marginBottom: 16,
-    padding: 16,
-    borderRadius: 12,
+    marginTop: 20,
+    marginBottom: 20,
+    padding: 20,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
   },
   sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  viewAll: {
+    color: "#FF8C00",
+    fontWeight: "600",
   },
   viewAllText: {
     fontSize: 14,
-    color: '#FF6600',
+    color: '#FF8C00',
     fontWeight: '600',
   },
   transactionRow: {
@@ -1767,12 +1810,13 @@ const styles = StyleSheet.create({
   },
   emptyState: {
     alignItems: 'center',
-    paddingVertical: 32,
+    justifyContent: 'center',
+    paddingVertical: 40,
   },
   emptyText: {
-    fontSize: 14,
-    color: '#999999',
-    marginTop: 8,
+    fontSize: 15,
+    color: '#9E9E9E',
+    marginTop: 10,
   },
   quickActions: {
     backgroundColor: '#FFFFFF',
@@ -1843,7 +1887,7 @@ const styles = StyleSheet.create({
     padding: 24,
     alignItems: 'center',
   },
-  footerTagline: { fontSize: 18, color: '#FF6600', fontWeight: '700', textAlign: 'center' },
+  footerTagline: { fontSize: 18, color: '#FF8C00', fontWeight: '700', textAlign: 'center' },
   footerDescription: { color: '#ccc', fontSize: 14, textAlign: 'center', marginVertical: 16 },
   footerCopyright: { fontSize: 12, color: '#999' },
 
@@ -1892,7 +1936,7 @@ const styles = StyleSheet.create({
   },
   supportButton: {
     marginTop: 16,
-    backgroundColor: '#FF6600',
+    backgroundColor: '#FF8C00',
     paddingVertical: 10,
     paddingHorizontal: 24,
     borderRadius: 10,
@@ -1958,7 +2002,7 @@ const styles = StyleSheet.create({
   },
   userPanelName: { fontSize: 16, fontWeight: '700' },
   userPanelPhone: { fontSize: 12, color: '#888', marginTop: 2 },
-  userPanelTag: { fontSize: 12, color: '#FF6600', marginTop: 2, fontWeight: '600' },
+  userPanelTag: { fontSize: 12, color: '#FF8C00', marginTop: 2, fontWeight: '600' },
 
   userPanelItem: {
     flexDirection: 'row',
@@ -2009,7 +2053,7 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     borderRadius: 19,
-    backgroundColor: '#FF6600',
+    backgroundColor: '#FF8C00',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -2023,7 +2067,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#FF6600',
+    backgroundColor: '#FF8C00',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -2062,7 +2106,7 @@ const styles = StyleSheet.create({
   },
 
   dotActive: {
-    backgroundColor: '#FF6600',
+    backgroundColor: '#FF8C00',
   },
   // =================================
 
@@ -2107,7 +2151,7 @@ const styles = StyleSheet.create({
   useCurrentLocationText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FF6600',
+    color: '#FF8C00',
     marginLeft: 12,
   },
   currentLocationDisplay: {
@@ -2184,8 +2228,110 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   normalText: {
-    fontWeight: 'normal',  
-    color: '#666',         
+    fontWeight: 'normal',
+    color: '#666',
   },
+  offerBanner: {
+    backgroundColor: '#FF7A00',
+    marginHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 10,
+    padding: 18,
+    borderRadius: 18,
+  },
+
+  offerTag: {
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
+    marginBottom: 8,
+  },
+
+  offerTagText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '600',
+  },
+
+  offerTitle: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 6,
+  },
+
+  offerSubtitle: {
+    color: '#fff',
+    fontSize: 14,
+    opacity: 0.95,
+  },
+  locationSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+
+  locationIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FFE8D6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+
+  locationLabel: {
+    fontSize: 11,
+    color: '#999',
+    fontWeight: '600',
+  },
+
+  locationName: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+
+  headerIcons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+
+  headerIconBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 2,
+    borderColor: "#FF8C00",
+    justifyContent: "center",
+    alignItems: "center",
+    marginLeft: 12,
+    backgroundColor: "#fff",
+  },
+  filterButton: {
+    padding: 6,
+    marginLeft: 6,
+  },
+  notificationIconBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#FFFFFF",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+
+
 
 });

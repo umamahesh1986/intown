@@ -26,17 +26,18 @@ import { useAuthStore } from '../store/authStore';
 import { useLocationStore } from '../store/locationStore';
 import { useFocusEffect } from '@react-navigation/native';
 import Footer from '../components/Footer';
-import { getNearbyShops, getCategories, getMerchantImageByShopId } from '../utils/api';
+import { getNearbyShops, getCategories, getMerchantImageByShopId, extractImageUrls } from '../utils/api';
 import {
   CATEGORY_IMAGE_LIST,
   FALLBACK_CATEGORY_IMAGE,
 } from '../utils/categoryImageList';
-import { 
-  getUserLocationWithDetails, 
-  searchLocations, 
-  setManualLocation 
+import {
+  getUserLocationWithDetails,
+  searchLocations,
+  setManualLocation
 } from '../utils/location';
 import { formatDistance } from '../utils/formatDistance';
+import CommonBottomTabs from "../components/CommonBottomTabs";
 
 const { width } = Dimensions.get('window');
 
@@ -195,8 +196,8 @@ const TransactionCard = ({ transaction }: { transaction: Transaction }) => (
           transaction.status === 'completed'
             ? styles.statusCompleted
             : transaction.status === 'pending'
-            ? styles.statusPending
-            : styles.statusFailed,
+              ? styles.statusPending
+              : styles.statusFailed,
         ]}
       >
         {transaction.status}
@@ -370,7 +371,9 @@ export default function DualDashboard() {
         list.map(async (shop: any) => {
           const shopId = shop?.id ?? shop?.merchantId ?? shop?.merchant_id;
           const image = await getMerchantImageByShopId(shopId);
-          return { ...shop, image: image ?? shop?.image ?? shop?.s3ImageUrl };
+          const img = image ?? shop?.image ?? shop?.s3ImageUrl;
+          const urls = extractImageUrls(img);
+          return { ...shop, image: urls[0] ?? null };
         })
       );
       setNearbyShops(enriched);
@@ -414,8 +417,8 @@ export default function DualDashboard() {
   };
 
   const placeholderItems = [
-    'Grocery', 
-    'Salon', 
+    'Grocery',
+    'Salon',
     'Fashion',
     'Vegetables',
     'Fruits',
@@ -520,9 +523,9 @@ export default function DualDashboard() {
           {
             headers: token
               ? {
-                  Authorization: `Bearer ${token}`,
-                  Accept: 'application/json',
-                }
+                Authorization: `Bearer ${token}`,
+                Accept: 'application/json',
+              }
               : { Accept: 'application/json' },
           }
         );
@@ -569,9 +572,9 @@ export default function DualDashboard() {
           {
             headers: token
               ? {
-                  Authorization: `Bearer ${token}`,
-                  Accept: 'application/json',
-                }
+                Authorization: `Bearer ${token}`,
+                Accept: 'application/json',
+              }
               : { Accept: 'application/json' },
           }
         );
@@ -706,45 +709,43 @@ export default function DualDashboard() {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
+
+        {/* LOCATION */}
         <TouchableOpacity
           style={styles.locationButton}
           onPress={() => setShowLocationModal(true)}
         >
-          <Ionicons name="location" size={16} color="#FF6600" />
+          <View style={styles.locationIconCircle}>
+            <Ionicons name="location" size={16} color="#FF6600" />
+          </View>
+
           <View style={styles.locationTextContainer}>
-            <Text style={styles.welcomeText}>Welcome {getWelcomeName()}</Text>
-            <Text style={styles.locationText} numberOfLines={1}>
+            <Text style={styles.welcomeText}>YOUR LOCATION</Text>
+            <Text style={styles.locationText}>
               {getLocationDisplayText()}
             </Text>
           </View>
         </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.profileButton}
-          onPress={(e) => {
-            e.stopPropagation();
-            toggleDropdown();
-          }}
-        >
-          <View style={styles.profileInfo}>
-            <Text style={styles.userName}>{getProfileDisplayName()}</Text>
-            <Text style={styles.userPhone}>
-              {(user as any)?.phone ?? (user as any)?.email ?? ''}
-            </Text>
-          </View>
-          {profileImage ? (
-            <Image
-              source={getProfileImageSource(profileImage) as any}
-              style={styles.profileImage}
-            />
-          ) : (
-            <Ionicons
-              name="person"
-              size={20}
-              color="#ff6600"
-              style={styles.profileIconButton}
-            />
-          )}
-        </TouchableOpacity>
+
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
+
+          {/* Notification */}
+          <TouchableOpacity style={styles.notificationCircle}>
+            <Ionicons name="notifications-outline" size={20} color="#333" />
+          </TouchableOpacity>
+
+          {/* Profile */}
+          <TouchableOpacity
+            style={styles.profileCircle}
+            onPress={(e) => {
+              e.stopPropagation();
+              toggleDropdown();
+            }}
+          >
+            <Ionicons name="person-outline" size={20} color="#FF6600" />
+          </TouchableOpacity>
+        </View>
+
       </View>
 
       {/* Dropdown Panel */}
@@ -806,7 +807,7 @@ export default function DualDashboard() {
               style={styles.userPanelItem}
               onPress={() => {
                 closeDropdown();
-                  setActiveTab('merchant');
+                setActiveTab('merchant');
               }}
             >
               <Ionicons name="storefront-outline" size={22} color="#FF6600" />
@@ -827,7 +828,7 @@ export default function DualDashboard() {
         <TouchableWithoutFeedback onPress={() => setShowSuggestions(false)}>
           <View style={styles.searchSection}>
             <View style={styles.searchContainer}>
-              <Ionicons name="search" size={20} color="#999" />
+              <Ionicons name="search-outline" size={20} color="#9E9E9E" style={{ marginRight: 12 }} />
               <TextInput
                 style={styles.searchInput}
                 placeholder=""
@@ -851,6 +852,9 @@ export default function DualDashboard() {
                 }}
                 onSubmitEditing={handleSearch}
               />
+              <TouchableOpacity>
+                <Ionicons name="options-outline" size={20} color="#FF6600" />
+              </TouchableOpacity>
               {searchQuery.length === 0 && (
                 <View pointerEvents="none" style={styles.animatedPlaceholder}>
                   <Text style={styles.animatedPlaceholderPrefix}>Search for </Text>
@@ -935,11 +939,90 @@ export default function DualDashboard() {
             </Text>
           </View>
         </View>
+
+        {/* Quick Stats */}
+        <View style={styles.statsContainer}>
+
+          <View style={styles.statCard}>
+
+            <Text style={styles.statValue}>
+
+              {activeTab === 'customer'
+                ? customerTodaySaved.toFixed(0)
+                : merchantTodaySales.toFixed(0)}
+            </Text>
+            <Text style={styles.statLabel}>
+              {activeTab === 'customer' ? "Today's Savings" : "Today's Business"}
+            </Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={styles.statValue}>
+
+              {activeTab === 'customer'
+                ? customerMonthSaved.toFixed(0)
+                : merchantMonthSales.toFixed(0)}
+            </Text>
+            <Text style={styles.statLabel}>
+              {activeTab === 'customer'
+                ? "This Month's Savings"
+                : "This Month's Business"}
+            </Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={styles.statValue}>
+
+              {activeTab === 'customer'
+                ? customerYearSaved.toFixed(0)
+                : merchantYearSales.toFixed(0)}
+            </Text>
+            <Text style={styles.statLabel}>
+              {activeTab === 'customer'
+                ? "This Year's Savings"
+                : "This Year's Business"}
+            </Text>
+          </View>
+        </View>
+
+        {/* Transactions Section */}
+        <View style={styles.transactionsSection}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Recent Transactions</Text>
+            {/* <Text style={styles.normalText}>(Will be calculated on customervisits):</Text> */}
+            <TouchableOpacity onPress={() => setShowAllTransactions(true)}>
+              <Text style={styles.viewAllText}>View All</Text>
+            </TouchableOpacity>
+          </View>
+
+          {activeTab === 'customer' && isCustomerLoading ? (
+            <View style={styles.emptyState}>
+              <ActivityIndicator size="small" color="#FF6600" />
+            </View>
+          ) : activeTab === 'merchant' && isMerchantLoading ? (
+            <View style={styles.emptyState}>
+              <ActivityIndicator size="small" color="#FF6600" />
+            </View>
+          ) : currentTransactions.length > 0 ? (
+            currentTransactions.slice(0, 10).map((transaction) => (
+              <TransactionCard key={transaction.id} transaction={transaction} />
+            ))
+          ) : (
+            <View style={styles.emptyState}>
+              <Ionicons name="receipt-outline" size={48} color="#CCCCCC" />
+              <Text style={styles.emptyText}>No transactions yet</Text>
+            </View>
+          )}
+        </View>
         {/* Popular Categories (Customer Only) */}
-      {activeTab === 'customer' && (
+        {activeTab === 'customer' && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Feature Categories </Text>
-            <Text style={styles.normalText}>(Complete list will be displayed once stores onboarded):</Text>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Popular Categories</Text>
+
+              <TouchableOpacity>
+                <Text style={styles.viewAllText}>View All</Text>
+              </TouchableOpacity>
+            </View>
+            {/* <Text style={styles.normalText}>(Complete list will be displayed once stores onboarded):</Text> */}
             {categories.length > 0 ? (
               <ScrollView
                 horizontal
@@ -989,78 +1072,6 @@ export default function DualDashboard() {
           </View>
         )}
 
-        {/* Quick Stats */}
-        <View style={styles.statsContainer}>
-          
-          <View style={styles.statCard}>
-            
-            <Text style={styles.statValue}>
-              
-              {activeTab === 'customer'
-                ? customerTodaySaved.toFixed(0)
-                : merchantTodaySales.toFixed(0)}
-            </Text>
-            <Text style={styles.statLabel}>
-              {activeTab === 'customer' ? "Today's Savings" : "Today's Business"}
-            </Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>
-              
-              {activeTab === 'customer'
-                ? customerMonthSaved.toFixed(0)
-                : merchantMonthSales.toFixed(0)}
-            </Text>
-            <Text style={styles.statLabel}>
-              {activeTab === 'customer'
-                ? "This Month's Savings"
-                : "This Month's Business"}
-            </Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>
-              
-              {activeTab === 'customer'
-                ? customerYearSaved.toFixed(0)
-                : merchantYearSales.toFixed(0)}
-            </Text>
-            <Text style={styles.statLabel}>
-              {activeTab === 'customer'
-                ? "This Year's Savings"
-                : "This Year's Business"}
-            </Text>
-          </View>
-        </View>
-
-        {/* Transactions Section */}
-        <View style={styles.transactionsSection}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Recent Business </Text>
-            <Text style={styles.normalText}>(Will be calculated on customervisits):</Text>
-            <TouchableOpacity onPress={() => setShowAllTransactions(true)}>
-              <Text style={styles.viewAllText}>View All</Text>
-            </TouchableOpacity>
-          </View>
-
-          {activeTab === 'customer' && isCustomerLoading ? (
-            <View style={styles.emptyState}>
-              <ActivityIndicator size="small" color="#FF6600" />
-            </View>
-          ) : activeTab === 'merchant' && isMerchantLoading ? (
-            <View style={styles.emptyState}>
-              <ActivityIndicator size="small" color="#FF6600" />
-            </View>
-          ) : currentTransactions.length > 0 ? (
-            currentTransactions.slice(0, 10).map((transaction) => (
-              <TransactionCard key={transaction.id} transaction={transaction} />
-            ))
-          ) : (
-            <View style={styles.emptyState}>
-              <Ionicons name="receipt-outline" size={48} color="#CCCCCC" />
-              <Text style={styles.emptyText}>No transactions yet</Text>
-            </View>
-          )}
-        </View>
 
         {/* Quick Actions */}
         {/* <View style={styles.quickActions}>
@@ -1176,17 +1187,18 @@ export default function DualDashboard() {
                     }
                   >
                     <View style={styles.nearbyImagePlaceholder}>
-                      {shop.image || shop.s3ImageUrl ? (
-                        <Image
-                          source={{ uri: shop.image || shop.s3ImageUrl }}
-                          style={styles.nearbyImage}
-                        />
-                      ) : (
-                        <Ionicons name="storefront" size={36} color="#FF6600" />
-                      )}
+                      {(() => {
+                        const urls = extractImageUrls(shop.image ?? shop.s3ImageUrl);
+                        const uri = urls[0] ?? (typeof shop.image === 'string' ? shop.image : null);
+                        return uri ? (
+                          <Image source={{ uri }} style={styles.nearbyImage} />
+                        ) : (
+                          <Ionicons name="storefront" size={36} color="#FF6600" />
+                        );
+                      })()}
                     </View>
                     <Text style={styles.nearbyName} numberOfLines={1}>
-                      {shop.shopName || shop.merchantName || shop.contactName || 'Shop'}
+                      {shop.businessName || shop.shopName || shop.merchantName || shop.contactName || 'Shop'}
                     </Text>
                     <Text style={styles.nearbyMeta}>
                       {shop.businessCategory || 'General'}
@@ -1198,7 +1210,7 @@ export default function DualDashboard() {
                           {shop.rating ?? '4.0'}
                         </Text>
                       </View> */}
-                      {/* <View style={styles.nearbyDistance}>
+        {/* <View style={styles.nearbyDistance}>
                         <Ionicons name="location" size={12} color="#FF6600" />
                         <Text style={styles.nearbyDistanceText}>
                           {formatDistance(
@@ -1231,7 +1243,7 @@ export default function DualDashboard() {
         <View style={styles.supportModalOverlay}>
           <View style={styles.supportModalContent}>
             <Image
-              source={{uri:'https://intown-dev.s3.ap-south-1.amazonaws.com/app_logo/intown-logo.jpg'}}
+              source={{ uri: 'https://intown-dev.s3.ap-south-1.amazonaws.com/app_logo/intown-logo.jpg' }}
               style={styles.supportLogo}
             />
             <Text style={styles.supportTitle}>INtown Customer Support</Text>
@@ -1340,7 +1352,7 @@ export default function DualDashboard() {
               <View style={styles.locationDividerLine} />
             </View>
 
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.useCurrentLocationBtn}
               onPress={handleUseCurrentLocation}
               disabled={isLocationLoading}
@@ -1367,7 +1379,7 @@ export default function DualDashboard() {
             {isSearchingLocation && (
               <ActivityIndicator size="small" color="#FF6600" style={{ marginTop: 16 }} />
             )}
-            
+
             <ScrollView style={styles.locationSearchResults}>
               {locationSearchResults.map((item, index) => (
                 <TouchableOpacity
@@ -1398,7 +1410,7 @@ export default function DualDashboard() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#F2F2F2',
   },
   header: {
     flexDirection: 'row',
@@ -1474,29 +1486,29 @@ const styles = StyleSheet.create({
     color: '#666666',
     marginTop: 2,
   },
-  searchSection: {
+  section: {
     padding: 16,
+    marginTop: 10,
   },
   searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 30,
+    paddingHorizontal: 18,
+    height: 52,
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3
   },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-    marginLeft: 12,
-    color: '#333',
-  },
+
   animatedPlaceholder: {
-    position: 'absolute',
-    left: 44,
-    right: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
+    position: "absolute",
+    left: 50,
+    flexDirection: "row",
+    alignItems: "center",
   },
   animatedPlaceholderPrefix: {
     fontSize: 16,
@@ -1504,8 +1516,8 @@ const styles = StyleSheet.create({
   },
   animatedPlaceholderWord: {
     fontSize: 16,
-    color: '#777',
-    fontWeight: '500',
+    color: "#FF6600",
+    fontWeight: "600"
   },
   suggestionBox: {
     backgroundColor: '#fff',
@@ -1652,34 +1664,31 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   tabContainer: {
-    flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#EEEEEE',
+    flexDirection: "row",
+    backgroundColor: "#E6EBF0",
+    marginHorizontal: 16,
+    marginTop: 12,
+    borderRadius: 22
   },
   tabButton: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    borderRadius: 8,
-    marginHorizontal: 4,
-    backgroundColor: '#F5F5F5',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 10,
+    borderRadius: 26
   },
   tabButtonActive: {
-    backgroundColor: '#FFF3E0',
+    backgroundColor: "#FFFFFF"
   },
   tabLabel: {
-    marginLeft: 8,
+    marginLeft: 6,
     fontSize: 14,
-    fontWeight: '600',
-    color: '#666666',
+    fontWeight: "600",
+    color: "#6B7A8C"
   },
   tabLabelActive: {
-    color: '#FF6600',
+    color: "#000000"
   },
   content: {
     flex: 1,
@@ -1720,40 +1729,43 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   statsContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: 12,
-    marginBottom: 16,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginHorizontal: 16,
+    marginTop: 16,
   },
   statCard: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
-    marginHorizontal: 4,
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    backgroundColor: "#FF8A00",
+    marginHorizontal: 6,
+    paddingVertical: 22,
+    borderRadius: 20,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 5
   },
   statValue: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#FF6600',
+    fontSize: 24,
+    fontWeight: "800",
+    color: "#FFFFFF",
   },
   statLabel: {
-    fontSize: 11,
-    color: '#666666',
-    marginTop: 4,
-    textAlign: 'center',
+    fontSize: 13,
+    color: "#FFFFFF",
+    fontWeight: "600",
+    marginTop: 6,
+    textAlign: "center"
   },
   transactionsSection: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: "#FFFFFF",
     marginHorizontal: 16,
-    marginBottom: 16,
+    marginTop: 20,
+    marginBottom: 20,
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 20,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -1767,9 +1779,7 @@ const styles = StyleSheet.create({
     color: '#1A1A1A',
     marginBottom: 8,
   },
-  section: {
-    padding: 16,
-  },
+
   categoriesCarouselContent: {
     flexDirection: 'row',
     paddingVertical: 4,
@@ -1996,7 +2006,7 @@ const styles = StyleSheet.create({
     marginLeft: 4,
     color: '#FF6600',
   },
-  
+
   // Location Modal Styles
   locationModalContainer: {
     flex: 1,
@@ -2073,7 +2083,7 @@ const styles = StyleSheet.create({
   locationSearchContainerModal: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#F2F2F2',
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
@@ -2106,7 +2116,51 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   normalText: {
-    fontWeight: 'normal',  
-    color: '#666',         
+    fontWeight: 'normal',
+    color: '#666',
   },
+  notificationCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+    backgroundColor: "#FFFFFF",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+
+  searchSection: {
+    paddingHorizontal: 16,
+    marginTop: 12
+  },
+
+
+
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: "#1A1A1A"
+  },
+  locationIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#FFF3E0",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 8
+  },
+  profileCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 2,
+    borderColor: "#FF6600",
+    justifyContent: "center",
+    alignItems: "center"
+  },
+
+
 });
