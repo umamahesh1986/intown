@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, RefreshControl, TextInput } from 'react-native';
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -35,10 +35,15 @@ export default function Savings() {
     totalTransactions: 0,
   });
 
+  // Savings Calculator state
+  const [monthlySpend, setMonthlySpend] = useState('10000');
+
+  // Check if user is a regular 'user' (not member or merchant)
+  const isRegularUser = user?.userType === 'user' || user?.userType === null || !user?.userType;
+
   const fetchSavingsData = async () => {
     try {
       // TODO: Replace with actual API call when available
-      // For now, show empty state with mock structure
       const customerId = await AsyncStorage.getItem('customer_id');
       
       // Simulated empty data - replace with actual API integration
@@ -79,6 +84,235 @@ export default function Savings() {
     });
   };
 
+  // Savings Calculator Component (for regular users)
+  const SavingsCalculator = () => (
+    <ScrollView style={styles.content}>
+      {/* Hero Section */}
+      <View style={styles.heroSection}>
+        <Ionicons name="calculator" size={48} color="#FF6600" />
+        <Text style={styles.heroTitle}>Calculate Your Savings</Text>
+        <Text style={styles.heroSubtitle}>
+          See how much you can save by shopping at INtown partner stores
+        </Text>
+      </View>
+
+      {/* Savings Calculator Card */}
+      <View style={styles.calculatorCard}>
+        <View style={styles.calculatorHeader}>
+          <Ionicons name="calculator-outline" size={22} color="#FF7A00" />
+          <Text style={styles.calculatorTitle}>Savings Calculator</Text>
+        </View>
+
+        <Text style={styles.calculatorLabel}>ESTIMATED MONTHLY SPEND</Text>
+
+        <View style={styles.inputBox}>
+          <Text style={styles.currency}>₹</Text>
+          <TextInput
+            style={styles.calculatorInput}
+            keyboardType="numeric"
+            value={monthlySpend}
+            onChangeText={setMonthlySpend}
+            placeholder="Enter amount"
+            placeholderTextColor="#999"
+          />
+        </View>
+
+        <View style={styles.resultRow}>
+          <View style={styles.monthlyBox}>
+            <Text style={styles.resultLabel}>MONTHLY SAVINGS</Text>
+            <Text style={styles.monthlyValue}>
+              ₹ {Math.floor(Number(monthlySpend) * 0.15)}
+            </Text>
+          </View>
+
+          <View style={styles.annualBox}>
+            <Text style={styles.annualLabel}>ANNUAL SAVINGS</Text>
+            <Text style={styles.annualValue}>
+              ₹ {Math.floor(Number(monthlySpend) * 0.15 * 12)}
+            </Text>
+          </View>
+        </View>
+      </View>
+
+      {/* Info Cards */}
+      <View style={styles.infoSection}>
+        <View style={styles.infoCard}>
+          <View style={styles.infoIconContainer}>
+            <Ionicons name="trending-up" size={24} color="#4CAF50" />
+          </View>
+          <View style={styles.infoContent}>
+            <Text style={styles.infoTitle}>15% Guaranteed Savings</Text>
+            <Text style={styles.infoText}>
+              Save up to 15% on every purchase at partner stores
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.infoCard}>
+          <View style={styles.infoIconContainer}>
+            <Ionicons name="storefront" size={24} color="#2196F3" />
+          </View>
+          <View style={styles.infoContent}>
+            <Text style={styles.infoTitle}>200+ Partner Stores</Text>
+            <Text style={styles.infoText}>
+              Shop from groceries, restaurants, salons, and more
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.infoCard}>
+          <View style={styles.infoIconContainer}>
+            <Ionicons name="flash" size={24} color="#FF9800" />
+          </View>
+          <View style={styles.infoContent}>
+            <Text style={styles.infoTitle}>Instant Savings</Text>
+            <Text style={styles.infoText}>
+              Get immediate discounts at checkout - no waiting
+            </Text>
+          </View>
+        </View>
+      </View>
+
+      {/* CTA Section */}
+      <View style={styles.ctaSection}>
+        <Text style={styles.ctaTitle}>Ready to Start Saving?</Text>
+        <Text style={styles.ctaSubtitle}>
+          Register as a member to unlock your savings journey
+        </Text>
+        <TouchableOpacity
+          style={styles.ctaButton}
+          onPress={() => router.push('/register-member')}
+        >
+          <Ionicons name="person-add" size={20} color="#FFF" />
+          <Text style={styles.ctaButtonText}>Become a Member</Text>
+        </TouchableOpacity>
+      </View>
+    </ScrollView>
+  );
+
+  // Full Savings View (for members and merchants)
+  const FullSavingsView = () => (
+    <ScrollView
+      style={styles.content}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#FF6600']} />
+      }
+    >
+      {/* Summary Cards */}
+      <View style={styles.summaryContainer}>
+        <View style={styles.summaryCard}>
+          <View style={styles.summaryIconContainer}>
+            <Ionicons name="today" size={24} color="#FF6600" />
+          </View>
+          <Text style={styles.summaryLabel}>Today's Savings</Text>
+          <Text style={styles.summaryValue}>{formatCurrency(summary.today)}</Text>
+        </View>
+
+        <View style={styles.summaryCard}>
+          <View style={styles.summaryIconContainer}>
+            <Ionicons name="calendar" size={24} color="#4CAF50" />
+          </View>
+          <Text style={styles.summaryLabel}>This Month</Text>
+          <Text style={[styles.summaryValue, { color: '#4CAF50' }]}>
+            {formatCurrency(summary.thisMonth)}
+          </Text>
+        </View>
+
+        <View style={styles.summaryCard}>
+          <View style={styles.summaryIconContainer}>
+            <Ionicons name="trending-up" size={24} color="#2196F3" />
+          </View>
+          <Text style={styles.summaryLabel}>This Year</Text>
+          <Text style={[styles.summaryValue, { color: '#2196F3' }]}>
+            {formatCurrency(summary.thisYear)}
+          </Text>
+        </View>
+      </View>
+
+      {/* Total Savings Banner */}
+      <View style={styles.totalBanner}>
+        <Ionicons name="wallet" size={32} color="#FFF" />
+        <View style={styles.totalBannerText}>
+          <Text style={styles.totalLabel}>Total Savings</Text>
+          <Text style={styles.totalValue}>{formatCurrency(summary.thisYear)}</Text>
+        </View>
+        <Text style={styles.totalTransactions}>
+          {summary.totalTransactions} Transactions
+        </Text>
+      </View>
+
+      {/* Transactions Section */}
+      <View style={styles.transactionsSection}>
+        <Text style={styles.sectionTitle}>Recent Transactions</Text>
+
+        {transactions.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Ionicons name="receipt-outline" size={60} color="#DDD" />
+            <Text style={styles.emptyTitle}>No Savings Yet</Text>
+            <Text style={styles.emptyText}>
+              Start shopping at INtown partner stores to earn savings on every purchase!
+            </Text>
+            <TouchableOpacity
+              style={styles.exploreButton}
+              onPress={() => router.push('/user-dashboard')}
+            >
+              <Ionicons name="search" size={20} color="#FFF" />
+              <Text style={styles.exploreButtonText}>Explore Shops</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          transactions.map((transaction) => (
+            <View key={transaction.id} style={styles.transactionCard}>
+              <View style={styles.transactionLeft}>
+                <View style={styles.transactionIcon}>
+                  <Ionicons name="storefront" size={24} color="#FF6600" />
+                </View>
+                <View style={styles.transactionInfo}>
+                  <Text style={styles.transactionShop}>{transaction.shopName}</Text>
+                  <Text style={styles.transactionDate}>{formatDate(transaction.date)}</Text>
+                  <Text style={styles.transactionCategory}>{transaction.category}</Text>
+                </View>
+              </View>
+              <View style={styles.transactionRight}>
+                <Text style={styles.transactionAmount}>
+                  {formatCurrency(transaction.amount)}
+                </Text>
+                <Text style={styles.transactionSavings}>
+                  Saved {formatCurrency(transaction.savings)}
+                </Text>
+              </View>
+            </View>
+          ))
+        )}
+      </View>
+
+      {/* How It Works */}
+      <View style={styles.howItWorks}>
+        <Text style={styles.howItWorksTitle}>How Savings Work</Text>
+        <View style={styles.stepContainer}>
+          <View style={styles.step}>
+            <View style={styles.stepNumber}>
+              <Text style={styles.stepNumberText}>1</Text>
+            </View>
+            <Text style={styles.stepText}>Shop at INtown partner stores</Text>
+          </View>
+          <View style={styles.step}>
+            <View style={styles.stepNumber}>
+              <Text style={styles.stepNumberText}>2</Text>
+            </View>
+            <Text style={styles.stepText}>Pay using INtown app</Text>
+          </View>
+          <View style={styles.step}>
+            <View style={styles.stepNumber}>
+              <Text style={styles.stepNumberText}>3</Text>
+            </View>
+            <Text style={styles.stepText}>Get instant savings on every purchase</Text>
+          </View>
+        </View>
+      </View>
+    </ScrollView>
+  );
+
   if (isLoading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -86,12 +320,12 @@ export default function Savings() {
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color="#1A1A1A" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>My Savings</Text>
+          <Text style={styles.headerTitle}>{isRegularUser ? 'Savings Calculator' : 'My Savings'}</Text>
           <View style={{ width: 40 }} />
         </View>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#FF6600" />
-          <Text style={styles.loadingText}>Loading savings...</Text>
+          <Text style={styles.loadingText}>Loading...</Text>
         </View>
       </SafeAreaView>
     );
@@ -103,129 +337,11 @@ export default function Savings() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#1A1A1A" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>My Savings</Text>
+        <Text style={styles.headerTitle}>{isRegularUser ? 'Savings Calculator' : 'My Savings'}</Text>
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView
-        style={styles.content}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#FF6600']} />
-        }
-      >
-        {/* Summary Cards */}
-        <View style={styles.summaryContainer}>
-          <View style={styles.summaryCard}>
-            <View style={styles.summaryIconContainer}>
-              <Ionicons name="today" size={24} color="#FF6600" />
-            </View>
-            <Text style={styles.summaryLabel}>Today's Savings</Text>
-            <Text style={styles.summaryValue}>{formatCurrency(summary.today)}</Text>
-          </View>
-
-          <View style={styles.summaryCard}>
-            <View style={styles.summaryIconContainer}>
-              <Ionicons name="calendar" size={24} color="#4CAF50" />
-            </View>
-            <Text style={styles.summaryLabel}>This Month</Text>
-            <Text style={[styles.summaryValue, { color: '#4CAF50' }]}>
-              {formatCurrency(summary.thisMonth)}
-            </Text>
-          </View>
-
-          <View style={styles.summaryCard}>
-            <View style={styles.summaryIconContainer}>
-              <Ionicons name="trending-up" size={24} color="#2196F3" />
-            </View>
-            <Text style={styles.summaryLabel}>This Year</Text>
-            <Text style={[styles.summaryValue, { color: '#2196F3' }]}>
-              {formatCurrency(summary.thisYear)}
-            </Text>
-          </View>
-        </View>
-
-        {/* Total Savings Banner */}
-        <View style={styles.totalBanner}>
-          <Ionicons name="wallet" size={32} color="#FFF" />
-          <View style={styles.totalBannerText}>
-            <Text style={styles.totalLabel}>Total Savings</Text>
-            <Text style={styles.totalValue}>{formatCurrency(summary.thisYear)}</Text>
-          </View>
-          <Text style={styles.totalTransactions}>
-            {summary.totalTransactions} Transactions
-          </Text>
-        </View>
-
-        {/* Transactions Section */}
-        <View style={styles.transactionsSection}>
-          <Text style={styles.sectionTitle}>Recent Transactions</Text>
-
-          {transactions.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Ionicons name="receipt-outline" size={60} color="#DDD" />
-              <Text style={styles.emptyTitle}>No Savings Yet</Text>
-              <Text style={styles.emptyText}>
-                Start shopping at INtown partner stores to earn savings on every purchase!
-              </Text>
-              <TouchableOpacity
-                style={styles.exploreButton}
-                onPress={() => router.push('/user-dashboard')}
-              >
-                <Ionicons name="search" size={20} color="#FFF" />
-                <Text style={styles.exploreButtonText}>Explore Shops</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            transactions.map((transaction) => (
-              <View key={transaction.id} style={styles.transactionCard}>
-                <View style={styles.transactionLeft}>
-                  <View style={styles.transactionIcon}>
-                    <Ionicons name="storefront" size={24} color="#FF6600" />
-                  </View>
-                  <View style={styles.transactionInfo}>
-                    <Text style={styles.transactionShop}>{transaction.shopName}</Text>
-                    <Text style={styles.transactionDate}>{formatDate(transaction.date)}</Text>
-                    <Text style={styles.transactionCategory}>{transaction.category}</Text>
-                  </View>
-                </View>
-                <View style={styles.transactionRight}>
-                  <Text style={styles.transactionAmount}>
-                    {formatCurrency(transaction.amount)}
-                  </Text>
-                  <Text style={styles.transactionSavings}>
-                    Saved {formatCurrency(transaction.savings)}
-                  </Text>
-                </View>
-              </View>
-            ))
-          )}
-        </View>
-
-        {/* How It Works */}
-        <View style={styles.howItWorks}>
-          <Text style={styles.howItWorksTitle}>How Savings Work</Text>
-          <View style={styles.stepContainer}>
-            <View style={styles.step}>
-              <View style={styles.stepNumber}>
-                <Text style={styles.stepNumberText}>1</Text>
-              </View>
-              <Text style={styles.stepText}>Shop at INtown partner stores</Text>
-            </View>
-            <View style={styles.step}>
-              <View style={styles.stepNumber}>
-                <Text style={styles.stepNumberText}>2</Text>
-              </View>
-              <Text style={styles.stepText}>Pay using INtown app</Text>
-            </View>
-            <View style={styles.step}>
-              <View style={styles.stepNumber}>
-                <Text style={styles.stepNumberText}>3</Text>
-              </View>
-              <Text style={styles.stepText}>Get instant savings on every purchase</Text>
-            </View>
-          </View>
-        </View>
-      </ScrollView>
+      {isRegularUser ? <SavingsCalculator /> : <FullSavingsView />}
     </SafeAreaView>
   );
 }
@@ -246,6 +362,175 @@ const styles = StyleSheet.create({
   loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   loadingText: { marginTop: 12, fontSize: 16, color: '#666' },
   content: { flex: 1 },
+
+  // Savings Calculator Styles (for regular users)
+  heroSection: {
+    backgroundColor: '#FFF',
+    padding: 24,
+    alignItems: 'center',
+  },
+  heroTitle: { fontSize: 24, fontWeight: 'bold', color: '#1A1A1A', marginTop: 12 },
+  heroSubtitle: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    marginTop: 8,
+    lineHeight: 22,
+  },
+  calculatorCard: {
+    backgroundColor: '#FFF',
+    margin: 16,
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 2,
+    borderColor: '#FF6600',
+  },
+  calculatorHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  calculatorTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1A1A1A',
+    marginLeft: 8,
+  },
+  calculatorLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#888',
+    marginBottom: 8,
+  },
+  inputBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8F8F8',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginBottom: 20,
+  },
+  currency: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#FF6600',
+    marginRight: 8,
+  },
+  calculatorInput: {
+    flex: 1,
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#1A1A1A',
+  },
+  resultRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  monthlyBox: {
+    flex: 1,
+    backgroundColor: '#E8F5E9',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+  },
+  annualBox: {
+    flex: 1,
+    backgroundColor: '#FFF3E0',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+  },
+  resultLabel: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#4CAF50',
+    marginBottom: 4,
+  },
+  monthlyValue: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#4CAF50',
+  },
+  annualLabel: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#FF6600',
+    marginBottom: 4,
+  },
+  annualValue: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#FF6600',
+  },
+  infoSection: {
+    padding: 16,
+    gap: 12,
+  },
+  infoCard: {
+    backgroundColor: '#FFF',
+    borderRadius: 12,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  infoIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: '#F5F5F5',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  infoContent: {
+    marginLeft: 12,
+    flex: 1,
+  },
+  infoTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1A1A1A',
+  },
+  infoText: {
+    fontSize: 13,
+    color: '#666',
+    marginTop: 4,
+  },
+  ctaSection: {
+    backgroundColor: '#FF6600',
+    margin: 16,
+    borderRadius: 16,
+    padding: 24,
+    alignItems: 'center',
+  },
+  ctaTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#FFF',
+  },
+  ctaSubtitle: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.9)',
+    textAlign: 'center',
+    marginTop: 8,
+  },
+  ctaButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF',
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 12,
+    marginTop: 16,
+  },
+  ctaButtonText: {
+    color: '#FF6600',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+
+  // Full Savings View Styles (for members/merchants)
   summaryContainer: {
     flexDirection: 'row',
     padding: 16,
