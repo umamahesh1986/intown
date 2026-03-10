@@ -11,61 +11,82 @@ import { useState, useEffect } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { searchByProductNames, getMerchantImageByShopId } from '../utils/api';
+import { searchByProductNames, getMerchantImageByShopId, extractImageUrls } from '../utils/api';
 import { useLocationStore } from '../store/locationStore';
 import { formatDistance } from '../utils/formatDistance';
 
+// Normalize param (expo-router can return string | string[] on native)
+const toParam = (v: string | string[] | undefined): string | undefined =>
+  v == null ? undefined : Array.isArray(v) ? v[0] : String(v);
+
 export default function MemberShopList() {
   const router = useRouter();
-  const { categoryId, categoryName, query, source } = useLocalSearchParams<{
-  categoryId?: string;
-  categoryName?: string;
-  query?: string;
-  source?: string;
-}>();
+  const rawParams = useLocalSearchParams<{
+    categoryId?: string;
+    categoryName?: string;
+    query?: string;
+    source?: string;
+  }>();
 
-  const { location } = useLocationStore();
+  const categoryId = toParam(rawParams.categoryId);
+  const categoryName = toParam(rawParams.categoryName);
+  const query = toParam(rawParams.query);
+  const source = toParam(rawParams.source);
+
+  const { location, loadFromStorage } = useLocationStore();
 
   const [shops, setShops] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  useEffect(() => {
+    loadFromStorage();
+  }, [loadFromStorage]);
+
+  const getFirstImageUrl = (img: unknown): string | null => {
+    const urls = extractImageUrls(img);
+    return urls[0] ?? null;
+  };
+
   const fetchShopsByCategory = async () => {
-  setIsLoading(true);
-  try {
-    if (!categoryId || !location?.latitude || !location?.longitude) {
+    setIsLoading(true);
+    try {
+      if (!categoryId || !location?.latitude || !location?.longitude) {
+        setShops([]);
+        setIsLoading(false);
+        return;
+      }
+
+      const res = await fetch(
+        `https://api.intownlocal.com/IN/search/by-product-names?categoryId=${encodeURIComponent(categoryId)}&customerLatitude=${location.latitude}&customerLongitude=${location.longitude}`
+      );
+
+      const data = await res.json();
+
+      const list = Array.isArray(data) ? data : [];
+      const enriched = await Promise.all(
+        list.map(async (shop: any) => {
+          const shopId = shop?.id ?? shop?.merchantId ?? shop?.merchant_id;
+          const image = await getMerchantImageByShopId(shopId);
+          const img = image ?? shop?.image ?? shop?.s3ImageUrl;
+          return { ...shop, image: getFirstImageUrl(img) };
+        })
+      );
+      setShops(enriched);
+    } catch (error) {
+      console.error('Failed to fetch category shops', error);
+      setShops([]);
+    } finally {
       setIsLoading(false);
-      return;
     }
-
-    const res = await fetch(
-      `https://api.intownlocal.com/IN/search/by-product-names?categoryId=${categoryId}&customerLatitude=${location.latitude}&customerLongitude=${location.longitude}`
-    );
-
-    const data = await res.json();
-
-    const list = Array.isArray(data) ? data : [];
-    const enriched = await Promise.all(
-      list.map(async (shop: any) => {
-        const shopId = shop?.id ?? shop?.merchantId ?? shop?.merchant_id;
-        const image = await getMerchantImageByShopId(shopId);
-        return { ...shop, image: image ?? shop?.image ?? shop?.s3ImageUrl };
-      })
-    );
-    setShops(enriched);
-  } catch (error) {
-    console.error('Failed to fetch category shops', error);
-    setShops([]);
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
 
 
   // 🔹 PRODUCT SEARCH (EXISTING LOGIC + FALLBACK)
   const fetchRealShops = async () => {
     setIsLoading(true);
     try {
-      if (!query || !location) {
+      if (!query || !location?.latitude || !location?.longitude) {
+        setShops([]);
         setIsLoading(false);
         return;
       }
@@ -79,13 +100,14 @@ export default function MemberShopList() {
       const mappedShops = Array.isArray(data)
         ? data.map((item: any) => ({
           id: item.id?.toString?.() ?? String(item.id ?? ''),
-          name: item.shopName,
-          shopName: item.shopName,
+          name: item.businessName ?? item.shopName,
+          businessName: item.businessName,
+          shopName: item.shopName ?? item.businessName,
           contactName: item.contactName,
           category: item.businessCategory,
           businessCategory: item.businessCategory,
           distance: item.distance,
-          image: item.s3ImageUrl,
+          image: getFirstImageUrl(item.s3ImageUrl),
           latitude: item.latitude,
           longitude: item.longitude,
         }))
@@ -96,7 +118,8 @@ export default function MemberShopList() {
           mappedShops.map(async (shop: any) => {
             const shopId = shop?.id ?? shop?.merchantId ?? shop?.merchant_id;
             const image = await getMerchantImageByShopId(shopId);
-            return { ...shop, image: image ?? shop?.image ?? shop?.s3ImageUrl };
+            const img = image ?? shop?.image ?? shop?.s3ImageUrl;
+            return { ...shop, image: getFirstImageUrl(img) };
           })
         );
         setShops(enriched);
@@ -112,21 +135,44 @@ export default function MemberShopList() {
   };
 
 
-  // 🔹 RUN SEARCH WHEN QUERY CHANGES
+  // 🔹 RUN SEARCH WHEN PARAMS OR LOCATION CHANGES
   useEffect(() => {
-  if (categoryId) {
-    fetchShopsByCategory();
-  } else if (query) {
-    fetchRealShops(); // existing product search logic
-  }
-}, [categoryId, query]);
-
+    if (!categoryId && !query) {
+      setIsLoading(false);
+      setShops([]);
+      return;
+    }
+    if (categoryId) {
+      fetchShopsByCategory();
+    } else if (query) {
+      fetchRealShops();
+    }
+  }, [categoryId, query, location?.latitude, location?.longitude]);
 
   const handleViewShop = (shop: any) => {
-    router.push({
-      pathname: '/member-shop-details',
-      params: { shopId: shop.id, shop: JSON.stringify(shop), source },
-    });
+    try {
+      const shopId = shop?.id ?? shop?.merchantId ?? '';
+      // IMPORTANT (Android): keep route params small to avoid app crash.
+      // Do NOT pass full API objects containing long S3 signed URLs/arrays.
+      const minimalShop = {
+        id: shopId,
+        businessName: shop?.businessName ?? null,
+        shopName: shop?.shopName ?? shop?.name ?? null,
+        contactName: shop?.contactName ?? null,
+        businessCategory: shop?.businessCategory ?? shop?.category ?? null,
+        distance: shop?.distance ?? null,
+        latitude: shop?.latitude ?? null,
+        longitude: shop?.longitude ?? null,
+        image: getFirstImageUrl(shop?.image ?? shop?.s3ImageUrl) ?? null,
+      };
+      const shopJson = JSON.stringify(minimalShop);
+      router.push({
+        pathname: '/member-shop-details',
+        params: { shopId: String(shopId), shop: shopJson, source: source ?? 'user' },
+      });
+    } catch (err) {
+      console.error('handleViewShop error', err);
+    }
   };
 
   return (
@@ -164,9 +210,11 @@ export default function MemberShopList() {
       ) : (
         <FlatList
           data={shops}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item, index) => String(item?.id ?? item?.merchantId ?? index)}
           contentContainerStyle={styles.listContent}
-          renderItem={({ item }) => (
+          renderItem={({ item }) => {
+            const imageUri = getFirstImageUrl(item?.image);
+            return (
             <View style={styles.shopCard}>
 
               {/* TOP ROW */}
@@ -174,9 +222,9 @@ export default function MemberShopList() {
 
                 {/* LEFT: ICON */}
                 <View style={styles.shopImageContainer}>
-                  {item.image ? (
+                  {imageUri ? (
                     <Image
-                      source={{ uri: item.image }}
+                      source={{ uri: imageUri }}
                       style={{ width: 60, height: 60, borderRadius: 10 }}
                     />
                   ) : (
@@ -188,7 +236,7 @@ export default function MemberShopList() {
                 <View style={styles.shopInfoRight}>
                   <View style={styles.shopInfoRightnew}>
                     <Text style={styles.shopName} numberOfLines={1}>
-                      {item.shopName || item.name || item.contactName || 'Shop'}
+                      {item.businessName || item.shopName || item.name || item.contactName || 'Shop'}
                     </Text>
 
                     <Text style={styles.categoryText}>
@@ -224,7 +272,8 @@ export default function MemberShopList() {
 
             </View>
 
-          )}
+          );
+          }}
         />
       )}
     </SafeAreaView>

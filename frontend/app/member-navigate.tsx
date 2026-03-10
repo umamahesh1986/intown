@@ -30,7 +30,7 @@ export default function MemberNavigate() {
       return null;
     }
   })();
-  const shopName = shopFromParams?.shopName || shopFromParams?.name || 'Shop';
+  const shopName = shopFromParams?.businessName || shopFromParams?.shopName || shopFromParams?.name || 'Shop';
   const parsedShopLat = Number(params.shopLat);
   const parsedShopLng = Number(params.shopLng);
   const destinationLat =

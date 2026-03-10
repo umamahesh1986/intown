@@ -34,7 +34,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAuthStore } from '../store/authStore';
 import { useLocationStore, LocationDetails } from '../store/locationStore';
-import { getPlans, getCategories, getNearbyShops, getMerchantImageByShopId } from '../utils/api';
+import { getPlans, getCategories, getNearbyShops, getMerchantImageByShopId, extractImageUrls } from '../utils/api';
 
 import {
   getUserLocationWithDetails,
@@ -388,7 +388,9 @@ export default function UserDashboard() {
         list.map(async (shop: any) => {
           const shopId = shop?.id ?? shop?.merchantId ?? shop?.merchant_id;
           const image = await getMerchantImageByShopId(shopId);
-          return { ...shop, image: image ?? shop?.image ?? shop?.s3ImageUrl };
+          const img = image ?? shop?.image ?? shop?.s3ImageUrl;
+          const urls = extractImageUrls(img);
+          return { ...shop, image: urls[0] ?? null };
         })
       );
       setNearbyShops(enriched);
@@ -717,16 +719,18 @@ export default function UserDashboard() {
                         <TouchableOpacity
                           key={category.id}
                           style={styles.categoryCard}
-                          onPress={() =>
+                          onPress={() => {
+                            const id = category?.id ?? category?.name;
+                            if (id == null || id === '') return;
                             router.push({
                               pathname: '/member-shop-list',
                               params: {
-                                categoryId: String(category.id),
-                                categoryName: category.name,
+                                categoryId: String(id),
+                                categoryName: String(category?.name ?? ''),
                                 source: 'user',
                               },
-                            })
-                          }
+                            });
+                          }}
                           activeOpacity={0.8}
                         >
                           <View style={styles.categoryImageContainer}>
@@ -970,17 +974,18 @@ export default function UserDashboard() {
                   }
                 >
                   <View style={styles.shopImagePlaceholder}>
-                    {shop.image || shop.s3ImageUrl ? (
-                      <Image
-                        source={{ uri: shop.image || shop.s3ImageUrl }}
-                        style={styles.shopImageThumb}
-                      />
-                    ) : (
-                      <Ionicons name="storefront" size={40} color="#FF8C00" />
-                    )}
+                    {(() => {
+                      const urls = extractImageUrls(shop.image ?? shop.s3ImageUrl);
+                      const uri = urls[0] ?? (typeof shop.image === 'string' ? shop.image : null);
+                      return uri ? (
+                        <Image source={{ uri }} style={styles.shopImageThumb} />
+                      ) : (
+                        <Ionicons name="storefront" size={40} color="#FF8C00" />
+                      );
+                    })()}
                   </View>
                   <Text style={styles.shopCardName} numberOfLines={1}>
-                    {shop.shopName}
+                    {shop.businessName || shop.shopName || shop.contactName || 'Shop'}
                   </Text>
                   <Text style={styles.shopCardCategory}>
                     {shop.businessCategory}
@@ -2033,28 +2038,21 @@ const styles = StyleSheet.create({
   // Location Modal Styles
   locationModalContainer: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
+    backgroundColor: 'transparent',
+    justifyContent: 'flex-end',
   },
   locationModalOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'transparent',
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
   },
   locationModalContent: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 24,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     padding: 20,
-    paddingBottom: 30,
-    maxHeight: '80%',
+    paddingBottom: 60,
+    maxHeight: '85%',
     minHeight: 300,
-    width: '100%',
-    maxWidth: 500,
   },
   locationModalHeader: {
     flexDirection: 'row',

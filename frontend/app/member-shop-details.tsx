@@ -4,7 +4,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistance } from '../utils/formatDistance';
-import { getMerchantImageByShopId, getMerchantImagesByShopId } from '../utils/api';
+import { getMerchantImageByShopId, getMerchantImagesByShopId, extractImageUrls } from '../utils/api';
 import { getNearbyShops } from '../utils/api';
 import { useLocationStore } from '../store/locationStore';
 import PaymentModal from '../components/PaymentModal';
@@ -120,16 +120,13 @@ export default function MemberShopDetails() {
 
   useEffect(() => {
     if (!shop) return;
-    const fromShop = Array.isArray(shop.s3ImageUrl)
-      ? shop.s3ImageUrl
-      : shop.s3ImageUrl
-      ? [shop.s3ImageUrl]
-      : shop.image
-      ? [shop.image]
-      : shopImage
-      ? [shopImage]
-      : [];
-    const nextImages = fromShop.filter(Boolean);
+    let nextImages = extractImageUrls(shop.s3ImageUrl);
+    if (nextImages.length === 0 && typeof shop.image === 'string') {
+      nextImages = [shop.image];
+    }
+    if (nextImages.length === 0 && shopImage) {
+      nextImages = [shopImage];
+    }
     if (nextImages.length > 0) {
       setShopImages((prev) => (isSameImages(prev, nextImages) ? prev : nextImages));
       return;
@@ -289,7 +286,7 @@ export default function MemberShopDetails() {
 
             <View style={styles.content}>
               <View style={styles.titleRow}>
-                <Text style={styles.shopName}>{shop.shopName || shop.name}</Text>
+                <Text style={styles.shopName}>{shop.businessName || shop.shopName || shop.name || 'Shop'}</Text>
                 <View style={[styles.badge, { backgroundColor: badge.bg }]}>
                   <Text style={[styles.badgeText, { color: badge.color }]}>
                     {badge.label}
@@ -314,7 +311,7 @@ export default function MemberShopDetails() {
                 <View style={styles.infoRow}>
                   <Ionicons name="pricetag" size={20} color="#FF6600" />
                   <Text style={styles.infoLabel}>Category:</Text>
-                  <Text style={styles.infoValue}>{shop.category || 'General'}</Text>
+                  <Text style={styles.infoValue}>{shop.businessCategory || shop.category || 'General'}</Text>
                 </View>
                 <View style={styles.infoRow}>
                   <Ionicons name="location" size={20} color="#FF6600" />
@@ -363,7 +360,7 @@ export default function MemberShopDetails() {
 
           <View style={styles.content}>
             <View style={styles.titleRow}>
-              <Text style={styles.shopName}>{shop.shopName || shop.name}</Text>
+              <Text style={styles.shopName}>{shop.businessName || shop.shopName || shop.name || 'Shop'}</Text>
               <View style={[styles.badge, { backgroundColor: badge.bg }]}>
                 <Text style={[styles.badgeText, { color: badge.color }]}>
                   {badge.label}
@@ -388,7 +385,7 @@ export default function MemberShopDetails() {
               <View style={styles.infoRow}>
                 <Ionicons name="pricetag" size={20} color="#FF6600" />
                 <Text style={styles.infoLabel}>Category:</Text>
-                <Text style={styles.infoValue}>{shop.category || 'General'}</Text>
+                <Text style={styles.infoValue}>{shop.businessCategory || shop.category || 'General'}</Text>
               </View>
               <View style={styles.infoRow}>
                 <Ionicons name="location" size={20} color="#FF6600" />
