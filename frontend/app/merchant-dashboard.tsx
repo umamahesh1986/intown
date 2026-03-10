@@ -659,38 +659,36 @@ export default function MerchantDashboard() {
         </View>
 
         {/* Total Summary Section */}
-        <View style={[styles.section, styles.sectionNoHorizontalPadding]}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginTop: 16 }}>
-            <Text style={[styles.sectionTitle, { margin: 0 }]}>Business Summary</Text>
-            {/* <Text style={[styles.normalText, { marginLeft: 6, fontSize: 12 }]}>(Depends on Customer Visits)</Text> */}
-          </View>
-          <View style={styles.summarySection}>
-            <View style={styles.summaryRow}>
-              <View style={styles.summaryItem}>
-                <Text style={styles.summaryLabel}>Today's Business</Text>
-                <Text style={styles.summaryValue}>
-                  {(periodTotals.today?.totalSalesValue ?? 0).toFixed(0)}
-                </Text>
-              </View>
-              <View style={styles.summaryItem}>
-                <Text style={styles.summaryLabel}>This Month's Business</Text>
-                <Text style={styles.summaryValue}>
-                  {(periodTotals.thisMonth?.totalSalesValue ?? 0).toFixed(0)}
-                </Text>
-              </View>
-              <View style={styles.summaryItem}>
-                <Text style={styles.summaryLabel}>This Year's Business</Text>
-                <Text style={styles.summaryValue}>
-                  {(periodTotals.thisYear?.totalSalesValue ?? 0).toFixed(0)}
-                </Text>
-              </View>
-            </View>
-          </View>
-        </View>
+        
+
+<View style={styles.statsContainer}>
+
+<View style={styles.statCard}>
+<Text style={styles.statTitle}>Today's Business</Text>
+<Text style={styles.statValue}>
+{(periodTotals.today?.totalSalesValue ?? 0).toFixed(0)}
+</Text>
+</View>
+
+<View style={styles.statCard}>
+<Text style={styles.statTitle}>This Month's Business</Text>
+<Text style={styles.statValue}>
+{(periodTotals.thisMonth?.totalSalesValue ?? 0).toFixed(0)}
+</Text>
+</View>
+
+<View style={styles.statCard}>
+<Text style={styles.statTitle}>This Year's Business</Text>
+<Text style={styles.statValue}>
+{(periodTotals.thisYear?.totalSalesValue ?? 0).toFixed(0)}
+</Text>
+</View>
+
+</View>
 
         {/* Payments List */}
-        <View style={styles.section}>
-          <View style={[styles.sectionPaymentHeader, { marginTop: 10, alignItems: 'center' }]}>
+       <View style={styles.transactionsCard}>
+          <View style={[styles.transactionHeader, { marginTop: 10, alignItems: 'center' }]}>
             {/* This View below uses row direction to keep title and brackets together */}
             <View style={{ flexDirection: 'row', alignItems: 'baseline', flex: 1 }}>
               <Text style={[styles.sectionTitle, { margin: 0, fontSize: 18 }]}>Recent Business</Text>
@@ -1610,4 +1608,60 @@ headerIconBtn: {
   justifyContent: "center",
   alignItems: "center",
 },
+statsContainer:{
+flexDirection:"row",
+justifyContent:"space-between",
+marginHorizontal:16,
+marginTop:16
+},
+
+statCard:{
+flex:1,
+backgroundColor:"#FF8A00",
+paddingVertical:20,
+borderRadius:20,
+marginHorizontal:6,
+alignItems:"center",
+shadowColor:"#000",
+shadowOpacity:0.15,
+shadowRadius:8,
+shadowOffset:{width:0,height:4},
+elevation:5
+},
+
+statTitle:{
+color:"#FFFFFF",
+fontSize:13,
+fontWeight:"600",
+textAlign:"center"
+},
+
+statValue:{
+color:"#FFFFFF",
+fontSize:24,
+fontWeight:"800",
+marginTop:6
+},
+transactionsCard:{
+backgroundColor:"#FFFFFF",
+marginHorizontal:16,
+marginTop:20,
+borderRadius:20,
+paddingVertical:10,
+paddingBottom:20,
+shadowColor:"#000",
+shadowOpacity:0.12,
+shadowRadius:10,
+shadowOffset:{width:0,height:4},
+elevation:5
+},
+
+transactionHeader:{
+flexDirection:"row",
+justifyContent:"space-between",
+alignItems:"center",
+paddingHorizontal:16,
+paddingTop:10
+},
+
 });

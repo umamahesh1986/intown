@@ -237,54 +237,84 @@ export default function Footer({ dashboardType }: FooterProps) {
     setModalVisible(true);
   };
 
-  return (
-    <View style={styles.footer}>
-      {/* --- Social Media Links --- */}
-      <View style={styles.socialContainer}>
-        <TouchableOpacity style={styles.socialButton} onPress={() => openExternalURL(SOCIAL_LINKS.instagram)}>
-          <Ionicons name="logo-instagram" size={iconSize} color="#FFFFFF" />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.socialButton} onPress={() => openExternalURL(SOCIAL_LINKS.facebook)}>
-          <Ionicons name="logo-facebook" size={iconSize} color="#FFFFFF" />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.socialButton} onPress={() => openExternalURL(SOCIAL_LINKS.linkedin)}>
-          <Ionicons name="logo-linkedin" size={iconSize} color="#FFFFFF" />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.socialButton} onPress={() => openExternalURL(SOCIAL_LINKS.youtube)}>
-          <Ionicons name="logo-youtube" size={iconSize} color="#FFFFFF" />
-        </TouchableOpacity>
-      </View>
+return (
+<View>
 
-      {/* --- Legal Links --- */}
-      <View style={styles.linksContainer}>
-        <TouchableOpacity onPress={() => openInApp(LEGAL_CONTENT.terms, 'Terms and Conditions')}>
-          <Text style={styles.linkText}>Terms and Conditions</Text>
-        </TouchableOpacity>
-        
-        <Text style={styles.separator}>|</Text>
-        
-        <TouchableOpacity onPress={() => openInApp(LEGAL_CONTENT.privacy, 'Privacy Policy')}>
-          <Text style={styles.linkText}>Privacy Policy</Text>
-        </TouchableOpacity>
+<View style={styles.footer}>
 
-        <Text style={styles.separator}>|</Text>
-        
-        <TouchableOpacity onPress={() => openExternalURL('https://www.intownlocal.com/delete-account')}>
-          <Text style={styles.linkText}>Delete Account</Text>
-        </TouchableOpacity>
-      </View>
+<Text style={styles.title}>InTown</Text>
 
-      <Text style={styles.footerCopyright}>
-        Copyright © 2026, Yagnavihar Lifestyle Private Limited
-      </Text>
+<Text style={styles.tagline}>
+Local Stores. Real Savings.
+</Text>
 
-      {/* --- MODAL --- */}
-      <Modal
-        animationType="fade"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
-      >
+{/* ICONS */}
+<View style={styles.iconRow}>
+
+<TouchableOpacity style={styles.iconButton}>
+<Ionicons name="globe-outline" size={26} color="#556575" />
+</TouchableOpacity>
+
+<TouchableOpacity style={styles.iconButton}>
+<Ionicons name="share-social-outline" size={26} color="#556575" />
+</TouchableOpacity>
+
+<TouchableOpacity style={styles.iconButton}>
+<Ionicons name="mail-outline" size={26} color="#556575" />
+</TouchableOpacity>
+
+</View>
+
+{/* LINKS */}
+<View style={styles.linksContainer}>
+
+<TouchableOpacity onPress={() => openInApp(LEGAL_CONTENT.terms,'Terms')}>
+<Text style={styles.linkText}>Terms & Conditions</Text>
+</TouchableOpacity>
+
+<Text style={styles.dot}>•</Text>
+
+<TouchableOpacity onPress={() => openInApp(LEGAL_CONTENT.privacy,'Privacy')}>
+<Text style={styles.linkText}>Privacy Policy</Text>
+</TouchableOpacity>
+
+</View>
+
+<View style={styles.linksContainer}>
+
+<TouchableOpacity>
+<Text style={styles.linkText}>Contact Support</Text>
+</TouchableOpacity>
+
+<Text style={styles.dot}>•</Text>
+
+<TouchableOpacity
+onPress={() =>
+openExternalURL('https://www.intownlocal.com/delete-account')
+}
+>
+<Text style={styles.linkText}>Delete Account</Text>
+</TouchableOpacity>
+
+</View>
+<Text style={styles.footerCopyright}>
+© 2024 InTown Savings Platform. All rights reserved.
+</Text>
+
+
+
+
+
+</View>
+
+
+  {/* MODAL */}
+  <Modal
+    animationType="fade"
+    transparent={true}
+    visible={modalVisible}
+    onRequestClose={() => setModalVisible(false)}
+  >
         <Pressable style={styles.modalOverlay} onPress={() => setModalVisible(false)}>
           <Pressable 
             style={[
@@ -336,12 +366,11 @@ export default function Footer({ dashboardType }: FooterProps) {
 }
 
 const styles = StyleSheet.create({
-  footer: {
-    backgroundColor: '#1A1A1A',
-    paddingHorizontal: 24,
-    paddingVertical: 24,
-    alignItems: 'center',
-  },
+ footer:{
+backgroundColor:'#F3F6F9',
+alignItems:'center',
+paddingVertical:60,
+},
   socialContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
@@ -350,36 +379,35 @@ const styles = StyleSheet.create({
     width: '100%',
     flexWrap: 'wrap', 
   },
-  socialButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#2A2A2A',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginHorizontal: 10,
-  },
-  linksContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  linkText: {
-    fontSize: Platform.select({ android: 10, default: 12 }),
-    color: '#FF6600',
-    fontWeight: '500',
-    marginHorizontal: 10,
-  },
+socialButton: {
+  width: 60,
+  height: 60,
+  borderRadius: 30,
+  backgroundColor: '#E8EDF3',
+  alignItems: 'center',
+  justifyContent: 'center',
+  marginHorizontal: 10,
+},
+linksContainer:{
+flexDirection:'row',
+alignItems:'center',
+marginBottom:12,
+},
+linkText:{
+fontSize:16,
+color:'#7A8A9A',
+},
   separator: { 
-    fontSize: Platform.select({ android: 10, default: 12 }),
-    color: '#999999',
-  },
-  footerCopyright: {
-    fontSize: Platform.select({ android: 10, default: 12 }),
-    color: '#999999',
-    textAlign: 'center',
-  },
+  fontSize: 15,
+  color: '#7A8A9A',
+  marginHorizontal: 10,
+},
+footerCopyright:{
+fontSize:14,
+color:'#9AA7B5',
+textAlign:'center',
+},
+
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
@@ -425,4 +453,59 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 20,
     overflow: 'hidden',
   },
+ title:{
+fontSize:30,
+fontWeight:'700',
+color:'#FF6600',
+},
+
+
+tagline:{
+fontSize:18,
+color:'#5F6F81',
+marginTop:8,
+marginBottom:35,
+},
+
+
+iconRow:{
+flexDirection:'row',
+marginBottom:30,
+},
+
+
+iconButton:{
+width:72,
+height:72,
+borderRadius:36,
+backgroundColor:'#ECEFF4',
+justifyContent:'center',
+alignItems:'center',
+marginHorizontal:12,
+},
+
+support:{
+fontSize:16,
+color:'#7A8A9A',
+marginBottom:25,
+},
+dot:{
+marginHorizontal:10,
+color:'#9AA7B5',
+fontSize:16,
+},
+delete:{
+fontSize:16,
+color:'#7A8A9A',
+marginBottom:25,
+},
+
+deleteContainer:{
+marginBottom:25,
+},
+
+deleteText:{
+fontSize:16,
+color:'#7A8A9A',
+},
 });

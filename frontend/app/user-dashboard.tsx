@@ -545,7 +545,7 @@ const loadNearbyShops = async () => {
 </View>
 
           {/* Search Box */}
-          <View style={styles.searchBox}>
+          <View style={styles.searchContainer}>
   
   <Ionicons
     name="search-outline"
@@ -1224,8 +1224,9 @@ const loadNearbyShops = async () => {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-  },
+  flex: 1,
+  backgroundColor: "#F2F4F7",
+},
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1263,12 +1264,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  locationText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#FF6600',
-    flex: 1,
-  },
+ locationText: {
+  fontSize: 14,
+  fontWeight: '700',
+  color: '#1A1A1A',
+  flex: 1,
+},
   profileButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1379,10 +1380,21 @@ const styles = StyleSheet.create({
   },
   /* --- end new userPanel styles --- */
 
-  searchContainer: {
-    padding: 16,
-    backgroundColor: '#FFFFFF',
-  },
+searchContainer:{
+flexDirection:"row",
+alignItems:"center",
+backgroundColor:"#FFFFFF",
+borderRadius:28,
+paddingHorizontal:16,
+height:52,
+marginHorizontal:16,
+marginTop:10,
+shadowColor:"#000",
+shadowOpacity:0.06,
+shadowRadius:6,
+shadowOffset:{width:0,height:2},
+elevation:3
+},
   searchBox: {
     flexDirection: 'row',
     alignItems: 'center',
