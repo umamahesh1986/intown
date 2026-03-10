@@ -26,15 +26,15 @@ import { useAuthStore } from '../store/authStore';
 import { useLocationStore } from '../store/locationStore';
 import { useFocusEffect } from '@react-navigation/native';
 import Footer from '../components/Footer';
-import { getNearbyShops, getCategories, getMerchantImageByShopId } from '../utils/api';
+import { getNearbyShops, getCategories, getMerchantImageByShopId, extractImageUrls } from '../utils/api';
 import {
   CATEGORY_IMAGE_LIST,
   FALLBACK_CATEGORY_IMAGE,
 } from '../utils/categoryImageList';
-import { 
-  getUserLocationWithDetails, 
-  searchLocations, 
-  setManualLocation 
+import {
+  getUserLocationWithDetails,
+  searchLocations,
+  setManualLocation
 } from '../utils/location';
 import { formatDistance } from '../utils/formatDistance';
 import CommonBottomTabs from "../components/CommonBottomTabs";
@@ -196,8 +196,8 @@ const TransactionCard = ({ transaction }: { transaction: Transaction }) => (
           transaction.status === 'completed'
             ? styles.statusCompleted
             : transaction.status === 'pending'
-            ? styles.statusPending
-            : styles.statusFailed,
+              ? styles.statusPending
+              : styles.statusFailed,
         ]}
       >
         {transaction.status}
@@ -371,7 +371,9 @@ export default function DualDashboard() {
         list.map(async (shop: any) => {
           const shopId = shop?.id ?? shop?.merchantId ?? shop?.merchant_id;
           const image = await getMerchantImageByShopId(shopId);
-          return { ...shop, image: image ?? shop?.image ?? shop?.s3ImageUrl };
+          const img = image ?? shop?.image ?? shop?.s3ImageUrl;
+          const urls = extractImageUrls(img);
+          return { ...shop, image: urls[0] ?? null };
         })
       );
       setNearbyShops(enriched);
@@ -415,8 +417,8 @@ export default function DualDashboard() {
   };
 
   const placeholderItems = [
-    'Grocery', 
-    'Salon', 
+    'Grocery',
+    'Salon',
     'Fashion',
     'Vegetables',
     'Fruits',
@@ -521,9 +523,9 @@ export default function DualDashboard() {
           {
             headers: token
               ? {
-                  Authorization: `Bearer ${token}`,
-                  Accept: 'application/json',
-                }
+                Authorization: `Bearer ${token}`,
+                Accept: 'application/json',
+              }
               : { Accept: 'application/json' },
           }
         );
@@ -570,9 +572,9 @@ export default function DualDashboard() {
           {
             headers: token
               ? {
-                  Authorization: `Bearer ${token}`,
-                  Accept: 'application/json',
-                }
+                Authorization: `Bearer ${token}`,
+                Accept: 'application/json',
+              }
               : { Accept: 'application/json' },
           }
         );
@@ -708,43 +710,43 @@ export default function DualDashboard() {
       {/* Header */}
       <View style={styles.header}>
 
-  {/* LOCATION */}
-  <TouchableOpacity
-    style={styles.locationButton}
-    onPress={() => setShowLocationModal(true)}
-  >
-   <View style={styles.locationIconCircle}>
-  <Ionicons name="location" size={16} color="#FF6600" />
-</View>
+        {/* LOCATION */}
+        <TouchableOpacity
+          style={styles.locationButton}
+          onPress={() => setShowLocationModal(true)}
+        >
+          <View style={styles.locationIconCircle}>
+            <Ionicons name="location" size={16} color="#FF6600" />
+          </View>
 
-    <View style={styles.locationTextContainer}>
-      <Text style={styles.welcomeText}>YOUR LOCATION</Text>
-      <Text style={styles.locationText}>
-        {getLocationDisplayText()}
-      </Text>
-    </View>
-  </TouchableOpacity>
+          <View style={styles.locationTextContainer}>
+            <Text style={styles.welcomeText}>YOUR LOCATION</Text>
+            <Text style={styles.locationText}>
+              {getLocationDisplayText()}
+            </Text>
+          </View>
+        </TouchableOpacity>
 
-  <View style={{ flexDirection: "row", alignItems: "center" }}>
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
 
-    {/* Notification */}
-    <TouchableOpacity style={styles.notificationCircle}>
-      <Ionicons name="notifications-outline" size={20} color="#333" />
-    </TouchableOpacity>
+          {/* Notification */}
+          <TouchableOpacity style={styles.notificationCircle}>
+            <Ionicons name="notifications-outline" size={20} color="#333" />
+          </TouchableOpacity>
 
-    {/* Profile */}
-  <TouchableOpacity
-  style={styles.profileCircle}
-  onPress={(e) => {
-    e.stopPropagation();
-    toggleDropdown();
-  }}
->
-  <Ionicons name="person-outline" size={20} color="#FF6600" />
-</TouchableOpacity>
- </View>
+          {/* Profile */}
+          <TouchableOpacity
+            style={styles.profileCircle}
+            onPress={(e) => {
+              e.stopPropagation();
+              toggleDropdown();
+            }}
+          >
+            <Ionicons name="person-outline" size={20} color="#FF6600" />
+          </TouchableOpacity>
+        </View>
 
-</View>
+      </View>
 
       {/* Dropdown Panel */}
       {showDropdown && (
@@ -805,7 +807,7 @@ export default function DualDashboard() {
               style={styles.userPanelItem}
               onPress={() => {
                 closeDropdown();
-                  setActiveTab('merchant');
+                setActiveTab('merchant');
               }}
             >
               <Ionicons name="storefront-outline" size={22} color="#FF6600" />
@@ -826,7 +828,7 @@ export default function DualDashboard() {
         <TouchableWithoutFeedback onPress={() => setShowSuggestions(false)}>
           <View style={styles.searchSection}>
             <View style={styles.searchContainer}>
-            <Ionicons name="search-outline" size={20} color="#9E9E9E" style={{ marginRight: 12 }} />
+              <Ionicons name="search-outline" size={20} color="#9E9E9E" style={{ marginRight: 12 }} />
               <TextInput
                 style={styles.searchInput}
                 placeholder=""
@@ -851,8 +853,8 @@ export default function DualDashboard() {
                 onSubmitEditing={handleSearch}
               />
               <TouchableOpacity>
-  <Ionicons name="options-outline" size={20} color="#FF6600" />
-</TouchableOpacity>
+                <Ionicons name="options-outline" size={20} color="#FF6600" />
+              </TouchableOpacity>
               {searchQuery.length === 0 && (
                 <View pointerEvents="none" style={styles.animatedPlaceholder}>
                   <Text style={styles.animatedPlaceholderPrefix}>Search for </Text>
@@ -937,14 +939,14 @@ export default function DualDashboard() {
             </Text>
           </View>
         </View>
-       
+
         {/* Quick Stats */}
         <View style={styles.statsContainer}>
-          
+
           <View style={styles.statCard}>
-            
+
             <Text style={styles.statValue}>
-              
+
               {activeTab === 'customer'
                 ? customerTodaySaved.toFixed(0)
                 : merchantTodaySales.toFixed(0)}
@@ -955,7 +957,7 @@ export default function DualDashboard() {
           </View>
           <View style={styles.statCard}>
             <Text style={styles.statValue}>
-              
+
               {activeTab === 'customer'
                 ? customerMonthSaved.toFixed(0)
                 : merchantMonthSales.toFixed(0)}
@@ -968,7 +970,7 @@ export default function DualDashboard() {
           </View>
           <View style={styles.statCard}>
             <Text style={styles.statValue}>
-              
+
               {activeTab === 'customer'
                 ? customerYearSaved.toFixed(0)
                 : merchantYearSales.toFixed(0)}
@@ -1010,16 +1012,16 @@ export default function DualDashboard() {
             </View>
           )}
         </View>
-         {/* Popular Categories (Customer Only) */}
-      {activeTab === 'customer' && (
+        {/* Popular Categories (Customer Only) */}
+        {activeTab === 'customer' && (
           <View style={styles.section}>
-           <View style={styles.sectionHeader}>
-  <Text style={styles.sectionTitle}>Popular Categories</Text>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Popular Categories</Text>
 
-  <TouchableOpacity>
-    <Text style={styles.viewAllText}>View All</Text>
-  </TouchableOpacity>
-</View>
+              <TouchableOpacity>
+                <Text style={styles.viewAllText}>View All</Text>
+              </TouchableOpacity>
+            </View>
             {/* <Text style={styles.normalText}>(Complete list will be displayed once stores onboarded):</Text> */}
             {categories.length > 0 ? (
               <ScrollView
@@ -1185,17 +1187,18 @@ export default function DualDashboard() {
                     }
                   >
                     <View style={styles.nearbyImagePlaceholder}>
-                      {shop.image || shop.s3ImageUrl ? (
-                        <Image
-                          source={{ uri: shop.image || shop.s3ImageUrl }}
-                          style={styles.nearbyImage}
-                        />
-                      ) : (
-                        <Ionicons name="storefront" size={36} color="#FF6600" />
-                      )}
+                      {(() => {
+                        const urls = extractImageUrls(shop.image ?? shop.s3ImageUrl);
+                        const uri = urls[0] ?? (typeof shop.image === 'string' ? shop.image : null);
+                        return uri ? (
+                          <Image source={{ uri }} style={styles.nearbyImage} />
+                        ) : (
+                          <Ionicons name="storefront" size={36} color="#FF6600" />
+                        );
+                      })()}
                     </View>
                     <Text style={styles.nearbyName} numberOfLines={1}>
-                      {shop.shopName || shop.merchantName || shop.contactName || 'Shop'}
+                      {shop.businessName || shop.shopName || shop.merchantName || shop.contactName || 'Shop'}
                     </Text>
                     <Text style={styles.nearbyMeta}>
                       {shop.businessCategory || 'General'}
@@ -1207,7 +1210,7 @@ export default function DualDashboard() {
                           {shop.rating ?? '4.0'}
                         </Text>
                       </View> */}
-                      {/* <View style={styles.nearbyDistance}>
+        {/* <View style={styles.nearbyDistance}>
                         <Ionicons name="location" size={12} color="#FF6600" />
                         <Text style={styles.nearbyDistanceText}>
                           {formatDistance(
@@ -1240,7 +1243,7 @@ export default function DualDashboard() {
         <View style={styles.supportModalOverlay}>
           <View style={styles.supportModalContent}>
             <Image
-              source={{uri:'https://intown-dev.s3.ap-south-1.amazonaws.com/app_logo/intown-logo.jpg'}}
+              source={{ uri: 'https://intown-dev.s3.ap-south-1.amazonaws.com/app_logo/intown-logo.jpg' }}
               style={styles.supportLogo}
             />
             <Text style={styles.supportTitle}>INtown Customer Support</Text>
@@ -1349,7 +1352,7 @@ export default function DualDashboard() {
               <View style={styles.locationDividerLine} />
             </View>
 
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.useCurrentLocationBtn}
               onPress={handleUseCurrentLocation}
               disabled={isLocationLoading}
@@ -1376,7 +1379,7 @@ export default function DualDashboard() {
             {isSearchingLocation && (
               <ActivityIndicator size="small" color="#FF6600" style={{ marginTop: 16 }} />
             )}
-            
+
             <ScrollView style={styles.locationSearchResults}>
               {locationSearchResults.map((item, index) => (
                 <TouchableOpacity
@@ -1483,39 +1486,39 @@ const styles = StyleSheet.create({
     color: '#666666',
     marginTop: 2,
   },
- section: {
-  padding: 16,
-  marginTop: 10,
-},
-searchContainer:{
-flexDirection:"row",
-alignItems:"center",
-backgroundColor:"#FFFFFF",
-borderRadius:30,
-paddingHorizontal:18,
-height:52,
-shadowColor:"#000",
-shadowOpacity:0.08,
-shadowRadius:6,
-shadowOffset:{width:0,height:2},
-elevation:3
-},
-  
- animatedPlaceholder: {
-  position: "absolute",
-  left: 50,
-  flexDirection: "row",
-  alignItems: "center",
-},
+  section: {
+    padding: 16,
+    marginTop: 10,
+  },
+  searchContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 30,
+    paddingHorizontal: 18,
+    height: 52,
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3
+  },
+
+  animatedPlaceholder: {
+    position: "absolute",
+    left: 50,
+    flexDirection: "row",
+    alignItems: "center",
+  },
   animatedPlaceholderPrefix: {
     fontSize: 16,
     color: '#999999',
   },
-animatedPlaceholderWord:{
-fontSize:16,
-color:"#FF6600",
-fontWeight:"600"
-},
+  animatedPlaceholderWord: {
+    fontSize: 16,
+    color: "#FF6600",
+    fontWeight: "600"
+  },
   suggestionBox: {
     backgroundColor: '#fff',
     borderRadius: 10,
@@ -1660,33 +1663,33 @@ fontWeight:"600"
     alignItems: 'center',
     justifyContent: 'center',
   },
-tabContainer: {
-  flexDirection: "row",
-  backgroundColor: "#E6EBF0",
-  marginHorizontal: 16,
-  marginTop: 12,
-  borderRadius: 22
-},
- tabButton: {
-  flex: 1,
-  flexDirection: "row",
-  alignItems: "center",
-  justifyContent: "center",
-  paddingVertical: 10,
-  borderRadius: 26
-},
-tabButtonActive: {
-  backgroundColor: "#FFFFFF"
-},
- tabLabel: {
-  marginLeft: 6,
-  fontSize: 14,
-  fontWeight: "600",
-  color: "#6B7A8C"
-},
- tabLabelActive: {
-  color: "#000000"
-},
+  tabContainer: {
+    flexDirection: "row",
+    backgroundColor: "#E6EBF0",
+    marginHorizontal: 16,
+    marginTop: 12,
+    borderRadius: 22
+  },
+  tabButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 10,
+    borderRadius: 26
+  },
+  tabButtonActive: {
+    backgroundColor: "#FFFFFF"
+  },
+  tabLabel: {
+    marginLeft: 6,
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#6B7A8C"
+  },
+  tabLabelActive: {
+    color: "#000000"
+  },
   content: {
     flex: 1,
   },
@@ -1725,45 +1728,45 @@ tabButtonActive: {
     color: '#666666',
     marginTop: 4,
   },
-statsContainer: {
-  flexDirection: "row",
-  justifyContent: "space-between",
-  marginHorizontal: 16,
-  marginTop: 16,
-},
-statCard: {
-  flex: 1,
-  backgroundColor: "#FF8A00",
-  marginHorizontal: 6,
-  paddingVertical: 22,
-  borderRadius: 20,
-  alignItems: "center",
-  shadowColor: "#000",
-  shadowOpacity: 0.15,
-  shadowRadius: 8,
-  shadowOffset: { width: 0, height: 4 },
-  elevation: 5
-},
-statValue: {
-  fontSize: 24,
-  fontWeight: "800",
-  color: "#FFFFFF",
-},
- statLabel: {
-  fontSize: 13,
-  color: "#FFFFFF",
-  fontWeight: "600",
-  marginTop: 6,
-  textAlign: "center"
-},
-transactionsSection: {
-  backgroundColor: "#FFFFFF",
-  marginHorizontal: 16,
-  marginTop: 20,
-  marginBottom: 20,
-  padding: 16,
-  borderRadius: 20,
-},
+  statsContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginHorizontal: 16,
+    marginTop: 16,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: "#FF8A00",
+    marginHorizontal: 6,
+    paddingVertical: 22,
+    borderRadius: 20,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 5
+  },
+  statValue: {
+    fontSize: 24,
+    fontWeight: "800",
+    color: "#FFFFFF",
+  },
+  statLabel: {
+    fontSize: 13,
+    color: "#FFFFFF",
+    fontWeight: "600",
+    marginTop: 6,
+    textAlign: "center"
+  },
+  transactionsSection: {
+    backgroundColor: "#FFFFFF",
+    marginHorizontal: 16,
+    marginTop: 20,
+    marginBottom: 20,
+    padding: 16,
+    borderRadius: 20,
+  },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1776,7 +1779,7 @@ transactionsSection: {
     color: '#1A1A1A',
     marginBottom: 8,
   },
-  
+
   categoriesCarouselContent: {
     flexDirection: 'row',
     paddingVertical: 4,
@@ -2003,7 +2006,7 @@ transactionsSection: {
     marginLeft: 4,
     color: '#FF6600',
   },
-  
+
   // Location Modal Styles
   locationModalContainer: {
     flex: 1,
@@ -2113,51 +2116,51 @@ transactionsSection: {
     marginTop: 2,
   },
   normalText: {
-    fontWeight: 'normal',  
-    color: '#666',         
+    fontWeight: 'normal',
+    color: '#666',
   },
   notificationCircle: {
-  width: 36,
-  height: 36,
-  borderRadius: 18,
-  borderWidth: 1,
-  borderColor: "#E0E0E0",
-  backgroundColor: "#FFFFFF",
-  justifyContent: "center",
-  alignItems: "center",
-  marginRight: 12,
-},
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+    backgroundColor: "#FFFFFF",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
 
-searchSection:{
-paddingHorizontal:16,
-marginTop:12
-},
+  searchSection: {
+    paddingHorizontal: 16,
+    marginTop: 12
+  },
 
 
 
-searchInput:{
-flex:1,
-fontSize:16,
-color:"#1A1A1A"
-},
-locationIconCircle:{
-width:36,
-height:36,
-borderRadius:18,
-backgroundColor:"#FFF3E0",
-justifyContent:"center",
-alignItems:"center",
-marginRight:8
-},
-profileCircle:{
-width:36,
-height:36,
-borderRadius:18,
-borderWidth:2,
-borderColor:"#FF6600",
-justifyContent:"center",
-alignItems:"center"
-},
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: "#1A1A1A"
+  },
+  locationIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#FFF3E0",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 8
+  },
+  profileCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 2,
+    borderColor: "#FF6600",
+    justifyContent: "center",
+    alignItems: "center"
+  },
 
 
 });

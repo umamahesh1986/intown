@@ -36,7 +36,7 @@ import {
   getNearbyShops,
   getNearbyShopsByCategory,
 } from '../utils/api';
-import { getCustomerProfile, getMerchantImageByShopId } from '../utils/api';
+import { getCustomerProfile, getMerchantImageByShopId, extractImageUrls } from '../utils/api';
 
 
 import {
@@ -602,7 +602,9 @@ export default function MemberDashboard() {
         list.map(async (shop: any) => {
           const shopId = shop?.id ?? shop?.merchantId ?? shop?.merchant_id;
           const image = await getMerchantImageByShopId(shopId);
-          return { ...shop, image: image ?? shop?.image ?? shop?.s3ImageUrl };
+          const img = image ?? shop?.image ?? shop?.s3ImageUrl;
+          const urls = extractImageUrls(img);
+          return { ...shop, image: urls[0] ?? null };
         })
       );
       setNearbyShops(enriched);
@@ -1165,18 +1167,19 @@ export default function MemberDashboard() {
                   }
                 >
                   <View style={styles.shopImagePlaceholder}>
-                    {shop.image || shop.s3ImageUrl ? (
-                      <Image
-                        source={{ uri: shop.image || shop.s3ImageUrl }}
-                        style={styles.shopImageThumb}
-                      />
-                    ) : (
-                      <Ionicons name="storefront" size={40} color="#FF8C00" />
-                    )}
+                    {(() => {
+                      const urls = extractImageUrls(shop.image ?? shop.s3ImageUrl);
+                      const uri = urls[0] ?? (typeof shop.image === 'string' ? shop.image : null);
+                      return uri ? (
+                        <Image source={{ uri }} style={styles.shopImageThumb} />
+                      ) : (
+                        <Ionicons name="storefront" size={40} color="#FF8C00" />
+                      );
+                    })()}
                   </View>
 
                   <Text style={styles.shopCardName} numberOfLines={1}>
-                    {shop.businessName || shop.contactName || 'Shop'}
+                    {shop.businessName || shop.shopName || shop.contactName || 'Shop'}
                   </Text>
 
                   <Text style={styles.shopCardCategory}>
