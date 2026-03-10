@@ -47,7 +47,9 @@ export default function RootLayout() {
     '/account',
     '/payment',
     '/member-card',
-    '/near-by'
+    '/near-by',
+    '/savings',
+    '/plans'
   ].includes(pathname);
 
   const tabs = [
@@ -79,6 +81,8 @@ export default function RootLayout() {
         <Stack.Screen name="shop-details" />
         <Stack.Screen name="payment" />
         <Stack.Screen name="account" />
+        <Stack.Screen name="savings" />
+        <Stack.Screen name="plans" />
       </Stack>
 
       {/* Conditionally render the bar with dynamic tabs */}
