@@ -17,8 +17,14 @@ export default function MemberShopDetails() {
   const shopFromParams = useMemo(() => {
     if (!params.shop) return null;
     try {
-      return JSON.parse(params.shop);
-    } catch {
+      const parsed = JSON.parse(params.shop);
+      // Validate parsed data has required structure
+      if (parsed && typeof parsed === 'object') {
+        return parsed;
+      }
+      return null;
+    } catch (err) {
+      console.error('Error parsing shop params:', err);
       return null;
     }
   }, [params.shop]);

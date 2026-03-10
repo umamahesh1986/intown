@@ -60,17 +60,35 @@ export default function MemberShopList() {
         `https://api.intownlocal.com/IN/search/by-product-names?categoryId=${encodeURIComponent(categoryId)}&customerLatitude=${location.latitude}&customerLongitude=${location.longitude}`
       );
 
+      if (!res.ok) {
+        console.error('Category search failed with status:', res.status);
+        setShops([]);
+        setIsLoading(false);
+        return;
+      }
+
       const data = await res.json();
 
       const list = Array.isArray(data) ? data : [];
-      const enriched = await Promise.all(
-        list.map(async (shop: any) => {
+      
+      // Process shops with error handling for each item
+      const enriched: any[] = [];
+      for (const shop of list) {
+        try {
           const shopId = shop?.id ?? shop?.merchantId ?? shop?.merchant_id;
-          const image = await getMerchantImageByShopId(shopId);
+          let image = null;
+          try {
+            image = await getMerchantImageByShopId(shopId);
+          } catch (imgErr) {
+            console.warn('Failed to get image for shop:', shopId);
+          }
           const img = image ?? shop?.image ?? shop?.s3ImageUrl;
-          return { ...shop, image: getFirstImageUrl(img) };
-        })
-      );
+          enriched.push({ ...shop, image: getFirstImageUrl(img) });
+        } catch (itemErr) {
+          console.warn('Error processing shop item:', itemErr);
+          enriched.push({ ...shop, image: null });
+        }
+      }
       setShops(enriched);
     } catch (error) {
       console.error('Failed to fetch category shops', error);
@@ -151,19 +169,39 @@ export default function MemberShopList() {
 
   const handleViewShop = (shop: any) => {
     try {
-      const shopId = shop?.id ?? shop?.merchantId ?? '';
+      if (!shop) {
+        console.error('handleViewShop: shop is null or undefined');
+        return;
+      }
+      const shopId = shop?.id ?? shop?.merchantId ?? shop?.merchant_id ?? '';
+      if (!shopId) {
+        console.error('handleViewShop: shopId is empty');
+        return;
+      }
       // IMPORTANT (Android): keep route params small to avoid app crash.
       // Do NOT pass full API objects containing long S3 signed URLs/arrays.
+      // Only pass primitive values that are safe for URL encoding
+      const safeString = (val: any): string | null => {
+        if (val == null) return null;
+        if (typeof val === 'string') return val.substring(0, 200); // Limit string length
+        if (typeof val === 'number') return String(val);
+        return null;
+      };
+      const safeNumber = (val: any): number | null => {
+        if (val == null) return null;
+        const num = Number(val);
+        return isNaN(num) ? null : num;
+      };
       const minimalShop = {
-        id: shopId,
-        businessName: shop?.businessName ?? null,
-        shopName: shop?.shopName ?? shop?.name ?? null,
-        contactName: shop?.contactName ?? null,
-        businessCategory: shop?.businessCategory ?? shop?.category ?? null,
-        distance: shop?.distance ?? null,
-        latitude: shop?.latitude ?? null,
-        longitude: shop?.longitude ?? null,
-        image: getFirstImageUrl(shop?.image ?? shop?.s3ImageUrl) ?? null,
+        id: String(shopId),
+        businessName: safeString(shop?.businessName),
+        shopName: safeString(shop?.shopName ?? shop?.name),
+        contactName: safeString(shop?.contactName),
+        businessCategory: safeString(shop?.businessCategory ?? shop?.category),
+        distance: safeNumber(shop?.distance),
+        latitude: safeNumber(shop?.latitude),
+        longitude: safeNumber(shop?.longitude),
+        image: safeString(getFirstImageUrl(shop?.image ?? shop?.s3ImageUrl)),
       };
       const shopJson = JSON.stringify(minimalShop);
       router.push({
@@ -213,66 +251,72 @@ export default function MemberShopList() {
           keyExtractor={(item, index) => String(item?.id ?? item?.merchantId ?? index)}
           contentContainerStyle={styles.listContent}
           renderItem={({ item }) => {
-            const imageUri = getFirstImageUrl(item?.image);
-            return (
-            <View style={styles.shopCard}>
+            // Wrap entire render in try-catch to prevent crashes
+            try {
+              if (!item) return null;
+              const imageUri = getFirstImageUrl(item?.image);
+              const shopName = item?.businessName || item?.shopName || item?.name || item?.contactName || 'Shop';
+              const categoryText = item?.businessCategory || item?.category || 'General';
+              const contactName = item?.contactName;
+              const showContactName = contactName && contactName !== item?.shopName;
+              
+              return (
+                <View style={styles.shopCard}>
+                  {/* TOP ROW */}
+                  <View style={styles.shopRow}>
+                    {/* LEFT: ICON */}
+                    <View style={styles.shopImageContainer}>
+                      {imageUri ? (
+                        <Image
+                          source={{ uri: imageUri }}
+                          style={{ width: 60, height: 60, borderRadius: 10 }}
+                        />
+                      ) : (
+                        <Ionicons name="storefront" size={40} color="#FF6600" />
+                      )}
+                    </View>
 
-              {/* TOP ROW */}
-              <View style={styles.shopRow}>
+                    {/* RIGHT: INFO */}
+                    <View style={styles.shopInfoRight}>
+                      <View style={styles.shopInfoRightnew}>
+                        <Text style={styles.shopName} numberOfLines={1}>
+                          {shopName}
+                        </Text>
 
-                {/* LEFT: ICON */}
-                <View style={styles.shopImageContainer}>
-                  {imageUri ? (
-                    <Image
-                      source={{ uri: imageUri }}
-                      style={{ width: 60, height: 60, borderRadius: 10 }}
-                    />
-                  ) : (
-                    <Ionicons name="storefront" size={40} color="#FF6600" />
-                  )}
-                </View>
+                        <Text style={styles.categoryText}>
+                          {categoryText}
+                        </Text>
 
-                {/* RIGHT: INFO */}
-                <View style={styles.shopInfoRight}>
-                  <View style={styles.shopInfoRightnew}>
-                    <Text style={styles.shopName} numberOfLines={1}>
-                      {item.businessName || item.shopName || item.name || item.contactName || 'Shop'}
-                    </Text>
-
-                    <Text style={styles.categoryText}>
-                      {item.businessCategory || item.category || 'General'}
-                    </Text>
-
-                    {!!(item.contactName && item.contactName !== item.shopName) && (
-                      <Text style={styles.contactNameText} numberOfLines={1}>
-                        {item.contactName}
-                      </Text>
-                    )}
-
+                        {showContactName && (
+                          <Text style={styles.contactNameText} numberOfLines={1}>
+                            {contactName}
+                          </Text>
+                        )}
+                      </View>
+                      <View style={styles.distanceRow}>
+                        <Ionicons name="location" size={14} color="#ff6600" />
+                        <Text style={styles.distanceText}>
+                          {formatDistance(item?.distance)}
+                        </Text>
+                      </View>
+                    </View>
                   </View>
-                  <View style={styles.distanceRow}>
-                    <Ionicons name="location" size={14} color="#ff6600" />
-                    <Text style={styles.distanceText}>
-                      {formatDistance(item.distance)}
-                    </Text>
+
+                  {/* BUTTON */}
+                  <View style={styles.buttonContainer}>
+                    <TouchableOpacity
+                      style={styles.viewButton}
+                      onPress={() => handleViewShop(item)}
+                    >
+                      <Text style={styles.viewButtonText}>View</Text>
+                    </TouchableOpacity>
                   </View>
                 </View>
-
-              </View>
-
-              {/* BUTTON */}
-              <View style={styles.buttonContainer}>
-                <TouchableOpacity
-                  style={styles.viewButton}
-                  onPress={() => handleViewShop(item)}
-                >
-                  <Text style={styles.viewButtonText}>View</Text>
-                </TouchableOpacity>
-              </View>
-
-            </View>
-
-          );
+              );
+            } catch (renderErr) {
+              console.error('Error rendering shop item:', renderErr);
+              return null;
+            }
           }}
         />
       )}
