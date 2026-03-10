@@ -237,98 +237,98 @@ export default function Footer({ dashboardType }: FooterProps) {
     setModalVisible(true);
   };
 
-return (
-<View>
+  return (
+    <View>
 
-<View style={styles.footer}>
+      <View style={styles.footer}>
 
-<Text style={styles.title}>InTown</Text>
+        {/* <Text style={styles.title}>InTown</Text>
 
 <Text style={styles.tagline}>
 Local Stores. Real Savings.
-</Text>
+</Text> */}
 
-{/* ICONS */}
-<View style={styles.iconRow}>
+        {/* ICONS */}
+        <View style={styles.iconRow}>
 
-<TouchableOpacity style={styles.iconButton}>
-<Ionicons name="globe-outline" size={26} color="#556575" />
-</TouchableOpacity>
+          <TouchableOpacity style={styles.iconButton}>
+            <Ionicons name="globe-outline" size={26} color="#556575" />
+          </TouchableOpacity>
 
-<TouchableOpacity style={styles.iconButton}>
-<Ionicons name="share-social-outline" size={26} color="#556575" />
-</TouchableOpacity>
+          <TouchableOpacity style={styles.iconButton}>
+            <Ionicons name="share-social-outline" size={26} color="#556575" />
+          </TouchableOpacity>
 
-<TouchableOpacity style={styles.iconButton}>
-<Ionicons name="mail-outline" size={26} color="#556575" />
-</TouchableOpacity>
+          <TouchableOpacity style={styles.iconButton}>
+            <Ionicons name="mail-outline" size={26} color="#556575" />
+          </TouchableOpacity>
 
-</View>
+        </View>
 
-{/* LINKS */}
-<View style={styles.linksContainer}>
+        {/* LINKS */}
+        <View style={styles.linksContainer}>
 
-<TouchableOpacity onPress={() => openInApp(LEGAL_CONTENT.terms,'Terms')}>
-<Text style={styles.linkText}>Terms & Conditions</Text>
-</TouchableOpacity>
+          <TouchableOpacity onPress={() => openInApp(LEGAL_CONTENT.terms, 'Terms')}>
+            <Text style={styles.linkText}>Terms & Conditions</Text>
+          </TouchableOpacity>
 
-<Text style={styles.dot}>•</Text>
+          <Text style={styles.dot}></Text>
 
-<TouchableOpacity onPress={() => openInApp(LEGAL_CONTENT.privacy,'Privacy')}>
-<Text style={styles.linkText}>Privacy Policy</Text>
-</TouchableOpacity>
+          <TouchableOpacity onPress={() => openInApp(LEGAL_CONTENT.privacy, 'Privacy')}>
+            <Text style={styles.linkText}>Privacy Policy</Text>
+          </TouchableOpacity>
 
-</View>
+        </View>
 
-<View style={styles.linksContainer}>
+        <View style={styles.linksContainer}>
 
-<TouchableOpacity>
-<Text style={styles.linkText}>Contact Support</Text>
-</TouchableOpacity>
+          <TouchableOpacity>
+            <Text style={styles.linkText}>Contact Support</Text>
+          </TouchableOpacity>
 
-<Text style={styles.dot}>•</Text>
+          <Text style={styles.dot}></Text>
 
-<TouchableOpacity
-onPress={() =>
-openExternalURL('https://www.intownlocal.com/delete-account')
-}
->
-<Text style={styles.linkText}>Delete Account</Text>
-</TouchableOpacity>
+          <TouchableOpacity
+            onPress={() =>
+              openExternalURL('https://www.intownlocal.com/delete-account')
+            }
+          >
+            <Text style={styles.linkText}>Delete Account</Text>
+          </TouchableOpacity>
 
-</View>
-<Text style={styles.footerCopyright}>
-© 2024 InTown Savings Platform. All rights reserved.
-</Text>
-
-
+        </View>
+        <Text style={styles.footerCopyright}>
+          © InTown. All rights reserved. 2026
+        </Text>
 
 
 
-</View>
 
 
-  {/* MODAL */}
-  <Modal
-    animationType="fade"
-    transparent={true}
-    visible={modalVisible}
-    onRequestClose={() => setModalVisible(false)}
-  >
+      </View>
+
+
+      {/* MODAL */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => setModalVisible(false)}
+      >
         <Pressable style={styles.modalOverlay} onPress={() => setModalVisible(false)}>
-          <Pressable 
+          <Pressable
             style={[
               styles.modalContainer,
-              { 
-                width: isLargeScreen ? '95%' : '90%', 
-                height: isLargeScreen ? '95%' : '80%' 
+              {
+                width: isLargeScreen ? '95%' : '90%',
+                height: isLargeScreen ? '95%' : '80%'
               }
             ]}
             onPress={(e) => e.stopPropagation()}
           >
             {/* Header */}
             <View style={styles.modalHeader}>
-              <View style={{ width: 30 }} /> 
+              <View style={{ width: 30 }} />
               {Platform.OS === 'android' ? null : (
                 <Text style={styles.modalTitle}>{modalTitle}</Text>
               )}
@@ -340,22 +340,22 @@ openExternalURL('https://www.intownlocal.com/delete-account')
             {/* Content */}
             <View style={styles.contentContainer}>
               {Platform.OS === 'web' ? (
-                  <iframe 
-                    srcDoc={currentHtml} 
-                    style={{ width: '100%', height: '100%', border: 'none' }}
-                    title="Legal Document"
-                  />
+                <iframe
+                  srcDoc={currentHtml}
+                  style={{ width: '100%', height: '100%', border: 'none' }}
+                  title="Legal Document"
+                />
               ) : (
-                  <WebView 
-                    source={{ html: currentHtml }} 
-                    style={{ flex: 1, backgroundColor: 'white' }}
-                    nestedScrollEnabled={true} 
-                    startInLoadingState={true}
-                    javaScriptEnabled={true}
-                    domStorageEnabled={true}
-                    scalesPageToFit={Platform.OS === 'ios'}
-                    originWhitelist={['*']}
-                  />
+                <WebView
+                  source={{ html: currentHtml }}
+                  style={{ flex: 1, backgroundColor: 'white' }}
+                  nestedScrollEnabled={true}
+                  startInLoadingState={true}
+                  javaScriptEnabled={true}
+                  domStorageEnabled={true}
+                  scalesPageToFit={Platform.OS === 'ios'}
+                  originWhitelist={['*']}
+                />
               )}
             </View>
           </Pressable>
@@ -366,58 +366,60 @@ openExternalURL('https://www.intownlocal.com/delete-account')
 }
 
 const styles = StyleSheet.create({
- footer:{
-backgroundColor:'#F3F6F9',
-alignItems:'center',
-paddingVertical:60,
-},
+  footer: {
+    backgroundColor: '#F3F6F9',
+    alignItems: 'center',
+    paddingVertical: 36,
+  },
   socialContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 28,
     width: '100%',
-    flexWrap: 'wrap', 
+    flexWrap: 'wrap',
   },
-socialButton: {
-  width: 60,
-  height: 60,
-  borderRadius: 30,
-  backgroundColor: '#E8EDF3',
-  alignItems: 'center',
-  justifyContent: 'center',
-  marginHorizontal: 10,
-},
-linksContainer:{
-flexDirection:'row',
-alignItems:'center',
-marginBottom:12,
-},
-linkText:{
-fontSize:16,
-color:'#7A8A9A',
-},
-  separator: { 
-  fontSize: 15,
-  color: '#7A8A9A',
-  marginHorizontal: 10,
-},
-footerCopyright:{
-fontSize:14,
-color:'#9AA7B5',
-textAlign:'center',
-},
+  socialButton: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#E8EDF3',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginHorizontal: 10,
+  },
+  linksContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  linkText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#94A3B8',
+  },
+  separator: {
+    fontSize: 15,
+    color: '#7A8A9A',
+    marginHorizontal: 10,
+  },
+  footerCopyright: {
+    fontSize: 12,
+    color: '#64748B',
+    textAlign: 'center',
+    marginTop: 12,
+  },
 
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center', 
-    alignItems: 'center',     
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   modalContainer: {
     backgroundColor: 'white',
     borderRadius: 20,
-    maxWidth: 1000, 
+    maxWidth: 1000,
     ...Platform.select({
       ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 5 },
       android: { elevation: 10 },
@@ -453,59 +455,59 @@ textAlign:'center',
     borderBottomRightRadius: 20,
     overflow: 'hidden',
   },
- title:{
-fontSize:30,
-fontWeight:'700',
-color:'#FF6600',
-},
+  title: {
+    fontSize: 30,
+    fontWeight: '700',
+    color: '#FF6600',
+  },
 
 
-tagline:{
-fontSize:18,
-color:'#5F6F81',
-marginTop:8,
-marginBottom:35,
-},
+  tagline: {
+    fontSize: 18,
+    color: '#5F6F81',
+    marginTop: 8,
+    marginBottom: 35,
+  },
 
 
-iconRow:{
-flexDirection:'row',
-marginBottom:30,
-},
+  iconRow: {
+    flexDirection: 'row',
+    marginBottom: 30,
+  },
 
 
-iconButton:{
-width:72,
-height:72,
-borderRadius:36,
-backgroundColor:'#ECEFF4',
-justifyContent:'center',
-alignItems:'center',
-marginHorizontal:12,
-},
+  iconButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 36,
+    backgroundColor: '#ECEFF4',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginHorizontal: 12,
+  },
 
-support:{
-fontSize:16,
-color:'#7A8A9A',
-marginBottom:25,
-},
-dot:{
-marginHorizontal:10,
-color:'#9AA7B5',
-fontSize:16,
-},
-delete:{
-fontSize:16,
-color:'#7A8A9A',
-marginBottom:25,
-},
+  support: {
+    fontSize: 16,
+    color: '#7A8A9A',
+    marginBottom: 25,
+  },
+  dot: {
+    marginHorizontal: 10,
+    color: '#9AA7B5',
+    fontSize: 16,
+  },
+  delete: {
+    fontSize: 16,
+    color: '#7A8A9A',
+    marginBottom: 25,
+  },
 
-deleteContainer:{
-marginBottom:25,
-},
+  deleteContainer: {
+    marginBottom: 25,
+  },
 
-deleteText:{
-fontSize:16,
-color:'#7A8A9A',
-},
+  deleteText: {
+    fontSize: 16,
+    color: '#7A8A9A',
+  },
 });

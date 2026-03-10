@@ -116,7 +116,7 @@ export default function UserDashboard() {
   ];
 
   // ----------------- CAROUSEL IMAGES (FIXED for Web compatibility) -----------------
-  
+
   // ---------------------------------------------------------------------------------
 
 
@@ -129,8 +129,8 @@ export default function UserDashboard() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [categories, setCategories] = useState<Category[]>(DUMMY_CATEGORIES);
   // Nearby shops (real API)
-const [nearbyShops, setNearbyShops] = useState<any[]>([]);
-  
+  const [nearbyShops, setNearbyShops] = useState<any[]>([]);
+
 
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
   const [monthlySpend, setMonthlySpend] = useState('10000');
@@ -165,56 +165,56 @@ const [nearbyShops, setNearbyShops] = useState<any[]>([]);
   const categoriesScrollRef = useRef<ScrollView | null>(null);
   const nearbyScrollRef = useRef<ScrollView | null>(null);
 
-// ================= CAROUSEL IMAGES FROM S3 =================
-// const loadCarouselImages = () => {
-//   setCarouselImages([
-//     'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner1.jpg',
-//     'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner2.png',
-//     'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner3.png',
-//     'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner4.png',
-//     'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner5.png',
-//     'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner6.png',
-//     'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner7.png',
+  // ================= CAROUSEL IMAGES FROM S3 =================
+  // const loadCarouselImages = () => {
+  //   setCarouselImages([
+  //     'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner1.jpg',
+  //     'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner2.png',
+  //     'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner3.png',
+  //     'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner4.png',
+  //     'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner5.png',
+  //     'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner6.png',
+  //     'https://intown-dev.s3.ap-south-1.amazonaws.com/CarouselImages/Banner7.png',
 
-//   ]);
-// };
-// ==========================================================
+  //   ]);
+  // };
+  // ==========================================================
 
 
   const placeholderAnim = useRef(new Animated.Value(0)).current;
   const CATEGORY_CARD_WIDTH = 100;
   const CATEGORY_CARD_GAP = 12;
   const CARD_WIDTH = 172; // 160 + 12 (margin)
-  
 
 
-useEffect(() => {
-  loadData();
-  loadUserType();
-  
-  requestLocationOnMount();
 
- // loadCarouselImages(); 
-}, []);
-useEffect(() => {
-  if (carouselImages.length === 0) return;
+  useEffect(() => {
+    loadData();
+    loadUserType();
 
-  const timer = setInterval(() => {
-    setCarouselIndex(prev => {
-      const next = (prev + 1) % carouselImages.length;
-      carouselRef.current?.scrollTo({
-        x: next * SLIDE_WIDTH,
-        animated: true,
+    requestLocationOnMount();
+
+    // loadCarouselImages(); 
+  }, []);
+  useEffect(() => {
+    if (carouselImages.length === 0) return;
+
+    const timer = setInterval(() => {
+      setCarouselIndex(prev => {
+        const next = (prev + 1) % carouselImages.length;
+        carouselRef.current?.scrollTo({
+          x: next * SLIDE_WIDTH,
+          animated: true,
+        });
+        return next;
       });
-      return next;
-    });
-  }, 3500);
+    }, 3500);
 
-  return () => clearInterval(timer);
-}, [carouselImages]);
+    return () => clearInterval(timer);
+  }, [carouselImages]);
 
-  const stopCategoriesAutoScroll = () => {};
-  const stopNearbyAutoScroll = () => {};
+  const stopCategoriesAutoScroll = () => { };
+  const stopNearbyAutoScroll = () => { };
 
   const categoryColumns = [];
   for (let i = 0; i < categories.length; i += 2) {
@@ -223,10 +223,10 @@ useEffect(() => {
 
 
   useEffect(() => {
-  if (location?.latitude && location?.longitude) {
-    loadNearbyShops();
-  }
-}, [location?.latitude, location?.longitude]);
+    if (location?.latitude && location?.longitude) {
+      loadNearbyShops();
+    }
+  }, [location?.latitude, location?.longitude]);
 
 
   const SEARCH_ITEMS = [
@@ -339,7 +339,7 @@ useEffect(() => {
     }
   };
 
-  
+
 
   const formatUserType = (type: string): string => {
     const lower = type.toLowerCase();
@@ -372,31 +372,31 @@ useEffect(() => {
     }
   };
   //  Load nearby shops using location only
-const loadNearbyShops = async () => {
-  try {
-    // location already comes from store
-    if (!location?.latitude || !location?.longitude) return;
+  const loadNearbyShops = async () => {
+    try {
+      // location already comes from store
+      if (!location?.latitude || !location?.longitude) return;
 
-    const response = await getNearbyShops(
-      location.latitude,
-      location.longitude
-    );
+      const response = await getNearbyShops(
+        location.latitude,
+        location.longitude
+      );
 
-    // backend returns ARRAY, not { data: [] }
-    const list = Array.isArray(response) ? response : [];
-    const enriched = await Promise.all(
-      list.map(async (shop: any) => {
-        const shopId = shop?.id ?? shop?.merchantId ?? shop?.merchant_id;
-        const image = await getMerchantImageByShopId(shopId);
-        return { ...shop, image: image ?? shop?.image ?? shop?.s3ImageUrl };
-      })
-    );
-    setNearbyShops(enriched);
-  } catch (error) {
-    console.error('Failed to load nearby shops', error);
-    setNearbyShops([]);
-  }
-};
+      // backend returns ARRAY, not { data: [] }
+      const list = Array.isArray(response) ? response : [];
+      const enriched = await Promise.all(
+        list.map(async (shop: any) => {
+          const shopId = shop?.id ?? shop?.merchantId ?? shop?.merchant_id;
+          const image = await getMerchantImageByShopId(shopId);
+          return { ...shop, image: image ?? shop?.image ?? shop?.s3ImageUrl };
+        })
+      );
+      setNearbyShops(enriched);
+    } catch (error) {
+      console.error('Failed to load nearby shops', error);
+      setNearbyShops([]);
+    }
+  };
 
 
   const calculateSavings = () => {
@@ -492,7 +492,7 @@ const loadNearbyShops = async () => {
     return 'Set Location';
   };
 
-  
+
   const handleSearchBlur = () => {
     setTimeout(() => {
       setShowSuggestions(false);
@@ -508,88 +508,91 @@ const loadNearbyShops = async () => {
         <ScrollView showsVerticalScrollIndicator={false}>
           {/* Header */}
 
-<View style={styles.headerRow}>
+          <View style={styles.headerRow}>
 
-  <TouchableOpacity
-    style={styles.locationWrapper}
-    onPress={() => setShowLocationModal(true)}
-  >
-    <View style={styles.locationIcon}>
-      <Ionicons name="location-outline" size={18} color="#FF7A00" />
-    </View>
+            <TouchableOpacity
+              style={styles.locationWrapper}
+              onPress={() => setShowLocationModal(true)}
+            >
+              <View style={styles.locationIcon}>
+                <Ionicons name="location-outline" size={24} color="#FF7A00" />
+              </View>
 
-    <View>
-      <Text style={styles.locationLabel}>YOUR LOCATION</Text>
+              <View>
+                <Text style={styles.locationLabel}>YOUR LOCATION</Text>
 
-      <Text style={styles.locationText}>
-        {getLocationDisplayText()}
-      </Text>
-    </View>
-  </TouchableOpacity>
+                <Text style={styles.locationText}>
+                  {getLocationDisplayText()}
+                </Text>
+              </View>
+            </TouchableOpacity>
 
-  <View style={styles.headerIcons}>
+            <View style={styles.headerIcons}>
 
-     <TouchableOpacity style={styles.iconCircle}>
-    <Ionicons name="notifications-outline" size={20} color="#333" />
-  </TouchableOpacity>
+              <TouchableOpacity style={styles.iconCircle}>
+                <Ionicons name="notifications-outline" size={24} color="#475569" />
+              </TouchableOpacity>
 
-    <TouchableOpacity
-  style={styles.iconCircleActive}
-  onPress={() => router.push("/profile-menu")}
->
-  <Ionicons name="person-outline" size={20} color="#FF7A00" />
-</TouchableOpacity>
+                <TouchableOpacity
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    toggleDropdown(e);
+                  }}
+                  style={styles.iconCircleActive}
+                >
+                <Ionicons name="person-outline" size={20} color="#FF7A00" />
+              </TouchableOpacity>
 
-  </View>
+            </View>
 
-</View>
+          </View>
 
           {/* Search Box */}
           <View style={styles.searchContainer}>
-  
-  <Ionicons
-    name="search-outline"
-    size={20}
-    color="#8A97A6"
-    style={styles.searchIcon}
-  />
 
-  <TextInput
-    style={styles.searchInput}
-    placeholder=""
-    value={searchQuery}
-    onChangeText={handleSearchChange}
-    onFocus={() => {
-      router.push({ pathname: '/search', params: { source: 'user' } });
-    }}
-    onBlur={handleSearchBlur}
-    placeholderTextColor="#999999"
-  />
+            <Ionicons
+              name="search-outline"
+              size={24}
+              color="#8A97A6"
+              style={styles.searchIcon}
+            />
 
-  {/* Filter Icon */}
-  <TouchableOpacity style={styles.filterButton}>
-    <Ionicons name="options-outline" size={20} color="#FF7A00" />
-  </TouchableOpacity>
+            <TextInput
+              style={styles.searchInput}
+              placeholder=""
+              value={searchQuery}
+              onChangeText={handleSearchChange}
+              onFocus={() => {
+                router.push({ pathname: '/search', params: { source: 'user' } });
+              }}
+              onBlur={handleSearchBlur}
+              placeholderTextColor="#999999"
+            />
 
-  {searchQuery.length === 0 && (
-    <View pointerEvents="none" style={styles.animatedPlaceholder}>
-      <Text style={styles.animatedPlaceholderPrefix}>Search for </Text>
+            {/* Filter Icon */}
+            <TouchableOpacity style={styles.filterButton}>
+              <Ionicons name="options-outline" size={20} color="#FF7A00" />
+            </TouchableOpacity>
 
-      <Animated.Text
-        style={[
-          styles.animatedPlaceholderWord,
-          {
-            opacity: placeholderOpacity,
-            transform: [{ translateY: placeholderTranslateY }],
-          },
-        ]}
-      >
-        {placeholderItems[placeholderIndex]}
-      </Animated.Text>
-    </View>
-  )}
+            {searchQuery.length === 0 && (
+              <View pointerEvents="none" style={styles.animatedPlaceholder}>
+                <Text style={styles.animatedPlaceholderPrefix}>Search for </Text>
 
-</View>
+                <Animated.Text
+                  style={[
+                    styles.animatedPlaceholderWord,
+                    {
+                      opacity: placeholderOpacity,
+                      transform: [{ translateY: placeholderTranslateY }],
+                    },
+                  ]}
+                >
+                  {placeholderItems[placeholderIndex]}
+                </Animated.Text>
+              </View>
+            )}
+
+          </View>
 
           {/* Search Dropdown */}
           {showSuggestions && suggestions.length > 0 && (
@@ -610,7 +613,7 @@ const loadNearbyShops = async () => {
                   >
                     <View style={styles.searchDropdownItemContent}>
                       <View style={styles.searchDropdownItemLeft}>
-                        <Ionicons name="search" size={20} color="#FF6600" />
+                        <Ionicons name="search" size={20} color="#FF8C00" />
                         <Text style={styles.searchDropdownItemText}>{item}</Text>
                       </View>
                     </View>
@@ -621,26 +624,26 @@ const loadNearbyShops = async () => {
           )}
           {/* Exclusive Offer Card */}
 
-<View style={styles.offerCard}>
+          <View style={styles.offerCard}>
 
-  <View style={styles.offerTag}>
-    <Text style={styles.offerTagText}>EXCLUSIVE OFFER</Text>
-  </View>
+            <View style={styles.offerTag}>
+              <Text style={styles.offerTagText}>EXCLUSIVE OFFER</Text>
+            </View>
 
-  <Text style={styles.offerTitle}>
-    Accountability by InTown
-  </Text>
+            <Text style={styles.offerTitle}>
+              Accountability by InTown
+            </Text>
 
-  <Text style={styles.offerSubtitle}>
-    Unlock verified savings at 200+ local partners.
-  </Text>
+            <Text style={styles.offerSubtitle}>
+              Unlock verified savings at 200+ local partners.
+            </Text>
 
-</View>
+          </View>
 
 
 
           {/* ===== MEMBER CAROUSEL ===== */}
-          <View style={styles.carouselWrapper}>
+          {/* <View style={styles.carouselWrapper}>
             <ScrollView
               ref={carouselRef}
               horizontal
@@ -655,20 +658,20 @@ const loadNearbyShops = async () => {
                 setCarouselIndex(index);
               }}
             >
-             {carouselImages.map((url, index) => (
-  <View key={index} style={styles.carouselSlide}>
-    <Image
-      source={{ uri: url }}
-      style={styles.carouselImage}
-      resizeMode="cover"
-    />
-  </View>
-))}
+              {carouselImages.map((url, index) => (
+                <View key={index} style={styles.carouselSlide}>
+                  <Image
+                    source={{ uri: url }}
+                    style={styles.carouselImage}
+                    resizeMode="cover"
+                  />
+                </View>
+              ))}
 
             </ScrollView>
 
             <View style={styles.carouselDots}>
-             {carouselImages.map((_, i) => (
+              {carouselImages.map((_, i) => (
 
                 <View
                   key={i}
@@ -679,20 +682,20 @@ const loadNearbyShops = async () => {
                 />
               ))}
             </View>
-          </View>
+          </View> */}
           {/* === END MEMBER CAROUSEL === */}
 
 
           {/* Popular Categories */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-  <Text style={styles.sectionTitle}>Popular Categories</Text>
+              <Text style={styles.sectionTitle}>Popular Categories</Text>
 
-  <TouchableOpacity>
-    <Text style={styles.viewAll}>View All</Text>
-  </TouchableOpacity>
-</View>
-            
+              <TouchableOpacity>
+                <Text style={styles.viewAll}>View All</Text>
+              </TouchableOpacity>
+            </View>
+
             {categories.length > 0 ? (
               <ScrollView
                 ref={categoriesScrollRef}
@@ -748,55 +751,55 @@ const loadNearbyShops = async () => {
             )}
           </View>
 
-         {/* Savings Calculator */}
+          {/* Savings Calculator */}
 
-<View style={styles.savingsCard}>
+          <View style={styles.savingsCard}>
 
-  {/* Title */}
-  <View style={styles.savingsHeader}>
-    <Ionicons name="calculator-outline" size={22} color="#FF7A00" />
-    <Text style={styles.savingsTitle}>Savings Calculator</Text>
-  </View>
+            {/* Title */}
+            <View style={styles.savingsHeader}>
+              <Ionicons name="calculator-outline" size={22} color="#FF7A00" />
+              <Text style={styles.savingsTitle}>Savings Calculator</Text>
+            </View>
 
-  {/* Monthly Spend Label */}
-  <Text style={styles.savingsLabel}>
-    ESTIMATED MONTHLY SPEND
-  </Text>
+            {/* Monthly Spend Label */}
+            <Text style={styles.savingsLabel}>
+              ESTIMATED MONTHLY SPEND
+            </Text>
 
-  {/* Input */}
-  <View style={styles.inputBox}>
-    <Text style={styles.currency}>₹</Text>
+            {/* Input */}
+            <View style={styles.inputBox}>
+              <Text style={styles.currency}>₹</Text>
 
-    <TextInput
-      style={styles.savingsInput}
-      keyboardType="numeric"
-      value={monthlySpend}
-      onChangeText={setMonthlySpend}
-    />
-  </View>
+              <TextInput
+                style={styles.savingsInput}
+                keyboardType="numeric"
+                value={monthlySpend}
+                onChangeText={setMonthlySpend}
+              />
+            </View>
 
-  {/* Savings Result Row */}
-  <View style={styles.resultRow}>
+            {/* Savings Result Row */}
+            <View style={styles.resultRow}>
 
-    <View style={styles.monthlyBox}>
-      <Text style={styles.resultLabel}>MONTHLY SAVINGS</Text>
+              <View style={styles.monthlyBox}>
+                <Text style={styles.resultLabel}>MONTHLY SAVINGS</Text>
 
-      <Text style={styles.monthlyValue}>
-        ₹ {Math.floor(Number(monthlySpend) * 0.15)}
-      </Text>
-    </View>
+                <Text style={styles.monthlyValue}>
+                  ₹ {Math.floor(Number(monthlySpend) * 0.15)}
+                </Text>
+              </View>
 
-    <View style={styles.annualBox}>
-      <Text style={styles.annualLabel}>ANNUAL SAVINGS</Text>
+              <View style={styles.annualBox}>
+                <Text style={styles.annualLabel}>ANNUAL SAVINGS</Text>
 
-      <Text style={styles.annualValue}>
-        ₹ {Math.floor(Number(monthlySpend) * 0.15 * 12)}
-      </Text>
-    </View>
+                <Text style={styles.annualValue}>
+                  ₹ {Math.floor(Number(monthlySpend) * 0.15 * 12)}
+                </Text>
+              </View>
 
-  </View>
+            </View>
 
-</View>
+          </View>
 
 
 
@@ -805,45 +808,45 @@ const loadNearbyShops = async () => {
           <View style={styles.section}>
             {/* <Text style={styles.sectionTitle}>Customer Plans</Text> */}
 
-           {/* Tab Navigation */}
+            {/* Tab Navigation */}
 
-<View style={styles.toggleContainer}>
+            <View style={styles.toggleContainer}>
 
-  <TouchableOpacity
-    style={[
-      styles.toggleButton,
-      activeTab === 'customer' && styles.activeToggle
-    ]}
-    onPress={() => setActiveTab('customer')}
-  >
-    <Text
-      style={[
-        styles.toggleText,
-        activeTab === 'customer' && styles.activeToggleText
-      ]}
-    >
-      Customer
-    </Text>
-  </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.toggleButton,
+                  activeTab === 'customer' && styles.activeToggle
+                ]}
+                onPress={() => setActiveTab('customer')}
+              >
+                <Text
+                  style={[
+                    styles.toggleText,
+                    activeTab === 'customer' && styles.activeToggleText
+                  ]}
+                >
+                  Customer
+                </Text>
+              </TouchableOpacity>
 
-  <TouchableOpacity
-    style={[
-      styles.toggleButton,
-      activeTab === 'merchant' && styles.activeToggle
-    ]}
-    onPress={() => setActiveTab('merchant')}
-  >
-    <Text
-      style={[
-        styles.toggleText,
-        activeTab === 'merchant' && styles.activeToggleText
-      ]}
-    >
-      Merchant
-    </Text>
-  </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.toggleButton,
+                  activeTab === 'merchant' && styles.activeToggle
+                ]}
+                onPress={() => setActiveTab('merchant')}
+              >
+                <Text
+                  style={[
+                    styles.toggleText,
+                    activeTab === 'merchant' && styles.activeToggleText
+                  ]}
+                >
+                  Merchant
+                </Text>
+              </TouchableOpacity>
 
-</View>
+            </View>
 
             {/* Customer Tab Content */}
             {activeTab === 'customer' && (
@@ -860,11 +863,11 @@ const loadNearbyShops = async () => {
                     Essential savings for families
                   </Text>
                   <TouchableOpacity
-  style={styles.registerButton}
-  onPress={() => router.push('/register-member')}
->
-  <Text style={styles.registerButtonText}>Register Now</Text>
-</TouchableOpacity>
+                    style={styles.registerButton}
+                    onPress={() => router.push('/register-member')}
+                  >
+                    <Text style={styles.registerButtonText}>Register Now</Text>
+                  </TouchableOpacity>
                 </View>
 
                 {/* IT Max Plus Plan */}
@@ -879,7 +882,7 @@ const loadNearbyShops = async () => {
                   </View>
 
                   <Text style={styles.planDescription}>
-                   Maximum rewards for power users
+                    Maximum rewards for power users
                   </Text>
                   <TouchableOpacity
                     style={[styles.purchaseButton, styles.purchaseButtonPrimary]}
@@ -973,7 +976,7 @@ const loadNearbyShops = async () => {
                         style={styles.shopImageThumb}
                       />
                     ) : (
-                      <Ionicons name="storefront" size={40} color="#FF6600" />
+                      <Ionicons name="storefront" size={40} color="#FF8C00" />
                     )}
                   </View>
                   <Text style={styles.shopCardName} numberOfLines={1}>
@@ -983,7 +986,7 @@ const loadNearbyShops = async () => {
                     {shop.businessCategory}
                   </Text>
                   <View style={styles.shopCardDistance}>
-                    <Ionicons name="location" size={14} color="#FF6600" />
+                    <Ionicons name="location" size={14} color="#FF8C00" />
                     <Text style={styles.distanceText}>
                       {formatDistance(
                         typeof shop.distance === 'number' ? shop.distance : null
@@ -996,7 +999,7 @@ const loadNearbyShops = async () => {
           </View> */}
 
           {/* Footer */}
-          <Footer dashboardType="user"/>
+          <Footer dashboardType="user" />
         </ScrollView>
 
         {/* BACKDROP */}
@@ -1038,7 +1041,7 @@ const loadNearbyShops = async () => {
                 router.push('/account');
               }}
             >
-              <Ionicons name="person-outline" size={20} color="#ff6600" />
+              <Ionicons name="person-outline" size={20} color="#FF8C00" />
               <Text style={styles.userPanelText}>My Account</Text>
             </TouchableOpacity>
 
@@ -1050,7 +1053,7 @@ const loadNearbyShops = async () => {
                 router.push('/register-member');
               }}
             >
-              <Ionicons name="star-outline" size={20} color="#ff6600" />
+              <Ionicons name="star-outline" size={20} color="#FF8C00" />
               <Text style={styles.userPanelText}>Become a Customer</Text>
             </TouchableOpacity>
 
@@ -1062,7 +1065,7 @@ const loadNearbyShops = async () => {
                 router.push('/register-merchant');
               }}
             >
-              <Ionicons name="storefront-outline" size={20} color="#ff6600" />
+              <Ionicons name="storefront-outline" size={20} color="#FF8C00" />
               <Text style={styles.userPanelText}>Become a Merchant</Text>
             </TouchableOpacity>
 
@@ -1096,7 +1099,7 @@ const loadNearbyShops = async () => {
                 router.push('/register-member');
               }}
             >
-              <Ionicons name="person" size={24} color="#FF6600" />
+              <Ionicons name="person" size={24} color="#FF8C00" />
               <Text style={styles.modalButtonText}>Register as Customer</Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -1106,7 +1109,7 @@ const loadNearbyShops = async () => {
                 router.push('/register-merchant');
               }}
             >
-              <Ionicons name="storefront" size={24} color="#FF6600" />
+              <Ionicons name="storefront" size={24} color="#FF8C00" />
               <Text style={styles.modalButtonText}>Register as Merchant</Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -1126,7 +1129,7 @@ const loadNearbyShops = async () => {
         animationType="slide"
         onRequestClose={() => setShowLocationModal(false)}
       >
-        <KeyboardAvoidingView 
+        <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.locationModalContainer}
         >
@@ -1138,7 +1141,7 @@ const loadNearbyShops = async () => {
             <View style={styles.locationModalHeader}>
               <Text style={styles.locationModalTitle}>Select Location</Text>
               <TouchableOpacity onPress={() => setShowLocationModal(false)}>
-                <Ionicons name="close" size={24} color="#ff6600" />
+                <Ionicons name="close" size={24} color="#FF8C00" />
               </TouchableOpacity>
             </View>
 
@@ -1161,12 +1164,12 @@ const loadNearbyShops = async () => {
             </View>
 
             {isSearchingLocation && (
-              <ActivityIndicator size="small" color="#FF6600" style={{ marginTop: 12 }} />
+              <ActivityIndicator size="small" color="#FF8C00" style={{ marginTop: 12 }} />
             )}
 
             {/* Search Results */}
             {locationSearchResults.length > 0 ? (
-              <ScrollView 
+              <ScrollView
                 style={styles.locationSearchResults}
                 keyboardShouldPersistTaps="handled"
               >
@@ -1194,11 +1197,11 @@ const loadNearbyShops = async () => {
                   onPress={handleUseCurrentLocation}
                   disabled={isLocationLoading}
                 >
-                  <Ionicons name="locate" size={20} color="#FF6600" />
+                  <Ionicons name="locate" size={20} color="#FF8C00" />
                   <Text style={styles.useCurrentLocationText}>
                     {isLocationLoading ? 'Getting location...' : 'Use Current Location'}
                   </Text>
-                  {isLocationLoading && <ActivityIndicator size="small" color="#FF6600" style={{ marginLeft: 8 }} />}
+                  {isLocationLoading && <ActivityIndicator size="small" color="#FF8C00" style={{ marginLeft: 8 }} />}
                 </TouchableOpacity>
 
                 {/* Current Location Display */}
@@ -1224,9 +1227,9 @@ const loadNearbyShops = async () => {
 
 const styles = StyleSheet.create({
   container: {
-  flex: 1,
-  backgroundColor: "#F2F4F7",
-},
+    flex: 1,
+    backgroundColor: "#F2F4F7",
+  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1264,12 +1267,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
- locationText: {
-  fontSize: 14,
-  fontWeight: '700',
-  color: '#1A1A1A',
-  flex: 1,
-},
+  locationText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1A1A1A',
+    flex: 1,
+  },
   profileButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1380,21 +1383,21 @@ const styles = StyleSheet.create({
   },
   /* --- end new userPanel styles --- */
 
-searchContainer:{
-flexDirection:"row",
-alignItems:"center",
-backgroundColor:"#FFFFFF",
-borderRadius:28,
-paddingHorizontal:16,
-height:52,
-marginHorizontal:16,
-marginTop:10,
-shadowColor:"#000",
-shadowOpacity:0.06,
-shadowRadius:6,
-shadowOffset:{width:0,height:2},
-elevation:3
-},
+  searchContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 28,
+    paddingHorizontal: 16,
+    height: 52,
+    marginHorizontal: 16,
+    marginTop: 20,
+    shadowColor: "#000",
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3
+  },
   searchBox: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1424,7 +1427,7 @@ elevation:3
   },
   animatedPlaceholderWord: {
     ...FontStylesWithFallback.body,
-    color: '#ff6600',
+    color: '#FF8C00',
     fontWeight: '500',
   },
   searchHint: {
@@ -1472,7 +1475,7 @@ elevation:3
     fontWeight: '500',
   },
   viewButton: {
-    backgroundColor: '#FF6600',
+    backgroundColor: '#FF8C00',
     borderRadius: 6,
     paddingVertical: 6,
     paddingHorizontal: 12,
@@ -1534,7 +1537,7 @@ elevation:3
   },
 
   dotActive: {
-    backgroundColor: '#FF6600',
+    backgroundColor: '#FF8C00',
   },
   //----------------------------------------------
 
@@ -1548,8 +1551,8 @@ elevation:3
     marginBottom: 16,
   },
   normalText: {
-    fontWeight: 'normal',  
-    color: '#666',         
+    fontWeight: 'normal',
+    color: '#666',
   },
 
   tabContainer: {
@@ -1569,7 +1572,7 @@ elevation:3
     backgroundColor: '#e6e6e6',
   },
   activeTab: {
-    backgroundColor: '#FF6600',
+    backgroundColor: '#FF8C00',
   },
   tabText: {
     ...FontStylesWithFallback.bodyMedium,
@@ -1591,7 +1594,7 @@ elevation:3
   },
   merchantTagline: {
     ...FontStylesWithFallback.h3,
-    color: '#FF6600',
+    color: '#FF8C00',
     textAlign: 'center',
     marginBottom: 12,
     fontWeight: '700',
@@ -1620,7 +1623,7 @@ elevation:3
     fontWeight: '500',
   },
   registerMerchantButton: {
-    backgroundColor: '#FF6600',
+    backgroundColor: '#FF8C00',
     borderRadius: 12,
     paddingVertical: 16,
     paddingHorizontal: 32,
@@ -1815,26 +1818,26 @@ elevation:3
     borderWidth: 1,
     borderColor: '#EEEEEE',
   },
-  popularPlan:{
-  borderColor:"#FF8A00",
-  borderWidth:2
-},
- popularBadge:{
-  position:"absolute",
-  right:-1,
-  top:-1,
-  backgroundColor:"#FF8A00",
-  paddingHorizontal:14,
-  paddingVertical:6,
-  borderTopRightRadius:12,
-  borderBottomLeftRadius:12
-},
-popularBadgeText:{
-  color:"#FFFFFF",
-  fontSize:11,
-  fontWeight:"700",
-  letterSpacing:0.5
-},
+  popularPlan: {
+    borderColor: "#FF8A00",
+    borderWidth: 2
+  },
+  popularBadge: {
+    position: "absolute",
+    right: -1,
+    top: -1,
+    backgroundColor: "#FF8A00",
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderTopRightRadius: 12,
+    borderBottomLeftRadius: 12
+  },
+  popularBadgeText: {
+    color: "#FFFFFF",
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 0.5
+  },
   planName: {
     fontSize: 24,
     fontWeight: 'bold',
@@ -1875,27 +1878,27 @@ popularBadgeText:{
     lineHeight: 20,
     marginBottom: 16,
   },
- purchaseButton:{
-  backgroundColor:"#FF8A00",
-  borderRadius:30,
-  height:52,
-  justifyContent:"center",
-  alignItems:"center",
-  marginTop:18,
-  shadowColor:"#FF8A00",
-  shadowOpacity:0.25,
-  shadowRadius:8,
-  shadowOffset:{width:0,height:4},
-  elevation:5
-},
-  purchaseButtonPrimary: {
-    backgroundColor: '#FF6600',
+  purchaseButton: {
+    backgroundColor: "#FF8A00",
+    borderRadius: 30,
+    height: 52,
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 18,
+    shadowColor: "#FF8A00",
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 5
   },
- purchaseButtonText:{
-  color:"#FFFFFF",
-  fontSize:16,
-  fontWeight:"700"
-},
+  purchaseButtonPrimary: {
+    backgroundColor: '#FF8C00',
+  },
+  purchaseButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "700"
+  },
   merchantButton: {
     flexDirection: 'row',
     backgroundColor: '#2196F3',
@@ -1970,7 +1973,7 @@ popularBadgeText:{
   footerTagline: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#FF6600',
+    color: '#FF8C00',
     textAlign: 'center',
     marginBottom: 16,
   },
@@ -2015,7 +2018,7 @@ popularBadgeText:{
   modalButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FF6600',
+    color: '#FF8C00',
     marginLeft: 12,
   },
   modalCancelButton: {
@@ -2068,7 +2071,7 @@ popularBadgeText:{
   useCurrentLocationText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FF6600',
+    color: '#FF8C00',
     marginLeft: 12,
   },
   currentLocationDisplay: {
@@ -2145,259 +2148,261 @@ popularBadgeText:{
     marginTop: 2,
   },
   distanceText: {
-  fontSize: 12,
-  color: '#666666',
-  marginLeft: 4,
-},
-offerCard: {
-  marginHorizontal: 16,
-  marginTop: 15,
-  padding: 20,
-  borderRadius: 18,
-  backgroundColor: "#FF8A00",
-},
+    fontSize: 12,
+    color: '#666666',
+    marginLeft: 4,
+  },
+  offerCard: {
+    marginHorizontal: 16,
+    marginTop: 24,
+    padding: 20,
+    paddingRight: 160,
+    borderRadius: 18,
+    backgroundColor: "#FF8A00",
+  },
 
-offerTag: {
-  backgroundColor: "rgba(255,255,255,0.25)",
-  alignSelf: "flex-start",
-  paddingHorizontal: 10,
-  paddingVertical: 4,
-  borderRadius: 10,
-  marginBottom: 10,
-},
+  offerTag: {
+    backgroundColor: "rgba(255,255,255,0.25)",
+    alignSelf: "flex-start",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
+    marginBottom: 10,
+  },
 
-offerTagText: {
-  color: "#fff",
-  fontSize: 10,
-  fontWeight: "700",
-},
+  offerTagText: {
+    color: "#fff",
+    fontSize: 10,
+    fontWeight: "700",
+  },
 
-offerTitle: {
-  color: "#fff",
-  fontSize: 20,
-  fontWeight: "700",
-  marginBottom: 6,
-},
+  offerTitle: {
+    color: "#fff",
+    fontSize: 24,
+    fontWeight: "700",
+    marginBottom: 6,
+  },
 
-offerSubtitle: {
-  color: "#fff",
-  fontSize: 14,
-  opacity: 0.9,
-},
-sectionHeader: {
-  flexDirection: "row",
-  justifyContent: "space-between",
-  alignItems: "center",
-  marginHorizontal: 16,
-  marginTop: 20,
-},
-viewAll: {
-  color: "#FF6600",
-  fontWeight: "600",
-},
+  offerSubtitle: {
+    color: "#fff",
+    fontSize: 14,
+    opacity: 0.9,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginHorizontal: 16,
+    marginTop: 20,
+  },
+  viewAll: {
+    color: "#FF8C00",
+    fontWeight: "600",
+  },
 
-savingsCard: {
-  marginHorizontal: 16,
-  marginTop: 20,
-  backgroundColor: "#fff",
-  borderRadius: 20,
-  padding: 20,
-  elevation: 3,
-},
+  savingsCard: {
+    marginHorizontal: 16,
+    marginTop: 20,
+    backgroundColor: "#fff",
+    borderRadius: 20,
+    padding: 20,
+    elevation: 3,
+  },
 
-savingsHeader: {
-  flexDirection: "row",
-  alignItems: "center",
-  marginBottom: 15,
-},
+  savingsHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 15,
+  },
 
-savingsTitle: {
-  fontSize: 18,
-  fontWeight: "700",
-  marginLeft: 8,
-},
+  savingsTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    marginLeft: 8,
+  },
 
-savingsLabel: {
-  fontSize: 12,
-  fontWeight: "600",
-  color: "#777",
-  marginBottom: 10,
-},
+  savingsLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#777",
+    marginBottom: 10,
+  },
 
-inputBox: {
-  flexDirection: "row",
-  alignItems: "center",
-  backgroundColor: "#F2F2F2",
-  borderRadius: 30,
-  paddingHorizontal: 15,
-  height: 50,
-  marginBottom: 20,
-},
+  inputBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F2F2F2",
+    borderRadius: 30,
+    paddingHorizontal: 15,
+    height: 50,
+    marginBottom: 20,
+  },
 
-currency: {
-  fontSize: 20,
-  fontWeight: "700",
-  marginRight: 6,
-},
+  currency: {
+    fontSize: 20,
+    fontWeight: "700",
+    marginRight: 6,
+  },
 
-savingsInput: {
-  flex: 1,
-  fontSize: 20,
-  fontWeight: "700",
-},
+  savingsInput: {
+    flex: 1,
+    fontSize: 20,
+    fontWeight: "700",
+  },
 
-resultRow: {
-  flexDirection: "row",
-  justifyContent: "space-between",
-},
+  resultRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
 
-monthlyBox: {
-  flex: 1,
-  backgroundColor: "#F7EFE6",
-  borderRadius: 20,
-  padding: 15,
-  marginRight: 10,
-},
+  monthlyBox: {
+    flex: 1,
+    backgroundColor: "#F7EFE6",
+    borderRadius: 20,
+    padding: 15,
+    marginRight: 10,
+  },
 
-annualBox: {
-  flex: 1,
-  backgroundColor: "#FF8A00",
-  borderRadius: 20,
-  padding: 15,
-},
+  annualBox: {
+    flex: 1,
+    backgroundColor: "#FF8A00",
+    borderRadius: 20,
+    padding: 15,
+  },
 
-resultLabel: {
-  fontSize: 11,
-  color: "#666",
-},
+  resultLabel: {
+    fontSize: 11,
+    color: "#666",
+  },
 
-monthlyValue: {
-  fontSize: 22,
-  fontWeight: "700",
-  color: "#FF8A00",
-  marginTop: 5,
-},
+  monthlyValue: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: "#FF8A00",
+    marginTop: 5,
+  },
 
-annualLabel: {
-  fontSize: 11,
-  color: "#fff",
-},
+  annualLabel: {
+    fontSize: 11,
+    color: "#fff",
+  },
 
-annualValue: {
-  fontSize: 22,
-  fontWeight: "700",
-  color: "#fff",
-  marginTop: 5,
-},
-
-
-toggleContainer: {
-  flexDirection: 'row',
-  backgroundColor: '#E9EEF5',
-  borderRadius: 30,
-  marginTop: 10,
-  marginBottom: 15,
-  padding: 4,
-},
-
-toggleButton: {
-  flex: 1,
-  paddingVertical: 10,
-  borderRadius: 25,
-  alignItems: 'center',
-},
-
-activeToggle: {
-  backgroundColor: '#FFFFFF',
-},
-
-toggleText: {
-  fontSize: 15,
-  color: '#7A8A9A',
-  fontWeight: '600',
-},
-
-activeToggleText: {
-  color: '#000',
-  fontWeight: '700',
-},
+  annualValue: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: "#fff",
+    marginTop: 5,
+  },
 
 
-headerRow:{
-flexDirection:"row",
-justifyContent:"space-between",
-alignItems:"center",
-paddingHorizontal:16,
-marginTop:10
-},
+  toggleContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#E9EEF5',
+    borderRadius: 30,
+    marginTop: 10,
+    marginBottom: 15,
+    padding: 4,
+  },
 
-locationWrapper:{
-flexDirection:"row",
-alignItems:"center"
-},
+  toggleButton: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 25,
+    alignItems: 'center',
+  },
 
-locationIcon:{
-width:40,
-height:40,
-borderRadius:20,
-backgroundColor:"#FFE9D6",
-alignItems:"center",
-justifyContent:"center",
-marginRight:10
-},
+  activeToggle: {
+    backgroundColor: '#FFFFFF',
+  },
 
-locationLabel:{
-fontSize:11,
-color:"#8A97A6",
-fontWeight:"600"
-},
+  toggleText: {
+    fontSize: 15,
+    color: '#7A8A9A',
+    fontWeight: '600',
+  },
 
+  activeToggleText: {
+    color: '#000',
+    fontWeight: '700',
+  },
 
 
-headerIcons:{
-  flexDirection:"row",
-  alignItems:"center"
-},
+  headerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    marginTop: 10
+  },
 
-iconCircle:{
-  width:40,
-  height:40,
-  borderRadius:20,
-  backgroundColor:"#F1F4F8",
-  alignItems:"center",
-  justifyContent:"center",
-  marginRight:10
-},
+  locationWrapper: {
+    flexDirection: "row",
+    alignItems: "center"
+  },
 
-iconCircleActive:{
-  width:40,
-  height:40,
-  borderRadius:20,
-  borderWidth:2,
-  borderColor:"#FF7A00",
-  alignItems:"center",
-  justifyContent:"center"
-},
+  locationIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#FFE9D6",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 10
+  },
 
-filterButton:{
-width:36,
-height:36,
-borderRadius:18,
-alignItems:"center",
-justifyContent:"center"
-},
-registerButton:{
-  backgroundColor:"#E5E8ED",
-  borderRadius:30,
-  height:50,
-  alignItems:"center",
-  justifyContent:"center",
-  marginTop:15
-},
+  locationLabel: {
+    fontSize: 11,
+    color: "#8A97A6",
+    fontWeight: "600"
+  },
 
-registerButtonText:{
-  fontSize:16,
-  fontWeight:"700",
-  color:"#1A1A1A"
-},
+
+
+  headerIcons: {
+    flexDirection: "row",
+    alignItems: "center"
+  },
+
+  iconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 10
+  },
+
+  iconCircleActive: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: "#FF7A00",
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center"
+  },
+
+  filterButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  registerButton: {
+    backgroundColor: "#E5E8ED",
+    borderRadius: 30,
+    height: 50,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 15
+  },
+
+  registerButtonText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#1A1A1A"
+  },
 });
