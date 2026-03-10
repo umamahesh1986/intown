@@ -1,0 +1,546 @@
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, Alert, Platform } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+import { useAuthStore } from '../store/authStore';
+
+
+export default function Account() {
+  const router = useRouter();
+  const { user, updateProfile } = useAuthStore();
+
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState(user?.name ?? '');
+  const [email, setEmail] = useState((user as any)?.email ?? '');
+  const [isSaving, setIsSaving] = useState(false);
+  
+  const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [pendingImageUri, setPendingImageUri] = useState<string | null>(null);
+  const [pendingImageBase64, setPendingImageBase64] = useState<string | null>(null);
+  const [isSavingImage, setIsSavingImage] = useState(false);
+  const [userType, setUserType] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadProfileData = async () => {
+      try {
+        const [storedImage, storedUserType, storedCustomerImages, storedUserData, merchantName, customerName, merchantShopName] = await Promise.all([
+          AsyncStorage.getItem('user_profile_image'),
+          AsyncStorage.getItem('user_type'),
+          AsyncStorage.getItem('customer_profile_images'),
+          AsyncStorage.getItem('user_data'),
+          AsyncStorage.getItem('merchant_contact_name'),
+          AsyncStorage.getItem('customer_name'),
+          AsyncStorage.getItem('merchant_shop_name'),
+        ]);
+        
+        if (storedImage) {
+          setProfileImage(storedImage);
+        }
+        if (storedUserType) {
+          setUserType(storedUserType);
+        }
+        
+        // Load name based on user type
+        if (storedUserData) {
+          try {
+            const userData = JSON.parse(storedUserData);
+            if (userData.name) {
+              setName(userData.name);
+            }
+            if (userData.email) {
+              setEmail(userData.email);
+            }
+          } catch {
+            // ignore parse errors
+          }
+        }
+        
+        // Prioritize based on user type
+        const lowerUserType = (storedUserType ?? '').toLowerCase();
+        if (lowerUserType.includes('merchant')) {
+          // For merchant: use shop name (business name) or contact name
+          if (merchantShopName) {
+            setName(merchantShopName);
+          } else if (merchantName) {
+            setName(merchantName);
+          }
+        } else if (customerName) {
+          // For customer: use customer name
+          setName(customerName);
+        }
+        
+        // Also try to load name from user search response
+        const userSearchResponse = await AsyncStorage.getItem('user_search_response');
+        if (userSearchResponse) {
+          try {
+            const searchData = JSON.parse(userSearchResponse);
+            
+            if (lowerUserType.includes('merchant')) {
+              // For merchant: prioritize shopName (business name)
+              const businessName = searchData?.merchant?.shopName || searchData?.merchant?.contactName;
+              if (businessName && !merchantShopName) {
+                setName(businessName);
+              }
+              if (searchData?.merchant?.email) {
+                setEmail(searchData.merchant.email);
+              }
+            } else {
+              // For customer
+              const custName = searchData?.customer?.contactName || searchData?.customer?.name;
+              if (custName && !customerName) {
+                setName(custName);
+              }
+              if (searchData?.customer?.email) {
+                setEmail(searchData.customer.email);
+              }
+            }
+          } catch {
+            // ignore parse errors
+          }
+        }
+        
+        if (storedCustomerImages) {
+          try {
+            const parsedImages = JSON.parse(storedCustomerImages);
+            if (Array.isArray(parsedImages) && parsedImages.length > 0) {
+              const latestImage = parsedImages[parsedImages.length - 1];
+              setProfileImage(latestImage);
+              await AsyncStorage.setItem('user_profile_image', latestImage);
+            }
+          } catch {
+            // ignore parse issues
+          }
+        }
+      } catch (error) {
+        console.error('Error loading profile data:', error);
+      }
+    };
+
+    loadProfileData();
+  }, []);
+
+ 
+
+  const onSave = async () => {
+    setIsSaving(true);
+    try {
+      // Update local auth store
+      updateProfile({ name } as any);
+      
+      // Save to AsyncStorage
+      const lowerUserType = (userType ?? '').toLowerCase();
+      const isMerchant = lowerUserType.includes('merchant');
+      
+      // Update user_data in AsyncStorage
+      const storedUserData = await AsyncStorage.getItem('user_data');
+      if (storedUserData) {
+        try {
+          const userData = JSON.parse(storedUserData);
+          userData.name = name;
+          userData.email = email;
+          await AsyncStorage.setItem('user_data', JSON.stringify(userData));
+        } catch {
+          // ignore parse errors
+        }
+      }
+      
+      // Save name based on user type
+      if (isMerchant) {
+        // For merchant: save as shop name (business name)
+        await AsyncStorage.setItem('merchant_shop_name', name);
+        await AsyncStorage.setItem('merchant_contact_name', name);
+      } else {
+        // For customer
+        await AsyncStorage.setItem('customer_name', name);
+        await AsyncStorage.setItem('customer_contact_name', name);
+      }
+      
+      // Update user search response with new data
+      const userSearchResponse = await AsyncStorage.getItem('user_search_response');
+      if (userSearchResponse) {
+        try {
+          const searchData = JSON.parse(userSearchResponse);
+          if (isMerchant && searchData.merchant) {
+            searchData.merchant.email = email;
+            searchData.merchant.shopName = name;
+            searchData.merchant.contactName = name;
+          } else if (searchData.customer) {
+            searchData.customer.email = email;
+            searchData.customer.name = name;
+            searchData.customer.contactName = name;
+          }
+          await AsyncStorage.setItem('user_search_response', JSON.stringify(searchData));
+        } catch {
+          // ignore parse errors
+        }
+      }
+      
+      Alert.alert('Success', 'Your profile has been updated successfully.');
+      setEditing(false);
+    } catch (error) {
+      console.error('Error saving profile:', error);
+      Alert.alert('Error', 'Failed to save profile. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const requestCameraPermission = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    return status === 'granted';
+  };
+
+  const requestMediaPermission = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    return status === 'granted';
+  };
+
+  const handleTakePhoto = async () => {
+    const hasPermission = await requestCameraPermission();
+    if (!hasPermission) {
+      Alert.alert('Permission required', 'Camera permission is required to take a photo.');
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+      base64: true,
+    });
+    if (!result.canceled && result.assets?.length) {
+      const asset = result.assets[0];
+      setPendingImageUri(asset.uri);
+      setPendingImageBase64(asset.base64 ?? null);
+    }
+  };
+
+  const handlePickImage = async () => {
+    const hasPermission = await requestMediaPermission();
+    if (!hasPermission) {
+      Alert.alert('Permission required', 'Gallery permission is required to pick a photo.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+      base64: true,
+    });
+    if (!result.canceled && result.assets?.length) {
+      const asset = result.assets[0];
+      setPendingImageUri(asset.uri);
+      setPendingImageBase64(asset.base64 ?? null);
+    }
+  };
+
+  const fetchLatestProfileImage = async (isMerchant: boolean, inTownId: string | number) => {
+    const queryParam = isMerchant ? 'merchantId' : 'customerId';
+    const res = await fetch(`https://api.intownlocal.com/IN/s3?${queryParam}=${inTownId}`);
+    if (!res.ok) {
+      throw new Error(`Image fetch failed: ${res.status}`);
+    }
+    const data = await res.json();
+    const images = Array.isArray(data?.s3ImageUrl) ? data.s3ImageUrl : [];
+    if (!images.length) {
+      throw new Error('No image URL returned from image fetch.');
+    }
+    // Use the most recently uploaded image when updating profile
+    const latestImage = images[images.length - 1];
+    await AsyncStorage.setItem('user_profile_image', latestImage);
+    if (isMerchant) {
+      await AsyncStorage.setItem('merchant_profile_image', latestImage);
+      await AsyncStorage.setItem('merchant_shop_images', JSON.stringify(images));
+    }
+    setProfileImage(latestImage);
+  };
+
+  const buildImageFormData = async (uri: string, fileName: string) => {
+    const formData = new FormData();
+    if (Platform.OS === 'web') {
+      const response = await fetch(uri);
+      const blob = await response.blob();
+      formData.append('file', blob, fileName);
+    } else {
+      formData.append(
+        'file',
+        {
+          uri,
+          name: fileName,
+          type: 'image/jpeg',
+        } as any
+      );
+    }
+    return formData;
+  };
+
+  const handleUpdateProfileImage = async () => {
+    if (!pendingImageUri) return;
+    setIsSavingImage(true);
+    try {
+      const lowerUserType = (userType ?? '').toLowerCase();
+      const isMerchant = lowerUserType.includes('merchant');
+      const userTypeParam = isMerchant ? 'IN_MERCHANT' : 'IN_CUSTOMER';
+      const inTownId =
+        (isMerchant
+          ? await AsyncStorage.getItem('merchant_id')
+          : await AsyncStorage.getItem('customer_id')) ??
+        (await AsyncStorage.getItem('customer_id')) ??
+        (await AsyncStorage.getItem('merchant_id')) ??
+        user?.id ??
+        null;
+
+      if (!inTownId) {
+        throw new Error('Missing user id for image upload.');
+      }
+
+      const uploadUrl = `https://api.intownlocal.com/IN/s3/upload?userType=${userTypeParam}&inTownId=${inTownId}`;
+      const fileName = `${isMerchant ? 'merchant' : 'customer'}_${inTownId}_${Date.now()}.jpg`;
+      const formData = await buildImageFormData(pendingImageUri, fileName);
+
+      const res = await fetch(uploadUrl, {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+        },
+        body: formData,
+      });
+      const raw = await res.text();
+      let parsed: any = raw;
+      try {
+        parsed = raw ? JSON.parse(raw) : raw;
+      } catch {
+        // keep raw string if not JSON
+      }
+      if (!res.ok) {
+        throw new Error(typeof parsed === 'string' ? parsed : JSON.stringify(parsed));
+      }
+      const uploadedUrl = Array.isArray(parsed)
+        ? parsed[parsed.length - 1]?.url
+        : parsed?.url;
+      const resolvedImage = uploadedUrl || pendingImageUri;
+      await AsyncStorage.setItem('user_profile_image', resolvedImage);
+      if (isMerchant) {
+        await AsyncStorage.setItem('merchant_profile_image', resolvedImage);
+      }
+      setProfileImage(resolvedImage);
+      if (isMerchant) {
+        await fetchLatestProfileImage(true, inTownId);
+      }
+      setPendingImageUri(null);
+      setPendingImageBase64(null);
+    } catch (error) {
+      console.error('Error saving profile image:', error);
+      Alert.alert('Upload failed', 'Unable to update profile image. Please try again.');
+    } finally {
+      setIsSavingImage(false);
+    }
+  };
+
+  const getProfileImageSource = (value: string | null) => {
+    if (!value) return undefined;
+    return { uri: value };
+  };
+
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => router.back()}
+        >
+          <Ionicons name="arrow-back" size={22} color="#1A1A1A" />
+        </TouchableOpacity>
+        <Text style={styles.title}>My Account</Text>
+        <TouchableOpacity onPress={() => setEditing(!editing)}>
+          <Text style={styles.editBtn}>{editing ? 'Cancel' : 'Edit'}</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.profileCard}>
+        <View style={styles.profileImageWrapper}>
+          {pendingImageUri || profileImage ? (
+            <Image
+              source={getProfileImageSource(pendingImageUri || profileImage) as any}
+              style={styles.profileImage}
+            />
+          ) : (
+            <View style={styles.profilePlaceholder}>
+              <Ionicons name="person" size={40} color="#FF6600" />
+            </View>
+          )}
+        </View>
+        <View style={styles.profileActions}>
+          <TouchableOpacity style={styles.profileButton} onPress={handleTakePhoto}>
+            <Ionicons name="camera" size={16} color="#FF6600" />
+            <Text style={styles.profileButtonText}>Take Photo</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.profileButton} onPress={handlePickImage}>
+            <Ionicons name="image" size={16} color="#FF6600" />
+            <Text style={styles.profileButtonText}>Upload Gallery</Text>
+          </TouchableOpacity>
+        </View>
+        <TouchableOpacity
+          style={[styles.updateButton, !pendingImageUri && styles.updateButtonDisabled]}
+          onPress={handleUpdateProfileImage}
+          disabled={!pendingImageUri || isSavingImage}
+        >
+          <Text style={styles.updateButtonText}>
+            {isSavingImage ? 'Updating...' : 'Update Profile Image'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.card}>
+        {/* NAME */}
+        <Text style={styles.label}>Name</Text>
+        {editing ? (
+          <TextInput 
+            style={styles.input} 
+            value={name} 
+            onChangeText={setName}
+            placeholder="Enter your name"
+            placeholderTextColor="#999"
+          />
+        ) : (
+          <Text style={styles.value}>{name || '-'}</Text>
+        )}
+
+        {/* PHONE */}
+        <Text style={styles.label}>Phone</Text>
+        <Text style={styles.value}>{user?.phone ?? '-'}</Text>
+        <Text style={styles.label}>Email</Text>
+        {editing ? (
+          <TextInput 
+            style={styles.input} 
+            value={email} 
+            onChangeText={setEmail}
+            placeholder="Enter your email"
+            placeholderTextColor="#999"
+            keyboardType="email-address"
+            autoCapitalize="none"
+          />
+        ) : (
+          <Text style={styles.value}>{email || 'Not provided'}</Text>
+        )}
+
+
+
+        {editing && (
+          <TouchableOpacity 
+            style={[styles.saveBtn, isSaving && styles.saveBtnDisabled]} 
+            onPress={onSave}
+            disabled={isSaving}
+          >
+            <Text style={styles.saveText}>{isSaving ? 'Saving...' : 'Save Changes'}</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, padding: 16, backgroundColor: '#F5F5F5' },
+  header: { flexDirection: 'row', alignItems: 'center', marginBottom: 16, marginTop: 32 },
+  backButton: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
+  title: { flex: 1, fontSize: 22, fontWeight: '700', marginLeft: 8 },
+  editBtn: { color: '#FF6600', fontWeight: '600', fontSize: 16 },
+
+  profileCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    alignItems: 'center',
+  },
+  profileImageWrapper: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: '#FF6600',
+    marginBottom: 12,
+  },
+  profileImage: {
+    width: '100%',
+    height: '100%',
+  },
+  profilePlaceholder: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFF3E0',
+  },
+  profileActions: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 12,
+  },
+  profileButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF3E0',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+  },
+  profileButtonText: {
+    marginLeft: 6,
+    color: '#FF6600',
+    fontWeight: '600',
+    fontSize: 12,
+  },
+  updateButton: {
+    backgroundColor: '#FF6600',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  updateButtonDisabled: {
+    backgroundColor: '#F4B183',
+  },
+  updateButtonText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 12,
+  },
+  card: { backgroundColor: '#fff', borderRadius: 12, padding: 16 },
+  label: { fontSize: 12, color: '#777', marginTop: 12 },
+  value: { fontSize: 16, fontWeight: '600', marginTop: 4 },
+  input: {
+    borderWidth: 1,
+    borderColor: '#DDD',
+    borderRadius: 8,
+    padding: 10,
+    marginTop: 6,
+  },
+  pickerWrapper: {
+  borderWidth: 1,
+  borderColor: '#DDD',
+  borderRadius: 8,
+  marginTop: 6,
+  backgroundColor: '#fff',
+  overflow: 'hidden',
+},
+
+
+  saveBtn: {
+    backgroundColor: '#FF6600',
+    padding: 14,
+    borderRadius: 10,
+    marginTop: 20,
+    alignItems: 'center',
+  },
+  saveBtnDisabled: {
+    backgroundColor: '#F4B183',
+  },
+  saveText: { color: '#fff', fontWeight: '700' },
+});

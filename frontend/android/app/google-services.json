@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "365677663172",
+    "project_id": "intown-dev-d4661",
+    "storage_bucket": "intown-dev-d4661.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:365677663172:android:9e992e48e5f12d5f130a91",
+        "android_client_info": {
+          "package_name": "com.intown.andriod"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBCaGJ3dq0Hrbsj32hy8c3R-jred8R9caU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
