@@ -15,36 +15,18 @@ export default function MemberNavigate() {
   const router = useRouter();
   const params = useLocalSearchParams<{
     shopId?: string;
-    shop?: string;
     source?: string;
     shopLat?: string;
     shopLng?: string;
+    shopName?: string;
   }>();
   const shopId = params.shopId as string;
   const redirectTo = params.source === 'dual' ? '/dual-dashboard' : '/member-dashboard';
-  const shopFromParams = (() => {
-    if (!params.shop) return null;
-    try {
-      return JSON.parse(params.shop as string);
-    } catch {
-      return null;
-    }
-  })();
-  const shopName = shopFromParams?.businessName || shopFromParams?.shopName || shopFromParams?.name || 'Shop';
+  const shopName = params.shopName || 'Shop';
   const parsedShopLat = Number(params.shopLat);
   const parsedShopLng = Number(params.shopLng);
-  const destinationLat =
-    (Number.isFinite(parsedShopLat) ? parsedShopLat : null) ??
-    shopFromParams?.latitude ??
-    shopFromParams?.lat ??
-    shopFromParams?.shopLatitude ??
-    null;
-  const destinationLng =
-    (Number.isFinite(parsedShopLng) ? parsedShopLng : null) ??
-    shopFromParams?.longitude ??
-    shopFromParams?.lng ??
-    shopFromParams?.shopLongitude ??
-    null;
+  const destinationLat = Number.isFinite(parsedShopLat) ? parsedShopLat : null;
+  const destinationLng = Number.isFinite(parsedShopLng) ? parsedShopLng : null;
   const location = useLocationStore((state) => state.location);
   const loadLocationFromStorage = useLocationStore((state) => state.loadFromStorage);
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);

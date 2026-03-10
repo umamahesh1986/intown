@@ -178,35 +178,14 @@ export default function MemberShopList() {
         console.error('handleViewShop: shopId is empty');
         return;
       }
-      // IMPORTANT (Android): keep route params small to avoid app crash.
-      // Do NOT pass full API objects containing long S3 signed URLs/arrays.
-      // Only pass primitive values that are safe for URL encoding
-      const safeString = (val: any): string | null => {
-        if (val == null) return null;
-        if (typeof val === 'string') return val.substring(0, 200); // Limit string length
-        if (typeof val === 'number') return String(val);
-        return null;
-      };
-      const safeNumber = (val: any): number | null => {
-        if (val == null) return null;
-        const num = Number(val);
-        return isNaN(num) ? null : num;
-      };
-      const minimalShop = {
-        id: String(shopId),
-        businessName: safeString(shop?.businessName),
-        shopName: safeString(shop?.shopName ?? shop?.name),
-        contactName: safeString(shop?.contactName),
-        businessCategory: safeString(shop?.businessCategory ?? shop?.category),
-        distance: safeNumber(shop?.distance),
-        latitude: safeNumber(shop?.latitude),
-        longitude: safeNumber(shop?.longitude),
-        image: safeString(getFirstImageUrl(shop?.image ?? shop?.s3ImageUrl)),
-      };
-      const shopJson = JSON.stringify(minimalShop);
+      // Only pass shopId and source - fetch full details in member-shop-details
       router.push({
         pathname: '/member-shop-details',
-        params: { shopId: String(shopId), shop: shopJson, source: source ?? 'user' },
+        params: { 
+          shopId: String(shopId), 
+          categoryId: categoryId ?? '',
+          source: source ?? 'user' 
+        },
       });
     } catch (err) {
       console.error('handleViewShop error', err);
