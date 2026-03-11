@@ -1095,7 +1095,7 @@ export default function MerchantDashboard() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F2F2F2',
+    backgroundColor: '#f8f7f5',
   },
   header: {
     flexDirection: 'row',
@@ -1104,7 +1104,7 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 8,
     paddingHorizontal: 16,
-    backgroundColor: '#F2F2F2',
+    backgroundColor: '#f8f7f5',
     borderBottomWidth: 1,
     borderBottomColor: '#EEEEEE',
   },

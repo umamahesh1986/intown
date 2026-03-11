@@ -222,15 +222,15 @@ export default function Plans() {
                   plan.isPopular && styles.subscribeButtonPopular,
                 ]}
                 onPress={() => handleSubscribe(plan)}
-                disabled
+                disabled={plan.isPopular}
               >
                 <Text
                   style={[
                     styles.subscribeButtonText,
-                    plan.price === 0 && styles.subscribeButtonTextFree,
+                    plan.isPopular && styles.subscribeButtonTextFree,
                   ]}
                 >
-                  {plan.price === 0 ? 'Get Started' : 'Subscribe Now'}
+                  {plan.isPopular ? 'Subscribed Plan' : 'Subscribe Now'}
                 </Text>
               </TouchableOpacity>
             </TouchableOpacity>
@@ -417,7 +417,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#FF8A00',
   },
-  subscribeButtonPopular: { backgroundColor: '#FF8A00' },
+  subscribeButtonPopular: { backgroundColor: '#F7EFE6' },
   subscribeButtonText: { color: '#FFF', fontSize: 16, fontWeight: '600' },
   subscribeButtonTextFree: { color: '#FF8A00' },
   benefitsSection: {
