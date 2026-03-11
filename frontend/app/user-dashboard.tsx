@@ -31,6 +31,7 @@ import {
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { MaterialIcons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAuthStore } from '../store/authStore';
 import { useLocationStore, LocationDetails } from '../store/locationStore';
@@ -517,7 +518,7 @@ export default function UserDashboard() {
               onPress={() => setShowLocationModal(true)}
             >
               <View style={styles.locationIcon}>
-                <Ionicons name="location-on" size={24} color="#FF7A00" />
+              <MaterialIcons name="location-on" size={24} color="#FF8C00" />
               </View>
 
               <View>

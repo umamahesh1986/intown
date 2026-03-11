@@ -25,6 +25,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuthStore } from '../store/authStore';
 import { useLocationStore } from '../store/locationStore';
 import { useFocusEffect } from '@react-navigation/native';
+import { MaterialIcons } from '@expo/vector-icons';
 import Footer from '../components/Footer';
 import { getNearbyShops, getCategories, getMerchantImageByShopId, extractImageUrls } from '../utils/api';
 import {
@@ -782,7 +783,7 @@ export default function DualDashboard() {
           onPress={() => setShowLocationModal(true)}
         >
           <View style={styles.locationIconCircle}>
-            <Ionicons name="location-on" size={24} color="#FF8A00" />
+            <MaterialIcons name="location-on" size={24} color="#FF8C00" />
           </View>
 
           <View style={styles.locationTextContainer}>

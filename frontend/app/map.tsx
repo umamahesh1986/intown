@@ -11,6 +11,7 @@ import {
 import { useState, useEffect } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { MaterialIcons } from '@expo/vector-icons';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocationStore } from '../store/locationStore';
 import { getShops } from '../utils/api';
@@ -76,7 +77,7 @@ export default function MapScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.errorContainer}>
-          <Ionicons name="location-on" size={64} color="#999999" />
+        <MaterialIcons name="location-on" size={24} color="#FF8C00" />
           <Text style={styles.errorText}>Location not available</Text>
           <TouchableOpacity style={styles.button} onPress={() => router.back()}>
             <Text style={styles.buttonText}>Go Back</Text>

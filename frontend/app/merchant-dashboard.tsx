@@ -19,6 +19,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { MaterialIcons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
 import { useLocationStore } from '../store/locationStore';
 import {
@@ -593,7 +594,7 @@ export default function MerchantDashboard() {
             onPress={() => setShowLocationModal(true)}
           >
             <View style={styles.locationIconBox}>
-              <Ionicons name="location-on" size={24} color="#FF8A00" />
+            <MaterialIcons name="location-on" size={24} color="#FF8C00" />
             </View>
 
             <View>
