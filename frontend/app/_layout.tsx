@@ -13,27 +13,31 @@ export default function RootLayout() {
     loadAuth();
 
     // Apply Inter as the default font for all Text and TextInput components
-    const defaultFontFamily = Fonts.regular;
+    try {
+      const defaultFontFamily = Fonts.regular;
 
-    const RNText: any = Text;
-    const RNTextInput: any = TextInput;
+      const RNText: any = Text;
+      const RNTextInput: any = TextInput;
 
-    if (!RNText.defaultProps) {
-      RNText.defaultProps = {};
+      if (!RNText.defaultProps) {
+        RNText.defaultProps = {};
+      }
+      if (!RNTextInput.defaultProps) {
+        RNTextInput.defaultProps = {};
+      }
+
+      RNText.defaultProps.style = [
+        { fontFamily: defaultFontFamily },
+        RNText.defaultProps.style,
+      ];
+
+      RNTextInput.defaultProps.style = [
+        { fontFamily: defaultFontFamily },
+        RNTextInput.defaultProps.style,
+      ];
+    } catch (error) {
+      console.error('Error setting default fonts:', error);
     }
-    if (!RNTextInput.defaultProps) {
-      RNTextInput.defaultProps = {};
-    }
-
-    RNText.defaultProps.style = [
-      { fontFamily: defaultFontFamily },
-      RNText.defaultProps.style,
-    ];
-
-    RNTextInput.defaultProps.style = [
-      { fontFamily: defaultFontFamily },
-      RNTextInput.defaultProps.style,
-    ];
   }, []);
 
   // 1. Define all screens that should show the navigation bar
@@ -60,7 +64,7 @@ export default function RootLayout() {
 ];
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#ff0000' }}>
+    <View style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" />
         <Stack.Screen name="location" />
