@@ -323,13 +323,13 @@ export default function Savings() {
             <Text style={styles.emptyText}>
               Start shopping at INtown partner stores to earn savings on every purchase!
             </Text>
-            <TouchableOpacity
+            {/* <TouchableOpacity
               style={styles.exploreButton}
-              onPress={() => router.push('/user-dashboard')}
+              onPress={() => router.push('/member-dashboard')}
             >
               <Ionicons name="search" size={20} color="#FFF" />
               <Text style={styles.exploreButtonText}>Explore Shops</Text>
-            </TouchableOpacity>
+            </TouchableOpacity> */}
           </View>
         ) : (
           <View style={styles.transactionsGrid}>
