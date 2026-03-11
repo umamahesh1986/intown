@@ -1091,9 +1091,8 @@ export default function MemberDashboard() {
                             style={styles.categoryImage}
                             resizeMode="cover"
                           />
-                          <View style={styles.categoryGradient} />
-                          <Text style={styles.categoryName}>{category.name}</Text>
                         </View>
+                        <Text style={styles.categoryName}>{category.name}</Text>
                       </TouchableOpacity>
                     );
                   })}
@@ -1676,17 +1675,12 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.4)',
   },
   categoryName: {
-    position: 'absolute',
-    bottom: 6,
-    left: 6,
-    right: 6,
-    color: '#FFFFFF',
+    color: '#1A1A1A',
     textAlign: 'center',
     fontWeight: '600',
     fontSize: 11,
-    textShadowColor: 'rgba(0, 0, 0, 0.8)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 4,
+    marginTop: 6,
+    paddingHorizontal: 2,
   },
 
   summarySection: {
