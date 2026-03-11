@@ -1206,7 +1206,7 @@ export default function DualDashboard() {
                               resizeMode="cover"
                             />
                           </View>
-                          <Text style={styles.categoryName}>{category.name}</Text>
+                          <Text style={styles.categoryName} numberOfLines={2}>{category.name}</Text>
                         </TouchableOpacity>
                       );
                     })}
@@ -1937,8 +1937,8 @@ const styles = StyleSheet.create({
   },
   categoryCard: {
     width: 100,
-    height: 100,
     marginBottom: 12,
+    alignItems: 'center',
   },
   categoryImageContainer: {
     width: 100,
@@ -1973,7 +1973,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 11,
     marginTop: 6,
-    paddingHorizontal: 2,
+    width: 100,
   },
   noCategoriesText: {
     fontSize: 14,
