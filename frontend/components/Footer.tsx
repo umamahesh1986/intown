@@ -316,7 +316,7 @@ Local Stores. Real Savings.
 
         </View>
         <Text style={styles.footerCopyright}>
-          © InTown. All rights reserved. 2026
+          © Yagnavihar Lifestyle Pvt Ltd. 2026 All rights reserved. 
         </Text>
 
 
@@ -423,7 +423,7 @@ const styles = StyleSheet.create({
   },
   footerCopyright: {
     fontSize: 12,
-    color: '#64748B',
+    color: '#94A3B8',
     textAlign: 'center',
     marginTop: 12,
   },

@@ -1007,50 +1007,7 @@ export default function DualDashboard() {
           </View>
         </View> */}
 
-        {/* Quick Stats */}
-        <View style={styles.statsContainer}>
-
-          <View style={styles.statCard}>
-
-            <Text style={styles.statValue}>
-
-              {activeTab === 'customer'
-                ? customerTodaySaved.toFixed(0)
-                : merchantTodaySales.toFixed(0)}
-            </Text>
-            <Text style={styles.statLabel}>
-              {activeTab === 'customer' ? "Today's Savings" : "Today's Business"}
-            </Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>
-
-              {activeTab === 'customer'
-                ? customerMonthSaved.toFixed(0)
-                : merchantMonthSales.toFixed(0)}
-            </Text>
-            <Text style={styles.statLabel}>
-              {activeTab === 'customer'
-                ? "This Month's Savings"
-                : "This Month's Business"}
-            </Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>
-
-              {activeTab === 'customer'
-                ? customerYearSaved.toFixed(0)
-                : merchantYearSales.toFixed(0)}
-            </Text>
-            <Text style={styles.statLabel}>
-              {activeTab === 'customer'
-                ? "This Year's Savings"
-                : "This Year's Business"}
-            </Text>
-          </View>
-        </View>
-
-        {/* Merchant Shop Details Card (Merchant Tab Only) */}
+          {/* Merchant Shop Details Card (Merchant Tab Only) */}
         {activeTab === 'merchant' && (
           <View style={styles.merchantShopCard}>
             {/* Image Carousel */}
@@ -1123,6 +1080,56 @@ export default function DualDashboard() {
             </View>
           </View>
         )}
+        {/* Quick Stats */}
+        <View style={{ paddingHorizontal: 16, marginTop: 10 }}>
+          <Text style={[styles.sectionTitle, { margin: 0, fontSize: 18 }]}>{activeTab === 'customer' ? "INtown Savings" : "INtown Business"}</Text>
+          
+        </View>
+        <View style={styles.statsContainer}>
+        
+          <View style={styles.statCard}>
+          <Text style={styles.statLabel}>
+              {activeTab === 'customer' ? "Today" : "Today"}
+            </Text>
+            <Text style={styles.statValue}>
+
+              {activeTab === 'customer'
+                ? customerTodaySaved.toFixed(0)
+                : merchantTodaySales.toFixed(0)}
+            </Text>
+            
+          </View>
+          <View style={styles.statCard}>
+          <Text style={styles.statLabel}>
+              {activeTab === 'customer'
+                ? "Month"
+                : "Month"}
+            </Text>
+            <Text style={styles.statValue}>
+
+              {activeTab === 'customer'
+                ? customerMonthSaved.toFixed(0)
+                : merchantMonthSales.toFixed(0)}
+            </Text>
+            
+          </View>
+          <View style={styles.statCard}>
+          <Text style={styles.statLabel}>
+              {activeTab === 'customer'
+                ? "Year"
+                : "Year"}
+            </Text>
+            <Text style={styles.statValue}>
+
+              {activeTab === 'customer'
+                ? customerYearSaved.toFixed(0)
+                : merchantYearSales.toFixed(0)}
+            </Text>
+            
+          </View>
+        </View>
+
+        
 
         {/* Transactions Section */}
         <View style={styles.transactionsSection}>
@@ -1157,7 +1164,7 @@ export default function DualDashboard() {
         {activeTab === 'customer' && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Popular Categories</Text>
+              <Text style={styles.sectionTitle}>Feature Categories</Text>
 
               {/* <TouchableOpacity>
                 <Text style={styles.viewAllText}>View All</Text>

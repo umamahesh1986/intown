@@ -692,7 +692,7 @@ export default function UserDashboard() {
           {/* Popular Categories */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Popular Categories</Text>
+              <Text style={styles.sectionTitle}>Feature Categories</Text>
 
               {/* <TouchableOpacity>
                 <Text style={styles.viewAll}>View All</Text>
@@ -768,7 +768,7 @@ export default function UserDashboard() {
 
             {/* Monthly Spend Label */}
             <Text style={styles.savingsLabel}>
-              ESTIMATED MONTHLY SPEND
+              Estimated Monthly Spend
             </Text>
 
             {/* Input */}
@@ -865,7 +865,7 @@ export default function UserDashboard() {
                   </View>
 
                   <Text style={styles.planDescription}>
-                    Essential savings for families
+                    Savings for individual
                   </Text>
                   <TouchableOpacity
                     style={styles.registerButton}
@@ -887,7 +887,7 @@ export default function UserDashboard() {
                   </View>
 
                   <Text style={styles.planDescription}>
-                    Maximum rewards for power users
+                    Savings for family
                   </Text>
                   <TouchableOpacity
                     style={[styles.purchaseButton, styles.purchaseButtonPrimary]}

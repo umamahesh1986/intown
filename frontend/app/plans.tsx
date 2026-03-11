@@ -45,59 +45,60 @@ export default function Plans() {
   };
 
   const getDefaultPlans = (): Plan[] => [
-    {
-      id: 1,
-      name: 'Basic',
-      description: 'Perfect for getting started',
-      price: 0,
-      duration: 'Free',
-      savings: 100,
-      features: ['Access to partner stores', 'Basic savings', 'Transaction history'],
-    },
+    // {
+    //   id: 1,
+    //   name: 'Basic',
+    //   description: 'Perfect for getting started',
+    //   price: 0,
+    //   duration: ' Free',
+    //   savings: 100,
+    //   features: ['Access to partner stores', 'Basic savings', 'Transaction history'],
+    // },
     {
       id: 2,
       name: 'Silver',
-      description: 'Great for regular shoppers',
-      price: 199,
-      duration: 'month',
+      description: 'Introductory Offer',
+      price: 99,
+      duration: ' Month',
       savings: 500,
       features: [
-        'All Basic features',
-        '5% extra savings',
-        'Priority support',
-        'Exclusive deals',
+        // 'All Basic features',
+        // '5% extra savings',
+        // 'Priority support',
+        // 'Exclusive deals',
       ],
+      isPopular: true,
     },
     {
       id: 3,
       name: 'Gold',
       description: 'Best value for families',
-      price: 499,
-      duration: 'month',
+      price: 599,
+      duration: ' 6 Months',
       savings: 1500,
       features: [
-        'All Silver features',
-        '10% extra savings',
-        'Family sharing (up to 4)',
-        'Premium partner access',
-        'Cashback rewards',
+        // 'All Silver features',
+        // '10% extra savings',
+        // 'Family sharing (up to 4)',
+        // 'Premium partner access',
+        // 'Cashback rewards',
       ],
-      isPopular: true,
+      isPopular: false,
     },
     {
       id: 4,
       name: 'Platinum',
       description: 'Ultimate savings experience',
       price: 999,
-      duration: 'month',
+      duration: ' Year',
       savings: 3000,
       features: [
-        'All Gold features',
-        '15% extra savings',
-        'Unlimited family members',
-        'VIP merchant access',
-        'Personal savings advisor',
-        'Early access to new features',
+        // 'All Gold features',
+        // '15% extra savings',
+        // 'Unlimited family members',
+        // 'VIP merchant access',
+        // 'Personal savings advisor',
+        // 'Early access to new features',
       ],
     },
   ];
@@ -179,12 +180,12 @@ export default function Plans() {
             >
               {plan.isPopular && (
                 <View style={styles.popularBadge}>
-                  <Text style={styles.popularBadgeText}>Most Popular</Text>
+                  <Text style={styles.popularBadgeText}>Current Plan</Text>
                 </View>
               )}
 
               <Text style={styles.planName}>{plan.name}</Text>
-              <Text style={styles.planDescription}>{plan.description}</Text>
+              {/* <Text style={styles.planDescription}>{plan.description}</Text> */}
 
               <View style={styles.priceContainer}>
                 {plan.price === 0 ? (
@@ -192,18 +193,18 @@ export default function Plans() {
                 ) : (
                   <>
                     <Text style={styles.planCurrency}>₹</Text>
-                    <Text style={styles.planPrice}><s>{plan.price}</s> Free</Text>
+                    <Text style={styles.planPrice}>{plan.price}</Text>
                     <Text style={styles.planDuration}>/{plan.duration}</Text>
                   </>
                 )}
               </View>
 
-              <View style={styles.savingsContainer}>
+              {/* <View style={styles.savingsContainer}>
                 <Ionicons name="trending-up" size={16} color="#4CAF50" />
                 <Text style={styles.savingsText}>
                   Est. Savings: ₹{plan.savings}/month
                 </Text>
-              </View>
+              </View> */}
 
               <View style={styles.featuresContainer}>
                 {plan.features.map((feature, index) => (
@@ -221,6 +222,7 @@ export default function Plans() {
                   plan.isPopular && styles.subscribeButtonPopular,
                 ]}
                 onPress={() => handleSubscribe(plan)}
+                disabled
               >
                 <Text
                   style={[
@@ -294,13 +296,11 @@ export default function Plans() {
           <Text style={styles.faqTitle}>Frequently Asked Questions</Text>
 
           <View style={styles.faqItem}>
-            <Text style={styles.faqQuestion}>Can I cancel anytime?</Text>
+            <Text style={styles.faqQuestion}>Why do I upgrade my plan?</Text>
             <Text style={styles.faqAnswer}>
-              Yes, you can cancel your subscription at any time. Your benefits will
-              continue until the end of the billing period.
+              You get a privilage access at your local stores in entire year.
             </Text>
           </View>
-
           <View style={styles.faqItem}>
             <Text style={styles.faqQuestion}>How do I upgrade my plan?</Text>
             <Text style={styles.faqAnswer}>
@@ -308,14 +308,21 @@ export default function Plans() {
               prorated for the remaining period.
             </Text>
           </View>
-
           <View style={styles.faqItem}>
+            <Text style={styles.faqQuestion}>Can I cancel anytime?</Text>
+            <Text style={styles.faqAnswer}>
+              Yes, you can cancel your subscription at any time. Your benefits will
+              continue until the end of the billing period.
+            </Text>
+          </View>
+
+          {/* <View style={styles.faqItem}>
             <Text style={styles.faqQuestion}>Is my payment secure?</Text>
             <Text style={styles.faqAnswer}>
               Yes, all payments are processed through secure payment gateways with
               end-to-end encryption.
             </Text>
-          </View>
+          </View> */}
         </View>
       </ScrollView>
     </SafeAreaView>

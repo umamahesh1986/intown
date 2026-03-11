@@ -1058,7 +1058,7 @@ export default function MemberDashboard() {
 
             {/* TITLE ROW */}
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Popular Categories</Text>
+              <Text style={styles.sectionTitle}>Feature Categories</Text>
 
               {/* <TouchableOpacity>
                 <Text style={styles.viewAll}>View All</Text>

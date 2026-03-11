@@ -715,6 +715,9 @@ export default function MerchantDashboard() {
           </View>
           <Text style={styles.shopName}>{merchantShop.name}</Text>
           <Text style={styles.shopCategory}>{merchantShop.category}</Text>
+          <Text style={[styles.descriptionText, { textAlign: 'left', lineHeight: 20, width: '100%', color: '#94A3B8' }]}>
+              {merchantShop.description}
+            </Text>
           {/* <View style={styles.ratingContainer}>
             {[1, 2, 3, 4, 5].map((i) => (
               <Ionicons
@@ -729,36 +732,37 @@ export default function MerchantDashboard() {
         </View>
 
         {/* Description Section */}
-        <View style={{ paddingHorizontal: 16, marginTop: 10 }}>
+        {/* <View style={{ paddingHorizontal: 16, marginTop: 10 }}>
           <Text style={[styles.sectionTitle, { margin: 0, marginBottom: 8, fontSize: 18 }]}>Description</Text>
           <View style={[styles.descriptionCard, { padding: 14, backgroundColor: '#FFF' }]}>
             <Text style={[styles.descriptionText, { textAlign: 'left', lineHeight: 20 }]}>
               {merchantShop.description}
             </Text>
           </View>
-        </View>
+        </View> */}
 
         {/* Total Summary Section */}
-
-
+        <View style={{ paddingHorizontal: 16, marginTop: 10 }}>
+          <Text style={[styles.sectionTitle, { margin: 0, fontSize: 18 }]}>INtown Business</Text>
+        </View>
         <View style={styles.statsContainer}>
-
+        
           <View style={styles.statCard}>
-            <Text style={styles.statTitle}>Today's Business</Text>
+            <Text style={styles.statTitle}>Today</Text>
             <Text style={styles.statValue}>
               {(periodTotals.today?.totalSalesValue ?? 0).toFixed(0)}
             </Text>
           </View>
 
           <View style={styles.statCard}>
-            <Text style={styles.statTitle}>This Month's Business</Text>
+            <Text style={styles.statTitle}>Month</Text>
             <Text style={styles.statValue}>
               {(periodTotals.thisMonth?.totalSalesValue ?? 0).toFixed(0)}
             </Text>
           </View>
 
           <View style={styles.statCard}>
-            <Text style={styles.statTitle}>This Year's Business</Text>
+            <Text style={styles.statTitle}>Year</Text>
             <Text style={styles.statValue}>
               {(periodTotals.thisYear?.totalSalesValue ?? 0).toFixed(0)}
             </Text>

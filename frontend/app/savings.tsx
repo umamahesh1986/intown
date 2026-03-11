@@ -209,36 +209,36 @@ export default function Savings() {
       <View style={styles.infoSection}>
         <View style={styles.infoCard}>
           <View style={styles.infoIconContainer}>
-            <Ionicons name="trending-up" size={24} color="#4CAF50" />
+            <Ionicons name="trending-up" size={24} color="#FF8A00" />
           </View>
           <View style={styles.infoContent}>
-            <Text style={styles.infoTitle}>8% Guaranteed Savings</Text>
+            <Text style={styles.infoTitle}>Are you still paying total bill ?</Text>
             <Text style={styles.infoText}>
-              Save up to 15% on every purchase at partner stores
+              No need. INtown offers you special price.
             </Text>
           </View>
         </View>
 
         <View style={styles.infoCard}>
           <View style={styles.infoIconContainer}>
-            <Ionicons name="storefront" size={24} color="#2196F3" />
+            <Ionicons name="storefront" size={24} color="#FF8A00" />
           </View>
           <View style={styles.infoContent}>
-            <Text style={styles.infoTitle}>200+ Partner Stores</Text>
+            <Text style={styles.infoTitle}>More Partner Stores at your area</Text>
             <Text style={styles.infoText}>
-              Shop from groceries, restaurants, salons, and more
+              Shop from groceries, restaurants, salons, medicals and more services.
             </Text>
           </View>
         </View>
 
         <View style={styles.infoCard}>
           <View style={styles.infoIconContainer}>
-            <Ionicons name="flash" size={24} color="#FF9800" />
+            <Ionicons name="flash" size={24} color="#FF8A00" />
           </View>
           <View style={styles.infoContent}>
-            <Text style={styles.infoTitle}>Instant Savings</Text>
+            <Text style={styles.infoTitle}>Worried about coupons ?</Text>
             <Text style={styles.infoText}>
-              Get immediate discounts at checkout - no waiting
+              Get immediate savings at checkout without any coupons and scratch cards.
             </Text>
           </View>
         </View>
@@ -275,7 +275,7 @@ export default function Savings() {
           <View style={styles.summaryIconContainer}>
             <Ionicons name="today" size={24} color="#FF8C00" />
           </View>
-          <Text style={styles.summaryLabel}>Today's Savings</Text>
+          <Text style={styles.summaryLabel}>Today</Text>
           <Text style={styles.summaryValue}>{formatCurrency(summary.today)}</Text>
         </View>
 
@@ -283,7 +283,7 @@ export default function Savings() {
           <View style={styles.summaryIconContainer}>
             <Ionicons name="calendar" size={24} color="#FF8C00" />
           </View>
-          <Text style={styles.summaryLabel}>This Month</Text>
+          <Text style={styles.summaryLabel}>Month</Text>
           <Text style={[styles.summaryValue, { color: '#0F172A' }]}>
             {formatCurrency(summary.thisMonth)}
           </Text>
@@ -293,7 +293,7 @@ export default function Savings() {
           <View style={styles.summaryIconContainer}>
             <Ionicons name="trending-up" size={24} color="#FF8C00" />
           </View>
-          <Text style={styles.summaryLabel}>This Year</Text>
+          <Text style={styles.summaryLabel}>Year</Text>
           <Text style={[styles.summaryValue, { color: '#0F172A' }]}>
             {formatCurrency(summary.thisYear)}
           </Text>
