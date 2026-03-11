@@ -6,19 +6,44 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+interface ApiTransaction {
+  transactionId: number;
+  merchantName: string;
+  totalBillAmount: number;
+  savedAmount: number;
+  finalPaidAmount: number;
+  transactionDate: string;
+}
+
+interface ApiPeriodData {
+  totalBillAmount: number;
+  totalSavedAmount: number;
+  totalPaidAmount: number;
+  transactionCount: number;
+}
+
+interface SavingsApiResponse {
+  today: ApiPeriodData;
+  thisMonth: ApiPeriodData;
+  thisYear: ApiPeriodData;
+  lifetime: ApiPeriodData;
+  transactions: ApiTransaction[];
+}
+
 interface SavingsTransaction {
   id: string;
   date: string;
   shopName: string;
   amount: number;
   savings: number;
-  category: string;
+  paidAmount: number;
 }
 
 interface SavingsSummary {
   today: number;
   thisMonth: number;
   thisYear: number;
+  lifetime: number;
   totalTransactions: number;
 }
 
@@ -32,6 +57,7 @@ export default function Savings() {
     today: 0,
     thisMonth: 0,
     thisYear: 0,
+    lifetime: 0,
     totalTransactions: 0,
   });
 
@@ -43,19 +69,64 @@ export default function Savings() {
 
   const fetchSavingsData = async () => {
     try {
-      // TODO: Replace with actual API call when available
+      // Get customer ID from AsyncStorage
       const customerId = await AsyncStorage.getItem('customer_id');
+      const effectiveCustomerId = customerId || user?.id;
       
-      // Simulated empty data - replace with actual API integration
+      if (!effectiveCustomerId) {
+        console.log('No customer ID available');
+        setIsLoading(false);
+        setRefreshing(false);
+        return;
+      }
+
+      // Fetch savings data from API
+      const response = await fetch(
+        `https://api.intownlocal.com/IN/transactions/customers/${effectiveCustomerId}`,
+        {
+          headers: {
+            Accept: 'application/json',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`API request failed: ${response.status}`);
+      }
+
+      const data: SavingsApiResponse = await response.json();
+
+      // Update summary with API data
+      setSummary({
+        today: data.today?.totalSavedAmount ?? 0,
+        thisMonth: data.thisMonth?.totalSavedAmount ?? 0,
+        thisYear: data.thisYear?.totalSavedAmount ?? 0,
+        lifetime: data.lifetime?.totalSavedAmount ?? 0,
+        totalTransactions: data.lifetime?.transactionCount ?? 0,
+      });
+
+      // Transform transactions for display
+      const transformedTransactions: SavingsTransaction[] = (data.transactions || []).map((tx) => ({
+        id: String(tx.transactionId),
+        date: tx.transactionDate,
+        shopName: tx.merchantName || 'Unknown Shop',
+        amount: tx.totalBillAmount,
+        savings: tx.savedAmount,
+        paidAmount: tx.finalPaidAmount,
+      }));
+
+      setTransactions(transformedTransactions);
+    } catch (error) {
+      console.error('Error fetching savings:', error);
+      // Reset to empty state on error
       setTransactions([]);
       setSummary({
         today: 0,
         thisMonth: 0,
         thisYear: 0,
+        lifetime: 0,
         totalTransactions: 0,
       });
-    } catch (error) {
-      console.error('Error fetching savings:', error);
     } finally {
       setIsLoading(false);
       setRefreshing(false);
@@ -138,7 +209,7 @@ export default function Savings() {
       <View style={styles.infoSection}>
         <View style={styles.infoCard}>
           <View style={styles.infoIconContainer}>
-            <Ionicons name="trending-up" size={24} color="#FF8A00" />
+            <Ionicons name="trending-up" size={24} color="#4CAF50" />
           </View>
           <View style={styles.infoContent}>
             <Text style={styles.infoTitle}>8% Guaranteed Savings</Text>
@@ -150,7 +221,7 @@ export default function Savings() {
 
         <View style={styles.infoCard}>
           <View style={styles.infoIconContainer}>
-            <Ionicons name="storefront" size={24} color="#FF8A00" />
+            <Ionicons name="storefront" size={24} color="#2196F3" />
           </View>
           <View style={styles.infoContent}>
             <Text style={styles.infoTitle}>200+ Partner Stores</Text>
@@ -202,7 +273,7 @@ export default function Savings() {
       <View style={styles.summaryContainer}>
         <View style={styles.summaryCard}>
           <View style={styles.summaryIconContainer}>
-            <Ionicons name="today" size={24} color="#FF8A00" />
+            <Ionicons name="today" size={24} color="#FF8C00" />
           </View>
           <Text style={styles.summaryLabel}>Today's Savings</Text>
           <Text style={styles.summaryValue}>{formatCurrency(summary.today)}</Text>
@@ -210,20 +281,20 @@ export default function Savings() {
 
         <View style={styles.summaryCard}>
           <View style={styles.summaryIconContainer}>
-            <Ionicons name="calendar" size={24} color="#FF8A00" />
+            <Ionicons name="calendar" size={24} color="#FF8C00" />
           </View>
           <Text style={styles.summaryLabel}>This Month</Text>
-          <Text style={[styles.summaryValue, { color: '#FF8A00' }]}>
+          <Text style={[styles.summaryValue, { color: '#0F172A' }]}>
             {formatCurrency(summary.thisMonth)}
           </Text>
         </View>
 
         <View style={styles.summaryCard}>
           <View style={styles.summaryIconContainer}>
-            <Ionicons name="trending-up" size={24} color="#FF8A00" />
+            <Ionicons name="trending-up" size={24} color="#FF8C00" />
           </View>
           <Text style={styles.summaryLabel}>This Year</Text>
-          <Text style={[styles.summaryValue, { color: '#FF8A00' }]}>
+          <Text style={[styles.summaryValue, { color: '#0F172A' }]}>
             {formatCurrency(summary.thisYear)}
           </Text>
         </View>
@@ -233,8 +304,8 @@ export default function Savings() {
       <View style={styles.totalBanner}>
         <Ionicons name="wallet" size={32} color="#FFF" />
         <View style={styles.totalBannerText}>
-          <Text style={styles.totalLabel}>Total Savings</Text>
-          <Text style={styles.totalValue}>{formatCurrency(summary.thisYear)}</Text>
+          <Text style={styles.totalLabel}>Total Lifetime Savings</Text>
+          <Text style={styles.totalValue}>{formatCurrency(summary.lifetime)}</Text>
         </View>
         <Text style={styles.totalTransactions}>
           {summary.totalTransactions} Transactions
@@ -261,28 +332,34 @@ export default function Savings() {
             </TouchableOpacity>
           </View>
         ) : (
-          transactions.map((transaction) => (
-            <View key={transaction.id} style={styles.transactionCard}>
-              <View style={styles.transactionLeft}>
-                <View style={styles.transactionIcon}>
-                  <Ionicons name="storefront" size={24} color="#FF8A00" />
+          <View style={styles.transactionsGrid}>
+            {transactions.map((transaction) => (
+              <View key={transaction.id} style={styles.transactionGridCard}>
+                <View style={styles.transactionGridHeader}>
+                  <View style={styles.transactionGridIcon}>
+                    <Ionicons name="storefront" size={20} color="#FF8A00" />
+                  </View>
+                  <Text style={styles.transactionGridShop} numberOfLines={1}>
+                    {transaction.shopName}
+                  </Text>
                 </View>
-                <View style={styles.transactionInfo}>
-                  <Text style={styles.transactionShop}>{transaction.shopName}</Text>
-                  <Text style={styles.transactionDate}>{formatDate(transaction.date)}</Text>
-                  <Text style={styles.transactionCategory}>{transaction.category}</Text>
+                <Text style={styles.transactionGridDate}>{formatDate(transaction.date)}</Text>
+                <View style={styles.transactionGridDivider} />
+                <View style={styles.transactionGridRow}>
+                  <Text style={styles.transactionGridLabel}>Bill</Text>
+                  <Text style={styles.transactionGridValue}>{formatCurrency(transaction.amount)}</Text>
+                </View>
+                <View style={styles.transactionGridRow}>
+                  <Text style={styles.transactionGridLabel}>Saved</Text>
+                  <Text style={styles.transactionGridSaved}>{formatCurrency(transaction.savings)}</Text>
+                </View>
+                <View style={styles.transactionGridRow}>
+                  <Text style={styles.transactionGridLabel}>Paid</Text>
+                  <Text style={styles.transactionGridPaid}>{formatCurrency(transaction.paidAmount)}</Text>
                 </View>
               </View>
-              <View style={styles.transactionRight}>
-                <Text style={styles.transactionAmount}>
-                  {formatCurrency(transaction.amount)}
-                </Text>
-                <Text style={styles.transactionSavings}>
-                  Saved {formatCurrency(transaction.savings)}
-                </Text>
-              </View>
-            </View>
-          ))
+            ))}
+          </View>
         )}
       </View>
 
@@ -444,13 +521,13 @@ const styles = StyleSheet.create({
   resultLabel: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#FF8A00',
+    color: '#4CAF50',
     marginBottom: 4,
   },
   monthlyValue: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#FF8A00',
+    color: '#4CAF50',
   },
   annualLabel: {
     fontSize: 10,
@@ -540,7 +617,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFF',
     borderRadius: 12,
-    padding: 16,
+    padding: 12,
     alignItems: 'center',
   },
   summaryIconContainer: {
@@ -553,7 +630,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   summaryLabel: { fontSize: 12, color: '#666', marginBottom: 4 },
-  summaryValue: { fontSize: 18, fontWeight: 'bold', color: '#FF8A00' },
+  summaryValue: { fontSize: 18, fontWeight: 'bold', color: '#0F172A' },
   totalBanner: {
     backgroundColor: '#FF8A00',
     marginHorizontal: 16,
@@ -599,6 +676,84 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   exploreButtonText: { color: '#FFF', fontSize: 16, fontWeight: '600', marginLeft: 8 },
+  
+  // Grid Layout for Transactions
+  transactionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    maxHeight: 260,
+    overflow: "auto"
+  },
+  transactionGridCard: {
+    backgroundColor: '#FFF',
+    borderRadius: 12,
+    padding: 14,
+    width: '48%',
+    minWidth: 150,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  transactionGridHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  transactionGridIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: '#FFF3E0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+  },
+  transactionGridShop: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1A1A1A',
+    flex: 1,
+  },
+  transactionGridDate: {
+    fontSize: 11,
+    color: '#999',
+    marginBottom: 10,
+  },
+  transactionGridDivider: {
+    height: 1,
+    backgroundColor: '#F0F0F0',
+    marginBottom: 10,
+  },
+  transactionGridRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  transactionGridLabel: {
+    fontSize: 12,
+    color: '#888',
+  },
+  transactionGridValue: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#1A1A1A',
+  },
+  transactionGridSaved: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#4CAF50',
+  },
+  transactionGridPaid: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#FF8A00',
+  },
+  
+  // Legacy list styles (kept for reference)
   transactionCard: {
     backgroundColor: '#FFF',
     borderRadius: 12,
@@ -622,8 +777,9 @@ const styles = StyleSheet.create({
   transactionDate: { fontSize: 12, color: '#999', marginTop: 2 },
   transactionCategory: { fontSize: 12, color: '#FF8A00', marginTop: 2 },
   transactionRight: { alignItems: 'flex-end' },
-  transactionAmount: { fontSize: 16, fontWeight: '600', color: '#1A1A1A' },
-  transactionSavings: { fontSize: 12, color: '#FF8A00', marginTop: 2 },
+  transactionAmount: { fontSize: 14, fontWeight: '500', color: '#1A1A1A' },
+  transactionSavings: { fontSize: 13, color: '#4CAF50', marginTop: 2, fontWeight: '600' },
+  transactionPaid: { fontSize: 12, color: '#666', marginTop: 2 },
   howItWorks: {
     backgroundColor: '#FFF',
     margin: 16,
