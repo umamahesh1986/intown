@@ -19,6 +19,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { MaterialIcons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
 import { useLocationStore } from '../store/locationStore';
 import {
@@ -511,7 +512,7 @@ export default function MerchantDashboard() {
         }
         const data: MerchantDetails = await res.json();
         setMerchantDetails(data);
-        
+
         // Update shop name and description from API
         if (data.businessName) {
           setShopName(data.businessName);
@@ -522,7 +523,7 @@ export default function MerchantDashboard() {
         if (data.contactName) {
           setMerchantContactName(data.contactName);
         }
-        
+
         // Extract and set images from API response
         if (data.s3ImageUrl && Array.isArray(data.s3ImageUrl) && data.s3ImageUrl.length > 0) {
           const imageUrls = data.s3ImageUrl.map(img => img.s3ImageUrl);
@@ -585,47 +586,47 @@ export default function MerchantDashboard() {
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Header */}
-       <View style={styles.header}>
+        <View style={styles.header}>
 
-  {/* LOCATION */}
-  <TouchableOpacity
-    style={styles.locationSection}
-    onPress={() => setShowLocationModal(true)}
-  >
-    <View style={styles.locationIconBox}>
-      <Ionicons name="location-outline" size={24} color="#FF8A00" />
-    </View>
+          {/* LOCATION */}
+          <TouchableOpacity
+            style={styles.locationSection}
+            onPress={() => setShowLocationModal(true)}
+          >
+            <View style={styles.locationIconBox}>
+            <MaterialIcons name="location-on" size={24} color="#FF8C00" />
+            </View>
 
-    <View>
-      <Text style={styles.locationLabel}>YOUR LOCATION</Text>
-      <Text style={styles.locationName}>
-        {getLocationDisplayText()}
-      </Text>
-    </View>
-  </TouchableOpacity>
+            <View>
+              <Text style={styles.locationLabel}>YOUR LOCATION</Text>
+              <Text style={styles.locationName}>
+                {getLocationDisplayText()}
+              </Text>
+            </View>
+          </TouchableOpacity>
 
-  {/* RIGHT ICONS */}
-  <View style={styles.headerIcons}>
+          {/* RIGHT ICONS */}
+          <View style={styles.headerIcons}>
 
-    {/* Notification */}
-    <TouchableOpacity style={styles.notificationIconBtn}>
-      <Ionicons name="notifications-outline" size={22} color="#333" />
-    </TouchableOpacity>
+            {/* Notification */}
+            <TouchableOpacity style={styles.notificationIconBtn}>
+              <Ionicons name="notifications-outline" size={22} color="#333" />
+            </TouchableOpacity>
 
-    {/* Profile */}
-    <TouchableOpacity
-      style={styles.headerIconBtn}
-      onPress={(e) => {
-        e.stopPropagation();
-        showDropdown ? closeDropdown() : openDropdown();
-      }}
-    >
-      <Ionicons name="person-outline" size={22} color="#FF8A00" />
-    </TouchableOpacity>
+            {/* Profile */}
+            <TouchableOpacity
+              style={styles.headerIconBtn}
+              onPress={(e) => {
+                e.stopPropagation();
+                showDropdown ? closeDropdown() : openDropdown();
+              }}
+            >
+              <Ionicons name="person-outline" size={22} color="#FF8A00" />
+            </TouchableOpacity>
 
-  </View>
+          </View>
 
-</View>
+        </View>
 
         {/* ===== MERCHANT CAROUSEL ===== */}
         {/* <View style={styles.carouselWrapper}>
@@ -709,11 +710,14 @@ export default function MerchantDashboard() {
                 </TouchableOpacity>
               </>
             ) : (
-            <Ionicons name="storefront" size={80} color="#2196F3" style={{ textAlign: 'center' }} />
+              <Ionicons name="storefront" size={80} color="#2196F3" style={{ textAlign: 'center' }} />
             )}
           </View>
           <Text style={styles.shopName}>{merchantShop.name}</Text>
           <Text style={styles.shopCategory}>{merchantShop.category}</Text>
+          <Text style={[styles.descriptionText, { textAlign: 'left', lineHeight: 20, width: '100%', color: '#94A3B8' }]}>
+              {merchantShop.description}
+            </Text>
           {/* <View style={styles.ratingContainer}>
             {[1, 2, 3, 4, 5].map((i) => (
               <Ionicons
@@ -728,45 +732,46 @@ export default function MerchantDashboard() {
         </View>
 
         {/* Description Section */}
-        <View style={{ paddingHorizontal: 16, marginTop: 10 }}>
+        {/* <View style={{ paddingHorizontal: 16, marginTop: 10 }}>
           <Text style={[styles.sectionTitle, { margin: 0, marginBottom: 8, fontSize: 18 }]}>Description</Text>
           <View style={[styles.descriptionCard, { padding: 14, backgroundColor: '#FFF' }]}>
             <Text style={[styles.descriptionText, { textAlign: 'left', lineHeight: 20 }]}>
               {merchantShop.description}
             </Text>
           </View>
-        </View>
+        </View> */}
 
         {/* Total Summary Section */}
+        <View style={{ paddingHorizontal: 16, marginTop: 10 }}>
+          <Text style={[styles.sectionTitle, { margin: 0, fontSize: 18 }]}>INtown Business</Text>
+        </View>
+        <View style={styles.statsContainer}>
         
+          <View style={styles.statCard}>
+            <Text style={styles.statTitle}>Today</Text>
+            <Text style={styles.statValue}>
+              {(periodTotals.today?.totalSalesValue ?? 0).toFixed(0)}
+            </Text>
+          </View>
 
-<View style={styles.statsContainer}>
+          <View style={styles.statCard}>
+            <Text style={styles.statTitle}>Month</Text>
+            <Text style={styles.statValue}>
+              {(periodTotals.thisMonth?.totalSalesValue ?? 0).toFixed(0)}
+            </Text>
+          </View>
 
-<View style={styles.statCard}>
-<Text style={styles.statTitle}>Today's Business</Text>
-<Text style={styles.statValue}>
-{(periodTotals.today?.totalSalesValue ?? 0).toFixed(0)}
-</Text>
-</View>
+          <View style={styles.statCard}>
+            <Text style={styles.statTitle}>Year</Text>
+            <Text style={styles.statValue}>
+              {(periodTotals.thisYear?.totalSalesValue ?? 0).toFixed(0)}
+            </Text>
+          </View>
 
-<View style={styles.statCard}>
-<Text style={styles.statTitle}>This Month's Business</Text>
-<Text style={styles.statValue}>
-{(periodTotals.thisMonth?.totalSalesValue ?? 0).toFixed(0)}
-</Text>
-</View>
-
-<View style={styles.statCard}>
-<Text style={styles.statTitle}>This Year's Business</Text>
-<Text style={styles.statValue}>
-{(periodTotals.thisYear?.totalSalesValue ?? 0).toFixed(0)}
-</Text>
-</View>
-
-</View>
+        </View>
 
         {/* Payments List */}
-       <View style={styles.transactionsCard}>
+        <View style={styles.transactionsCard}>
           <View style={[styles.transactionHeader, { marginTop: 10, alignItems: 'center' }]}>
             {/* This View below uses row direction to keep title and brackets together */}
             <View style={{ flexDirection: 'row', alignItems: 'baseline', flex: 1 }}>
@@ -1088,10 +1093,10 @@ export default function MerchantDashboard() {
 }
 
 const styles = StyleSheet.create({
-container: {
-  flex: 1,
-  backgroundColor: '#F2F2F2',
-},
+  container: {
+    flex: 1,
+    backgroundColor: '#F2F2F2',
+  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1311,13 +1316,13 @@ container: {
   ratingText: { fontSize: 16, fontWeight: '600', color: '#666666', marginLeft: 8 },
   descriptionCard: { backgroundColor: '#FFFFFF', borderRadius: 12, padding: 16, borderWidth: 1, borderColor: '#EEEEEE' },
   descriptionText: { fontSize: 14, color: '#666666', lineHeight: 20 },
- section: {
-  padding: 16,
-  backgroundColor: '#FFFFFF',
-  borderRadius: 20,
-  marginHorizontal: 16,
-  marginTop: 16,
-},
+  section: {
+    padding: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    marginHorizontal: 16,
+    marginTop: 16,
+  },
   sectionPaymentHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1325,32 +1330,32 @@ container: {
   },
   sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#1A1A1A', margin: 16 },
   summarySection: {
-  backgroundColor: '#FF8A00',
-  paddingVertical: 20,
-  paddingHorizontal: 10,
-  borderRadius: 20,
-  marginHorizontal: 16,
-  marginTop: 10,
-},
+    backgroundColor: '#FF8A00',
+    paddingVertical: 20,
+    paddingHorizontal: 10,
+    borderRadius: 20,
+    marginHorizontal: 16,
+    marginTop: 10,
+  },
   summaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginHorizontal: 10,
   },
-summaryItem: {
-  flex: 1,
-  alignItems: 'center',
-  justifyContent: 'center',
-  backgroundColor: '#FFFFFF',
-  paddingVertical: 18,
-  marginHorizontal: 6,
-  borderRadius: 18,
-  shadowColor: '#000',
-  shadowOpacity: 0.12,
-  shadowRadius: 8,
-  shadowOffset: { width: 0, height: 4 },
-  elevation: 6,
-},
+  summaryItem: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 18,
+    marginHorizontal: 6,
+    borderRadius: 18,
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
+  },
   summaryLabel: {
     ...FontStylesWithFallback.caption,
     color: '#777777',
@@ -1409,9 +1414,9 @@ summaryItem: {
     marginTop: 4,
   },
   emptyState: {
-  alignItems: 'center',
-  paddingVertical: 32,
-},
+    alignItems: 'center',
+    paddingVertical: 32,
+  },
   emptyText: {
     fontSize: 14,
     color: '#999999',
@@ -1639,118 +1644,118 @@ summaryItem: {
   },
 
   locationSection: {
-  flexDirection: "row",
-  alignItems: "center",
-},
+    flexDirection: "row",
+    alignItems: "center",
+  },
 
-locationIconBox: {
-  width: 40,
-  height: 40,
-  borderRadius: 20,
-  backgroundColor: "#FFE8D6",
-  justifyContent: "center",
-  alignItems: "center",
-  marginRight: 10,
-},
+  locationIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#FFE8D6",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 10,
+  },
 
-locationLabel: {
-  fontSize: 11,
-  color: "#999",
-  fontWeight: "600",
-},
+  locationLabel: {
+    fontSize: 11,
+    color: "#999",
+    fontWeight: "600",
+  },
 
-locationName: {
-  fontSize: 14,
-  fontWeight: "700",
-  color: "#0F172A",
-  maxWidth: 200,
-  whiteSpace: "nowrap",
-  textOverflow: "ellipsis",
-  overflow: "hidden"
-},
+  locationName: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#0F172A",
+    maxWidth: 200,
+    whiteSpace: "nowrap",
+    textOverflow: "ellipsis",
+    overflow: "hidden"
+  },
 
-headerIcons: {
-  flexDirection: "row",
-  alignItems: "center",
-},
+  headerIcons: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
 
-notificationIconBtn: {
-  width: 36,
-  height: 36,
-  borderRadius: 18,
-  borderWidth: 1,
-  borderColor: "#E0E0E0",
-  backgroundColor: "#FFFFFF",
-  justifyContent: "center",
-  alignItems: "center",
-  marginRight: 12,
-},
+  notificationIconBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+    backgroundColor: "#FFFFFF",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
 
-headerIconBtn: {
-  width: 36,
-  height: 36,
-  borderRadius: 18,
-  borderWidth: 2,
-  borderColor: "#FF8A00",
-  backgroundColor: "#FFFFFF",
-  justifyContent: "center",
-  alignItems: "center",
-},
-statsContainer:{
-flexDirection:"row",
-justifyContent:"space-between",
-marginHorizontal:16,
-marginTop:16
-},
+  headerIconBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 2,
+    borderColor: "#FF8A00",
+    backgroundColor: "#FFFFFF",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  statsContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginHorizontal: 16,
+    marginTop: 16
+  },
 
-statCard:{
-flex:1,
-backgroundColor:"#FF8A00",
-paddingVertical:20,
-borderRadius:20,
-marginHorizontal:6,
-alignItems:"center",
-shadowColor:"#000",
-shadowOpacity:0.15,
-shadowRadius:8,
-shadowOffset:{width:0,height:4},
-elevation:5
-},
+  statCard: {
+    flex: 1,
+    backgroundColor: "#FF8A00",
+    paddingVertical: 20,
+    borderRadius: 20,
+    marginHorizontal: 6,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 5
+  },
 
-statTitle:{
-color:"#FFFFFF",
-fontSize:13,
-fontWeight:"600",
-textAlign:"center"
-},
+  statTitle: {
+    color: "#FFFFFF",
+    fontSize: 13,
+    fontWeight: "600",
+    textAlign: "center"
+  },
 
-statValue:{
-color:"#FFFFFF",
-fontSize:24,
-fontWeight:"800",
-marginTop:6
-},
-transactionsCard:{
-backgroundColor:"#FFFFFF",
-marginHorizontal:16,
-marginTop:20,
-marginBottom:20,
-borderRadius:20,
-paddingVertical:10,
-paddingBottom:20,
-shadowColor:"#000",
-shadowOpacity:0.12,
-shadowRadius:10,
-shadowOffset:{width:0,height:4},
-elevation:5
-},
+  statValue: {
+    color: "#FFFFFF",
+    fontSize: 24,
+    fontWeight: "800",
+    marginTop: 6
+  },
+  transactionsCard: {
+    backgroundColor: "#FFFFFF",
+    marginHorizontal: 16,
+    marginTop: 20,
+    marginBottom: 20,
+    borderRadius: 20,
+    paddingVertical: 10,
+    paddingBottom: 20,
+    shadowColor: "#000",
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 5
+  },
 
-transactionHeader:{
-flexDirection:"row",
-justifyContent:"space-between",
-alignItems:"center",
-paddingHorizontal:16,
-paddingTop:10
-},
+  transactionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingTop: 10
+  },
 
 });

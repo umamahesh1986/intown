@@ -25,6 +25,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuthStore } from '../store/authStore';
 import { useLocationStore } from '../store/locationStore';
 import { useFocusEffect } from '@react-navigation/native';
+import { MaterialIcons } from '@expo/vector-icons';
 import Footer from '../components/Footer';
 import { getNearbyShops, getCategories, getMerchantImageByShopId, extractImageUrls } from '../utils/api';
 import {
@@ -782,7 +783,7 @@ export default function DualDashboard() {
           onPress={() => setShowLocationModal(true)}
         >
           <View style={styles.locationIconCircle}>
-            <Ionicons name="location" size={16} color="#FF8A00" />
+            <MaterialIcons name="location-on" size={24} color="#FF8C00" />
           </View>
 
           <View style={styles.locationTextContainer}>
@@ -1006,50 +1007,7 @@ export default function DualDashboard() {
           </View>
         </View> */}
 
-        {/* Quick Stats */}
-        <View style={styles.statsContainer}>
-
-          <View style={styles.statCard}>
-
-            <Text style={styles.statValue}>
-
-              {activeTab === 'customer'
-                ? customerTodaySaved.toFixed(0)
-                : merchantTodaySales.toFixed(0)}
-            </Text>
-            <Text style={styles.statLabel}>
-              {activeTab === 'customer' ? "Today's Savings" : "Today's Business"}
-            </Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>
-
-              {activeTab === 'customer'
-                ? customerMonthSaved.toFixed(0)
-                : merchantMonthSales.toFixed(0)}
-            </Text>
-            <Text style={styles.statLabel}>
-              {activeTab === 'customer'
-                ? "This Month's Savings"
-                : "This Month's Business"}
-            </Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>
-
-              {activeTab === 'customer'
-                ? customerYearSaved.toFixed(0)
-                : merchantYearSales.toFixed(0)}
-            </Text>
-            <Text style={styles.statLabel}>
-              {activeTab === 'customer'
-                ? "This Year's Savings"
-                : "This Year's Business"}
-            </Text>
-          </View>
-        </View>
-
-        {/* Merchant Shop Details Card (Merchant Tab Only) */}
+          {/* Merchant Shop Details Card (Merchant Tab Only) */}
         {activeTab === 'merchant' && (
           <View style={styles.merchantShopCard}>
             {/* Image Carousel */}
@@ -1122,6 +1080,56 @@ export default function DualDashboard() {
             </View>
           </View>
         )}
+        {/* Quick Stats */}
+        <View style={{ paddingHorizontal: 16, marginTop: 10 }}>
+          <Text style={[styles.sectionTitle, { margin: 0, fontSize: 18 }]}>{activeTab === 'customer' ? "INtown Savings" : "INtown Business"}</Text>
+          
+        </View>
+        <View style={styles.statsContainer}>
+        
+          <View style={styles.statCard}>
+          <Text style={styles.statLabel}>
+              {activeTab === 'customer' ? "Today" : "Today"}
+            </Text>
+            <Text style={styles.statValue}>
+
+              {activeTab === 'customer'
+                ? customerTodaySaved.toFixed(0)
+                : merchantTodaySales.toFixed(0)}
+            </Text>
+            
+          </View>
+          <View style={styles.statCard}>
+          <Text style={styles.statLabel}>
+              {activeTab === 'customer'
+                ? "Month"
+                : "Month"}
+            </Text>
+            <Text style={styles.statValue}>
+
+              {activeTab === 'customer'
+                ? customerMonthSaved.toFixed(0)
+                : merchantMonthSales.toFixed(0)}
+            </Text>
+            
+          </View>
+          <View style={styles.statCard}>
+          <Text style={styles.statLabel}>
+              {activeTab === 'customer'
+                ? "Year"
+                : "Year"}
+            </Text>
+            <Text style={styles.statValue}>
+
+              {activeTab === 'customer'
+                ? customerYearSaved.toFixed(0)
+                : merchantYearSales.toFixed(0)}
+            </Text>
+            
+          </View>
+        </View>
+
+        
 
         {/* Transactions Section */}
         <View style={styles.transactionsSection}>
@@ -1156,7 +1164,7 @@ export default function DualDashboard() {
         {activeTab === 'customer' && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Popular Categories</Text>
+              <Text style={styles.sectionTitle}>Feature Categories</Text>
 
               {/* <TouchableOpacity>
                 <Text style={styles.viewAllText}>View All</Text>
@@ -1550,7 +1558,7 @@ export default function DualDashboard() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F2F2F2',
+    backgroundColor: '#F8F7F5',
   },
   header: {
     flexDirection: 'row',
@@ -1559,7 +1567,6 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 8,
     paddingHorizontal: 16,
-    backgroundColor: '#FFFFFF',
   },
   rightContainer: {
     display: 'flex',

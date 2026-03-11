@@ -14,6 +14,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { WebView } from 'react-native-webview';
 
+
 // --- LINKS ---
 const SOCIAL_LINKS = {
   instagram: 'https://www.instagram.com/intown830/',
@@ -237,6 +238,20 @@ export default function Footer({ dashboardType }: FooterProps) {
     setModalVisible(true);
   };
 
+  const openSupportEmail = () => {
+  const email = 'support@intownlocal.com';
+  const subject = 'INtown Support Request';
+  const body = 'Hello INtown Support Team,';
+
+  const url = `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
+  Linking.openURL(url);
+};
+
+const contactSupport = () => {
+  Linking.openURL("tel:+919052263555");
+};
+
   return (
     <View>
 
@@ -251,17 +266,20 @@ Local Stores. Real Savings.
         {/* ICONS */}
         <View style={styles.iconRow}>
 
-          <TouchableOpacity style={styles.iconButton}>
-            <Ionicons name="globe-outline" size={26} color="#556575" />
-          </TouchableOpacity>
+         <TouchableOpacity
+  style={styles.iconButton}
+  onPress={() => Linking.openURL('https://www.intownlocal.com/')}
+>
+  <Ionicons name="globe-outline" size={26} color="#556575" />
+</TouchableOpacity>
 
           <TouchableOpacity style={styles.iconButton}>
             <Ionicons name="share-social-outline" size={26} color="#556575" />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.iconButton}>
-            <Ionicons name="mail-outline" size={26} color="#556575" />
-          </TouchableOpacity>
+         <TouchableOpacity style={styles.iconButton} onPress={openSupportEmail}>
+  <Ionicons name="mail-outline" size={26} color="#556575" />
+</TouchableOpacity>
 
         </View>
 
@@ -282,9 +300,9 @@ Local Stores. Real Savings.
 
         <View style={styles.linksContainer}>
 
-          <TouchableOpacity>
-            <Text style={styles.linkText}>Contact Support</Text>
-          </TouchableOpacity>
+          <TouchableOpacity onPress={contactSupport}>
+  <Text style={styles.linkText}>Contact Support</Text>
+</TouchableOpacity>
 
           <Text style={styles.dot}></Text>
 
@@ -298,7 +316,7 @@ Local Stores. Real Savings.
 
         </View>
         <Text style={styles.footerCopyright}>
-          © InTown. All rights reserved. 2026
+          © Yagnavihar Lifestyle Pvt Ltd. 2026 All rights reserved. 
         </Text>
 
 
@@ -405,7 +423,7 @@ const styles = StyleSheet.create({
   },
   footerCopyright: {
     fontSize: 12,
-    color: '#64748B',
+    color: '#94A3B8',
     textAlign: 'center',
     marginTop: 12,
   },
