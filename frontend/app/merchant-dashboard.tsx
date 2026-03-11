@@ -73,6 +73,29 @@ interface ApiSummary {
   salesCount: number;
 }
 
+interface MerchantDetails {
+  id: number;
+  businessName: string;
+  contactName: string;
+  address: string;
+  phoneNumber: string;
+  email: string;
+  pincode: number;
+  userType: string;
+  businessCategory: string;
+  description: string;
+  fromYears: string;
+  branchesOfBusiness: string;
+  longitude: number;
+  latitude: number;
+  s3ImageUrl: Array<{
+    id: string;
+    fileName: string;
+    isPrimary: boolean;
+    s3ImageUrl: string;
+  }>;
+}
+
 const formatTransactionDate = (value: string) => {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
@@ -106,6 +129,8 @@ export default function MerchantDashboard() {
   });
   const [isSalesLoading, setIsSalesLoading] = useState(false);
   const [debugMerchantId, setDebugMerchantId] = useState<string | null>(null);
+  const [merchantDetails, setMerchantDetails] = useState<MerchantDetails | null>(null);
+  const [isMerchantDetailsLoading, setIsMerchantDetailsLoading] = useState(false);
 
   // Location store
   const location = useLocationStore((state) => state.location);
@@ -133,10 +158,11 @@ export default function MerchantDashboard() {
   const shopImageScrollRef = useRef<ScrollView | null>(null);
 
 
-  // Merchant shop details (would come from registration)
+  // Merchant shop details (from API or fallback to stored/user data)
   const merchantShop = {
-    name: shopName || user?.name || 'My Shop',
-    category: 'Retail Store',
+    name: merchantDetails?.businessName || shopName || user?.name || 'My Shop',
+    category: merchantDetails?.businessCategory || 'Retail Store',
+    description: merchantDetails?.description || merchantDescription || 'No description available',
     rating: 4.5,
     totalPayments: sales.length,
   };
@@ -464,6 +490,58 @@ export default function MerchantDashboard() {
     fetchSales();
   }, [merchantId, token]);
 
+  // Fetch merchant details from API
+  useEffect(() => {
+    if (!merchantId) return;
+
+    const fetchMerchantDetails = async () => {
+      setIsMerchantDetailsLoading(true);
+      try {
+        const res = await fetch(
+          `https://api.intownlocal.com/IN/merchant/${merchantId}`,
+          {
+            headers: {
+              Accept: 'application/json',
+            },
+          }
+        );
+        if (!res.ok) {
+          throw new Error(`Merchant details fetch failed: ${res.status}`);
+        }
+        const data: MerchantDetails = await res.json();
+        setMerchantDetails(data);
+        
+        // Update shop name and description from API
+        if (data.businessName) {
+          setShopName(data.businessName);
+        }
+        if (data.description) {
+          setMerchantDescription(data.description);
+        }
+        if (data.contactName) {
+          setMerchantContactName(data.contactName);
+        }
+        
+        // Extract and set images from API response
+        if (data.s3ImageUrl && Array.isArray(data.s3ImageUrl) && data.s3ImageUrl.length > 0) {
+          const imageUrls = data.s3ImageUrl.map(img => img.s3ImageUrl);
+          setShopImages(imageUrls);
+          setShopImageIndex(0);
+          // Set profile image to first image if not already set
+          if (!profileImage && imageUrls.length > 0) {
+            setProfileImage(imageUrls[0]);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching merchant details:', error);
+      } finally {
+        setIsMerchantDetailsLoading(false);
+      }
+    };
+
+    fetchMerchantDetails();
+  }, [merchantId]);
+
   const handleLogout = async () => {
     try {
       const keys = await AsyncStorage.getAllKeys();
@@ -653,7 +731,7 @@ export default function MerchantDashboard() {
           <Text style={[styles.sectionTitle, { margin: 0, marginBottom: 8, fontSize: 18 }]}>Description</Text>
           <View style={[styles.descriptionCard, { padding: 14, backgroundColor: '#FFF' }]}>
             <Text style={[styles.descriptionText, { textAlign: 'left', lineHeight: 20 }]}>
-              {merchantDescription || 'No description available'}
+              {merchantShop.description}
             </Text>
           </View>
         </View>
@@ -912,14 +990,14 @@ export default function MerchantDashboard() {
       <Modal
         visible={showLocationModal}
         transparent
-        animationType="slide"
+        animationType="fade"
         onRequestClose={() => setShowLocationModal(false)}
       >
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.locationModalContainer}
         >
-          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <TouchableWithoutFeedback onPress={() => setShowLocationModal(false)}>
             <View style={styles.locationModalOverlay} />
           </TouchableWithoutFeedback>
           <View style={styles.locationModalContent}>
@@ -1435,21 +1513,26 @@ summaryItem: {
   // Location Modal Styles
   locationModalContainer: {
     flex: 1,
-    backgroundColor: 'transparent',
-    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   locationModalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'transparent',
   },
   locationModalContent: {
     backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderRadius: 24,
     padding: 20,
-    paddingBottom: 60,
-    maxHeight: '85%',
-    minHeight: 300,
+    width: '90%',
+    maxWidth: 500,
+    height: '50%',
+    maxHeight: 400,
   },
   locationModalHeader: {
     flexDirection: 'row',
