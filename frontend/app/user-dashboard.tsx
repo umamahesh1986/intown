@@ -1045,9 +1045,9 @@ export default function UserDashboard() {
   </View>
 
   <View style={{ marginLeft: 10 }}>
-    <Text style={styles.userPanelName}>
+    {/* <Text style={styles.userPanelName}>
       {user?.name || 'User'}
-    </Text>
+    </Text> */}
 <Text style={styles.userPanelTag}>
       User
     </Text>
