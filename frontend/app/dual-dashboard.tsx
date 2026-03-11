@@ -1814,7 +1814,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#E6EBF0",
     marginHorizontal: 16,
     marginTop: 12,
-    borderRadius: 22
+    borderRadius: 22,
+    padding: 4,
   },
   tabButton: {
     flex: 1,
