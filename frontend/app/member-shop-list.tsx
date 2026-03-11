@@ -207,12 +207,12 @@ export default function MemberShopList() {
 
       {isLoading ? (
         <View style={styles.emptyContainer}>
-          <ActivityIndicator size="large" color="#FF6600" />
+          <ActivityIndicator size="large" color="#FF8A00" />
           <Text style={styles.loadingText}>Searching shops...</Text>
         </View>
       ) : shops.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Ionicons name="location-outline" size={64} color="#FF6600" />
+          <Ionicons name="location-outline" size={64} color="#FF8A00" />
           {/* <Text style={styles.emptyTitle}>Coming Soon!</Text> */}
           <Text style={styles.emptyMessage}>
             We are onboarding stores in your area.
@@ -251,7 +251,7 @@ export default function MemberShopList() {
                           style={{ width: 60, height: 60, borderRadius: 10 }}
                         />
                       ) : (
-                        <Ionicons name="storefront" size={40} color="#FF6600" />
+                        <Ionicons name="storefront" size={40} color="#FF8A00" />
                       )}
                     </View>
 
@@ -273,7 +273,7 @@ export default function MemberShopList() {
                         )}
                       </View>
                       <View style={styles.distanceRow}>
-                        <Ionicons name="location" size={14} color="#ff6600" />
+                        <Ionicons name="location" size={14} color="#FF8A00" />
                         <Text style={styles.distanceText}>
                           {formatDistance(item?.distance)}
                         </Text>
@@ -348,7 +348,7 @@ const styles = StyleSheet.create({
   },
   goBackButton: {
     marginTop: 24,
-    backgroundColor: '#FF6600',
+    backgroundColor: '#FF8A00',
     paddingHorizontal: 32,
     paddingVertical: 12,
     borderRadius: 8,
@@ -379,13 +379,13 @@ const styles = StyleSheet.create({
   shopInfo: { marginBottom: 12 },
   shopName: { fontSize: 18, fontWeight: 'bold', color: '#1A1A1A', marginBottom: 6, maxWidth: 210 },
   ratingRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
-  distanceText: { fontSize: 14, color: '#ff6600', marginLeft: 4 }, 
+  distanceText: { fontSize: 14, color: '#FF8A00', marginLeft: 4 }, 
   categoryText: { fontSize: 14, color: '#999' },
   contactNameText: { fontSize: 12, color: '#999', marginTop: 2 },
   buttonContainer: { flexDirection: 'row', gap: 12 },
   viewButton: {
     flex: 1,
-    backgroundColor: '#FF6600',
+    backgroundColor: '#FF8A00',
     borderRadius: 8,
     paddingVertical: 8,
     alignItems: 'center',

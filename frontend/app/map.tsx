@@ -101,7 +101,7 @@ export default function MapScreen() {
 
       {/* Location Info */}
       <View style={styles.locationBanner}>
-        <Ionicons name="location" size={20} color="#FF6600" />
+        <Ionicons name="location" size={20} color="#FF8A00" />
         <Text style={styles.locationText}>
           Showing shops near your location
         </Text>
@@ -110,7 +110,7 @@ export default function MapScreen() {
       {/* Shop List */}
       {isLoading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#FF6600" />
+          <ActivityIndicator size="large" color="#FF8A00" />
           <Text style={styles.loadingText}>Loading nearby shops...</Text>
         </View>
       ) : shops.length === 0 ? (
@@ -140,7 +140,7 @@ export default function MapScreen() {
                   style={styles.mapButton}
                   onPress={() => handleOpenInMaps(item)}
                 >
-                  <Ionicons name="navigate" size={24} color="#FF6600" />
+                  <Ionicons name="navigate" size={24} color="#FF8A00" />
                 </TouchableOpacity>
               </View>
 
@@ -169,7 +169,7 @@ export default function MapScreen() {
 
               <View style={styles.viewButtonContainer}>
                 <Text style={styles.viewButtonText}>View Details</Text>
-                <Ionicons name="chevron-forward" size={20} color="#FF6600" />
+                <Ionicons name="chevron-forward" size={20} color="#FF8A00" />
               </View>
             </TouchableOpacity>
           )}
@@ -275,7 +275,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   categoryBadge: {
-    backgroundColor: '#FF6600',
+    backgroundColor: '#FF8A00',
     paddingVertical: 4,
     paddingHorizontal: 12,
     borderRadius: 12,
@@ -337,7 +337,7 @@ const styles = StyleSheet.create({
   },
   viewButtonText: {
     fontSize: 16,
-    color: '#FF6600',
+    color: '#FF8A00',
     fontWeight: '600',
   },
   errorContainer: {
@@ -353,7 +353,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   button: {
-    backgroundColor: '#FF6600',
+    backgroundColor: '#FF8A00',
     paddingVertical: 12,
     paddingHorizontal: 32,
     borderRadius: 8,

@@ -29,7 +29,7 @@ export default function ProfileMenu() {
   style={styles.item}
   onPress={() => router.push("/account")}
 >
-  <Ionicons name="person-outline" size={22} color="#FF6600" />
+  <Ionicons name="person-outline" size={22} color="#FF8A00" />
   <Text style={styles.text}>My Account</Text>
 </TouchableOpacity>
 
@@ -37,7 +37,7 @@ export default function ProfileMenu() {
   style={styles.item}
   onPress={() => router.push("/register-member")}
 >
-  <Ionicons name="star-outline" size={22} color="#FF6600" />
+  <Ionicons name="star-outline" size={22} color="#FF8A00" />
   <Text style={styles.text}>Become a Customer</Text>
 </TouchableOpacity>
 
@@ -45,7 +45,7 @@ export default function ProfileMenu() {
   style={styles.item}
   onPress={() => router.push("/register-merchant")}
 >
-        <Ionicons name="storefront-outline" size={22} color="#FF6600" />
+        <Ionicons name="storefront-outline" size={22} color="#FF8A00" />
         <Text style={styles.text}>Become a Merchant</Text>
       </TouchableOpacity>
 

@@ -279,7 +279,7 @@ export default function PaymentModal({
                     onPress={() => handlePaymentMethodSelect(method.id, method.name)}
                   >
                     <View style={styles.methodIcon}>
-                      <Ionicons name={method.icon as any} size={28} color="#FF6600" />
+                      <Ionicons name={method.icon as any} size={28} color="#FF8A00" />
                     </View>
                     <Text style={styles.methodName}>{method.name}</Text>
                     <Ionicons name="chevron-forward" size={24} color="#999" />
@@ -331,7 +331,7 @@ const styles = StyleSheet.create({
     color: '#1B5E20',
     paddingVertical: 0,
   },
-  payButton: { backgroundColor: '#FF6600', borderRadius: 12, paddingVertical: 16, alignItems: 'center' },
+  payButton: { backgroundColor: '#FF8A00', borderRadius: 12, paddingVertical: 16, alignItems: 'center' },
   payButtonDisabled: { opacity: 0.7 },
   payButtonText: { color: '#FFF', fontSize: 18, fontWeight: 'bold' },
   methodCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F5F5F5', borderRadius: 12, padding: 16, marginBottom: 12 },
@@ -341,6 +341,6 @@ const styles = StyleSheet.create({
   successIconWrap: { marginBottom: 12 },
   successTitle: { fontSize: 22, fontWeight: '700', color: '#1A1A1A', marginBottom: 8 },
   successMessage: { fontSize: 14, color: '#555', textAlign: 'center', marginBottom: 20 },
-  successButton: { backgroundColor: '#FF6600', borderRadius: 12, paddingVertical: 12, paddingHorizontal: 32 },
+  successButton: { backgroundColor: '#FF8A00', borderRadius: 12, paddingVertical: 12, paddingHorizontal: 32 },
   successButtonText: { color: '#FFF', fontSize: 16, fontWeight: '700' },
 });

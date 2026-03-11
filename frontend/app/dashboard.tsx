@@ -134,7 +134,7 @@ export default function DashboardScreen() {
                 onPress={() => router.push({ pathname: '/map', params: { category: category.name } })}
               >
                 <View style={styles.categoryIcon}>
-                  <Ionicons name={category.icon as any} size={32} color="#FF6600" />
+                  <Ionicons name={category.icon as any} size={32} color="#FF8A00" />
                 </View>
                 <Text style={styles.categoryName}>{category.name}</Text>
               </TouchableOpacity>
@@ -290,7 +290,7 @@ const styles = StyleSheet.create({
   },
   planName: {
     ...FontStylesWithFallback.h4,
-    color: '#FF6600',
+    color: '#FF8A00',
   },
   planPrice: {
     fontSize: 18,
@@ -324,7 +324,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   planButton: {
-    backgroundColor: '#FF6600',
+    backgroundColor: '#FF8A00',
     borderRadius: 8,
     paddingVertical: 12,
     alignItems: 'center',
@@ -336,7 +336,7 @@ const styles = StyleSheet.create({
   },
   findShopsButton: {
     flexDirection: 'row',
-    backgroundColor: '#FF6600',
+    backgroundColor: '#FF8A00',
     margin: 16,
     borderRadius: 12,
     paddingVertical: 16,
