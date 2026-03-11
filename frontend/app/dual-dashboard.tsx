@@ -782,7 +782,7 @@ export default function DualDashboard() {
           onPress={() => setShowLocationModal(true)}
         >
           <View style={styles.locationIconCircle}>
-            <Ionicons name="location" size={16} color="#FF8A00" />
+            <Ionicons name="location-outline" size={24} color="#FF8A00" />
           </View>
 
           <View style={styles.locationTextContainer}>
@@ -1550,7 +1550,7 @@ export default function DualDashboard() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F2F2F2',
+    backgroundColor: '#F8F7F5',
   },
   header: {
     flexDirection: 'row',
