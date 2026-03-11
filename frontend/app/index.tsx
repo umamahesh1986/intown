@@ -5,36 +5,40 @@ import { useAuthStore } from '../store/authStore';
 
 export default function SplashScreen() {
   const router = useRouter();
-  const { isAuthenticated, user } = useAuthStore();
-  const [isReady, setIsReady] = useState(false);
+  const { isAuthenticated, user, loadAuth } = useAuthStore();
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Small delay to ensure everything is loaded
-    const initTimer = setTimeout(() => {
-      setIsReady(true);
-    }, 100);
-
-    return () => clearTimeout(initTimer);
+    // Load auth state first
+    const init = async () => {
+      try {
+        await loadAuth();
+      } catch (error) {
+        console.error('Error loading auth:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    init();
   }, []);
 
   useEffect(() => {
-    if (!isReady) return;
+    if (isLoading) return;
 
     const timer = setTimeout(() => {
       try {
         if (isAuthenticated) {
-          const userType = user?.userType;
-          if (userType === 'member') {
+          const userType = user?.userType?.toLowerCase();
+          if (userType === 'member' || userType === 'in_member' || userType === 'customer') {
             router.replace('/member-dashboard');
-          } else if (userType === 'merchant') {
+          } else if (userType === 'merchant' || userType === 'in_merchant') {
             router.replace('/merchant-dashboard');
-          } else if (userType === 'dual') {
+          } else if (userType === 'dual' || userType === 'in_dual') {
             router.replace('/dual-dashboard');
           } else {
             router.replace('/user-dashboard');
           }
         } else {
-          // Go directly to login page, skip location
           router.replace('/login');
         }
       } catch (error) {
@@ -44,7 +48,7 @@ export default function SplashScreen() {
     }, 2000);
 
     return () => clearTimeout(timer);
-  }, [isAuthenticated, user, isReady]);
+  }, [isAuthenticated, user, isLoading]);
 
   return (
     <View style={styles.container}>
