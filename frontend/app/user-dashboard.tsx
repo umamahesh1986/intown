@@ -1038,6 +1038,28 @@ export default function UserDashboard() {
               },
             ]}
           >
+
+            <View style={styles.userPanelHeader}>
+  <View style={styles.panelAvatarPlaceholder}>
+    <Ionicons name="person" size={22} color="#fff" />
+  </View>
+
+  <View style={{ marginLeft: 10 }}>
+    <Text style={styles.userPanelName}>
+      {user?.name || 'User'}
+    </Text>
+<Text style={styles.userPanelTag}>
+      User
+    </Text>
+    <Text style={styles.userPanelPhone}>
+  {(user as any)?.phone || (user as any)?.mobile || (user as any)?.phoneNumber || ''}
+</Text>
+
+    
+  </View>
+</View>
+
+<View style={styles.divider} />
             {/* MY ACCOUNT */}
             <TouchableOpacity
               style={styles.userPanelItem}
@@ -1368,8 +1390,8 @@ const styles = StyleSheet.create({
   },
 
   userPanelPhone: {
-    fontSize: 10,
-    color: '#FFFFFF',
+    fontSize: 13,
+    color: '#555',
     marginTop: 2,
     textAlign: 'right',
   },
@@ -2410,4 +2432,27 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#1A1A1A"
   },
+  divider: {
+  height: 1,
+  backgroundColor: '#ddd',
+  marginVertical: 10,
+},
+panelAvatarPlaceholder: {
+  width: 40,
+  height: 40,
+  borderRadius: 20,
+  backgroundColor: '#FF8C00',
+  justifyContent: 'center',
+  alignItems: 'center',
+},
+
+
+
+userPanelTag: {
+  fontSize: 18,
+  color: '#33333',
+  marginTop: 2,
+},
+
+
 });
