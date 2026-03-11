@@ -121,6 +121,29 @@ interface MerchantSummary {
   salesCount: number;
 }
 
+interface MerchantDetails {
+  id: number;
+  businessName: string;
+  contactName: string;
+  address: string;
+  phoneNumber: string;
+  email: string;
+  pincode: number;
+  userType: string;
+  businessCategory: string;
+  description: string;
+  fromYears: string;
+  branchesOfBusiness: string;
+  longitude: number;
+  latitude: number;
+  s3ImageUrl: Array<{
+    id: string;
+    fileName: string;
+    isPrimary: boolean;
+    s3ImageUrl: string;
+  }>;
+}
+
 interface Category {
   id: string | number;
   name: string;
@@ -249,6 +272,12 @@ export default function DualDashboard() {
   const [isMerchantLoading, setIsMerchantLoading] = useState(false);
   const [nearbyShops, setNearbyShops] = useState<any[]>([]);
   const [isNearbyLoading, setIsNearbyLoading] = useState(false);
+  const [merchantDetails, setMerchantDetails] = useState<MerchantDetails | null>(null);
+  const [isMerchantDetailsLoading, setIsMerchantDetailsLoading] = useState(false);
+  const [merchantImages, setMerchantImages] = useState<string[]>([]);
+  const [merchantImageIndex, setMerchantImageIndex] = useState(0);
+  const merchantImageScrollRef = useRef<ScrollView | null>(null);
+  const MERCHANT_IMAGE_WIDTH = width - 32;
 
   // Location store
   const location = useLocationStore((state) => state.location);
@@ -315,6 +344,43 @@ export default function DualDashboard() {
       loadNearbyShops();
     }
   }, [location?.latitude, location?.longitude]);
+
+  // Fetch merchant details from API when merchantId is available
+  useEffect(() => {
+    if (!merchantId) return;
+
+    const fetchMerchantDetails = async () => {
+      setIsMerchantDetailsLoading(true);
+      try {
+        const res = await fetch(
+          `https://api.intownlocal.com/IN/merchant/${merchantId}`,
+          {
+            headers: {
+              Accept: 'application/json',
+            },
+          }
+        );
+        if (!res.ok) {
+          throw new Error(`Merchant details fetch failed: ${res.status}`);
+        }
+        const data: MerchantDetails = await res.json();
+        setMerchantDetails(data);
+        
+        // Extract and set images from API response
+        if (data.s3ImageUrl && Array.isArray(data.s3ImageUrl) && data.s3ImageUrl.length > 0) {
+          const imageUrls = data.s3ImageUrl.map(img => img.s3ImageUrl);
+          setMerchantImages(imageUrls);
+          setMerchantImageIndex(0);
+        }
+      } catch (error) {
+        console.error('Error fetching merchant details:', error);
+      } finally {
+        setIsMerchantDetailsLoading(false);
+      }
+    };
+
+    fetchMerchantDetails();
+  }, [merchantId]);
 
 
   // Request location permission on mount
@@ -982,6 +1048,80 @@ export default function DualDashboard() {
             </Text>
           </View>
         </View>
+
+        {/* Merchant Shop Details Card (Merchant Tab Only) */}
+        {activeTab === 'merchant' && (
+          <View style={styles.merchantShopCard}>
+            {/* Image Carousel */}
+            <View style={styles.merchantImageCarousel}>
+              {isMerchantDetailsLoading ? (
+                <View style={styles.merchantImagePlaceholder}>
+                  <ActivityIndicator size="large" color="#FF8A00" />
+                </View>
+              ) : merchantImages.length > 0 ? (
+                <>
+                  <ScrollView
+                    ref={merchantImageScrollRef}
+                    horizontal
+                    pagingEnabled
+                    showsHorizontalScrollIndicator={false}
+                    onMomentumScrollEnd={(e) => {
+                      const index = Math.round(e.nativeEvent.contentOffset.x / MERCHANT_IMAGE_WIDTH);
+                      setMerchantImageIndex(index);
+                    }}
+                  >
+                    {merchantImages.map((img, index) => (
+                      <Image
+                        key={`merchant-img-${index}`}
+                        source={{ uri: img }}
+                        style={[styles.merchantImage, { width: MERCHANT_IMAGE_WIDTH }]}
+                        resizeMode="cover"
+                      />
+                    ))}
+                  </ScrollView>
+                  {merchantImages.length > 1 && (
+                    <View style={styles.imageIndicators}>
+                      {merchantImages.map((_, index) => (
+                        <View
+                          key={`indicator-${index}`}
+                          style={[
+                            styles.imageIndicator,
+                            index === merchantImageIndex && styles.imageIndicatorActive,
+                          ]}
+                        />
+                      ))}
+                    </View>
+                  )}
+                </>
+              ) : (
+                <View style={styles.merchantImagePlaceholder}>
+                  <Ionicons name="storefront" size={60} color="#FF8A00" />
+                </View>
+              )}
+            </View>
+
+            {/* Business Details */}
+            <View style={styles.merchantDetailsContent}>
+              <Text style={styles.merchantBusinessName}>
+                {merchantDetails?.businessName || merchantShopName || 'My Shop'}
+              </Text>
+              <View style={styles.merchantCategoryBadge}>
+                <Ionicons name="pricetag" size={14} color="#FF8A00" />
+                <Text style={styles.merchantCategoryText}>
+                  {merchantDetails?.businessCategory || 'Retail Store'}
+                </Text>
+              </View>
+              {merchantDetails?.description && (
+                <View style={styles.merchantDescriptionBox}>
+                  <Text style={styles.merchantDescriptionLabel}>Description</Text>
+                  <Text style={styles.merchantDescriptionText}>
+                    {merchantDetails.description}
+                  </Text>
+                </View>
+              )}
+            </View>
+          </View>
+        )}
 
         {/* Transactions Section */}
         <View style={styles.transactionsSection}>
@@ -2162,5 +2302,95 @@ const styles = StyleSheet.create({
     alignItems: "center"
   },
 
+  // Merchant Shop Card Styles
+  merchantShopCard: {
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 16,
+    marginTop: 16,
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  merchantImageCarousel: {
+    width: '100%',
+    height: 200,
+    backgroundColor: '#FFF3E0',
+  },
+  merchantImage: {
+    height: 200,
+    resizeMode: 'cover',
+  },
+  merchantImagePlaceholder: {
+    width: '100%',
+    height: 200,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFF3E0',
+  },
+  imageIndicators: {
+    position: 'absolute',
+    bottom: 12,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  imageIndicator: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255,255,255,0.5)',
+  },
+  imageIndicatorActive: {
+    backgroundColor: '#FF8A00',
+    width: 20,
+  },
+  merchantDetailsContent: {
+    padding: 16,
+  },
+  merchantBusinessName: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1A1A1A',
+    marginBottom: 8,
+  },
+  merchantCategoryBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF3E0',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    alignSelf: 'flex-start',
+    marginBottom: 12,
+  },
+  merchantCategoryText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#FF8A00',
+    marginLeft: 6,
+  },
+  merchantDescriptionBox: {
+    backgroundColor: '#F8F8F8',
+    padding: 12,
+    borderRadius: 10,
+    marginTop: 4,
+  },
+  merchantDescriptionLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#999',
+    marginBottom: 4,
+  },
+  merchantDescriptionText: {
+    fontSize: 14,
+    color: '#666',
+    lineHeight: 20,
+  },
 
 });
