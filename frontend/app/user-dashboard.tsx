@@ -1275,8 +1275,12 @@ const styles = StyleSheet.create({
   locationText: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#1A1A1A',
     flex: 1,
+    color: "#0F172A",
+    maxWidth: 200,
+    whiteSpace: "nowrap",
+    textOverflow: "ellipsis",
+    overflow: "hidden"
   },
   profileButton: {
     flexDirection: 'row',

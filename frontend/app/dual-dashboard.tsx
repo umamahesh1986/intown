@@ -920,7 +920,7 @@ export default function DualDashboard() {
         }
       >
         {/* Role Info Card */}
-        <View style={styles.roleCard}>
+        {/* <View style={styles.roleCard}>
           <View style={styles.roleIconContainer}>
             <Ionicons
               name={activeTab === 'customer' ? 'person' : 'storefront'}
@@ -938,7 +938,7 @@ export default function DualDashboard() {
                 : 'Manage your business transactions'}
             </Text>
           </View>
-        </View>
+        </View> */}
 
         {/* Quick Stats */}
         <View style={styles.statsContainer}>
@@ -1018,9 +1018,9 @@ export default function DualDashboard() {
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Popular Categories</Text>
 
-              <TouchableOpacity>
+              {/* <TouchableOpacity>
                 <Text style={styles.viewAllText}>View All</Text>
-              </TouchableOpacity>
+              </TouchableOpacity> */}
             </View>
             {/* <Text style={styles.normalText}>(Complete list will be displayed once stores onboarded):</Text> */}
             {categories.length > 0 ? (
@@ -1440,15 +1440,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   locationText: {
-    fontSize: 13,
+    fontSize: 16,
     fontWeight: '600',
-    color: '#FF8A00',
+    color: '#0F172A',
     flex: 1,
   },
   welcomeText: {
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: '600',
-    color: '#1A1A1A',
+    color: '#64748B',
   },
   profileButton: {
     flexDirection: 'row',

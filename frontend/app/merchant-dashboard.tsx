@@ -166,6 +166,7 @@ export default function MerchantDashboard() {
     rating: 4.5,
     totalPayments: sales.length,
   };
+  console.log(user, "user")
 
   useEffect(() => {
     loadUserType();
@@ -592,7 +593,7 @@ export default function MerchantDashboard() {
     onPress={() => setShowLocationModal(true)}
   >
     <View style={styles.locationIconBox}>
-      <Ionicons name="location-outline" size={20} color="#FF8A00" />
+      <Ionicons name="location-outline" size={24} color="#FF8A00" />
     </View>
 
     <View>
@@ -1205,7 +1206,7 @@ container: {
     alignItems: 'center',
     justifyContent: 'center',
   },
-  userPanelName: { fontSize: 16, fontWeight: '700', color: '#1A1A1A' },
+  userPanelName: { fontSize: 14, fontWeight: '700', color: '#1A1A1A', maxWidth: 200 },
   userPanelPhone: { fontSize: 12, color: '#888', marginTop: 2 },
   userPanelTag: { fontSize: 12, color: '#FF8A00', marginTop: 2, fontWeight: '600' },
   userPanelItem: {
@@ -1304,7 +1305,7 @@ container: {
   shopArrowRight: {
     right: 8,
   },
-  shopName: { fontSize: 24, fontWeight: 'bold', color: '#1A1A1A', marginBottom: 4 },
+  shopName: { fontSize: 18, fontWeight: 'bold', color: '#1A1A1A', marginBottom: 4, textAlign: 'center' },
   shopCategory: { fontSize: 16, color: '#666666', marginBottom: 12 },
   ratingContainer: { flexDirection: 'row', alignItems: 'center' },
   ratingText: { fontSize: 16, fontWeight: '600', color: '#666666', marginLeft: 8 },
@@ -1659,9 +1660,13 @@ locationLabel: {
 },
 
 locationName: {
-  fontSize: 16,
+  fontSize: 14,
   fontWeight: "700",
-  color: "#FF8A00",
+  color: "#0F172A",
+  maxWidth: 200,
+  whiteSpace: "nowrap",
+  textOverflow: "ellipsis",
+  overflow: "hidden"
 },
 
 headerIcons: {
