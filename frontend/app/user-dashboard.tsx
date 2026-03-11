@@ -862,14 +862,6 @@ export default function UserDashboard() {
                     <Text style={styles.planPrice}>₹199</Text>
                     <Text style={styles.planDuration}>/ month</Text>
                   </View>
-                  <Text style={styles.planDescription}>
-                    Great for regular shoppers
-                  </Text>
-                  <View style={styles.planFeatures}>
-                    <Text style={styles.planFeatureText}>• 5% extra savings</Text>
-                    <Text style={styles.planFeatureText}>• Priority support</Text>
-                    <Text style={styles.planFeatureText}>• Exclusive deals</Text>
-                  </View>
                   <TouchableOpacity
                     style={styles.registerButton}
                     onPress={() => router.push('/register-member')}
@@ -888,15 +880,6 @@ export default function UserDashboard() {
                     <Text style={styles.planPrice}>₹499</Text>
                     <Text style={styles.planDuration}>/ month</Text>
                   </View>
-                  <Text style={styles.planDescription}>
-                    Best value for families
-                  </Text>
-                  <View style={styles.planFeatures}>
-                    <Text style={styles.planFeatureText}>• 10% extra savings</Text>
-                    <Text style={styles.planFeatureText}>• Family sharing (up to 4)</Text>
-                    <Text style={styles.planFeatureText}>• Premium partner access</Text>
-                    <Text style={styles.planFeatureText}>• Cashback rewards</Text>
-                  </View>
                   <TouchableOpacity
                     style={[styles.purchaseButton, styles.purchaseButtonPrimary]}
                     onPress={() => router.push('/register-member')}
@@ -911,15 +894,6 @@ export default function UserDashboard() {
                   <View style={styles.planPriceRow}>
                     <Text style={styles.planPrice}>₹999</Text>
                     <Text style={styles.planDuration}>/ month</Text>
-                  </View>
-                  <Text style={styles.planDescription}>
-                    Ultimate savings experience
-                  </Text>
-                  <View style={styles.planFeatures}>
-                    <Text style={styles.planFeatureText}>• 15% extra savings</Text>
-                    <Text style={styles.planFeatureText}>• Unlimited family members</Text>
-                    <Text style={styles.planFeatureText}>• VIP merchant access</Text>
-                    <Text style={styles.planFeatureText}>• Personal savings advisor</Text>
                   </View>
                   <TouchableOpacity
                     style={styles.registerButton}
