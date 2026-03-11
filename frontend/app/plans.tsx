@@ -118,7 +118,7 @@ export default function Plans() {
   const handleSubscribe = (plan: Plan) => {
     // TODO: Implement subscription flow
     console.log('Subscribe to plan:', plan);
-    // router.push({ pathname: '/payment', params: { planId: plan.id } });
+    router.push({ pathname: '/register-member', params: { planId: plan.id } });
   };
 
   if (isLoading) {
