@@ -85,7 +85,7 @@ export default function ShopDetailsScreen() {
             {/* Shop Header */}
             <View style={styles.shopHeader}>
               <View style={styles.iconContainer}>
-                <Ionicons name="storefront" size={48} color="#FF6600" />
+                <Ionicons name="storefront" size={48} color="#FF8A00" />
               </View>
               <View style={styles.nameSection}>
                 <Text style={styles.shopName}>{shop.name}</Text>
@@ -183,7 +183,7 @@ export default function ShopDetailsScreen() {
           {/* Shop Header */}
           <View style={styles.shopHeader}>
             <View style={styles.iconContainer}>
-              <Ionicons name="storefront" size={48} color="#FF6600" />
+              <Ionicons name="storefront" size={48} color="#FF8A00" />
             </View>
             <View style={styles.nameSection}>
               <Text style={styles.shopName}>{shop.name}</Text>
@@ -293,7 +293,7 @@ export default function ShopDetailsScreen() {
                 router.push('/register-member');
               }}
             >
-              <Ionicons name="person" size={24} color="#FF6600" />
+              <Ionicons name="person" size={24} color="#FF8A00" />
               <Text style={styles.modalButtonText}>Register as Customer</Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -303,7 +303,7 @@ export default function ShopDetailsScreen() {
                 router.push('/register-merchant');
               }}
             >
-              <Ionicons name="storefront" size={24} color="#FF6600" />
+              <Ionicons name="storefront" size={24} color="#FF8A00" />
               <Text style={styles.modalButtonText}>Register as Merchant</Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -371,7 +371,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   categoryBadge: {
-    backgroundColor: '#FF6600',
+    backgroundColor: '#FF8A00',
     paddingVertical: 6,
     paddingHorizontal: 16,
     borderRadius: 16,
@@ -498,7 +498,7 @@ const styles = StyleSheet.create({
   },
   payButton: {
     flexDirection: 'row',
-    backgroundColor: '#FF6600',
+    backgroundColor: '#FF8A00',
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
@@ -539,7 +539,7 @@ const styles = StyleSheet.create({
   modalButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FF6600',
+    color: '#FF8A00',
     marginLeft: 12,
   },
   modalCancelButton: {

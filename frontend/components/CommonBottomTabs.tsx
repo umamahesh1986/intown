@@ -4,7 +4,7 @@ import { useRouter, usePathname } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
 
-const INTOWN_ORANGE = '#FF6600'; 
+const INTOWN_ORANGE = '#FF8A00'; 
 
 // Step 1: Define the shape of a single Tab
 interface TabItem {

@@ -163,7 +163,7 @@ export default function LocationPickerScreen() {
 
         {/* Web Message */}
         <View style={styles.webMessageContainer}>
-          <Ionicons name="map" size={64} color="#FF6600" />
+          <Ionicons name="map" size={64} color="#FF8A00" />
           <Text style={styles.webMessageTitle}>Map View Not Available</Text>
           <Text style={styles.webMessageText}>
             Maps are only available on mobile devices (iOS/Android).
@@ -314,7 +314,7 @@ const styles = StyleSheet.create({
     borderColor: '#FFD9B3',
   },
   useDefaultButtonText: {
-    color: '#FF6600',
+    color: '#FF8A00',
     fontSize: 14,
     fontWeight: '600',
   },
@@ -323,7 +323,7 @@ const styles = StyleSheet.create({
     bottom: 32,
     left: 16,
     right: 16,
-    backgroundColor: '#FF6600',
+    backgroundColor: '#FF8A00',
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',

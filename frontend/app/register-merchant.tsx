@@ -1003,7 +1003,7 @@ export default function RegisterMerchant() {
               style={[styles.locationButton, errors.location && styles.inputError]}
               onPress={handleSelectLocation}
             >
-              <Ionicons name="location" size={20} color="#FF6600" />
+              <Ionicons name="location" size={20} color="#FF8A00" />
               <Text style={styles.locationButtonText}>
                 {location
                   ? `Selected: ${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}`
@@ -1032,14 +1032,14 @@ export default function RegisterMerchant() {
                 style={styles.imageButton}
                 onPress={handleTakePhoto}
               >
-                <Ionicons name="camera" size={18} color="#FF6600" />
+                <Ionicons name="camera" size={18} color="#FF8A00" />
                 <Text style={styles.imageButtonText}>Take Photo</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.imageButton}
                 onPress={handlePickFromGallery}
               >
-                <Ionicons name="images" size={18} color="#FF6600" />
+                <Ionicons name="images" size={18} color="#FF8A00" />
                 <Text style={styles.imageButtonText}>Choose Images</Text>
               </TouchableOpacity>
             </View>
@@ -1250,7 +1250,7 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', marginVertical: 6 },
   rowText: { marginLeft: 8 },
   submitBtn: {
-    backgroundColor: '#FF6600',
+    backgroundColor: '#FF8A00',
     padding: 14,
     borderRadius: 8,
     marginTop: 24,
@@ -1290,7 +1290,7 @@ const styles = StyleSheet.create({
   },
   imageButtonText: {
     marginLeft: 8,
-    color: '#FF6600',
+    color: '#FF8A00',
     fontWeight: '600',
   },
   imagesPreviewContainer: {
@@ -1469,7 +1469,7 @@ const styles = StyleSheet.create({
   },
   popupButton: {
     alignSelf: 'flex-end',
-    backgroundColor: '#FF6600',
+    backgroundColor: '#FF8A00',
     paddingHorizontal: 18,
     paddingVertical: 10,
     borderRadius: 8,

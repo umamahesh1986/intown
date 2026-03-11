@@ -693,9 +693,9 @@ export default function UserDashboard() {
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Popular Categories</Text>
 
-              <TouchableOpacity>
+              {/* <TouchableOpacity>
                 <Text style={styles.viewAll}>View All</Text>
-              </TouchableOpacity>
+              </TouchableOpacity> */}
             </View>
 
             {categories.length > 0 ? (
@@ -1275,8 +1275,12 @@ const styles = StyleSheet.create({
   locationText: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#1A1A1A',
     flex: 1,
+    color: "#0F172A",
+    maxWidth: 200,
+    whiteSpace: "nowrap",
+    textOverflow: "ellipsis",
+    overflow: "hidden"
   },
   profileButton: {
     flexDirection: 'row',
@@ -2203,7 +2207,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginHorizontal: 16,
+    marginHorizontal: 0,
     marginTop: 20,
   },
   viewAll: {

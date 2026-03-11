@@ -161,7 +161,7 @@ const styles = StyleSheet.create({
   },
   card: {
     width: '90%',
-    backgroundColor: '#FF6600',
+    backgroundColor: '#FF8A00',
     borderRadius: 18,
     padding: 24,
     alignItems: 'center',
@@ -176,7 +176,7 @@ const styles = StyleSheet.create({
     height: 96,
     borderRadius: 48,
     overflow: 'hidden',
-    backgroundColor: '#FF6600',
+    backgroundColor: '#FF8A00',
     marginBottom: 12,
   },
   avatar: {

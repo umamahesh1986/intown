@@ -1059,9 +1059,9 @@ export default function MemberDashboard() {
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Popular Categories</Text>
 
-              <TouchableOpacity>
+              {/* <TouchableOpacity>
                 <Text style={styles.viewAll}>View All</Text>
-              </TouchableOpacity>
+              </TouchableOpacity> */}
             </View>
 
             <ScrollView
@@ -2000,7 +2000,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
   },
-  userPanelName: { fontSize: 16, fontWeight: '700' },
+  userPanelName: { fontSize: 14, fontWeight: '700' },
   userPanelPhone: { fontSize: 12, color: '#888', marginTop: 2 },
   userPanelTag: { fontSize: 12, color: '#FF8C00', marginTop: 2, fontWeight: '600' },
 
@@ -2295,9 +2295,13 @@ const styles = StyleSheet.create({
   },
 
   locationName: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#0F172A',
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#0F172A",
+    maxWidth: 200,
+    whiteSpace: "nowrap",
+    textOverflow: "ellipsis",
+    overflow: "hidden"
   },
 
   headerIcons: {
