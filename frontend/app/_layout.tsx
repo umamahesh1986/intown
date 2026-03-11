@@ -1,16 +1,34 @@
 import { Stack, usePathname } from 'expo-router';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { View, Text, TextInput } from 'react-native';
 import { useAuthStore } from '../store/authStore';
 import CommonBottomTabs from '../components/CommonBottomTabs';
 import { Fonts } from '../utils/fonts';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const LAST_DASHBOARD_KEY = 'last_visited_dashboard';
 
 export default function RootLayout() {
   const loadAuth = useAuthStore((state) => state.loadAuth);
+  const user = useAuthStore((state) => state.user);
   const pathname = usePathname();
+  const [lastDashboard, setLastDashboard] = useState<string | null>(null);
 
   useEffect(() => {
     loadAuth();
+
+    // Load last visited dashboard
+    const loadLastDashboard = async () => {
+      try {
+        const saved = await AsyncStorage.getItem(LAST_DASHBOARD_KEY);
+        if (saved) {
+          setLastDashboard(saved);
+        }
+      } catch (error) {
+        console.error('Error loading last dashboard:', error);
+      }
+    };
+    loadLastDashboard();
 
     // Apply Inter as the default font for all Text and TextInput components
     try {
@@ -40,6 +58,14 @@ export default function RootLayout() {
     }
   }, []);
 
+  // Update last dashboard when on a dashboard page
+  useEffect(() => {
+    const dashboardPaths = ['/user-dashboard', '/member-dashboard', '/merchant-dashboard', '/dual-dashboard'];
+    if (dashboardPaths.includes(pathname)) {
+      setLastDashboard(pathname);
+    }
+  }, [pathname]);
+
   // 1. Define all screens that should show the navigation bar
   const showTabs = [
     '/user-dashboard',
@@ -56,10 +82,14 @@ export default function RootLayout() {
     '/plans'
   ].includes(pathname);
 
-  // Check if on merchant dashboard
-  const isMerchantDashboard = pathname === '/merchant-dashboard';
+  // Check if user is merchant (by current path, last dashboard, or user type)
+  const isMerchant = 
+    pathname === '/merchant-dashboard' || 
+    lastDashboard === '/merchant-dashboard' ||
+    user?.userType?.toLowerCase() === 'merchant' ||
+    user?.userType?.toLowerCase() === 'in_merchant';
 
-  // Define tabs - filter out Savings and Plans for merchant dashboard
+  // Define tabs - filter out Savings and Plans for merchant
   const allTabs = [
     { name: 'Home', icon: 'home', link: '/user-dashboard' },
     { name: 'Savings', icon: 'wallet', link: '/savings' },
@@ -67,7 +97,7 @@ export default function RootLayout() {
     { name: 'Profile', icon: 'person', link: '/account' },
   ];
 
-  const tabs = isMerchantDashboard 
+  const tabs = isMerchant 
     ? allTabs.filter(tab => tab.name !== 'Savings' && tab.name !== 'Plans')
     : allTabs;
 
