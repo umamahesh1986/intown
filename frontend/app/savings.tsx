@@ -6,19 +6,44 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+interface ApiTransaction {
+  transactionId: number;
+  merchantName: string;
+  totalBillAmount: number;
+  savedAmount: number;
+  finalPaidAmount: number;
+  transactionDate: string;
+}
+
+interface ApiPeriodData {
+  totalBillAmount: number;
+  totalSavedAmount: number;
+  totalPaidAmount: number;
+  transactionCount: number;
+}
+
+interface SavingsApiResponse {
+  today: ApiPeriodData;
+  thisMonth: ApiPeriodData;
+  thisYear: ApiPeriodData;
+  lifetime: ApiPeriodData;
+  transactions: ApiTransaction[];
+}
+
 interface SavingsTransaction {
   id: string;
   date: string;
   shopName: string;
   amount: number;
   savings: number;
-  category: string;
+  paidAmount: number;
 }
 
 interface SavingsSummary {
   today: number;
   thisMonth: number;
   thisYear: number;
+  lifetime: number;
   totalTransactions: number;
 }
 
@@ -32,6 +57,7 @@ export default function Savings() {
     today: 0,
     thisMonth: 0,
     thisYear: 0,
+    lifetime: 0,
     totalTransactions: 0,
   });
 
@@ -43,19 +69,64 @@ export default function Savings() {
 
   const fetchSavingsData = async () => {
     try {
-      // TODO: Replace with actual API call when available
+      // Get customer ID from AsyncStorage
       const customerId = await AsyncStorage.getItem('customer_id');
+      const effectiveCustomerId = customerId || user?.id;
       
-      // Simulated empty data - replace with actual API integration
+      if (!effectiveCustomerId) {
+        console.log('No customer ID available');
+        setIsLoading(false);
+        setRefreshing(false);
+        return;
+      }
+
+      // Fetch savings data from API
+      const response = await fetch(
+        `https://api.intownlocal.com/IN/transactions/customers/${effectiveCustomerId}`,
+        {
+          headers: {
+            Accept: 'application/json',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`API request failed: ${response.status}`);
+      }
+
+      const data: SavingsApiResponse = await response.json();
+
+      // Update summary with API data
+      setSummary({
+        today: data.today?.totalSavedAmount ?? 0,
+        thisMonth: data.thisMonth?.totalSavedAmount ?? 0,
+        thisYear: data.thisYear?.totalSavedAmount ?? 0,
+        lifetime: data.lifetime?.totalSavedAmount ?? 0,
+        totalTransactions: data.lifetime?.transactionCount ?? 0,
+      });
+
+      // Transform transactions for display
+      const transformedTransactions: SavingsTransaction[] = (data.transactions || []).map((tx) => ({
+        id: String(tx.transactionId),
+        date: tx.transactionDate,
+        shopName: tx.merchantName || 'Unknown Shop',
+        amount: tx.totalBillAmount,
+        savings: tx.savedAmount,
+        paidAmount: tx.finalPaidAmount,
+      }));
+
+      setTransactions(transformedTransactions);
+    } catch (error) {
+      console.error('Error fetching savings:', error);
+      // Reset to empty state on error
       setTransactions([]);
       setSummary({
         today: 0,
         thisMonth: 0,
         thisYear: 0,
+        lifetime: 0,
         totalTransactions: 0,
       });
-    } catch (error) {
-      console.error('Error fetching savings:', error);
     } finally {
       setIsLoading(false);
       setRefreshing(false);
@@ -233,8 +304,8 @@ export default function Savings() {
       <View style={styles.totalBanner}>
         <Ionicons name="wallet" size={32} color="#FFF" />
         <View style={styles.totalBannerText}>
-          <Text style={styles.totalLabel}>Total Savings</Text>
-          <Text style={styles.totalValue}>{formatCurrency(summary.thisYear)}</Text>
+          <Text style={styles.totalLabel}>Total Lifetime Savings</Text>
+          <Text style={styles.totalValue}>{formatCurrency(summary.lifetime)}</Text>
         </View>
         <Text style={styles.totalTransactions}>
           {summary.totalTransactions} Transactions
@@ -270,15 +341,17 @@ export default function Savings() {
                 <View style={styles.transactionInfo}>
                   <Text style={styles.transactionShop}>{transaction.shopName}</Text>
                   <Text style={styles.transactionDate}>{formatDate(transaction.date)}</Text>
-                  <Text style={styles.transactionCategory}>{transaction.category}</Text>
                 </View>
               </View>
               <View style={styles.transactionRight}>
                 <Text style={styles.transactionAmount}>
-                  {formatCurrency(transaction.amount)}
+                  Bill: {formatCurrency(transaction.amount)}
                 </Text>
                 <Text style={styles.transactionSavings}>
-                  Saved {formatCurrency(transaction.savings)}
+                  Saved: {formatCurrency(transaction.savings)}
+                </Text>
+                <Text style={styles.transactionPaid}>
+                  Paid: {formatCurrency(transaction.paidAmount)}
                 </Text>
               </View>
             </View>
@@ -622,8 +695,9 @@ const styles = StyleSheet.create({
   transactionDate: { fontSize: 12, color: '#999', marginTop: 2 },
   transactionCategory: { fontSize: 12, color: '#FF8A00', marginTop: 2 },
   transactionRight: { alignItems: 'flex-end' },
-  transactionAmount: { fontSize: 16, fontWeight: '600', color: '#1A1A1A' },
-  transactionSavings: { fontSize: 12, color: '#4CAF50', marginTop: 2 },
+  transactionAmount: { fontSize: 14, fontWeight: '500', color: '#1A1A1A' },
+  transactionSavings: { fontSize: 13, color: '#4CAF50', marginTop: 2, fontWeight: '600' },
+  transactionPaid: { fontSize: 12, color: '#666', marginTop: 2 },
   howItWorks: {
     backgroundColor: '#FFF',
     margin: 16,
