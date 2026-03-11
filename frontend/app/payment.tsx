@@ -126,7 +126,7 @@ export default function PaymentScreen() {
                   <Ionicons
                     name={method.icon as any}
                     size={24}
-                    color={selectedMethod === method.id ? '#FFFFFF' : '#FF6600'}
+                    color={selectedMethod === method.id ? '#FFFFFF' : '#FF8A00'}
                   />
                 </View>
                 <Text style={styles.methodName}>{method.name}</Text>
@@ -254,7 +254,7 @@ const styles = StyleSheet.create({
     borderColor: '#EEEEEE',
   },
   methodCardSelected: {
-    borderColor: '#FF6600',
+    borderColor: '#FF8A00',
   },
   methodLeft: {
     flexDirection: 'row',
@@ -270,7 +270,7 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   methodIconSelected: {
-    backgroundColor: '#FF6600',
+    backgroundColor: '#FF8A00',
   },
   methodName: {
     fontSize: 16,
@@ -287,13 +287,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   radioButtonSelected: {
-    borderColor: '#FF6600',
+    borderColor: '#FF8A00',
   },
   radioButtonInner: {
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: '#FF6600',
+    backgroundColor: '#FF8A00',
   },
   infoBox: {
     flexDirection: 'row',
@@ -310,7 +310,7 @@ const styles = StyleSheet.create({
   },
   payButton: {
     flexDirection: 'row',
-    backgroundColor: '#FF6600',
+    backgroundColor: '#FF8A00',
     margin: 16,
     borderRadius: 12,
     paddingVertical: 16,

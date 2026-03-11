@@ -548,7 +548,7 @@ export default function OTPScreen() {
         {/* Loading Status */}
         {statusMessage ? (
           <View style={styles.statusContainer}>
-            <ActivityIndicator size="small" color="#FF6600" />
+            <ActivityIndicator size="small" color="#FF8A00" />
             <Text style={styles.statusText}>{statusMessage}</Text>
           </View>
         ) : null}
@@ -700,7 +700,7 @@ const styles = StyleSheet.create({
   statusText: {
     marginLeft: 8,
     fontSize: 14,
-    color: '#FF6600',
+    color: '#FF8A00',
   },
   otpContainer: { 
     flexDirection: "row", 
@@ -721,11 +721,11 @@ const styles = StyleSheet.create({
     color: "#000",
   },
   otpInputFilled: {
-    borderColor: "#FF6600",
+    borderColor: "#FF8A00",
     backgroundColor: "#FFF8F0",
   },
   button: {
-    backgroundColor: "#FF6600",
+    backgroundColor: "#FF8A00",
     padding: 18,
     borderRadius: 12,
     alignItems: "center",
@@ -754,7 +754,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   resendText: { 
-    color: "#FF6600", 
+    color: "#FF8A00", 
     fontWeight: '600',
     fontSize: 14,
   },

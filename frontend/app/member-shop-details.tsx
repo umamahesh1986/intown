@@ -180,7 +180,7 @@ export default function MemberShopDetails() {
 
   const renderShopImageCarousel = () => {
     if (shopImages.length === 0) {
-      return <Ionicons name="storefront" size={100} color="#FF6600" />;
+      return <Ionicons name="storefront" size={100} color="#FF8A00" />;
     }
     return (
       <>
@@ -224,7 +224,7 @@ export default function MemberShopDetails() {
 
   const getCategoryBadge = (category?: string) => {
     const badges: Record<string, { bg: string; color: string; label: string }> = {
-      restaurant: { bg: '#FFF3E0', color: '#FF6600', label: 'Restaurant' },
+      restaurant: { bg: '#FFF3E0', color: '#FF8A00', label: 'Restaurant' },
       grocery: { bg: '#E8F5E9', color: '#4CAF50', label: 'Grocery' },
       salon: { bg: '#F3E5F5', color: '#9C27B0', label: 'Salon' },
       pharmacy: { bg: '#E3F2FD', color: '#2196F3', label: 'Pharmacy' },
@@ -232,7 +232,7 @@ export default function MemberShopDetails() {
       dairy: { bg: '#FFF8E1', color: '#FF8F00', label: 'Dairy' },
     };
     const key = (category ?? '').toLowerCase().split(' ')[0];
-    return badges[key] ?? { bg: '#FFF3E0', color: '#FF6600', label: category || 'General' };
+    return badges[key] ?? { bg: '#FFF3E0', color: '#FF8A00', label: category || 'General' };
   };
 
   const handleUserTap = () => {
@@ -251,7 +251,7 @@ export default function MemberShopDetails() {
           <View style={{ width: 40 }} />
         </View>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#FF6600" />
+          <ActivityIndicator size="large" color="#FF8A00" />
           <Text style={styles.loadingText}>Loading shop details...</Text>
         </View>
       </SafeAreaView>
@@ -270,7 +270,7 @@ export default function MemberShopDetails() {
           <View style={{ width: 40 }} />
         </View>
         <View style={styles.loadingContainer}>
-          <Ionicons name="storefront" size={40} color="#FF6600" />
+          <Ionicons name="storefront" size={40} color="#FF8A00" />
           <Text style={styles.loadingText}>{error || 'Shop not found'}</Text>
           <TouchableOpacity
             style={styles.retryButton}
@@ -316,25 +316,25 @@ export default function MemberShopDetails() {
         {/* Info Card */}
         <View style={styles.infoCard}>
           <View style={styles.infoRow}>
-            <Ionicons name="business" size={20} color="#FF6600" />
+            <Ionicons name="business" size={20} color="#FF8A00" />
             <Text style={styles.infoLabel}>Business:</Text>
             <Text style={styles.infoValue}>{shop.businessName || 'N/A'}</Text>
           </View>
 
           <View style={styles.infoRow}>
-            <Ionicons name="pricetag" size={20} color="#FF6600" />
+            <Ionicons name="pricetag" size={20} color="#FF8A00" />
             <Text style={styles.infoLabel}>Category:</Text>
             <Text style={styles.infoValue}>{shop.businessCategory || 'General'}</Text>
           </View>
 
           <View style={styles.infoRow}>
-            <Ionicons name="person" size={20} color="#FF6600" />
+            <Ionicons name="person" size={20} color="#FF8A00" />
             <Text style={styles.infoLabel}>Contact:</Text>
             <Text style={styles.infoValue}>{shop.contactName || 'N/A'}</Text>
           </View>
 
           <View style={styles.infoRow}>
-            <Ionicons name="location" size={20} color="#FF6600" />
+            <Ionicons name="location" size={20} color="#FF8A00" />
             <Text style={styles.infoLabel}>Distance:</Text>
             <Text style={styles.infoValue}>
               {formatDistance(shop.distance != null ? Number(shop.distance) : null)}
@@ -342,13 +342,13 @@ export default function MemberShopDetails() {
           </View>
 
           <View style={styles.infoRow}>
-            <Ionicons name="call" size={20} color="#FF6600" />
+            <Ionicons name="call" size={20} color="#FF8A00" />
             <Text style={styles.infoLabel}>Phone:</Text>
             <Text style={styles.infoValue}>{userPhone}</Text>
           </View>
 
           <View style={styles.infoRow}>
-            <Ionicons name="pin" size={20} color="#FF6600" />
+            <Ionicons name="pin" size={20} color="#FF8A00" />
             <Text style={styles.infoLabel}>Address:</Text>
             <Text style={styles.infoValue} numberOfLines={2}>
               {shop.address || 'Address not available'}
@@ -356,19 +356,19 @@ export default function MemberShopDetails() {
           </View>
 
           <View style={styles.infoRow}>
-            <Ionicons name="mail" size={20} color="#FF6600" />
+            <Ionicons name="mail" size={20} color="#FF8A00" />
             <Text style={styles.infoLabel}>Pincode:</Text>
             <Text style={styles.infoValue}>{shop.pincode || 'N/A'}</Text>
           </View>
 
           <View style={styles.infoRow}>
-            <Ionicons name="time" size={20} color="#FF6600" />
+            <Ionicons name="time" size={20} color="#FF8A00" />
             <Text style={styles.infoLabel}>Years:</Text>
             <Text style={styles.infoValue}>{shop.fromYears ? `${shop.fromYears} years` : 'N/A'}</Text>
           </View>
 
           <View style={styles.infoRow}>
-            <Ionicons name="gift" size={20} color="#FF6600" />
+            <Ionicons name="gift" size={20} color="#FF8A00" />
             <Text style={styles.infoLabel}>Offers:</Text>
             <Text style={styles.infoValue}>Guaranty Savings</Text>
           </View>
@@ -466,7 +466,7 @@ export default function MemberShopDetails() {
                 router.push('/register-member');
               }}
             >
-              <Ionicons name="person" size={24} color="#FF6600" />
+              <Ionicons name="person" size={24} color="#FF8A00" />
               <Text style={styles.modalButtonText}>Register as Customer</Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -476,7 +476,7 @@ export default function MemberShopDetails() {
                 router.push('/register-merchant');
               }}
             >
-              <Ionicons name="storefront" size={24} color="#FF6600" />
+              <Ionicons name="storefront" size={24} color="#FF8A00" />
               <Text style={styles.modalButtonText}>Register as Merchant</Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -498,7 +498,7 @@ const styles = StyleSheet.create({
   loadingText: { marginTop: 12, fontSize: 16, color: '#666', textAlign: 'center' },
   retryButton: {
     marginTop: 20,
-    backgroundColor: '#FF6600',
+    backgroundColor: '#FF8A00',
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
@@ -590,7 +590,7 @@ const styles = StyleSheet.create({
   navigateBtnText: { color: '#FFF', fontSize: 16, fontWeight: 'bold', marginLeft: 8 },
   payBtn: {
     flex: 1,
-    backgroundColor: '#FF6600',
+    backgroundColor: '#FF8A00',
     borderRadius: 12,
     paddingVertical: 16,
     flexDirection: 'row',
@@ -627,7 +627,7 @@ const styles = StyleSheet.create({
   modalButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FF6600',
+    color: '#FF8A00',
     marginLeft: 12,
   },
   modalCancelButton: {

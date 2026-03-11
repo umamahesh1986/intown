@@ -203,7 +203,7 @@ export default function Search() {
         {/* LOADING */}
         {loading && (
           <View style={{ marginTop: 8 }}>
-            <ActivityIndicator size="small" color="#FF6600" />
+            <ActivityIndicator size="small" color="#FF8A00" />
           </View>
         )}
 

@@ -34,7 +34,7 @@ const LEGAL_CONTENT = {
       padding: 20px; line-height: 1.6; color: #333;
     }
     h1 {
-      color: #FF6600; font-size: 24px; border-bottom: 2px solid #eee;
+      color: #FF8A00; font-size: 24px; border-bottom: 2px solid #eee;
       padding-bottom: 10px; margin-bottom: 20px;
     }
     h2 {
@@ -144,7 +144,7 @@ const LEGAL_CONTENT = {
       padding: 20px; line-height: 1.6; color: #333;
     }
     h1 {
-      color: #FF6600; font-size: 24px; border-bottom: 2px solid #eee;
+      color: #FF8A00; font-size: 24px; border-bottom: 2px solid #eee;
       padding-bottom: 10px; margin-bottom: 20px;
     }
     h2 {
@@ -458,7 +458,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 30,
     fontWeight: '700',
-    color: '#FF6600',
+    color: '#FF8A00',
   },
 
 
@@ -480,7 +480,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 36,
-    backgroundColor: '#ECEFF4',
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
     marginHorizontal: 12,

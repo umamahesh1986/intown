@@ -372,17 +372,17 @@ export default function Account() {
             />
           ) : (
             <View style={styles.profilePlaceholder}>
-              <Ionicons name="person" size={40} color="#FF6600" />
+              <Ionicons name="person" size={40} color="#FF8A00" />
             </View>
           )}
         </View>
         <View style={styles.profileActions}>
           <TouchableOpacity style={styles.profileButton} onPress={handleTakePhoto}>
-            <Ionicons name="camera" size={16} color="#FF6600" />
+            <Ionicons name="camera" size={16} color="#FF8A00" />
             <Text style={styles.profileButtonText}>Take Photo</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.profileButton} onPress={handlePickImage}>
-            <Ionicons name="image" size={16} color="#FF6600" />
+            <Ionicons name="image" size={16} color="#FF8A00" />
             <Text style={styles.profileButtonText}>Upload Gallery</Text>
           </TouchableOpacity>
         </View>
@@ -451,7 +451,7 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', marginBottom: 16, marginTop: 32 },
   backButton: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
   title: { flex: 1, fontSize: 22, fontWeight: '700', marginLeft: 8 },
-  editBtn: { color: '#FF6600', fontWeight: '600', fontSize: 16 },
+  editBtn: { color: '#FF8A00', fontWeight: '600', fontSize: 16 },
 
   profileCard: {
     backgroundColor: '#fff',
@@ -466,7 +466,7 @@ const styles = StyleSheet.create({
     borderRadius: 48,
     overflow: 'hidden',
     borderWidth: 2,
-    borderColor: '#FF6600',
+    borderColor: '#FF8A00',
     marginBottom: 12,
   },
   profileImage: {
@@ -494,12 +494,12 @@ const styles = StyleSheet.create({
   },
   profileButtonText: {
     marginLeft: 6,
-    color: '#FF6600',
+    color: '#FF8A00',
     fontWeight: '600',
     fontSize: 12,
   },
   updateButton: {
-    backgroundColor: '#FF6600',
+    backgroundColor: '#FF8A00',
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 8,
@@ -533,7 +533,7 @@ const styles = StyleSheet.create({
 
 
   saveBtn: {
-    backgroundColor: '#FF6600',
+    backgroundColor: '#FF8A00',
     padding: 14,
     borderRadius: 10,
     marginTop: 20,

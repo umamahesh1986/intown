@@ -146,7 +146,7 @@ const TabButton = ({ active, label, icon, onPress }: TabProps) => (
     <Ionicons
       name={icon as any}
       size={20}
-      color={active ? '#FF6600' : '#666666'}
+      color={active ? '#FF8A00' : '#666666'}
     />
     <Text style={[styles.tabLabel, active && styles.tabLabelActive]}>
       {label}
@@ -716,7 +716,7 @@ export default function DualDashboard() {
           onPress={() => setShowLocationModal(true)}
         >
           <View style={styles.locationIconCircle}>
-            <Ionicons name="location" size={16} color="#FF6600" />
+            <Ionicons name="location" size={16} color="#FF8A00" />
           </View>
 
           <View style={styles.locationTextContainer}>
@@ -742,7 +742,7 @@ export default function DualDashboard() {
               toggleDropdown();
             }}
           >
-            <Ionicons name="person-outline" size={20} color="#FF6600" />
+            <Ionicons name="person-outline" size={20} color="#FF8A00" />
           </TouchableOpacity>
         </View>
 
@@ -790,7 +790,7 @@ export default function DualDashboard() {
                 router.push({ pathname: '/account' as any });
               }}
             >
-              <Ionicons name="person-outline" size={22} color="#FF6600" />
+              <Ionicons name="person-outline" size={22} color="#FF8A00" />
               <Text style={styles.userPanelText}>My Account</Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -800,7 +800,7 @@ export default function DualDashboard() {
                 router.push('/member-card');
               }}
             >
-              <Ionicons name="card-outline" size={22} color="#FF6600" />
+              <Ionicons name="card-outline" size={22} color="#FF8A00" />
               <Text style={styles.userPanelText}>Member Card</Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -810,7 +810,7 @@ export default function DualDashboard() {
                 setActiveTab('merchant');
               }}
             >
-              <Ionicons name="storefront-outline" size={22} color="#FF6600" />
+              <Ionicons name="storefront-outline" size={22} color="#FF8A00" />
               <Text style={styles.userPanelText}>Merchant</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.userPanelItem} onPress={handleLogout}>
@@ -853,7 +853,7 @@ export default function DualDashboard() {
                 onSubmitEditing={handleSearch}
               />
               <TouchableOpacity>
-                <Ionicons name="options-outline" size={20} color="#FF6600" />
+                <Ionicons name="options-outline" size={20} color="#FF8A00" />
               </TouchableOpacity>
               {searchQuery.length === 0 && (
                 <View pointerEvents="none" style={styles.animatedPlaceholder}>
@@ -925,7 +925,7 @@ export default function DualDashboard() {
             <Ionicons
               name={activeTab === 'customer' ? 'person' : 'storefront'}
               size={32}
-              color="#FF6600"
+              color="#FF8A00"
             />
           </View>
           <View style={styles.roleInfo}>
@@ -995,11 +995,11 @@ export default function DualDashboard() {
 
           {activeTab === 'customer' && isCustomerLoading ? (
             <View style={styles.emptyState}>
-              <ActivityIndicator size="small" color="#FF6600" />
+              <ActivityIndicator size="small" color="#FF8A00" />
             </View>
           ) : activeTab === 'merchant' && isMerchantLoading ? (
             <View style={styles.emptyState}>
-              <ActivityIndicator size="small" color="#FF6600" />
+              <ActivityIndicator size="small" color="#FF8A00" />
             </View>
           ) : currentTransactions.length > 0 ? (
             currentTransactions.slice(0, 10).map((transaction) => (
@@ -1083,7 +1083,7 @@ export default function DualDashboard() {
                   style={styles.actionButton}
                   onPress={() => router.push('/search')}
                 >
-                  <Ionicons name="search" size={24} color="#FF6600" />
+                  <Ionicons name="search" size={24} color="#FF8A00" />
                   <Text style={styles.actionText}>Find Shops</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -1092,7 +1092,7 @@ export default function DualDashboard() {
                     contentScrollRef.current?.scrollTo({ y: 0, animated: true });
                   }}
                 >
-                  <Ionicons name="gift" size={24} color="#FF6600" />
+                  <Ionicons name="gift" size={24} color="#FF8A00" />
                   <Text style={styles.actionText}>My Rewards</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -1101,7 +1101,7 @@ export default function DualDashboard() {
                     contentScrollRef.current?.scrollTo({ y: 0, animated: true });
                   }}
                 >
-                  <Ionicons name="card" size={24} color="#FF6600" />
+                  <Ionicons name="card" size={24} color="#FF8A00" />
                   <Text style={styles.actionText}>Payment</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -1110,7 +1110,7 @@ export default function DualDashboard() {
                     setShowSupportModal(true);
                   }}
                 >
-                  <Ionicons name="help-circle" size={24} color="#FF6600" />
+                  <Ionicons name="help-circle" size={24} color="#FF8A00" />
                   <Text style={styles.actionText}>Support</Text>
                 </TouchableOpacity>
               </>
@@ -1122,7 +1122,7 @@ export default function DualDashboard() {
                     contentScrollRef.current?.scrollTo({ y: 0, animated: true });
                   }}
                 >
-                  <Ionicons name="bar-chart" size={24} color="#FF6600" />
+                  <Ionicons name="bar-chart" size={24} color="#FF8A00" />
                   <Text style={styles.actionText}>Analytics</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -1131,7 +1131,7 @@ export default function DualDashboard() {
                     setShowOffersModal(true);
                   }}
                 >
-                  <Ionicons name="pricetag" size={24} color="#FF6600" />
+                  <Ionicons name="pricetag" size={24} color="#FF8A00" />
                   <Text style={styles.actionText}>Offers</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -1140,14 +1140,14 @@ export default function DualDashboard() {
                     contentScrollRef.current?.scrollTo({ y: 0, animated: true });
                   }}
                 >
-                  <Ionicons name="wallet" size={24} color="#FF6600" />
+                  <Ionicons name="wallet" size={24} color="#FF8A00" />
                   <Text style={styles.actionText}>Payouts</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.actionButton}
                   onPress={() => setShowSupportModal(true)}
                 >
-                  <Ionicons name="help-circle" size={24} color="#FF6600" />
+                  <Ionicons name="help-circle" size={24} color="#FF8A00" />
                   <Text style={styles.actionText}>Support</Text>
                 </TouchableOpacity>
               </>
@@ -1160,7 +1160,7 @@ export default function DualDashboard() {
             <Text style={styles.sectionTitle}>Nearby Shops</Text>
             {isNearbyLoading ? (
               <View style={styles.emptyState}>
-                <ActivityIndicator size="small" color="#FF6600" />
+                <ActivityIndicator size="small" color="#FF8A00" />
               </View>
             ) : nearbyShops.length > 0 ? (
               <ScrollView
@@ -1193,7 +1193,7 @@ export default function DualDashboard() {
                         return uri ? (
                           <Image source={{ uri }} style={styles.nearbyImage} />
                         ) : (
-                          <Ionicons name="storefront" size={36} color="#FF6600" />
+                          <Ionicons name="storefront" size={36} color="#FF8A00" />
                         );
                       })()}
                     </View>
@@ -1211,7 +1211,7 @@ export default function DualDashboard() {
                         </Text>
                       </View> */}
         {/* <View style={styles.nearbyDistance}>
-                        <Ionicons name="location" size={12} color="#FF6600" />
+                        <Ionicons name="location" size={12} color="#FF8A00" />
                         <Text style={styles.nearbyDistanceText}>
                           {formatDistance(
                             typeof shop.distance === 'number' ? shop.distance : null
@@ -1331,7 +1331,7 @@ export default function DualDashboard() {
             <View style={styles.locationModalHeader}>
               <Text style={styles.locationModalTitle}>Select Location</Text>
               <TouchableOpacity onPress={() => setShowLocationModal(false)}>
-                <Ionicons name="close" size={24} color="#ff6600" />
+                <Ionicons name="close" size={24} color="#FF8A00" />
               </TouchableOpacity>
             </View>
 
@@ -1357,11 +1357,11 @@ export default function DualDashboard() {
               onPress={handleUseCurrentLocation}
               disabled={isLocationLoading}
             >
-              <Ionicons name="locate" size={20} color="#FF6600" />
+              <Ionicons name="locate" size={20} color="#FF8A00" />
               <Text style={styles.useCurrentLocationText}>
                 {isLocationLoading ? 'Getting location...' : 'Use Current Location'}
               </Text>
-              {isLocationLoading && <ActivityIndicator size="small" color="#FF6600" style={{ marginLeft: 8 }} />}
+              {isLocationLoading && <ActivityIndicator size="small" color="#FF8A00" style={{ marginLeft: 8 }} />}
             </TouchableOpacity>
 
             {location && (
@@ -1377,7 +1377,7 @@ export default function DualDashboard() {
             )}
 
             {isSearchingLocation && (
-              <ActivityIndicator size="small" color="#FF6600" style={{ marginTop: 16 }} />
+              <ActivityIndicator size="small" color="#FF8A00" style={{ marginTop: 16 }} />
             )}
 
             <ScrollView style={styles.locationSearchResults}>
@@ -1442,7 +1442,7 @@ const styles = StyleSheet.create({
   locationText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#FF6600',
+    color: '#FF8A00',
     flex: 1,
   },
   welcomeText: {
@@ -1457,7 +1457,7 @@ const styles = StyleSheet.create({
   },
   profileIconButton: {
     borderWidth: 2,
-    borderColor: '#ff6600',
+    borderColor: '#FF8A00',
     padding: 4,
     borderRadius: 30,
     marginLeft: 10,
@@ -1469,7 +1469,7 @@ const styles = StyleSheet.create({
     height: 34,
     borderRadius: 17,
     borderWidth: 2,
-    borderColor: '#ff6600',
+    borderColor: '#FF8A00',
     marginLeft: 10,
   },
   profileInfo: {
@@ -1516,7 +1516,7 @@ const styles = StyleSheet.create({
   },
   animatedPlaceholderWord: {
     fontSize: 16,
-    color: "#FF6600",
+    color: "#FF8A00",
     fontWeight: "600"
   },
   suggestionBox: {
@@ -1569,7 +1569,7 @@ const styles = StyleSheet.create({
   },
   userPanelName: { fontSize: 16, fontWeight: '700' },
   userPanelPhone: { fontSize: 12, color: '#888', marginTop: 2 },
-  userPanelTag: { fontSize: 12, color: '#FF6600', marginTop: 2, fontWeight: '600' },
+  userPanelTag: { fontSize: 12, color: '#FF8A00', marginTop: 2, fontWeight: '600' },
   userPanelItem: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1582,7 +1582,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#FF6600',
+    backgroundColor: '#FF8A00',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1622,7 +1622,7 @@ const styles = StyleSheet.create({
   },
   supportButton: {
     marginTop: 16,
-    backgroundColor: '#FF6600',
+    backgroundColor: '#FF8A00',
     paddingVertical: 10,
     paddingHorizontal: 24,
     borderRadius: 10,
@@ -1842,7 +1842,7 @@ const styles = StyleSheet.create({
   },
   viewAllText: {
     fontSize: 14,
-    color: '#FF6600',
+    color: '#FF8A00',
     fontWeight: '600',
   },
   transactionCard: {
@@ -2004,7 +2004,7 @@ const styles = StyleSheet.create({
   nearbyDistanceText: {
     fontSize: 12,
     marginLeft: 4,
-    color: '#FF6600',
+    color: '#FF8A00',
   },
 
   // Location Modal Styles
@@ -2043,7 +2043,7 @@ const styles = StyleSheet.create({
   useCurrentLocationText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FF6600',
+    color: '#FF8A00',
     marginLeft: 12,
   },
   currentLocationDisplay: {
@@ -2157,7 +2157,7 @@ const styles = StyleSheet.create({
     height: 36,
     borderRadius: 18,
     borderWidth: 2,
-    borderColor: "#FF6600",
+    borderColor: "#FF8A00",
     justifyContent: "center",
     alignItems: "center"
   },

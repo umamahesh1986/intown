@@ -514,7 +514,7 @@ export default function MerchantDashboard() {
     onPress={() => setShowLocationModal(true)}
   >
     <View style={styles.locationIconBox}>
-      <Ionicons name="location-outline" size={20} color="#FF6600" />
+      <Ionicons name="location-outline" size={20} color="#FF8A00" />
     </View>
 
     <View>
@@ -541,7 +541,7 @@ export default function MerchantDashboard() {
         showDropdown ? closeDropdown() : openDropdown();
       }}
     >
-      <Ionicons name="person-outline" size={22} color="#FF6600" />
+      <Ionicons name="person-outline" size={22} color="#FF8A00" />
     </TouchableOpacity>
 
   </View>
@@ -707,7 +707,7 @@ export default function MerchantDashboard() {
 
           {isSalesLoading ? (
             <View style={styles.emptyState}>
-              <ActivityIndicator size="small" color="#FF6600" />
+              <ActivityIndicator size="small" color="#FF8A00" />
             </View>
           ) : sales.length > 0 ? (
             sales.slice(0, 10).map((sale) => (
@@ -803,7 +803,7 @@ export default function MerchantDashboard() {
               router.push('/account');
             }}
           >
-            <Ionicons name="person-outline" size={22} color="#FF6600" />
+            <Ionicons name="person-outline" size={22} color="#FF8A00" />
             <Text style={styles.userPanelText}>My Account</Text>
           </TouchableOpacity>
 
@@ -814,7 +814,7 @@ export default function MerchantDashboard() {
               // TODO: Navigate to offers page
             }}
           >
-            <Ionicons name="pricetag-outline" size={22} color="#FF6600" />
+            <Ionicons name="pricetag-outline" size={22} color="#FF8A00" />
             <Text style={styles.userPanelText}>My Offers</Text>
           </TouchableOpacity> */}
 
@@ -825,7 +825,7 @@ export default function MerchantDashboard() {
               setShowAllPayments(true);
             }}
           >
-            <Ionicons name="receipt-outline" size={22} color="#FF6600" />
+            <Ionicons name="receipt-outline" size={22} color="#FF8A00" />
             <Text style={styles.userPanelText}>All Transactions</Text>
           </TouchableOpacity>
 
@@ -926,7 +926,7 @@ export default function MerchantDashboard() {
             <View style={styles.locationModalHeader}>
               <Text style={styles.locationModalTitle}>Select Location</Text>
               <TouchableOpacity onPress={() => setShowLocationModal(false)}>
-                <Ionicons name="close" size={24} color="#ff6600" />
+                <Ionicons name="close" size={24} color="#FF8A00" />
               </TouchableOpacity>
             </View>
 
@@ -949,7 +949,7 @@ export default function MerchantDashboard() {
             </View>
 
             {isSearchingLocation && (
-              <ActivityIndicator size="small" color="#FF6600" style={{ marginTop: 12 }} />
+              <ActivityIndicator size="small" color="#FF8A00" style={{ marginTop: 12 }} />
             )}
 
             {/* Search Results */}
@@ -981,11 +981,11 @@ export default function MerchantDashboard() {
                   onPress={handleUseCurrentLocation}
                   disabled={isLocationLoading}
                 >
-                  <Ionicons name="locate" size={20} color="#FF6600" />
+                  <Ionicons name="locate" size={20} color="#FF8A00" />
                   <Text style={styles.useCurrentLocationText}>
                     {isLocationLoading ? 'Getting location...' : 'Use Current Location'}
                   </Text>
-                  {isLocationLoading && <ActivityIndicator size="small" color="#FF6600" style={{ marginLeft: 8 }} />}
+                  {isLocationLoading && <ActivityIndicator size="small" color="#FF8A00" style={{ marginLeft: 8 }} />}
                 </TouchableOpacity>
 
                 {location && (
@@ -1045,7 +1045,7 @@ container: {
   locationText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#FF6600',
+    color: '#FF8A00',
     flex: 1,
   },
   welcomeText: {
@@ -1060,7 +1060,7 @@ container: {
   },
   profileIconButton: {
     borderWidth: 2,
-    borderColor: '#ff6600',
+    borderColor: '#FF8A00',
     padding: 4,
     borderRadius: 30,
     marginLeft: 10,
@@ -1072,7 +1072,7 @@ container: {
     height: 34,
     borderRadius: 17,
     borderWidth: 2,
-    borderColor: '#ff6600',
+    borderColor: '#FF8A00',
     marginLeft: 10,
   },
   profileInfo: { alignItems: 'flex-end', marginRight: 8 },
@@ -1117,19 +1117,19 @@ container: {
     height: 50,
     borderRadius: 25,
     borderWidth: 2,
-    borderColor: '#FF6600',
+    borderColor: '#FF8A00',
   },
   panelAvatarPlaceholder: {
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: '#FF6600',
+    backgroundColor: '#FF8A00',
     alignItems: 'center',
     justifyContent: 'center',
   },
   userPanelName: { fontSize: 16, fontWeight: '700', color: '#1A1A1A' },
   userPanelPhone: { fontSize: 12, color: '#888', marginTop: 2 },
-  userPanelTag: { fontSize: 12, color: '#FF6600', marginTop: 2, fontWeight: '600' },
+  userPanelTag: { fontSize: 12, color: '#FF8A00', marginTop: 2, fontWeight: '600' },
   userPanelItem: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1246,7 +1246,7 @@ container: {
   },
   sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#1A1A1A', margin: 16 },
   summarySection: {
-  backgroundColor: '#FF6600',
+  backgroundColor: '#FF8A00',
   paddingVertical: 20,
   paddingHorizontal: 10,
   borderRadius: 20,
@@ -1340,7 +1340,7 @@ summaryItem: {
   },
   viewAllText: {
     fontSize: 14,
-    color: '#FF6600',
+    color: '#FF8A00',
     fontWeight: '700',
   },
   transactionsModalOverlay: {
@@ -1430,7 +1430,7 @@ summaryItem: {
   },
 
   dotActive: {
-    backgroundColor: '#FF6600',
+    backgroundColor: '#FF8A00',
   },
   // Location Modal Styles
   locationModalContainer: {
@@ -1473,7 +1473,7 @@ summaryItem: {
   useCurrentLocationText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FF6600',
+    color: '#FF8A00',
     marginLeft: 12,
   },
   currentLocationDisplay: {
@@ -1578,7 +1578,7 @@ locationLabel: {
 locationName: {
   fontSize: 16,
   fontWeight: "700",
-  color: "#FF6600",
+  color: "#FF8A00",
 },
 
 headerIcons: {
@@ -1603,7 +1603,7 @@ headerIconBtn: {
   height: 36,
   borderRadius: 18,
   borderWidth: 2,
-  borderColor: "#FF6600",
+  borderColor: "#FF8A00",
   backgroundColor: "#FFFFFF",
   justifyContent: "center",
   alignItems: "center",
@@ -1646,6 +1646,7 @@ transactionsCard:{
 backgroundColor:"#FFFFFF",
 marginHorizontal:16,
 marginTop:20,
+marginBottom:20,
 borderRadius:20,
 paddingVertical:10,
 paddingBottom:20,

@@ -89,7 +89,7 @@ export default function Savings() {
     <ScrollView style={styles.content}>
       {/* Hero Section */}
       <View style={styles.heroSection}>
-        <Ionicons name="calculator" size={48} color="#FF6600" />
+        <Ionicons name="calculator" size={48} color="#FF8A00" />
         <Text style={styles.heroTitle}>Calculate Your Savings</Text>
         <Text style={styles.heroSubtitle}>
           See how much you can save by shopping at INtown partner stores
@@ -141,7 +141,7 @@ export default function Savings() {
             <Ionicons name="trending-up" size={24} color="#4CAF50" />
           </View>
           <View style={styles.infoContent}>
-            <Text style={styles.infoTitle}>15% Guaranteed Savings</Text>
+            <Text style={styles.infoTitle}>8% Guaranteed Savings</Text>
             <Text style={styles.infoText}>
               Save up to 15% on every purchase at partner stores
             </Text>
@@ -195,14 +195,14 @@ export default function Savings() {
     <ScrollView
       style={styles.content}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#FF6600']} />
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#FF8A00']} />
       }
     >
       {/* Summary Cards */}
       <View style={styles.summaryContainer}>
         <View style={styles.summaryCard}>
           <View style={styles.summaryIconContainer}>
-            <Ionicons name="today" size={24} color="#FF6600" />
+            <Ionicons name="today" size={24} color="#FF8A00" />
           </View>
           <Text style={styles.summaryLabel}>Today's Savings</Text>
           <Text style={styles.summaryValue}>{formatCurrency(summary.today)}</Text>
@@ -265,7 +265,7 @@ export default function Savings() {
             <View key={transaction.id} style={styles.transactionCard}>
               <View style={styles.transactionLeft}>
                 <View style={styles.transactionIcon}>
-                  <Ionicons name="storefront" size={24} color="#FF6600" />
+                  <Ionicons name="storefront" size={24} color="#FF8A00" />
                 </View>
                 <View style={styles.transactionInfo}>
                   <Text style={styles.transactionShop}>{transaction.shopName}</Text>
@@ -324,7 +324,7 @@ export default function Savings() {
           <View style={{ width: 40 }} />
         </View>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#FF6600" />
+          <ActivityIndicator size="large" color="#FF8A00" />
           <Text style={styles.loadingText}>Loading...</Text>
         </View>
       </SafeAreaView>
@@ -383,7 +383,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 20,
     borderWidth: 2,
-    borderColor: '#FF6600',
+    borderColor: '#FF8A00',
   },
   calculatorHeader: {
     flexDirection: 'row',
@@ -414,7 +414,7 @@ const styles = StyleSheet.create({
   currency: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#FF6600',
+    color: '#FF8A00',
     marginRight: 8,
   },
   calculatorInput: {
@@ -455,13 +455,13 @@ const styles = StyleSheet.create({
   annualLabel: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#FF6600',
+    color: '#FF8A00',
     marginBottom: 4,
   },
   annualValue: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#FF6600',
+    color: '#FF8A00',
   },
   infoSection: {
     padding: 16,
@@ -497,7 +497,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   ctaSection: {
-    backgroundColor: '#FF6600',
+    backgroundColor: '#FF8A00',
     margin: 16,
     borderRadius: 16,
     padding: 24,
@@ -524,7 +524,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   ctaButtonText: {
-    color: '#FF6600',
+    color: '#FF8A00',
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 8,
@@ -553,9 +553,9 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   summaryLabel: { fontSize: 12, color: '#666', marginBottom: 4 },
-  summaryValue: { fontSize: 18, fontWeight: 'bold', color: '#FF6600' },
+  summaryValue: { fontSize: 18, fontWeight: 'bold', color: '#FF8A00' },
   totalBanner: {
-    backgroundColor: '#FF6600',
+    backgroundColor: '#FF8A00',
     marginHorizontal: 16,
     borderRadius: 16,
     padding: 20,
@@ -592,7 +592,7 @@ const styles = StyleSheet.create({
   exploreButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FF6600',
+    backgroundColor: '#FF8A00',
     paddingHorizontal: 24,
     paddingVertical: 14,
     borderRadius: 12,
@@ -620,7 +620,7 @@ const styles = StyleSheet.create({
   transactionInfo: { marginLeft: 12, flex: 1 },
   transactionShop: { fontSize: 16, fontWeight: '600', color: '#1A1A1A' },
   transactionDate: { fontSize: 12, color: '#999', marginTop: 2 },
-  transactionCategory: { fontSize: 12, color: '#FF6600', marginTop: 2 },
+  transactionCategory: { fontSize: 12, color: '#FF8A00', marginTop: 2 },
   transactionRight: { alignItems: 'flex-end' },
   transactionAmount: { fontSize: 16, fontWeight: '600', color: '#1A1A1A' },
   transactionSavings: { fontSize: 12, color: '#4CAF50', marginTop: 2 },
@@ -637,7 +637,7 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: '#FF6600',
+    backgroundColor: '#FF8A00',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,

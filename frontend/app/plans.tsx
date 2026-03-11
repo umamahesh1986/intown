@@ -132,7 +132,7 @@ export default function Plans() {
           <View style={{ width: 40 }} />
         </View>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#FF6600" />
+          <ActivityIndicator size="large" color="#FF8A00" />
           <Text style={styles.loadingText}>Loading plans...</Text>
         </View>
       </SafeAreaView>
@@ -152,12 +152,12 @@ export default function Plans() {
       <ScrollView
         style={styles.content}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#FF6600']} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#FF8A00']} />
         }
       >
         {/* Hero Section */}
         <View style={styles.heroSection}>
-          <Ionicons name="diamond" size={48} color="#FF6600" />
+          <Ionicons name="diamond" size={48} color="#FF8A00" />
           <Text style={styles.heroTitle}>Unlock More Savings</Text>
           <Text style={styles.heroSubtitle}>
             Choose a plan that fits your needs and start saving more on every purchase
@@ -192,7 +192,7 @@ export default function Plans() {
                 ) : (
                   <>
                     <Text style={styles.planCurrency}>₹</Text>
-                    <Text style={styles.planPrice}>{plan.price}</Text>
+                    <Text style={styles.planPrice}><s>{plan.price}</s> Free</Text>
                     <Text style={styles.planDuration}>/{plan.duration}</Text>
                   </>
                 )}
@@ -241,7 +241,7 @@ export default function Plans() {
           <View style={styles.benefitsList}>
             <View style={styles.benefitItem}>
               <View style={styles.benefitIcon}>
-                <Ionicons name="cash" size={24} color="#FF6600" />
+                <Ionicons name="cash" size={24} color="#FF8A00" />
               </View>
               <View style={styles.benefitInfo}>
                 <Text style={styles.benefitTitle}>Extra Savings</Text>
@@ -359,16 +359,16 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: 'transparent',
   },
-  planCardSelected: { borderColor: '#FF6600' },
+  planCardSelected: { borderColor: '#FF8A00' },
   planCardPopular: {
-    borderColor: '#FF6600',
+    borderColor: '#FF8A00',
     backgroundColor: '#FFFAF5',
   },
   popularBadge: {
     position: 'absolute',
     top: -12,
     right: 20,
-    backgroundColor: '#FF6600',
+    backgroundColor: '#FF8A00',
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 12,
@@ -381,8 +381,8 @@ const styles = StyleSheet.create({
     alignItems: 'baseline',
     marginTop: 16,
   },
-  planCurrency: { fontSize: 18, fontWeight: '600', color: '#FF6600' },
-  planPrice: { fontSize: 36, fontWeight: 'bold', color: '#FF6600' },
+  planCurrency: { fontSize: 18, fontWeight: '600', color: '#FF8A00' },
+  planPrice: { fontSize: 36, fontWeight: 'bold', color: '#FF8A00' },
   planDuration: { fontSize: 14, color: '#999', marginLeft: 4 },
   savingsContainer: {
     flexDirection: 'row',
@@ -399,7 +399,7 @@ const styles = StyleSheet.create({
   featureRow: { flexDirection: 'row', alignItems: 'center' },
   featureText: { fontSize: 14, color: '#666', marginLeft: 10, flex: 1 },
   subscribeButton: {
-    backgroundColor: '#FF6600',
+    backgroundColor: '#FF8A00',
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
@@ -408,11 +408,11 @@ const styles = StyleSheet.create({
   subscribeButtonFree: {
     backgroundColor: '#FFF',
     borderWidth: 2,
-    borderColor: '#FF6600',
+    borderColor: '#FF8A00',
   },
-  subscribeButtonPopular: { backgroundColor: '#FF6600' },
+  subscribeButtonPopular: { backgroundColor: '#FF8A00' },
   subscribeButtonText: { color: '#FFF', fontSize: 16, fontWeight: '600' },
-  subscribeButtonTextFree: { color: '#FF6600' },
+  subscribeButtonTextFree: { color: '#FF8A00' },
   benefitsSection: {
     backgroundColor: '#FFF',
     margin: 16,

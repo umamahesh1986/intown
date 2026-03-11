@@ -46,7 +46,7 @@ export default function LocationScreen() {
     <View style={styles.container}>
       <View style={styles.content}>
         <View style={styles.iconContainer}>
-          <Ionicons name="location" size={100} color="#FF6600" />
+          <Ionicons name="location" size={100} color="#FF8A00" />
         </View>
         
         <Text style={styles.title}>Enable Location</Text>
@@ -103,7 +103,7 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   button: {
-    backgroundColor: '#FF6600',
+    backgroundColor: '#FF8A00',
     paddingVertical: 16,
     paddingHorizontal: 32,
     borderRadius: 8,
@@ -120,7 +120,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   skipText: {
-    color: '#FF6600',
+    color: '#FF8A00',
     fontSize: 16,
     fontWeight: '600',
   },

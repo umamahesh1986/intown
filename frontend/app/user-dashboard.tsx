@@ -693,9 +693,9 @@ export default function UserDashboard() {
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Popular Categories</Text>
 
-              <TouchableOpacity>
+              {/* <TouchableOpacity>
                 <Text style={styles.viewAll}>View All</Text>
-              </TouchableOpacity>
+              </TouchableOpacity> */}
             </View>
 
             {categories.length > 0 ? (
@@ -2197,7 +2197,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginHorizontal: 16,
+    marginHorizontal: 0,
     marginTop: 20,
   },
   viewAll: {

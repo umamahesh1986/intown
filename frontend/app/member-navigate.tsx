@@ -538,6 +538,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   
-  payButton: {flexDirection:'row', backgroundColor:'#FF6600', margin:16, borderRadius:12, paddingVertical:16, alignItems:'center', justifyContent:'center'},
+  payButton: {flexDirection:'row', backgroundColor:'#FF8A00', margin:16, borderRadius:12, paddingVertical:16, alignItems:'center', justifyContent:'center'},
   payButtonText: {color:'#FFF', fontSize:18, fontWeight:'bold', marginLeft:8},
 });

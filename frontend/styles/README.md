@@ -62,7 +62,7 @@ import { Colors } from '../styles/globalStyles';
 ```
 
 **Available Colors:**
-- `Colors.primary` - #FF6600 (Orange)
+- `Colors.primary` - #FF8A00 (Orange)
 - `Colors.secondary` - #2196F3 (Blue)
 - `Colors.success` - #4CAF50 (Green)
 - `Colors.error` - #FF0000 (Red)
@@ -493,7 +493,7 @@ import './styles.css' // ❌ Won't work!
 <div className="container"> // ❌ React Native uses View, not div
 
 // Don't hardcode values everywhere
-<View style={{ padding: 16, color: '#FF6600' }}> // ❌ Use Spacing and Colors instead
+<View style={{ padding: 16, color: '#FF8A00' }}> // ❌ Use Spacing and Colors instead
 ```
 
 ---
@@ -506,7 +506,7 @@ Edit `/frontend/styles/globalStyles.ts`:
 
 ```typescript
 export const Colors = {
-  primary: '#FF6600',  // Change this to your new color
+  primary: '#FF8A00',  // Change this to your new color
   // ...
 };
 ```

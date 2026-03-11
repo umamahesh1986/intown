@@ -467,7 +467,7 @@ export default function RegisterMember() {
               style={[styles.locationButton, errors.location && styles.inputError]}
               onPress={handleSelectLocation}
             >
-              <Ionicons name="location" size={20} color="#FF6600" />
+              <Ionicons name="location" size={20} color="#FF8A00" />
               <Text style={styles.locationButtonText}>
                 {location
                   ? `Selected: ${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}`
@@ -547,14 +547,14 @@ export default function RegisterMember() {
                 style={styles.imageButton}
                 onPress={handleTakePhoto}
               >
-                <Ionicons name="camera" size={18} color="#FF6600" />
+                <Ionicons name="camera" size={18} color="#FF8A00" />
                 <Text style={styles.imageButtonText}>Take Photo</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.imageButton}
                 onPress={handlePickFromGallery}
               >
-                <Ionicons name="images" size={18} color="#FF6600" />
+                <Ionicons name="images" size={18} color="#FF8A00" />
                 <Text style={styles.imageButtonText}>Choose Images</Text>
               </TouchableOpacity>
             </View>
@@ -595,7 +595,7 @@ export default function RegisterMember() {
               <Switch
                 value={agreedToTerms}
                 onValueChange={setAgreedToTerms}
-                trackColor={{ false: '#CCCCCC', true: '#FF6600' }}
+                trackColor={{ false: '#CCCCCC', true: '#FF8A00' }}
                 thumbColor={agreedToTerms ? '#FFFFFF' : '#F4F3F4'}
               />
               <Text style={styles.termsLabel}>I agree to the Terms & Conditions</Text>
@@ -762,7 +762,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#FF6600',
+    borderColor: '#FF8A00',
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderRadius: 10,
@@ -770,7 +770,7 @@ const styles = StyleSheet.create({
   },
   imageButtonText: {
     marginLeft: 6,
-    color: '#FF6600',
+    color: '#FF8A00',
     fontWeight: '600',
     fontSize: 13,
   },
@@ -839,7 +839,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     borderLeftWidth: 4,
-    borderLeftColor: '#FF6600',
+    borderLeftColor: '#FF8A00',
   },
   policyText: {
     fontSize: 12,
@@ -864,7 +864,7 @@ const styles = StyleSheet.create({
   },
   registerButton: {
     flex: 1,
-    backgroundColor: '#FF6600',
+    backgroundColor: '#FF8A00',
     borderRadius: 8,
     paddingVertical: 14,
     alignItems: 'center',
@@ -914,7 +914,7 @@ const styles = StyleSheet.create({
   },
   popupButton: {
     alignSelf: 'flex-end',
-    backgroundColor: '#FF6600',
+    backgroundColor: '#FF8A00',
     paddingHorizontal: 18,
     paddingVertical: 10,
     borderRadius: 8,

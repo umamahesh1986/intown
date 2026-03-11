@@ -128,7 +128,7 @@ backend/
 ## 🎨 Design System
 
 ### Colors
-- **Primary Orange**: #FF6600
+- **Primary Orange**: #FF8A00
 - **Success Green**: #4CAF50
 - **Background White**: #FFFFFF
 - **Secondary Gray**: #F5F5F5
