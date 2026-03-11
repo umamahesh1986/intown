@@ -517,7 +517,7 @@ export default function UserDashboard() {
               onPress={() => setShowLocationModal(true)}
             >
               <View style={styles.locationIcon}>
-                <Ionicons name="location-outline" size={24} color="#FF7A00" />
+                <Ionicons name="location-on" size={24} color="#FF7A00" />
               </View>
 
               <View>

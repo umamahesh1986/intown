@@ -782,7 +782,7 @@ export default function DualDashboard() {
           onPress={() => setShowLocationModal(true)}
         >
           <View style={styles.locationIconCircle}>
-            <Ionicons name="location-outline" size={24} color="#FF8A00" />
+            <Ionicons name="location-on" size={24} color="#FF8A00" />
           </View>
 
           <View style={styles.locationTextContainer}>

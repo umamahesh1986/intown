@@ -76,7 +76,7 @@ export default function MapScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.errorContainer}>
-          <Ionicons name="location-outline" size={64} color="#999999" />
+          <Ionicons name="location-on" size={64} color="#999999" />
           <Text style={styles.errorText}>Location not available</Text>
           <TouchableOpacity style={styles.button} onPress={() => router.back()}>
             <Text style={styles.buttonText}>Go Back</Text>
