@@ -56,12 +56,20 @@ export default function RootLayout() {
     '/plans'
   ].includes(pathname);
 
-  const tabs = [
-  { name: 'Home', icon: 'home', link: '/user-dashboard' },
-  { name: 'Savings', icon: 'wallet', link: '/savings' },
-  { name: 'Plans', icon: 'pricetag', link: '/plans' },
-  { name: 'Profile', icon: 'person', link: '/account' },
-];
+  // Check if on merchant dashboard
+  const isMerchantDashboard = pathname === '/merchant-dashboard';
+
+  // Define tabs - filter out Savings and Plans for merchant dashboard
+  const allTabs = [
+    { name: 'Home', icon: 'home', link: '/user-dashboard' },
+    { name: 'Savings', icon: 'wallet', link: '/savings' },
+    { name: 'Plans', icon: 'pricetag', link: '/plans' },
+    { name: 'Profile', icon: 'person', link: '/account' },
+  ];
+
+  const tabs = isMerchantDashboard 
+    ? allTabs.filter(tab => tab.name !== 'Savings' && tab.name !== 'Plans')
+    : allTabs;
 
   return (
     <View style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
