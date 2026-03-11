@@ -253,7 +253,7 @@ export default function Plans() {
 
             <View style={styles.benefitItem}>
               <View style={styles.benefitIcon}>
-                <Ionicons name="people" size={24} color="#2196F3" />
+                <Ionicons name="people" size={24} color="#FF8A00" />
               </View>
               <View style={styles.benefitInfo}>
                 <Text style={styles.benefitTitle}>Family Sharing</Text>
@@ -265,7 +265,7 @@ export default function Plans() {
 
             <View style={styles.benefitItem}>
               <View style={styles.benefitIcon}>
-                <Ionicons name="star" size={24} color="#FFC107" />
+                <Ionicons name="star" size={24} color="#FF8A00" />
               </View>
               <View style={styles.benefitInfo}>
                 <Text style={styles.benefitTitle}>Exclusive Deals</Text>
@@ -277,7 +277,7 @@ export default function Plans() {
 
             <View style={styles.benefitItem}>
               <View style={styles.benefitIcon}>
-                <Ionicons name="headset" size={24} color="#4CAF50" />
+                <Ionicons name="headset" size={24} color="#FF8A00" />
               </View>
               <View style={styles.benefitInfo}>
                 <Text style={styles.benefitTitle}>Priority Support</Text>

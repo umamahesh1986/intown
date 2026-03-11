@@ -138,7 +138,7 @@ export default function Savings() {
       <View style={styles.infoSection}>
         <View style={styles.infoCard}>
           <View style={styles.infoIconContainer}>
-            <Ionicons name="trending-up" size={24} color="#4CAF50" />
+            <Ionicons name="trending-up" size={24} color="#FF8A00" />
           </View>
           <View style={styles.infoContent}>
             <Text style={styles.infoTitle}>8% Guaranteed Savings</Text>
@@ -150,7 +150,7 @@ export default function Savings() {
 
         <View style={styles.infoCard}>
           <View style={styles.infoIconContainer}>
-            <Ionicons name="storefront" size={24} color="#2196F3" />
+            <Ionicons name="storefront" size={24} color="#FF8A00" />
           </View>
           <View style={styles.infoContent}>
             <Text style={styles.infoTitle}>200+ Partner Stores</Text>
@@ -210,20 +210,20 @@ export default function Savings() {
 
         <View style={styles.summaryCard}>
           <View style={styles.summaryIconContainer}>
-            <Ionicons name="calendar" size={24} color="#4CAF50" />
+            <Ionicons name="calendar" size={24} color="#FF8A00" />
           </View>
           <Text style={styles.summaryLabel}>This Month</Text>
-          <Text style={[styles.summaryValue, { color: '#4CAF50' }]}>
+          <Text style={[styles.summaryValue, { color: '#FF8A00' }]}>
             {formatCurrency(summary.thisMonth)}
           </Text>
         </View>
 
         <View style={styles.summaryCard}>
           <View style={styles.summaryIconContainer}>
-            <Ionicons name="trending-up" size={24} color="#2196F3" />
+            <Ionicons name="trending-up" size={24} color="#FF8A00" />
           </View>
           <Text style={styles.summaryLabel}>This Year</Text>
-          <Text style={[styles.summaryValue, { color: '#2196F3' }]}>
+          <Text style={[styles.summaryValue, { color: '#FF8A00' }]}>
             {formatCurrency(summary.thisYear)}
           </Text>
         </View>
@@ -444,13 +444,13 @@ const styles = StyleSheet.create({
   resultLabel: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#4CAF50',
+    color: '#FF8A00',
     marginBottom: 4,
   },
   monthlyValue: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#4CAF50',
+    color: '#FF8A00',
   },
   annualLabel: {
     fontSize: 10,
@@ -623,7 +623,7 @@ const styles = StyleSheet.create({
   transactionCategory: { fontSize: 12, color: '#FF8A00', marginTop: 2 },
   transactionRight: { alignItems: 'flex-end' },
   transactionAmount: { fontSize: 16, fontWeight: '600', color: '#1A1A1A' },
-  transactionSavings: { fontSize: 12, color: '#4CAF50', marginTop: 2 },
+  transactionSavings: { fontSize: 12, color: '#FF8A00', marginTop: 2 },
   howItWorks: {
     backgroundColor: '#FFF',
     margin: 16,
