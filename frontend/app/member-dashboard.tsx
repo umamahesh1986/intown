@@ -625,6 +625,7 @@ export default function MemberDashboard() {
       params: {
         categoryId: String(category.id),
         categoryName: category.name,
+        source: 'member',
       },
     });
   };
@@ -664,7 +665,7 @@ export default function MemberDashboard() {
 
   const handleSearch = () => {
     if (searchQuery.trim()) {
-      router.push({ pathname: '/member-shop-list', params: { query: searchQuery } });
+      router.push({ pathname: '/member-shop-list', params: { query: searchQuery, source: 'member' } });
     }
   };
 
@@ -941,7 +942,7 @@ export default function MemberDashboard() {
 
                         router.push({
                           pathname: '/member-shop-list',
-                          params: { query: item },
+                          params: { query: item, source: 'member' },
                         });
                       }}
                     >
