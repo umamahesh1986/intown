@@ -855,44 +855,77 @@ export default function UserDashboard() {
             {/* Customer Tab Content */}
             {activeTab === 'customer' && (
               <View style={styles.tabContent}>
-                {/* IT Max Plan */}
+                {/* Silver Plan */}
                 <View style={styles.planCard}>
-                  <Text style={styles.planName}>IT Max</Text>
+                  <Text style={styles.planName}>Silver</Text>
                   <View style={styles.planPriceRow}>
-                    <Text style={styles.freePrice}>FREE</Text>
-                    <Text style={styles.strikePrice}>₹999 / Year</Text>
+                    <Text style={styles.planPrice}>₹199</Text>
+                    <Text style={styles.planDuration}>/ month</Text>
                   </View>
-
                   <Text style={styles.planDescription}>
-                    Savings for individual
+                    Great for regular shoppers
                   </Text>
+                  <View style={styles.planFeatures}>
+                    <Text style={styles.planFeatureText}>• 5% extra savings</Text>
+                    <Text style={styles.planFeatureText}>• Priority support</Text>
+                    <Text style={styles.planFeatureText}>• Exclusive deals</Text>
+                  </View>
                   <TouchableOpacity
                     style={styles.registerButton}
                     onPress={() => router.push('/register-member')}
                   >
-                    <Text style={styles.registerButtonText}>Register Now</Text>
+                    <Text style={styles.registerButtonText}>Get Started</Text>
                   </TouchableOpacity>
                 </View>
 
-                {/* IT Max Plus Plan */}
+                {/* Gold Plan */}
                 <View style={[styles.planCard, styles.popularPlan]}>
                   <View style={styles.popularBadge}>
                     <Text style={styles.popularBadgeText}>MOST POPULAR</Text>
                   </View>
-                  <Text style={styles.planName}>IT Max Plus</Text>
+                  <Text style={styles.planName}>Gold</Text>
                   <View style={styles.planPriceRow}>
-                    <Text style={styles.freePrice}>FREE</Text>
-                    <Text style={styles.strikePrice}>₹1499 / Year</Text>
+                    <Text style={styles.planPrice}>₹499</Text>
+                    <Text style={styles.planDuration}>/ month</Text>
                   </View>
-
                   <Text style={styles.planDescription}>
-                    Savings for family
+                    Best value for families
                   </Text>
+                  <View style={styles.planFeatures}>
+                    <Text style={styles.planFeatureText}>• 10% extra savings</Text>
+                    <Text style={styles.planFeatureText}>• Family sharing (up to 4)</Text>
+                    <Text style={styles.planFeatureText}>• Premium partner access</Text>
+                    <Text style={styles.planFeatureText}>• Cashback rewards</Text>
+                  </View>
                   <TouchableOpacity
                     style={[styles.purchaseButton, styles.purchaseButtonPrimary]}
                     onPress={() => router.push('/register-member')}
                   >
-                    <Text style={styles.purchaseButtonText}>Register Now</Text>
+                    <Text style={styles.purchaseButtonText}>Get Started</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Platinum Plan */}
+                <View style={styles.planCard}>
+                  <Text style={styles.planName}>Platinum</Text>
+                  <View style={styles.planPriceRow}>
+                    <Text style={styles.planPrice}>₹999</Text>
+                    <Text style={styles.planDuration}>/ month</Text>
+                  </View>
+                  <Text style={styles.planDescription}>
+                    Ultimate savings experience
+                  </Text>
+                  <View style={styles.planFeatures}>
+                    <Text style={styles.planFeatureText}>• 15% extra savings</Text>
+                    <Text style={styles.planFeatureText}>• Unlimited family members</Text>
+                    <Text style={styles.planFeatureText}>• VIP merchant access</Text>
+                    <Text style={styles.planFeatureText}>• Personal savings advisor</Text>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.registerButton}
+                    onPress={() => router.push('/register-member')}
+                  >
+                    <Text style={styles.registerButtonText}>Get Started</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -1883,7 +1916,12 @@ const styles = StyleSheet.create({
   planPrice: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#ddd',
+    color: '#FF8A00',
+  },
+  planDuration: {
+    fontSize: 16,
+    color: '#666',
+    marginLeft: 4,
   },
   strikePrice: {
     fontSize: 16,
@@ -1907,7 +1945,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666666',
     lineHeight: 20,
+    marginBottom: 8,
+  },
+  planFeatures: {
     marginBottom: 16,
+  },
+  planFeatureText: {
+    fontSize: 13,
+    color: '#555',
+    marginBottom: 4,
+    lineHeight: 20,
   },
   purchaseButton: {
     backgroundColor: "#FF8A00",
