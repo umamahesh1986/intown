@@ -12,6 +12,7 @@ Expo React Native app for local savings/shopping. User wants to pull latest code
 
 ## What's Been Implemented
 - [2025-03-11] Pulled latest from main branch, built and deployed static web app
+- [2025-03-11] Fixed Plans page: `isPopular` set to false for regular user flow (Silver no longer shows "Current Plan" badge)
 - Multiple dashboards: user, member, merchant, dual
 - Bottom navigation with role-based routing
 - Savings and Plans pages

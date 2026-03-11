@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
 import { getPlans } from '../utils/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface Plan {
   id: number;
@@ -24,6 +25,19 @@ export default function Plans() {
   const [refreshing, setRefreshing] = useState(false);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [selectedPlan, setSelectedPlan] = useState<number | null>(null);
+  const [isRegularUser, setIsRegularUser] = useState(false);
+
+  useEffect(() => {
+    const checkUserType = async () => {
+      const storedType = await AsyncStorage.getItem('user_type');
+      const userType = user?.userType || storedType || '';
+      const lower = userType.toLowerCase();
+      if (lower === 'user' || lower === 'new_user' || lower === 'new' || lower === '') {
+        setIsRegularUser(true);
+      }
+    };
+    checkUserType();
+  }, [user]);
 
   const fetchPlans = async () => {
     try {
@@ -167,18 +181,20 @@ export default function Plans() {
 
         {/* Plans Grid */}
         <View style={styles.plansContainer}>
-          {plans.map((plan) => (
+          {plans.map((plan) => {
+            const showPopular = isRegularUser ? false : plan.isPopular;
+            return (
             <TouchableOpacity
               key={plan.id}
               style={[
                 styles.planCard,
                 selectedPlan === plan.id && styles.planCardSelected,
-                plan.isPopular && styles.planCardPopular,
+                showPopular && styles.planCardPopular,
               ]}
               onPress={() => handleSelectPlan(plan.id)}
               activeOpacity={0.8}
             >
-              {plan.isPopular && (
+              {showPopular && (
                 <View style={styles.popularBadge}>
                   <Text style={styles.popularBadgeText}>Current Plan</Text>
                 </View>
@@ -219,22 +235,23 @@ export default function Plans() {
                 style={[
                   styles.subscribeButton,
                   plan.price === 0 && styles.subscribeButtonFree,
-                  plan.isPopular && styles.subscribeButtonPopular,
+                  showPopular && styles.subscribeButtonPopular,
                 ]}
                 onPress={() => handleSubscribe(plan)}
-                disabled={plan.isPopular}
+                disabled={showPopular}
               >
                 <Text
                   style={[
                     styles.subscribeButtonText,
-                    plan.isPopular && styles.subscribeButtonTextFree,
+                    showPopular && styles.subscribeButtonTextFree,
                   ]}
                 >
-                  {plan.isPopular ? 'Subscribed Plan' : 'Subscribe Now'}
+                  {showPopular ? 'Subscribed Plan' : 'Subscribe Now'}
                 </Text>
               </TouchableOpacity>
             </TouchableOpacity>
-          ))}
+            );
+          })}
         </View>
 
         {/* Benefits Section */}
