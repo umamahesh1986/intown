@@ -332,30 +332,34 @@ export default function Savings() {
             </TouchableOpacity>
           </View>
         ) : (
-          transactions.map((transaction) => (
-            <View key={transaction.id} style={styles.transactionCard}>
-              <View style={styles.transactionLeft}>
-                <View style={styles.transactionIcon}>
-                  <Ionicons name="storefront" size={24} color="#FF8A00" />
+          <View style={styles.transactionsGrid}>
+            {transactions.map((transaction) => (
+              <View key={transaction.id} style={styles.transactionGridCard}>
+                <View style={styles.transactionGridHeader}>
+                  <View style={styles.transactionGridIcon}>
+                    <Ionicons name="storefront" size={20} color="#FF8A00" />
+                  </View>
+                  <Text style={styles.transactionGridShop} numberOfLines={1}>
+                    {transaction.shopName}
+                  </Text>
                 </View>
-                <View style={styles.transactionInfo}>
-                  <Text style={styles.transactionShop}>{transaction.shopName}</Text>
-                  <Text style={styles.transactionDate}>{formatDate(transaction.date)}</Text>
+                <Text style={styles.transactionGridDate}>{formatDate(transaction.date)}</Text>
+                <View style={styles.transactionGridDivider} />
+                <View style={styles.transactionGridRow}>
+                  <Text style={styles.transactionGridLabel}>Bill</Text>
+                  <Text style={styles.transactionGridValue}>{formatCurrency(transaction.amount)}</Text>
+                </View>
+                <View style={styles.transactionGridRow}>
+                  <Text style={styles.transactionGridLabel}>Saved</Text>
+                  <Text style={styles.transactionGridSaved}>{formatCurrency(transaction.savings)}</Text>
+                </View>
+                <View style={styles.transactionGridRow}>
+                  <Text style={styles.transactionGridLabel}>Paid</Text>
+                  <Text style={styles.transactionGridPaid}>{formatCurrency(transaction.paidAmount)}</Text>
                 </View>
               </View>
-              <View style={styles.transactionRight}>
-                <Text style={styles.transactionAmount}>
-                  Bill: {formatCurrency(transaction.amount)}
-                </Text>
-                <Text style={styles.transactionSavings}>
-                  Saved: {formatCurrency(transaction.savings)}
-                </Text>
-                <Text style={styles.transactionPaid}>
-                  Paid: {formatCurrency(transaction.paidAmount)}
-                </Text>
-              </View>
-            </View>
-          ))
+            ))}
+          </View>
         )}
       </View>
 
@@ -672,6 +676,82 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   exploreButtonText: { color: '#FFF', fontSize: 16, fontWeight: '600', marginLeft: 8 },
+  
+  // Grid Layout for Transactions
+  transactionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  transactionGridCard: {
+    backgroundColor: '#FFF',
+    borderRadius: 12,
+    padding: 14,
+    width: '48%',
+    minWidth: 150,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  transactionGridHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  transactionGridIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: '#FFF3E0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+  },
+  transactionGridShop: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1A1A1A',
+    flex: 1,
+  },
+  transactionGridDate: {
+    fontSize: 11,
+    color: '#999',
+    marginBottom: 10,
+  },
+  transactionGridDivider: {
+    height: 1,
+    backgroundColor: '#F0F0F0',
+    marginBottom: 10,
+  },
+  transactionGridRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  transactionGridLabel: {
+    fontSize: 12,
+    color: '#888',
+  },
+  transactionGridValue: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#1A1A1A',
+  },
+  transactionGridSaved: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#4CAF50',
+  },
+  transactionGridPaid: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#FF8A00',
+  },
+  
+  // Legacy list styles (kept for reference)
   transactionCard: {
     backgroundColor: '#FFF',
     borderRadius: 12,
