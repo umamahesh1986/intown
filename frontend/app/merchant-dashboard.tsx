@@ -990,14 +990,14 @@ export default function MerchantDashboard() {
       <Modal
         visible={showLocationModal}
         transparent
-        animationType="slide"
+        animationType="fade"
         onRequestClose={() => setShowLocationModal(false)}
       >
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.locationModalContainer}
         >
-          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <TouchableWithoutFeedback onPress={() => setShowLocationModal(false)}>
             <View style={styles.locationModalOverlay} />
           </TouchableWithoutFeedback>
           <View style={styles.locationModalContent}>
@@ -1513,21 +1513,26 @@ summaryItem: {
   // Location Modal Styles
   locationModalContainer: {
     flex: 1,
-    backgroundColor: 'transparent',
-    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   locationModalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'transparent',
   },
   locationModalContent: {
     backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderRadius: 24,
     padding: 20,
-    paddingBottom: 60,
-    maxHeight: '85%',
-    minHeight: 300,
+    width: '90%',
+    maxWidth: 500,
+    height: '50%',
+    maxHeight: 400,
   },
   locationModalHeader: {
     flexDirection: 'row',
