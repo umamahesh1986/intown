@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const INTOWN_ORANGE = '#FF8A00'; 
 
@@ -34,18 +35,66 @@ const DASHBOARD_PATHS = [
   '/dual-dashboard',
 ];
 
+const LAST_DASHBOARD_KEY = 'last_visited_dashboard';
+
 export default function CommonBottomTabs({ tabs }: CommonBottomTabsProps) {
   const router = useRouter();
   const pathname = usePathname();
   const { user } = useAuthStore();
+  const [lastDashboard, setLastDashboard] = useState<string | null>(null);
 
-  // Get the appropriate home route based on user type
-  const getHomeRoute = (): string => {
-    const userType = user?.userType;
-    if (userType && HOME_ROUTES[userType]) {
-      return HOME_ROUTES[userType];
+  // Load last visited dashboard on mount
+  useEffect(() => {
+    const loadLastDashboard = async () => {
+      try {
+        const saved = await AsyncStorage.getItem(LAST_DASHBOARD_KEY);
+        if (saved) {
+          setLastDashboard(saved);
+        }
+      } catch (error) {
+        console.error('Error loading last dashboard:', error);
+      }
+    };
+    loadLastDashboard();
+  }, []);
+
+  // Save current dashboard when on a dashboard page
+  useEffect(() => {
+    if (DASHBOARD_PATHS.includes(pathname)) {
+      const saveDashboard = async () => {
+        try {
+          await AsyncStorage.setItem(LAST_DASHBOARD_KEY, pathname);
+          setLastDashboard(pathname);
+        } catch (error) {
+          console.error('Error saving dashboard:', error);
+        }
+      };
+      saveDashboard();
     }
-    // Default to user-dashboard if no user type is set
+  }, [pathname]);
+
+  // Get the appropriate home route based on user type or last visited dashboard
+  const getHomeRoute = (): string => {
+    // First check if we have a last visited dashboard
+    if (lastDashboard && DASHBOARD_PATHS.includes(lastDashboard)) {
+      return lastDashboard;
+    }
+
+    // Check user type from auth store
+    const userType = user?.userType?.toLowerCase();
+    
+    // Handle different user type variations
+    if (userType === 'dual' || userType === 'in_dual' || userType === 'dual_user') {
+      return '/dual-dashboard';
+    }
+    if (userType === 'merchant' || userType === 'in_merchant') {
+      return '/merchant-dashboard';
+    }
+    if (userType === 'member' || userType === 'in_member' || userType === 'customer' || userType === 'in_customer') {
+      return '/member-dashboard';
+    }
+    
+    // Default to user-dashboard
     return '/user-dashboard';
   };
 
