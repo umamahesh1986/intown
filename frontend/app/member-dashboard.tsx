@@ -1681,6 +1681,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     marginTop: 6,
     width: 100,
+    height: 28,
   },
 
   summarySection: {

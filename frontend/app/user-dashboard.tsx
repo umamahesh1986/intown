@@ -1732,7 +1732,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     marginTop: 6,
     width: 100,
-    numberOfLines: 2,
+    height: 28,
   },
 
   noCategoriesText: {
