@@ -1005,20 +1005,23 @@ export default function MemberDashboard() {
   </Text>
 </View> */}
           {/* SUMMARY SECTION */}
+          <View style={{ paddingHorizontal: 16, marginTop: 10 }}>
+            <Text style={[styles.sectionTitle, { margin: 0, fontSize: 18 }]}>INtown Savings</Text>
+          </View>
           <View style={styles.summarySection}>
             {/* <Text style={styles.sectionTitle}>Savings History </Text> */}
             {/* <Text style={styles.normalText}>(Depends on Participating at Stores):</Text> */}
             <View style={styles.summaryRow}>
               <View style={styles.summaryItem}>
-                <Text style={styles.summaryLabel}>Today's Savings </Text>
+                <Text style={styles.summaryLabel}>Today </Text>
                 <Text style={styles.summaryValue}>{todaySavedAmount.toFixed(0)}</Text>
               </View>
               <View style={styles.summaryItem}>
-                <Text style={styles.summaryLabel}>This Month's Savings</Text>
+                <Text style={styles.summaryLabel}>Month</Text>
                 <Text style={styles.summaryValue}>{monthSavedAmount.toFixed(0)}</Text>
               </View>
               <View style={styles.summaryItem}>
-                <Text style={styles.summaryLabel}>This Year's Savings</Text>
+                <Text style={styles.summaryLabel}>Year</Text>
                 <Text style={styles.summaryValue}>{yearSavedAmount.toFixed(0)}</Text>
               </View>
             </View>
