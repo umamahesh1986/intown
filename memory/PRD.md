@@ -8,21 +8,28 @@ Expo React Native app for local savings/shopping. User wants to pull latest code
 - **State Management**: Zustand
 - **Deployment**: Static web export (`npx expo export --platform web`) served via Node.js static server on port 3000
 - **External API**: `https://api.intownlocal.com` (CORS blocked in web preview, works on native)
+- **Authentication**: Firebase Phone Auth (real OTP via SMS)
 - **No local database** - all data from external API
 
 ## What's Been Implemented
+- [2025-03-12] Removed test OTP (123456) and implemented real Firebase Phone Auth with reCAPTCHA for web and native Firebase auth for mobile
+- [2025-03-12] Fixed blank white screen on local dev - added runtime CSS injection in `_layout.tsx` for web
+- [2025-03-11] Fixed Plans page: `isPopular` set to false for regular user flow
 - [2025-03-11] Pulled latest from main branch, built and deployed static web app
-- [2025-03-11] Fixed Plans page: `isPopular` set to false for regular user flow (Silver no longer shows "Current Plan" badge)
 - Multiple dashboards: user, member, merchant, dual
 - Bottom navigation with role-based routing
 - Savings and Plans pages
 - Feature categories with labels below images
 - Location picker modal
-- OTP login flow
+
+## Key Files Modified
+- `app/otp.tsx` - Real Firebase OTP (removed all test mode code)
+- `app/_layout.tsx` - Added web CSS injection for full-height layout
+- `app/plans.tsx` - isPopular override for user flow
+- `firebase/firebaseConfig.ts` - Firebase config with web/mobile auth setup
 
 ## Known Issues
-- P1: Blank white screen on local dev (localhost:8081)
-- P2: CORS blocks API calls in web preview (expected limitation)
+- P2: CORS blocks API calls in web preview (expected limitation, works on native)
 
 ## Backlog
 - P2: Backend proxy for CORS bypass
