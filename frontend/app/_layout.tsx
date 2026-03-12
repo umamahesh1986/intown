@@ -1,6 +1,6 @@
 import { Stack, usePathname } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { View, Text, TextInput } from 'react-native';
+import { View, Text, TextInput, Platform } from 'react-native';
 import { useAuthStore } from '../store/authStore';
 import CommonBottomTabs from '../components/CommonBottomTabs';
 import { Fonts } from '../utils/fonts';
@@ -16,6 +16,31 @@ export default function RootLayout() {
 
   useEffect(() => {
     loadAuth();
+
+    // Inject critical CSS for web to ensure full-height layout
+    // This is needed because expo start --web (dev server) may not use +html.tsx
+    if (Platform.OS === 'web' && typeof document !== 'undefined') {
+      const styleId = 'intown-root-styles';
+      if (!document.getElementById(styleId)) {
+        const style = document.createElement('style');
+        style.id = styleId;
+        style.textContent = `
+          html, body, #root {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+          }
+          body {
+            overflow: hidden;
+          }
+          #root {
+            display: flex;
+            flex-direction: column;
+          }
+        `;
+        document.head.appendChild(style);
+      }
+    }
 
     // Load last visited dashboard
     const loadLastDashboard = async () => {
@@ -102,7 +127,7 @@ export default function RootLayout() {
     : allTabs;
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+    <View style={{ flex: 1, backgroundColor: '#FFFFFF', ...(Platform.OS === 'web' ? { minHeight: '100vh' } : {}) } as any}>
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" />
         <Stack.Screen name="location" />
