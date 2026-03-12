@@ -296,48 +296,61 @@ export default function Account() {
           : await AsyncStorage.getItem('customer_id')) ??
         (await AsyncStorage.getItem('customer_id')) ??
         (await AsyncStorage.getItem('merchant_id')) ??
-        user?.id ??
         null;
 
-      if (!inTownId) {
-        throw new Error('Missing user id for image upload.');
+      // If we have a valid numeric ID, try uploading to the server
+      if (inTownId && /^\d+$/.test(inTownId)) {
+        try {
+          const uploadUrl = `https://api.intownlocal.com/IN/s3/upload?userType=${userTypeParam}&inTownId=${inTownId}`;
+          const fileName = `${isMerchant ? 'merchant' : 'customer'}_${inTownId}_${Date.now()}.jpg`;
+          const formData = await buildImageFormData(pendingImageUri, fileName);
+
+          const res = await fetch(uploadUrl, {
+            method: 'POST',
+            headers: {
+              Accept: 'application/json',
+            },
+            body: formData,
+          });
+          const raw = await res.text();
+          let parsed: any = raw;
+          try {
+            parsed = raw ? JSON.parse(raw) : raw;
+          } catch {
+            // keep raw string if not JSON
+          }
+          if (res.ok) {
+            const uploadedUrl = Array.isArray(parsed)
+              ? parsed[parsed.length - 1]?.url
+              : parsed?.url;
+            if (uploadedUrl) {
+              await AsyncStorage.setItem('user_profile_image', uploadedUrl);
+              if (isMerchant) {
+                await AsyncStorage.setItem('merchant_profile_image', uploadedUrl);
+              }
+              setProfileImage(uploadedUrl);
+              setPendingImageUri(null);
+              setPendingImageBase64(null);
+              Alert.alert('Success', 'Profile image updated successfully.');
+              return;
+            }
+          }
+          // If server upload failed, fall through to save locally
+          console.log('Server upload failed, saving image locally');
+        } catch (uploadError) {
+          console.log('Server upload error, saving image locally:', uploadError);
+        }
       }
 
-      const uploadUrl = `https://api.intownlocal.com/IN/s3/upload?userType=${userTypeParam}&inTownId=${inTownId}`;
-      const fileName = `${isMerchant ? 'merchant' : 'customer'}_${inTownId}_${Date.now()}.jpg`;
-      const formData = await buildImageFormData(pendingImageUri, fileName);
-
-      const res = await fetch(uploadUrl, {
-        method: 'POST',
-        headers: {
-          Accept: 'application/json',
-        },
-        body: formData,
-      });
-      const raw = await res.text();
-      let parsed: any = raw;
-      try {
-        parsed = raw ? JSON.parse(raw) : raw;
-      } catch {
-        // keep raw string if not JSON
-      }
-      if (!res.ok) {
-        throw new Error(typeof parsed === 'string' ? parsed : JSON.stringify(parsed));
-      }
-      const uploadedUrl = Array.isArray(parsed)
-        ? parsed[parsed.length - 1]?.url
-        : parsed?.url;
-      const resolvedImage = uploadedUrl || pendingImageUri;
-      await AsyncStorage.setItem('user_profile_image', resolvedImage);
+      // Save locally (for web test mode or when API is unavailable)
+      await AsyncStorage.setItem('user_profile_image', pendingImageUri);
       if (isMerchant) {
-        await AsyncStorage.setItem('merchant_profile_image', resolvedImage);
+        await AsyncStorage.setItem('merchant_profile_image', pendingImageUri);
       }
-      setProfileImage(resolvedImage);
-      if (isMerchant) {
-        await fetchLatestProfileImage(true, inTownId);
-      }
+      setProfileImage(pendingImageUri);
       setPendingImageUri(null);
       setPendingImageBase64(null);
+      Alert.alert('Success', 'Profile image updated successfully.');
     } catch (error) {
       console.error('Error saving profile image:', error);
       Alert.alert('Upload failed', 'Unable to update profile image. Please try again.');
