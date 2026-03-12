@@ -93,6 +93,7 @@ export default function UserDashboard() {
   const params = useLocalSearchParams<{ userType?: string }>();
   const { user, logout } = useAuthStore();
   const [userType, setUserType] = useState<string>('User');
+  const [profileImage, setProfileImage] = useState<string | null>(null);
 
 
 
@@ -192,6 +193,7 @@ export default function UserDashboard() {
   useEffect(() => {
     loadData();
     loadUserType();
+    loadProfileImage();
 
     requestLocationOnMount();
 
@@ -337,6 +339,17 @@ export default function UserDashboard() {
       }
     } catch (error) {
       console.log('Error loading user type:', error);
+    }
+  };
+
+  const loadProfileImage = async () => {
+    try {
+      const storedImage = await AsyncStorage.getItem('user_profile_image');
+      if (storedImage) {
+        setProfileImage(storedImage);
+      }
+    } catch (error) {
+      console.log('Error loading profile image:', error);
     }
   };
 
@@ -543,7 +556,11 @@ export default function UserDashboard() {
                   }}
                   style={styles.iconCircleActive}
                 >
-                <Ionicons name="person-outline" size={20} color="#FF7A00" />
+                {profileImage ? (
+                  <Image source={{ uri: profileImage }} style={{ width: 36, height: 36, borderRadius: 18 }} />
+                ) : (
+                  <Ionicons name="person-outline" size={20} color="#FF7A00" />
+                )}
               </TouchableOpacity>
 
             </View>
@@ -1048,7 +1065,11 @@ export default function UserDashboard() {
 
             <View style={styles.userPanelHeader}>
   <View style={styles.panelAvatarPlaceholder}>
-    <Ionicons name="person" size={22} color="#fff" />
+    {profileImage ? (
+      <Image source={{ uri: profileImage }} style={{ width: 40, height: 40, borderRadius: 20 }} />
+    ) : (
+      <Ionicons name="person" size={22} color="#fff" />
+    )}
   </View>
 
   <View style={{ marginLeft: 10 }}>

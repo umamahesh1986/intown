@@ -857,7 +857,11 @@ export default function MemberDashboard() {
                   toggleDropdown();
                 }}
               >
-                <Ionicons name="person-outline" size={22} color="#FF8C00" />
+                {profileImage ? (
+                  <Image source={{ uri: profileImage }} style={{ width: 36, height: 36, borderRadius: 18 }} />
+                ) : (
+                  <Ionicons name="person-outline" size={22} color="#FF8C00" />
+                )}
               </TouchableOpacity>
 
             </View>

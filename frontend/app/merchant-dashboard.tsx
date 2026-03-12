@@ -621,7 +621,11 @@ export default function MerchantDashboard() {
                 showDropdown ? closeDropdown() : openDropdown();
               }}
             >
-              <Ionicons name="person-outline" size={22} color="#FF8A00" />
+              {profileImage ? (
+                <Image source={{ uri: profileImage }} style={{ width: 36, height: 36, borderRadius: 18 }} />
+              ) : (
+                <Ionicons name="person-outline" size={22} color="#FF8A00" />
+              )}
             </TouchableOpacity>
 
           </View>

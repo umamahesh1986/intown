@@ -809,7 +809,11 @@ export default function DualDashboard() {
               toggleDropdown();
             }}
           >
-            <Ionicons name="person-outline" size={20} color="#FF8A00" />
+            {profileImage ? (
+              <Image source={{ uri: profileImage }} style={{ width: 36, height: 36, borderRadius: 18 }} />
+            ) : (
+              <Ionicons name="person-outline" size={20} color="#FF8A00" />
+            )}
           </TouchableOpacity>
         </View>
 
@@ -839,7 +843,11 @@ export default function DualDashboard() {
           >
             <View style={styles.userPanelHeader}>
               <View style={styles.panelAvatarPlaceholder}>
-                <Ionicons name="person" size={22} color="#fff" />
+                {profileImage ? (
+                  <Image source={{ uri: profileImage }} style={{ width: 40, height: 40, borderRadius: 20 }} />
+                ) : (
+                  <Ionicons name="person" size={22} color="#fff" />
+                )}
               </View>
               <View style={{ marginLeft: 10 }}>
                 <Text style={styles.userPanelName}>{user?.name ?? 'User'}</Text>
