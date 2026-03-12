@@ -21,19 +21,9 @@ import { searchUserByPhone, determineUserRole } from "../utils/api";
 
 // Platform-specific Firebase imports
 let firebaseAuth: any = null;
-let webAuth: any = null;
-let webSignInWithPhoneNumber: any = null;
-let WebRecaptchaVerifier: any = null;
 
 // For mobile: use @react-native-firebase/auth (native module)
-// For web: use firebase/auth (JS SDK)
-if (Platform.OS === 'web') {
-  const firebaseAuthModule = require('firebase/auth');
-  const firebaseConfig = require('../firebase/firebaseConfig');
-  webAuth = firebaseConfig.auth;
-  webSignInWithPhoneNumber = firebaseAuthModule.signInWithPhoneNumber;
-  WebRecaptchaVerifier = firebaseAuthModule.RecaptchaVerifier;
-} else {
+if (Platform.OS !== 'web') {
   try {
     firebaseAuth = require('@react-native-firebase/auth').default;
   } catch (e) {
@@ -46,6 +36,7 @@ if (Platform.OS === 'web') {
 ================================ */
 const OTP_LENGTH = 6;
 const RESEND_SECONDS = 60;
+const WEB_TEST_OTP = "123456"; // Test OTP for web only
 
 /* ===============================
    PHONE FORMATTER
@@ -78,6 +69,7 @@ export default function OTPScreen() {
 
   const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(""));
   const [confirmationResult, setConfirmationResult] = useState<any>(null);
+  const [verificationId, setVerificationId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSendingOtp, setIsSendingOtp] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
@@ -91,7 +83,6 @@ export default function OTPScreen() {
   const inputRefs = useRef<(TextInput | null)[]>([]);
   const shakeAnim = useRef(new Animated.Value(0)).current;
   const popupTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const recaptchaVerifierRef = useRef<any>(null);
 
   const showOtpSentPopup = (message: string) => {
     setOtpPopupMessage(message);
@@ -110,47 +101,6 @@ export default function OTPScreen() {
         clearTimeout(popupTimerRef.current);
       }
     };
-  }, []);
-
-  /* ===============================
-     SETUP RECAPTCHA FOR WEB
-  ================================ */
-  useEffect(() => {
-    if (isWeb && webAuth && WebRecaptchaVerifier && typeof document !== 'undefined') {
-      // Create invisible reCAPTCHA container if it doesn't exist
-      let container = document.getElementById('recaptcha-container');
-      if (!container) {
-        container = document.createElement('div');
-        container.id = 'recaptcha-container';
-        document.body.appendChild(container);
-      }
-
-      try {
-        const verifier = new WebRecaptchaVerifier(webAuth, 'recaptcha-container', {
-          size: 'invisible',
-          callback: () => {
-            console.log('reCAPTCHA solved');
-          },
-          'expired-callback': () => {
-            console.log('reCAPTCHA expired');
-          },
-        });
-        recaptchaVerifierRef.current = verifier;
-      } catch (err) {
-        console.error('Error setting up reCAPTCHA:', err);
-      }
-
-      return () => {
-        if (recaptchaVerifierRef.current) {
-          try {
-            recaptchaVerifierRef.current.clear();
-          } catch (e) {
-            // ignore cleanup errors
-          }
-          recaptchaVerifierRef.current = null;
-        }
-      };
-    }
   }, []);
 
   /* ===============================
@@ -190,45 +140,20 @@ export default function OTPScreen() {
     setOtpSent(false);
 
     try {
-      // WEB: Use Firebase JS SDK with reCAPTCHA
+      // WEB: Use test OTP mode
       if (isWeb) {
-        if (!webAuth || !webSignInWithPhoneNumber) {
-          throw new Error('Firebase auth not initialized for web');
-        }
-
-        if (!recaptchaVerifierRef.current) {
-          // Re-create reCAPTCHA if it was cleared
-          let container = document.getElementById('recaptcha-container');
-          if (!container) {
-            container = document.createElement('div');
-            container.id = 'recaptcha-container';
-            document.body.appendChild(container);
-          }
-          recaptchaVerifierRef.current = new WebRecaptchaVerifier(webAuth, 'recaptcha-container', {
-            size: 'invisible',
-          });
-        }
-
-        console.log("=== WEB FIREBASE OTP ===");
-        setStatusMessage("Sending SMS...");
-        
-        const confirmation = await webSignInWithPhoneNumber(
-          webAuth, 
-          formattedPhone, 
-          recaptchaVerifierRef.current
-        );
-        
-        console.log("=== OTP SENT SUCCESSFULLY (Web) ===");
-        setConfirmationResult(confirmation);
+        console.log("=== WEB TEST MODE ===");
+        setStatusMessage("Sending OTP...");
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        setVerificationId("WEB_TEST_MODE");
         setOtpSent(true);
-        setStatusMessage("OTP sent! Check your SMS.");
+        setStatusMessage("");
         showOtpSentPopup("OTP sent successfully");
-        
         setIsSendingOtp(false);
         return;
       }
 
-      // MOBILE: Use @react-native-firebase/auth
+      // MOBILE: Use real @react-native-firebase/auth
       if (isMobile && firebaseAuth) {
         console.log("=== MOBILE REAL OTP ===");
         setStatusMessage("Sending SMS...");
@@ -257,16 +182,6 @@ export default function OTPScreen() {
       
       setStatusMessage("");
       setOtpSent(false);
-
-      // Reset reCAPTCHA on error for web so it can be retried
-      if (isWeb && recaptchaVerifierRef.current) {
-        try {
-          recaptchaVerifierRef.current.clear();
-        } catch (e) {
-          // ignore
-        }
-        recaptchaVerifierRef.current = null;
-      }
       
       let errorMessage = "Failed to send OTP. Please try again.";
       
@@ -281,7 +196,7 @@ export default function OTPScreen() {
       } else if (err.code === 'auth/app-not-authorized') {
         errorMessage = "App not authorized. Please check Firebase configuration.";
       } else if (err.code === 'auth/missing-client-identifier') {
-        errorMessage = "reCAPTCHA verification failed. Please try again.";
+        errorMessage = "App verification failed. Please check Firebase setup.";
       } else if (err.code === 'auth/invalid-app-credential') {
         errorMessage = "App credential error. Please check Firebase setup.";
       } else if (err.message) {
@@ -298,9 +213,7 @@ export default function OTPScreen() {
      AUTO SEND OTP ON MOUNT
   ================================ */
   useEffect(() => {
-    // Delay to allow reCAPTCHA setup on web
-    const delay = isWeb ? 2000 : 1000;
-    const t = setTimeout(sendOtp, delay);
+    const t = setTimeout(sendOtp, 1000);
     return () => clearTimeout(t);
   }, []);
 
@@ -323,6 +236,7 @@ export default function OTPScreen() {
 
     const code = otp.join("");
     console.log("=== VERIFYING OTP ===");
+    console.log("Platform:", Platform.OS);
     console.log("Entered OTP:", code);
 
     if (code.length !== OTP_LENGTH) {
@@ -331,7 +245,7 @@ export default function OTPScreen() {
       return;
     }
 
-    if (!confirmationResult) {
+    if (!confirmationResult && !verificationId) {
       Alert.alert(
         "OTP Not Sent", 
         "Please wait for OTP to be sent first, or click 'Resend OTP'",
@@ -350,13 +264,23 @@ export default function OTPScreen() {
       const phoneNumber = formatPhoneNumber(phone || "");
       let userId = `user_${Date.now()}`;
 
-      // Verify OTP with Firebase (works for both web and mobile)
-      console.log("=== FIREBASE VERIFICATION ===");
-      const userCredential = await confirmationResult.confirm(code);
-      
-      console.log("=== OTP VERIFIED SUCCESSFULLY ===");
-      console.log("User UID:", userCredential.user.uid);
-      userId = userCredential.user.uid;
+      // WEB: Test mode verification
+      if (verificationId === "WEB_TEST_MODE") {
+        console.log("=== WEB TEST MODE VERIFICATION ===");
+        if (code !== WEB_TEST_OTP) {
+          throw { code: 'auth/invalid-verification-code', message: 'Invalid OTP' };
+        }
+        console.log("Web test OTP verified successfully!");
+        userId = `web_test_${Date.now()}`;
+      }
+      // MOBILE: Real Firebase verification
+      else if (confirmationResult) {
+        console.log("=== MOBILE REAL VERIFICATION ===");
+        const userCredential = await confirmationResult.confirm(code);
+        console.log("=== OTP VERIFIED SUCCESSFULLY ===");
+        console.log("User UID:", userCredential.user.uid);
+        userId = userCredential.user.uid;
+      }
 
       // Call the userType API
       setStatusMessage("Checking user type...");
@@ -431,7 +355,6 @@ export default function OTPScreen() {
 
       setStatusMessage("Success! Redirecting...");
       
-      // Navigate to dashboard with userType param
       router.replace({
         pathname: roleInfo.dashboard as any,
         params: { userType: roleInfo.userType }
@@ -456,6 +379,7 @@ export default function OTPScreen() {
         errorMessage = "Session expired. Please request a new OTP.";
         setCanResend(true);
         setConfirmationResult(null);
+        setVerificationId(null);
       } else if (err.code === 'auth/network-request-failed') {
         errorMessage = "Network error. Please check your connection.";
       } else if (err.message) {
@@ -472,7 +396,6 @@ export default function OTPScreen() {
      OTP INPUT HANDLERS
   ================================ */
   const handleOtpChange = (value: string, index: number) => {
-    // Handle paste of full OTP
     if (value.length > 1) {
       const digits = value.replace(/\D/g, '').slice(0, OTP_LENGTH).split('');
       const newOtp = Array(OTP_LENGTH).fill("");
