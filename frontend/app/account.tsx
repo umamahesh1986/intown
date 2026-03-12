@@ -189,53 +189,57 @@ export default function Account() {
     }
   };
 
-  const requestCameraPermission = async () => {
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    return status === 'granted';
-  };
-
-  const requestMediaPermission = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    return status === 'granted';
-  };
-
   const handleTakePhoto = async () => {
-    const hasPermission = await requestCameraPermission();
-    if (!hasPermission) {
-      Alert.alert('Permission required', 'Camera permission is required to take a photo.');
-      return;
-    }
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.7,
-      base64: true,
-    });
-    if (!result.canceled && result.assets?.length) {
-      const asset = result.assets[0];
-      setPendingImageUri(asset.uri);
-      setPendingImageBase64(asset.base64 ?? null);
+    try {
+      if (Platform.OS !== 'web') {
+        const { status } = await ImagePicker.requestCameraPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert('Permission required', 'Camera permission is required to take a photo.');
+          return;
+        }
+      }
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.7,
+        base64: true,
+      });
+      if (!result.canceled && result.assets?.length) {
+        const asset = result.assets[0];
+        setPendingImageUri(asset.uri);
+        setPendingImageBase64(asset.base64 ?? null);
+      }
+    } catch (error) {
+      console.error('Error taking photo:', error);
+      Alert.alert('Error', 'Unable to open camera. Please try uploading from gallery.');
     }
   };
 
   const handlePickImage = async () => {
-    const hasPermission = await requestMediaPermission();
-    if (!hasPermission) {
-      Alert.alert('Permission required', 'Gallery permission is required to pick a photo.');
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.7,
-      base64: true,
-    });
-    if (!result.canceled && result.assets?.length) {
-      const asset = result.assets[0];
-      setPendingImageUri(asset.uri);
-      setPendingImageBase64(asset.base64 ?? null);
+    try {
+      if (Platform.OS !== 'web') {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert('Permission required', 'Gallery permission is required to pick a photo.');
+          return;
+        }
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.7,
+        base64: true,
+      });
+      if (!result.canceled && result.assets?.length) {
+        const asset = result.assets[0];
+        setPendingImageUri(asset.uri);
+        setPendingImageBase64(asset.base64 ?? null);
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert('Error', 'Unable to open gallery. Please try again.');
     }
   };
 
