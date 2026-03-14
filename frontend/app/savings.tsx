@@ -33,7 +33,7 @@ interface SavingsApiResponse {
 interface SavingsTransaction {
   id: string;
   date: string;
-  shopName: string;
+  businessName: string;
   amount: number;
   savings: number;
   paidAmount: number;
@@ -103,13 +103,14 @@ export default function Savings() {
         thisYear: data.thisYear?.totalSavedAmount ?? 0,
         lifetime: data.lifetime?.totalSavedAmount ?? 0,
         totalTransactions: data.lifetime?.transactionCount ?? 0,
+        businessName: data.lifetime?.transactionCount ?? 0,
       });
 
       // Transform transactions for display
       const transformedTransactions: SavingsTransaction[] = (data.transactions || []).map((tx) => ({
         id: String(tx.transactionId),
         date: tx.transactionDate,
-        shopName: tx.merchantName || 'Unknown Shop',
+        businessName: tx.businessName || 'Unknown Shop',
         amount: tx.totalBillAmount,
         savings: tx.savedAmount,
         paidAmount: tx.finalPaidAmount,
@@ -340,7 +341,7 @@ export default function Savings() {
                     <Ionicons name="storefront" size={20} color="#FF8A00" />
                   </View>
                   <Text style={styles.transactionGridShop} numberOfLines={1}>
-                    {transaction.shopName}
+                    {transaction.businessName}
                   </Text>
                 </View>
                 <Text style={styles.transactionGridDate}>{formatDate(transaction.date)}</Text>

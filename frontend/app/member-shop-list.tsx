@@ -377,7 +377,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   shopInfo: { marginBottom: 12 },
-  shopName: { fontSize: 18, fontWeight: 'bold', color: '#1A1A1A', marginBottom: 6, maxWidth: 210 },
+  shopName: { fontSize: 18, fontWeight: 'bold', color: '#1A1A1A', marginBottom: 6, maxWidth: 190 },
   ratingRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
   distanceText: { fontSize: 14, color: '#FF8A00', marginLeft: 4 }, 
   categoryText: { fontSize: 14, color: '#999' },

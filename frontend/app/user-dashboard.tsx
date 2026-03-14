@@ -647,15 +647,15 @@ export default function UserDashboard() {
           <View style={styles.offerCard}>
 
             <View style={styles.offerTag}>
-              <Text style={styles.offerTagText}>EXCLUSIVE OFFER</Text>
+              <Text style={styles.offerTagText}>VOCAL FOR LOCAL</Text>
             </View>
 
             <Text style={styles.offerTitle}>
-              Accountability by InTown
+              Shop Local, Save Local
             </Text>
 
             <Text style={styles.offerSubtitle}>
-              Unlock verified savings at 200+ local partners.
+            Exclusive privilege access at nearby shops
             </Text>
 
           </View>
@@ -876,8 +876,8 @@ export default function UserDashboard() {
                 <View style={styles.planCard}>
                   <Text style={styles.planName}>Silver</Text>
                   <View style={styles.planPriceRow}>
-                    <Text style={styles.planPrice}>₹199</Text>
-                    <Text style={styles.planDuration}>/ month</Text>
+                    <Text style={styles.planPrice}><s>₹399</s> Free</Text>
+                    <Text style={styles.planDuration}>/ 3 months</Text>
                   </View>
                   <TouchableOpacity
                     style={styles.registerButton}
@@ -894,8 +894,8 @@ export default function UserDashboard() {
                   </View>
                   <Text style={styles.planName}>Gold</Text>
                   <View style={styles.planPriceRow}>
-                    <Text style={styles.planPrice}>₹499</Text>
-                    <Text style={styles.planDuration}>/ month</Text>
+                    <Text style={styles.planPrice}><s>₹599</s> Free</Text>
+                    <Text style={styles.planDuration}>/ 6 months</Text>
                   </View>
                   <TouchableOpacity
                     style={[styles.purchaseButton, styles.purchaseButtonPrimary]}
@@ -909,8 +909,8 @@ export default function UserDashboard() {
                 <View style={styles.planCard}>
                   <Text style={styles.planName}>Platinum</Text>
                   <View style={styles.planPriceRow}>
-                    <Text style={styles.planPrice}>₹999</Text>
-                    <Text style={styles.planDuration}>/ month</Text>
+                    <Text style={styles.planPrice}><s>₹999</s> Free</Text>
+                    <Text style={styles.planDuration}>/ Year</Text>
                   </View>
                   <TouchableOpacity
                     style={styles.registerButton}
@@ -2124,8 +2124,7 @@ const styles = StyleSheet.create({
     padding: 20,
     width: '90%',
     maxWidth: 500,
-    height: '50%',
-    maxHeight: 400,
+    height: '75%',
     minHeight: 300,
   },
   locationModalHeader: {

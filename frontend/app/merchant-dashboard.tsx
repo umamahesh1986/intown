@@ -895,6 +895,18 @@ export default function MerchantDashboard() {
             <Text style={styles.userPanelText}>My Account</Text>
           </TouchableOpacity>
 
+          {/* BECOME A Customer */}
+          <TouchableOpacity
+              style={styles.userPanelItem}
+              onPress={() => {
+                closeDropdown();
+                router.push('/register-member');
+              }}
+            >
+              <Ionicons name="star-outline" size={20} color="#FF8C00" />
+              <Text style={styles.userPanelText}>Become a Customer</Text>
+            </TouchableOpacity>
+
           {/* <TouchableOpacity
             style={styles.userPanelItem}
             onPress={() => {
@@ -1541,8 +1553,8 @@ const styles = StyleSheet.create({
     padding: 20,
     width: '90%',
     maxWidth: 500,
-    height: '50%',
-    maxHeight: 400,
+    height: '75%',
+    minHeight: 300,
   },
   locationModalHeader: {
     flexDirection: 'row',

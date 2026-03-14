@@ -2134,8 +2134,7 @@ const styles = StyleSheet.create({
     padding: 20,
     width: '90%',
     maxWidth: 500,
-    height: '50%',
-    maxHeight: 400,
+    height: '75%',
     minHeight: 300,
   },
   locationModalHeader: {

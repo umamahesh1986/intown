@@ -72,8 +72,8 @@ export default function Plans() {
       id: 2,
       name: 'Silver',
       description: 'Introductory Offer',
-      price: 99,
-      duration: ' Month',
+      price: 399,
+      duration: ' 3 Months',
       savings: 500,
       features: [
         // 'All Basic features',

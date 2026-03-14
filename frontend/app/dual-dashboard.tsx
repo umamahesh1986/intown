@@ -2170,7 +2170,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 24,
     padding: 20,
     paddingBottom: 60,
-    maxHeight: '80%',
+    height: '80%',
   },
   locationModalHeader: {
     flexDirection: 'row',
