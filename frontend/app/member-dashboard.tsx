@@ -479,11 +479,11 @@ export default function MemberDashboard() {
   // Request location permission on mount
   const requestLocationOnMount = async () => {
     await loadLocationFromStorage();
-    const storedLocation = useLocationStore.getState().location;
-    if (!storedLocation) {
-      setTimeout(async () => {
-        const locationResult = await getUserLocationWithDetails();
-        if (!locationResult) {
+    try {
+      const locationResult = await getUserLocationWithDetails();
+      if (!locationResult) {
+        const storedLocation = useLocationStore.getState().location;
+        if (!storedLocation) {
           Alert.alert(
             'Location Access',
             'Please enable location access to see nearby shops.',
@@ -493,7 +493,9 @@ export default function MemberDashboard() {
             ]
           );
         }
-      }, 1000);
+      }
+    } catch (error) {
+      console.error('Error getting location:', error);
     }
   };
 

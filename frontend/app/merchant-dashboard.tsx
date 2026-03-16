@@ -265,11 +265,10 @@ export default function MerchantDashboard() {
   // Request location permission on mount
   const requestLocationOnMount = async () => {
     await loadLocationFromStorage();
-    const storedLocation = useLocationStore.getState().location;
-    if (!storedLocation) {
-      setTimeout(async () => {
-        await getUserLocationWithDetails();
-      }, 1000);
+    try {
+      await getUserLocationWithDetails();
+    } catch (error) {
+      console.error('Error getting location:', error);
     }
   };
 

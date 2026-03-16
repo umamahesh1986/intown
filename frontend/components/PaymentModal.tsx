@@ -9,6 +9,7 @@ import {
   ScrollView,
   Linking,
   Platform,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
@@ -53,16 +54,17 @@ export default function PaymentModal({
   };
 
   const amountValue = parseAmount(amount);
-  const instantSavings = parseAmount(instantSavingsInput);
-  const finalPaidAmount = amountValue - instantSavings;
+  const intownPrice = parseAmount(instantSavingsInput);
+  const intownSavings = amountValue - intownPrice;
+  const finalPaidAmount = intownPrice;
 
   const handlePayNow = async () => {
     if (!amount || !Number.isFinite(amountValue) || amountValue <= 0) {
       Alert.alert('Invalid Amount', 'Please enter a valid amount');
       return;
     }
-    if (!Number.isFinite(instantSavings) || instantSavings < 0 || instantSavings > amountValue) {
-      Alert.alert('Invalid Savings', 'Savings must be between 0 and total amount');
+    if (!Number.isFinite(intownPrice) || intownPrice < 0 || intownPrice > amountValue) {
+      Alert.alert('Invalid Intown Price', 'Intown Price must be between 0 and Total Price');
       return;
     }
     if (!Number.isFinite(finalPaidAmount) || finalPaidAmount < 0) {
@@ -85,9 +87,9 @@ export default function PaymentModal({
       const payload = {
         merchantId: merchantIdValue,
         customerId: customerIdValue,
-        totalBillAmount: amountValue,
-        enteredDiscountAmount: instantSavings,
-        finalPaidAmount,
+        totalBill: amountValue,
+        savedAmount: intownSavings > 0 ? intownSavings : 0,
+        finalAmount: finalPaidAmount,
       };
 
       const controller = new AbortController();
@@ -105,9 +107,8 @@ export default function PaymentModal({
       clearTimeout(timeout);
 
       const data = await res.json().catch(() => ({}));
-      const statusValue = String(data?.status ?? '').toLowerCase();
       const isSuccessStatus =
-        res.status === 201 || res.status === 200 || statusValue === 'success';
+        res.status === 201 || res.status === 200 || data?.transactionId;
       if (isSuccessStatus) {
         setShowSuccess(true);
       } else {
@@ -167,7 +168,7 @@ export default function PaymentModal({
       console.error('Open payment app error:', error);
       Alert.alert('Error', `Unable to open ${methodName}.`);
     } finally {
-      onSuccess(amountValue, instantSavings, methodName);
+      onSuccess(amountValue, intownSavings > 0 ? intownSavings : 0, methodName);
       setAmount('');
       setInstantSavingsInput('');
       setSelectedMethod('');
@@ -189,7 +190,11 @@ export default function PaymentModal({
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={styles.modalOverlay}>
+      <KeyboardAvoidingView
+        style={styles.modalOverlay}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+      >
         <View style={styles.modalContent}>
           {showSuccess ? (
             <View style={styles.successContainer}>
@@ -205,7 +210,7 @@ export default function PaymentModal({
               </TouchableOpacity>
             </View>
           ) : !showMethods ? (
-            <>
+            <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Payment</Text>
                 <TouchableOpacity onPress={handleDismiss}>
@@ -214,39 +219,50 @@ export default function PaymentModal({
               </View>
 
               <View style={styles.amountSection}>
-                <Text style={styles.label}>Total Amount</Text>
+                <Text style={styles.label}>Total Price</Text>
                 <View style={styles.amountInputWrapper}>
                   <Text style={styles.amountPrefix}>₹</Text>
                   <TextInput
                     style={styles.amountInput}
                     value={amount}
                     onChangeText={setAmount}
-                    placeholder="Enter amount"
+                    placeholder="Enter total price"
                     keyboardType="numeric"
                     placeholderTextColor="#999"
                   />
                 </View>
               </View>
               <View style={styles.amountSection}>
-                <Text style={styles.label}>Instant Savings</Text>
+                <Text style={styles.label}>Intown Price</Text>
                 <View style={styles.amountInputWrapper}>
                   <Text style={styles.amountPrefix}>₹</Text>
                   <TextInput
                     style={styles.amountInput}
                     value={instantSavingsInput}
                     onChangeText={setInstantSavingsInput}
-                    placeholder="Enter savings"
+                    placeholder="Enter intown price"
                     keyboardType="numeric"
                     placeholderTextColor="#999"
                   />
                 </View>
               </View>
 
+              {amountValue > 0 && intownPrice > 0 && intownSavings > 0 ? (
+                <View style={styles.savingsSection}>
+                  <View style={styles.savingsRow}>
+                    <Text style={styles.savingsLabel}>Intown Savings</Text>
+                    <Text style={styles.savingsValue}>
+                      ₹{intownSavings.toFixed(2)}
+                    </Text>
+                  </View>
+                </View>
+              ) : null}
+
               <View style={styles.savingsSection}>
                 <View style={styles.savingsRow}>
                   <Text style={styles.totalLabel}>Total Payable</Text>
                   <Text style={styles.totalInput}>
-                    ₹{Number.isFinite(finalPaidAmount) ? finalPaidAmount.toFixed(2) : '0.00'}
+                    ₹{Number.isFinite(finalPaidAmount) && finalPaidAmount >= 0 ? finalPaidAmount.toFixed(2) : '0.00'}
                   </Text>
                 </View>
               </View>
@@ -260,7 +276,8 @@ export default function PaymentModal({
                   {isSubmitting ? 'Processing...' : 'Submit'}
                 </Text>
               </TouchableOpacity>
-            </>
+              <View style={{ height: 20 }} />
+            </ScrollView>
           ) : (
             <>
               <View style={styles.modalHeader}>
@@ -289,7 +306,7 @@ export default function PaymentModal({
             </>
           )}
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -320,7 +337,8 @@ const styles = StyleSheet.create({
   },
   savingsSection: { backgroundColor: '#E8F5E9', borderRadius: 12, padding: 16, marginBottom: 24 },
   savingsRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginVertical: 8 },
-  savingsLabel: { fontSize: 14, color: '#2E7D32' },
+  savingsLabel: { fontSize: 14, color: '#2E7D32', fontWeight: '600' },
+  savingsValue: { fontSize: 18, fontWeight: 'bold', color: '#2E7D32' },
   divider: { height: 1, backgroundColor: '#C8E6C9', marginVertical: 8 },
   totalLabel: { fontSize: 16, fontWeight: 'bold', color: '#1B5E20' },
   totalInput: {
