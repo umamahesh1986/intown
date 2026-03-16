@@ -9,6 +9,7 @@ import {
   ScrollView,
   Linking,
   Platform,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
@@ -189,7 +190,11 @@ export default function PaymentModal({
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={styles.modalOverlay}>
+      <KeyboardAvoidingView
+        style={styles.modalOverlay}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+      >
         <View style={styles.modalContent}>
           {showSuccess ? (
             <View style={styles.successContainer}>
@@ -205,7 +210,7 @@ export default function PaymentModal({
               </TouchableOpacity>
             </View>
           ) : !showMethods ? (
-            <>
+            <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Payment</Text>
                 <TouchableOpacity onPress={handleDismiss}>
@@ -260,7 +265,8 @@ export default function PaymentModal({
                   {isSubmitting ? 'Processing...' : 'Submit'}
                 </Text>
               </TouchableOpacity>
-            </>
+              <View style={{ height: 20 }} />
+            </ScrollView>
           ) : (
             <>
               <View style={styles.modalHeader}>
@@ -289,7 +295,7 @@ export default function PaymentModal({
             </>
           )}
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
