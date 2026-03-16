@@ -302,17 +302,16 @@ export default function UserDashboard() {
 
   // Request location permission on mount
   const requestLocationOnMount = async () => {
-    // First try to load from storage
+    // Load stored location first for instant display
     await loadLocationFromStorage();
 
-    // If no location in storage, request fresh location
-    const storedLocation = useLocationStore.getState().location;
-    if (!storedLocation) {
-      // Small delay to let the UI render first
-      setTimeout(async () => {
-        const locationResult = await getUserLocationWithDetails();
-        if (!locationResult) {
-          // If permission denied or error, show alert
+    // Always try to get fresh location in background
+    try {
+      const locationResult = await getUserLocationWithDetails();
+      if (!locationResult) {
+        // Only alert if no stored location either
+        const storedLocation = useLocationStore.getState().location;
+        if (!storedLocation) {
           Alert.alert(
             'Location Access',
             'Please enable location access to see nearby shops and get personalized recommendations.',
@@ -322,7 +321,9 @@ export default function UserDashboard() {
             ]
           );
         }
-      }, 1000);
+      }
+    } catch (error) {
+      console.error('Error getting location:', error);
     }
   };
 

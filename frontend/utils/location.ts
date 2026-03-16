@@ -20,7 +20,6 @@ const DEFAULT_LOCATION: LocationDetails = {
 export const requestLocationPermission = async (): Promise<boolean> => {
   try {
     if (Platform.OS === 'web') {
-      // Web uses browser's geolocation API
       return true;
     }
     
@@ -53,12 +52,21 @@ export const checkLocationPermission = async (): Promise<boolean> => {
 };
 
 /**
+ * Helper: add timeout to any promise
+ */
+const withTimeout = <T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> => {
+  return Promise.race([
+    promise,
+    new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms)),
+  ]);
+};
+
+/**
  * Get current device location coordinates
  */
 export const getCurrentCoordinates = async (): Promise<{ latitude: number; longitude: number } | null> => {
   try {
     if (Platform.OS === 'web') {
-      // Use browser's geolocation API for web
       return new Promise((resolve) => {
         if (!navigator.geolocation) {
           console.warn('Geolocation not supported on this browser');
@@ -82,19 +90,89 @@ export const getCurrentCoordinates = async (): Promise<{ latitude: number; longi
       });
     }
     
-    // Mobile: Use expo-location
-    const position = await Location.getCurrentPositionAsync({
-      accuracy: Location.Accuracy.Balanced,
-    });
+    // Mobile: Use expo-location with timeout
+    // Try last known position first (instant, no GPS wait)
+    try {
+      const lastKnown = await withTimeout(
+        Location.getLastKnownPositionAsync(),
+        3000,
+        null
+      );
+      if (lastKnown) {
+        console.log('Using last known position');
+        return {
+          latitude: lastKnown.coords.latitude,
+          longitude: lastKnown.coords.longitude,
+        };
+      }
+    } catch (e) {
+      console.log('getLastKnownPositionAsync not available, using getCurrentPositionAsync');
+    }
+
+    // Fall back to getCurrentPositionAsync with timeout
+    const position = await withTimeout(
+      Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Low,
+      }),
+      15000,
+      null as any
+    );
     
-    return {
-      latitude: position.coords.latitude,
-      longitude: position.coords.longitude,
-    };
+    if (position) {
+      return {
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+      };
+    }
+
+    console.warn('getCurrentPositionAsync timed out');
+    return null;
   } catch (error) {
     console.error('Error getting current coordinates:', error);
     return null;
   }
+};
+
+/**
+ * Reverse geocode using Nominatim API (works on all platforms)
+ */
+const reverseGeocodeWithNominatim = async (
+  latitude: number,
+  longitude: number
+): Promise<LocationDetails | null> => {
+  try {
+    const response = await withTimeout(
+      fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&addressdetails=1`,
+        {
+          headers: {
+            'User-Agent': 'InTownApp/1.0',
+          },
+        }
+      ),
+      8000,
+      null as any
+    );
+    
+    if (response && response.ok) {
+      const data = await response.json();
+      const address = data.address || {};
+      
+      return {
+        latitude,
+        longitude,
+        area: address.suburb || address.neighbourhood || address.village || address.town || address.city_district || '',
+        city: address.city || address.town || address.village || address.county || '',
+        state: address.state || '',
+        country: address.country || 'India',
+        pincode: address.postcode || '',
+        fullAddress: data.display_name || '',
+      };
+    }
+  } catch (e) {
+    console.warn('Nominatim API error:', e);
+  }
+  return null;
 };
 
 /**
@@ -106,37 +184,9 @@ export const reverseGeocode = async (
 ): Promise<LocationDetails> => {
   try {
     if (Platform.OS === 'web') {
-      // For web, use a free geocoding API
-      try {
-        const response = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&addressdetails=1`,
-          {
-            headers: {
-              'User-Agent': 'InTownApp/1.0',
-            },
-          }
-        );
-        
-        if (response.ok) {
-          const data = await response.json();
-          const address = data.address || {};
-          
-          return {
-            latitude,
-            longitude,
-            area: address.suburb || address.neighbourhood || address.village || address.town || '',
-            city: address.city || address.town || address.village || address.county || '',
-            state: address.state || '',
-            country: address.country || 'India',
-            pincode: address.postcode || '',
-            fullAddress: data.display_name || '',
-          };
-        }
-      } catch (e) {
-        console.warn('Nominatim API error:', e);
-      }
+      const result = await reverseGeocodeWithNominatim(latitude, longitude);
+      if (result) return result;
       
-      // Fallback for web
       return {
         ...DEFAULT_LOCATION,
         latitude,
@@ -144,27 +194,41 @@ export const reverseGeocode = async (
       };
     }
     
-    // Mobile: Use expo-location reverse geocoding
-    const addresses = await Location.reverseGeocodeAsync({ latitude, longitude });
-    
-    if (addresses && addresses.length > 0) {
-      const addr = addresses[0];
-      const area = addr.subregion || addr.district || addr.name || '';
-      const city = addr.city || addr.region || '';
+    // Mobile: Try expo-location reverse geocoding first
+    try {
+      const addresses = await withTimeout(
+        Location.reverseGeocodeAsync({ latitude, longitude }),
+        8000,
+        null as any
+      );
       
-      return {
-        latitude,
-        longitude,
-        area: area,
-        city: city,
-        state: addr.region || '',
-        country: addr.country || 'India',
-        pincode: addr.postalCode || '',
-        fullAddress: [addr.name, addr.street, area, city, addr.region, addr.postalCode, addr.country]
-          .filter(Boolean)
-          .join(', '),
-      };
+      if (addresses && addresses.length > 0) {
+        const addr = addresses[0];
+        const area = addr.subregion || addr.district || addr.name || '';
+        const city = addr.city || addr.region || '';
+        
+        if (area || city) {
+          return {
+            latitude,
+            longitude,
+            area: area,
+            city: city,
+            state: addr.region || '',
+            country: addr.country || 'India',
+            pincode: addr.postalCode || '',
+            fullAddress: [addr.name, addr.street, area, city, addr.region, addr.postalCode, addr.country]
+              .filter(Boolean)
+              .join(', '),
+          };
+        }
+      }
+    } catch (e) {
+      console.warn('expo-location reverseGeocode failed, trying Nominatim:', e);
     }
+
+    // Fallback: Use Nominatim API on mobile too
+    const nominatimResult = await reverseGeocodeWithNominatim(latitude, longitude);
+    if (nominatimResult) return nominatimResult;
     
     return {
       ...DEFAULT_LOCATION,
