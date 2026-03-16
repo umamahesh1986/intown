@@ -86,9 +86,9 @@ export default function PaymentModal({
       const payload = {
         merchantId: merchantIdValue,
         customerId: customerIdValue,
-        totalBillAmount: amountValue,
-        enteredDiscountAmount: instantSavings,
-        finalPaidAmount,
+        totalBill: amountValue,
+        savedAmount: instantSavings,
+        finalAmount: finalPaidAmount,
       };
 
       const controller = new AbortController();
@@ -106,9 +106,8 @@ export default function PaymentModal({
       clearTimeout(timeout);
 
       const data = await res.json().catch(() => ({}));
-      const statusValue = String(data?.status ?? '').toLowerCase();
       const isSuccessStatus =
-        res.status === 201 || res.status === 200 || statusValue === 'success';
+        res.status === 201 || res.status === 200 || data?.transactionId;
       if (isSuccessStatus) {
         setShowSuccess(true);
       } else {
