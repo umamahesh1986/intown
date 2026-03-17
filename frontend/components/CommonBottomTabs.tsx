@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform, Dimensions } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const INTOWN_ORANGE = '#FF8A00'; 
 
@@ -42,6 +43,7 @@ export default function CommonBottomTabs({ tabs }: CommonBottomTabsProps) {
   const pathname = usePathname();
   const { user } = useAuthStore();
   const [lastDashboard, setLastDashboard] = useState<string | null>(null);
+  const insets = useSafeAreaInsets();
 
   // Load last visited dashboard on mount
   useEffect(() => {
@@ -120,8 +122,10 @@ export default function CommonBottomTabs({ tabs }: CommonBottomTabsProps) {
     return pathname === tab.link;
   };
 
+  const bottomPadding = Platform.OS === 'ios' ? Math.max(insets.bottom, 20) : Math.max(insets.bottom, 12);
+
   return (
-    <View style={styles.footerContainer}>
+    <View style={[styles.footerContainer, { paddingBottom: bottomPadding, height: 56 + bottomPadding }]}>
       {tabs.map((tab: TabItem) => {
         const isActive = isTabActive(tab);
         
@@ -152,13 +156,11 @@ export default function CommonBottomTabs({ tabs }: CommonBottomTabsProps) {
 const styles = StyleSheet.create({
   footerContainer: {
     flexDirection: 'row',
-    height: Platform.OS === 'ios' ? 85 : 65,
     backgroundColor: '#fff',
     borderTopWidth: 1,
     borderTopColor: '#eee',
     justifyContent: 'space-around',
     alignItems: 'center',
-    paddingBottom: Platform.OS === 'ios' ? 20 : 0,
     elevation: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -3 },
