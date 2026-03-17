@@ -33,6 +33,15 @@
           "apiKey": "AIzaSyBTPqSDYbyIbJZetJ8Shd_DOqywUJN55AA"
         }
       },
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "data": [
+            { "scheme": "upi" }
+          ],
+          "category": ["DEFAULT", "BROWSABLE"]
+        }
+      ],
       "package": "com.intown.andriod"
     },
     "web": {
