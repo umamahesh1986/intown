@@ -1168,7 +1168,6 @@ export default function RegisterMerchant() {
               <TouchableOpacity
                 style={styles.okBtn}
                 onPress={() => {
-                  resetOtherProducts();
                   setShowProductModal(false);
                 }}
               >
