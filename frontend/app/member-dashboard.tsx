@@ -108,25 +108,21 @@ interface Category {
 }
 interface ApiTransaction {
   transactionId: number;
-  merchantName: string;
+  businessName?: string;
+  merchantName?: string;
   totalPrice?: number;
   inTownPrice?: number;
-  inTownSavings?: number;
+  intownSavings?: number;
   payablePrice?: number;
-  totalBillAmount?: number;
-  savedAmount?: number;
-  finalPaidAmount?: number;
   transactionDate: string;
 }
 
 interface ApiSummary {
-  totalBillAmount: number;
-  totalSavedAmount: number;
-  totalPaidAmount: number;
-  transactionCount: number;
   totalPrice?: number;
-  totalInTownSavings?: number;
+  intownPrice?: number;
+  intownSavings?: number;
   totalPayablePrice?: number;
+  transactionCount?: number;
 }
 
 const TransactionRow = ({
@@ -137,7 +133,7 @@ const TransactionRow = ({
   <View style={styles.transactionRow}>
     <View style={styles.transactionLeft}>
       <Text style={styles.transactionMerchant} numberOfLines={1}>
-        {transaction.merchantName}
+        {transaction.businessName || transaction.merchantName || 'Unknown'}
       </Text>
       <Text style={styles.transactionDate}>
         {formatTransactionDate(transaction.transactionDate)}
@@ -147,19 +143,19 @@ const TransactionRow = ({
       <View style={styles.transactionAmountBlock}>
         <Text style={styles.transactionAmountLabel}>Bill</Text>
         <Text style={styles.transactionAmountValue}>
-          {(transaction.totalPrice ?? transaction.totalBillAmount ?? 0).toFixed(2)}
+          {(transaction.totalPrice ?? 0).toFixed(2)}
         </Text>
       </View>
       <View style={styles.transactionAmountBlock}>
         <Text style={styles.transactionAmountLabel}>Saved</Text>
         <Text style={styles.transactionAmountValue}>
-          {(transaction.inTownSavings ?? transaction.savedAmount ?? 0).toFixed(2)}
+          {(transaction.intownSavings ?? 0).toFixed(2)}
         </Text>
       </View>
       <View style={styles.transactionAmountBlock}>
         <Text style={styles.transactionAmountLabel}>Paid</Text>
         <Text style={styles.transactionAmountValue}>
-          {(transaction.payablePrice ?? transaction.finalPaidAmount ?? 0).toFixed(2)}
+          {(transaction.payablePrice ?? 0).toFixed(2)}
         </Text>
       </View>
     </View>
@@ -650,9 +646,9 @@ export default function MemberDashboard() {
 
 
 
-  const todaySavedAmount = periodTotals.today?.totalSavedAmount ?? 0;
-  const monthSavedAmount = periodTotals.thisMonth?.totalSavedAmount ?? 0;
-  const yearSavedAmount = periodTotals.thisYear?.totalSavedAmount ?? 0;
+  const todaySavedAmount = periodTotals.today?.intownSavings ?? 0;
+  const monthSavedAmount = periodTotals.thisMonth?.intownSavings ?? 0;
+  const yearSavedAmount = periodTotals.thisYear?.intownSavings ?? 0;
 
   const handleLogout = async () => {
     setShowDropdown(false);

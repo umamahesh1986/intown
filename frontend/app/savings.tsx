@@ -8,22 +8,21 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface ApiTransaction {
   transactionId: number;
-  merchantName: string;
+  businessName?: string;
+  merchantName?: string;
   totalPrice?: number;
   inTownPrice?: number;
-  inTownSavings?: number;
+  intownSavings?: number;
   payablePrice?: number;
-  totalBillAmount?: number;
-  savedAmount?: number;
-  finalPaidAmount?: number;
   transactionDate: string;
 }
 
 interface ApiPeriodData {
-  totalBillAmount: number;
-  totalSavedAmount: number;
-  totalPaidAmount: number;
-  transactionCount: number;
+  totalPrice?: number;
+  intownPrice?: number;
+  intownSavings?: number;
+  totalPayablePrice?: number;
+  transactionCount?: number;
 }
 
 interface SavingsApiResponse {
@@ -102,10 +101,10 @@ export default function Savings() {
 
       // Update summary with API data
       setSummary({
-        today: data.today?.totalSavedAmount ?? 0,
-        thisMonth: data.thisMonth?.totalSavedAmount ?? 0,
-        thisYear: data.thisYear?.totalSavedAmount ?? 0,
-        lifetime: data.lifetime?.totalSavedAmount ?? 0,
+        today: data.today?.intownSavings ?? 0,
+        thisMonth: data.thisMonth?.intownSavings ?? 0,
+        thisYear: data.thisYear?.intownSavings ?? 0,
+        lifetime: data.lifetime?.intownSavings ?? 0,
         totalTransactions: data.lifetime?.transactionCount ?? 0,
         businessName: data.lifetime?.transactionCount ?? 0,
       });
@@ -114,10 +113,10 @@ export default function Savings() {
       const transformedTransactions: SavingsTransaction[] = (data.transactions || []).map((tx) => ({
         id: String(tx.transactionId),
         date: tx.transactionDate,
-        shopName: tx.merchantName || 'Unknown Shop',
-        amount: tx.totalPrice ?? tx.totalBillAmount ?? 0,
-        savings: tx.inTownSavings ?? tx.savedAmount ?? 0,
-        paidAmount: tx.payablePrice ?? tx.finalPaidAmount ?? 0,
+        shopName: tx.businessName || tx.merchantName || 'Unknown Shop',
+        amount: tx.totalPrice ?? 0,
+        savings: tx.intownSavings ?? 0,
+        paidAmount: tx.payablePrice ?? 0,
       }));
 
       setTransactions(transformedTransactions);
