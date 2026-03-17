@@ -21,6 +21,8 @@ interface PaymentModalProps {
   onSuccess: (amount: number, savings: number, paymentMethod: string) => void;
   merchantId?: string | number;
   customerId?: string | number;
+  merchantUpiId?: string;
+  merchantName?: string;
   redirectTo?: string;
 }
 
@@ -38,6 +40,8 @@ export default function PaymentModal({
   onSuccess,
   merchantId,
   customerId,
+  merchantUpiId,
+  merchantName,
   redirectTo,
 }: PaymentModalProps) {
   const router = useRouter();
@@ -127,47 +131,92 @@ export default function PaymentModal({
     }
   };
 
-  const getPaymentAppUrls = (methodId: string) => {
+  const buildUpiUrl = (scheme: string) => {
+    const params = new URLSearchParams();
+    if (merchantUpiId) params.append('pa', merchantUpiId);
+    if (merchantName) params.append('pn', merchantName);
+    if (finalPaidAmount > 0) params.append('am', finalPaidAmount.toFixed(2));
+    params.append('cu', 'INR');
+    params.append('tn', 'Payment via InTown');
+    return `${scheme}?${params.toString()}`;
+  };
+
+  const getPaymentAppUrls = (methodId: string): string[] => {
     switch (methodId) {
       case 'phonepe':
-        return ['phonepe://'];
+        return [
+          buildUpiUrl('phonepe://pay'),
+          buildUpiUrl('upi://pay'),
+        ];
       case 'googlepay':
-        return ['gpay://', 'tez://upi/pay', 'googlepay://upi/pay'];
+        return [
+          buildUpiUrl('tez://upi/pay'),
+          buildUpiUrl('gpay://upi/pay'),
+          buildUpiUrl('upi://pay'),
+        ];
       case 'paytm':
-        return ['paytmmp://'];
+        return [
+          buildUpiUrl('paytmmp://pay'),
+          buildUpiUrl('upi://pay'),
+        ];
       case 'amazonpay':
-        return ['amazonpay://'];
-      default:
+        return [
+          buildUpiUrl('amazonpay://pay'),
+          buildUpiUrl('upi://pay'),
+        ];
+      case 'cash':
         return [];
+      default:
+        return [buildUpiUrl('upi://pay')];
     }
   };
 
   const handlePaymentMethodSelect = async (methodId: string, methodName: string) => {
     try {
-      const urls = getPaymentAppUrls(methodId);
-      if (urls.length === 0) {
-        Alert.alert('Unsupported', 'Selected payment method is not supported.');
+      // Cash payment — no app to open
+      if (methodId === 'cash') {
+        onSuccess(amountValue, intownSavings > 0 ? intownSavings : 0, methodName);
+        setAmount('');
+        setInstantSavingsInput('');
+        setSelectedMethod('');
+        setShowMethods(false);
+        setShowSuccess(false);
+        onClose();
+        router.replace((redirectTo || '/member-dashboard') as any);
         return;
       }
 
+      const urls = getPaymentAppUrls(methodId);
+
       let opened = false;
       for (const url of urls) {
-        // eslint-disable-next-line no-await-in-loop
-        const canOpen = await Linking.canOpenURL(url);
-        if (canOpen) {
-          // eslint-disable-next-line no-await-in-loop
-          await Linking.openURL(url);
-          opened = true;
-          break;
+        try {
+          const canOpen = await Linking.canOpenURL(url);
+          if (canOpen) {
+            await Linking.openURL(url);
+            opened = true;
+            break;
+          }
+        } catch (e) {
+          continue;
         }
       }
 
       if (!opened) {
-        Alert.alert('App Not Found', `${methodName} is not installed on this device.`);
+        // Fallback: try generic UPI intent which shows system app picker
+        try {
+          const genericUpi = buildUpiUrl('upi://pay');
+          await Linking.openURL(genericUpi);
+        } catch (e) {
+          Alert.alert(
+            'App Not Found',
+            `${methodName} is not installed on this device. Please install it or try a different payment method.`
+          );
+        }
       }
     } catch (error) {
       console.error('Open payment app error:', error);
-      Alert.alert('Error', `Unable to open ${methodName}.`);
+      Alert.alert('Error', `Unable to open ${methodName}. Please try a different payment method.`);
     } finally {
       onSuccess(amountValue, intownSavings > 0 ? intownSavings : 0, methodName);
       setAmount('');
