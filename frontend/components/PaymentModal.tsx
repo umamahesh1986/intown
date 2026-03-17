@@ -85,11 +85,12 @@ export default function PaymentModal({
     setIsSubmitting(true);
     try {
       const payload = {
-        merchantId: merchantIdValue,
         customerId: customerIdValue,
-        totalBill: amountValue,
-        savedAmount: intownSavings > 0 ? intownSavings : 0,
-        finalAmount: finalPaidAmount,
+        merchantId: merchantIdValue,
+        totalPrice: amountValue,
+        inTownPrice: intownPrice,
+        inTownSavings: intownSavings > 0 ? intownSavings : 0,
+        payablePrice: finalPaidAmount,
       };
 
       const controller = new AbortController();
