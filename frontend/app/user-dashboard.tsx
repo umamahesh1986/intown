@@ -64,7 +64,10 @@ interface Category {
 const { width } = Dimensions.get('window');
 // ===== MEMBER STYLE CAROUSEL CONFIG =====
 const SLIDE_WIDTH = Math.round(width);
-const getCategoryImageByIndex = (index: number) => {
+const getCategoryImage = (category: any, index: number) => {
+  if (category?.imageUrl) {
+    return { uri: category.imageUrl };
+  }
   return CATEGORY_IMAGE_LIST[index] ?? FALLBACK_CATEGORY_IMAGE;
 };
 
@@ -754,7 +757,7 @@ export default function UserDashboard() {
                         >
                           <View style={styles.categoryImageContainer}>
                             <Image
-                              source={getCategoryImageByIndex(index)}
+                              source={getCategoryImage(category, index)}
                               style={styles.categoryImage}
                               resizeMode="cover"
                             />
