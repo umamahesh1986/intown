@@ -92,9 +92,13 @@ interface Transaction {
 interface CustomerTransaction {
   transactionId: number;
   merchantName: string;
-  totalBillAmount: number;
-  savedAmount: number;
-  finalPaidAmount: number;
+  totalPrice?: number;
+  inTownPrice?: number;
+  inTownSavings?: number;
+  payablePrice?: number;
+  totalBillAmount?: number;
+  savedAmount?: number;
+  finalPaidAmount?: number;
   transactionDate: string;
 }
 
@@ -604,7 +608,7 @@ export default function DualDashboard() {
           apiTransactions.map((item) => ({
             id: String(item.transactionId),
             date: new Date(item.transactionDate).toLocaleDateString(),
-            amount: item.finalPaidAmount ?? item.totalBillAmount ?? 0,
+            amount: item.payablePrice ?? item.finalPaidAmount ?? item.totalPrice ?? item.totalBillAmount ?? 0,
             description: item.merchantName,
             type: 'debit',
             status: 'completed',
