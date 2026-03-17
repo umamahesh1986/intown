@@ -58,6 +58,7 @@ export default function MemberShopDetails() {
 
   // Image carousel state
   const [shopImages, setShopImages] = useState<string[]>([]);
+  const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
   const [shopImageIndex, setShopImageIndex] = useState(0);
   const shopImageScrollRef = useRef<ScrollView | null>(null);
   const shopImageTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -195,11 +196,16 @@ export default function MemberShopDetails() {
           }}
         >
           {shopImages.map((img, index) => (
-            <Image
+            <TouchableOpacity
               key={`${img}-${index}`}
-              source={{ uri: img }}
-              style={[styles.shopImageFull, { width: SHOP_IMAGE_WIDTH }]}
-            />
+              activeOpacity={0.9}
+              onPress={() => setFullscreenImage(img)}
+            >
+              <Image
+                source={{ uri: img }}
+                style={[styles.shopImageFull, { width: SHOP_IMAGE_WIDTH }]}
+              />
+            </TouchableOpacity>
           ))}
         </ScrollView>
         {shopImages.length > 1 && (
@@ -488,6 +494,30 @@ export default function MemberShopDetails() {
           </View>
         </View>
       </Modal>
+
+      {/* Fullscreen Image Modal */}
+      <Modal
+        visible={!!fullscreenImage}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setFullscreenImage(null)}
+      >
+        <View style={styles.fullscreenOverlay}>
+          <TouchableOpacity
+            style={styles.fullscreenCloseBtn}
+            onPress={() => setFullscreenImage(null)}
+          >
+            <Ionicons name="close-circle" size={36} color="#FFF" />
+          </TouchableOpacity>
+          {fullscreenImage && (
+            <Image
+              source={{ uri: fullscreenImage }}
+              style={styles.fullscreenImage}
+              resizeMode="contain"
+            />
+          )}
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -637,5 +667,21 @@ const styles = StyleSheet.create({
   modalCancelText: {
     fontSize: 16,
     color: '#666666',
+  },
+  fullscreenOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.95)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullscreenCloseBtn: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    zIndex: 10,
+  },
+  fullscreenImage: {
+    width: '100%',
+    height: '80%',
   },
 });
