@@ -109,9 +109,13 @@ interface Category {
 interface ApiTransaction {
   transactionId: number;
   merchantName: string;
-  totalBillAmount: number;
-  savedAmount: number;
-  finalPaidAmount: number;
+  totalPrice?: number;
+  inTownPrice?: number;
+  inTownSavings?: number;
+  payablePrice?: number;
+  totalBillAmount?: number;
+  savedAmount?: number;
+  finalPaidAmount?: number;
   transactionDate: string;
 }
 
@@ -120,6 +124,9 @@ interface ApiSummary {
   totalSavedAmount: number;
   totalPaidAmount: number;
   transactionCount: number;
+  totalPrice?: number;
+  totalInTownSavings?: number;
+  totalPayablePrice?: number;
 }
 
 const TransactionRow = ({
@@ -140,19 +147,19 @@ const TransactionRow = ({
       <View style={styles.transactionAmountBlock}>
         <Text style={styles.transactionAmountLabel}>Bill</Text>
         <Text style={styles.transactionAmountValue}>
-          {transaction.totalBillAmount.toFixed(2)}
+          {(transaction.totalPrice ?? transaction.totalBillAmount ?? 0).toFixed(2)}
         </Text>
       </View>
       <View style={styles.transactionAmountBlock}>
         <Text style={styles.transactionAmountLabel}>Saved</Text>
         <Text style={styles.transactionAmountValue}>
-          {transaction.savedAmount.toFixed(2)}
+          {(transaction.inTownSavings ?? transaction.savedAmount ?? 0).toFixed(2)}
         </Text>
       </View>
       <View style={styles.transactionAmountBlock}>
         <Text style={styles.transactionAmountLabel}>Paid</Text>
         <Text style={styles.transactionAmountValue}>
-          {transaction.finalPaidAmount.toFixed(2)}
+          {(transaction.payablePrice ?? transaction.finalPaidAmount ?? 0).toFixed(2)}
         </Text>
       </View>
     </View>

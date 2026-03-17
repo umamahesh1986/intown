@@ -9,9 +9,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 interface ApiTransaction {
   transactionId: number;
   merchantName: string;
-  totalBillAmount: number;
-  savedAmount: number;
-  finalPaidAmount: number;
+  totalPrice?: number;
+  inTownPrice?: number;
+  inTownSavings?: number;
+  payablePrice?: number;
+  totalBillAmount?: number;
+  savedAmount?: number;
+  finalPaidAmount?: number;
   transactionDate: string;
 }
 
@@ -110,9 +114,9 @@ export default function Savings() {
         id: String(tx.transactionId),
         date: tx.transactionDate,
         shopName: tx.merchantName || 'Unknown Shop',
-        amount: tx.totalBillAmount,
-        savings: tx.savedAmount,
-        paidAmount: tx.finalPaidAmount,
+        amount: tx.totalPrice ?? tx.totalBillAmount ?? 0,
+        savings: tx.inTownSavings ?? tx.savedAmount ?? 0,
+        paidAmount: tx.payablePrice ?? tx.finalPaidAmount ?? 0,
       }));
 
       setTransactions(transformedTransactions);
