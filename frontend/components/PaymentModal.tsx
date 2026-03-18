@@ -167,19 +167,38 @@ export default function PaymentModal({
       let opened = false;
 
       if (Platform.OS === 'android') {
+        // Build UPI payment URI with merchant details
+        const upiId = merchantUpiId || '';
+        const name = encodeURIComponent(merchantName || 'Merchant');
+        const payAmount = finalPaidAmount > 0 ? finalPaidAmount.toFixed(2) : '0';
+        const upiUri = upiId
+          ? `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${name}&am=${payAmount}&cu=INR`
+          : `upi://pay?pn=${name}&am=${payAmount}&cu=INR`;
+
+        // Method 1: Use ACTION_VIEW with UPI URI + specific package (most reliable)
         try {
-          // Use expo-intent-launcher to open app by package name
-          await IntentLauncher.startActivityAsync('android.intent.action.MAIN', {
+          await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
+            data: upiUri,
             packageName: packageName,
-            category: 'android.intent.category.LAUNCHER',
           });
           opened = true;
         } catch (e) {
-          console.log(`IntentLauncher failed for ${methodName}:`, e);
+          console.log(`IntentLauncher VIEW failed for ${methodName}:`, e);
+        }
+
+        // Method 2: Fallback - use Linking with Android intent URI targeting specific package
+        if (!opened) {
+          try {
+            const intentUri = `intent://pay${upiId ? `?pa=${encodeURIComponent(upiId)}&pn=${name}&am=${payAmount}&cu=INR` : ''}#Intent;scheme=upi;package=${packageName};end`;
+            await Linking.openURL(intentUri);
+            opened = true;
+          } catch (e) {
+            console.log(`Intent URI failed for ${methodName}:`, e);
+          }
         }
       }
 
-      // iOS or fallback
+      // iOS or final fallback: app-specific URL schemes
       if (!opened) {
         const schemes: Record<string, string> = {
           phonepe: 'phonepe://',
