@@ -14,6 +14,7 @@ import {
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import * as IntentLauncher from 'expo-intent-launcher';
 
 interface PaymentModalProps {
   visible: boolean;
@@ -134,13 +135,13 @@ export default function PaymentModal({
   const getAppPackage = (methodId: string) => {
     switch (methodId) {
       case 'phonepe':
-        return { package: 'com.phonepe.app', scheme: 'phonepe://' };
+        return 'com.phonepe.app';
       case 'googlepay':
-        return { package: 'com.google.android.apps.nbu.paisa.user', scheme: 'tez://' };
+        return 'com.google.android.apps.nbu.paisa.user';
       case 'paytm':
-        return { package: 'net.one97.paytm', scheme: 'paytmmp://' };
+        return 'net.one97.paytm';
       case 'amazonpay':
-        return { package: 'in.amazon.mShop.android.shopping', scheme: 'amazonpay://' };
+        return 'in.amazon.mShop.android.shopping';
       default:
         return null;
     }
@@ -160,28 +161,40 @@ export default function PaymentModal({
         return;
       }
 
-      const appConfig = getAppPackage(methodId);
-      if (!appConfig) return;
+      const packageName = getAppPackage(methodId);
+      if (!packageName) return;
 
       let opened = false;
 
-      // Android: open app directly by package name
       if (Platform.OS === 'android') {
         try {
-          await Linking.openURL(`intent://#Intent;package=${appConfig.package};end`);
+          // Use expo-intent-launcher to open app by package name
+          await IntentLauncher.startActivityAsync('android.intent.action.MAIN', {
+            packageName: packageName,
+            category: 'android.intent.category.LAUNCHER',
+          });
           opened = true;
         } catch (e) {
-          console.log(`Intent failed for ${methodName}`);
+          console.log(`IntentLauncher failed for ${methodName}:`, e);
         }
       }
 
-      // Fallback: try app scheme
+      // iOS or fallback
       if (!opened) {
-        try {
-          await Linking.openURL(appConfig.scheme);
-          opened = true;
-        } catch (e) {
-          console.log(`Scheme failed for ${methodName}`);
+        const schemes: Record<string, string> = {
+          phonepe: 'phonepe://',
+          googlepay: 'tez://',
+          paytm: 'paytmmp://',
+          amazonpay: 'amazonpay://',
+        };
+        const scheme = schemes[methodId];
+        if (scheme) {
+          try {
+            await Linking.openURL(scheme);
+            opened = true;
+          } catch (e) {
+            console.log(`Scheme failed for ${methodName}`);
+          }
         }
       }
 
