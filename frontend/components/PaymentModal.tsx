@@ -131,56 +131,23 @@ export default function PaymentModal({
     }
   };
 
-  const buildUpiParams = () => {
-    const params: string[] = [];
-    if (merchantUpiId) params.push(`pa=${encodeURIComponent(merchantUpiId)}`);
-    if (merchantName) params.push(`pn=${encodeURIComponent(merchantName)}`);
-    if (finalPaidAmount > 0) params.push(`am=${finalPaidAmount.toFixed(2)}`);
-    params.push('cu=INR');
-    params.push(`tn=${encodeURIComponent('Payment via InTown')}`);
-    return params.join('&');
-  };
-
-  const getPaymentAppConfig = (methodId: string) => {
-    const upiParams = buildUpiParams();
-    // Android intent URI format targets specific app by package name
+  const getAppPackage = (methodId: string) => {
     switch (methodId) {
       case 'phonepe':
-        return {
-          intentUri: `intent://pay?${upiParams}#Intent;scheme=upi;package=com.phonepe.app;end`,
-          fallbackUrl: `upi://pay?${upiParams}`,
-          appName: 'PhonePe',
-        };
+        return { package: 'com.phonepe.app', scheme: 'phonepe://' };
       case 'googlepay':
-        return {
-          intentUri: `intent://pay?${upiParams}#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end`,
-          fallbackUrl: `tez://upi/pay?${upiParams}`,
-          appName: 'Google Pay',
-        };
+        return { package: 'com.google.android.apps.nbu.paisa.user', scheme: 'tez://' };
       case 'paytm':
-        return {
-          intentUri: `intent://pay?${upiParams}#Intent;scheme=upi;package=net.one97.paytm;end`,
-          fallbackUrl: `upi://pay?${upiParams}`,
-          appName: 'Paytm',
-        };
+        return { package: 'net.one97.paytm', scheme: 'paytmmp://' };
       case 'amazonpay':
-        return {
-          intentUri: `intent://pay?${upiParams}#Intent;scheme=upi;package=in.amazon.mShop.android.shopping;end`,
-          fallbackUrl: `upi://pay?${upiParams}`,
-          appName: 'Amazon Pay',
-        };
+        return { package: 'in.amazon.mShop.android.shopping', scheme: 'amazonpay://' };
       default:
-        return {
-          intentUri: `upi://pay?${upiParams}`,
-          fallbackUrl: `upi://pay?${upiParams}`,
-          appName: methodId,
-        };
+        return null;
     }
   };
 
   const handlePaymentMethodSelect = async (methodId: string, methodName: string) => {
     try {
-      // Cash payment — no app to open
       if (methodId === 'cash') {
         onSuccess(amountValue, intownSavings > 0 ? intownSavings : 0, methodName);
         setAmount('');
@@ -193,45 +160,40 @@ export default function PaymentModal({
         return;
       }
 
-      const config = getPaymentAppConfig(methodId);
+      const appConfig = getAppPackage(methodId);
+      if (!appConfig) return;
+
       let opened = false;
 
-      // Try Android intent URI first (targets specific app by package name)
+      // Android: open app directly by package name
       if (Platform.OS === 'android') {
         try {
-          await Linking.openURL(config.intentUri);
+          await Linking.openURL(`intent://#Intent;package=${appConfig.package};end`);
           opened = true;
         } catch (e) {
-          console.log(`Intent URI failed for ${methodName}, trying fallback`);
+          console.log(`Intent failed for ${methodName}`);
         }
       }
 
-      // Try fallback URL (works on iOS and as Android fallback)
+      // Fallback: try app scheme
       if (!opened) {
         try {
-          await Linking.openURL(config.fallbackUrl);
+          await Linking.openURL(appConfig.scheme);
           opened = true;
         } catch (e) {
-          console.log(`Fallback URL failed for ${methodName}, trying generic UPI`);
+          console.log(`Scheme failed for ${methodName}`);
         }
       }
 
-      // Last resort: generic UPI scheme (opens system app picker)
       if (!opened) {
-        try {
-          const upiParams = buildUpiParams();
-          await Linking.openURL(`upi://pay?${upiParams}`);
-          opened = true;
-        } catch (e) {
-          Alert.alert(
-            'App Not Found',
-            `${methodName} is not installed on this device. Please install it from Play Store or try a different payment method.`
-          );
-        }
+        Alert.alert(
+          'App Not Found',
+          `${methodName} is not installed on this device. Please install it from Play Store.`
+        );
       }
     } catch (error) {
       console.error('Open payment app error:', error);
-      Alert.alert('Error', `Unable to open ${methodName}. Please try a different payment method.`);
+      Alert.alert('Error', `Unable to open ${methodName}.`);
     } finally {
       onSuccess(amountValue, intownSavings > 0 ? intownSavings : 0, methodName);
       setAmount('');

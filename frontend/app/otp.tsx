@@ -160,11 +160,13 @@ export default function OTPScreen() {
         
         const auth = firebaseAuth();
         
+        // Force native app verification only (no reCAPTCHA fallback)
         if (auth.settings) {
           auth.settings.appVerificationDisabledForTesting = false;
+          auth.settings.forceRecaptchaFlowForTesting = false;
         }
         
-        const confirmation = await auth.signInWithPhoneNumber(formattedPhone);
+        const confirmation = await auth.signInWithPhoneNumber(formattedPhone, true);
         
         console.log("=== OTP SENT SUCCESSFULLY (Mobile) ===");
         setConfirmationResult(confirmation);
