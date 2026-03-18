@@ -1,117 +1,167 @@
-<analysis>
-The AI engineer successfully initiated the IntownLocal mobile app development, transitioning from a basic concept to a multi-flow application. Initially, a simple Expo/React Native frontend and Node.js backend with dummy data were established. Key challenges involved  compatibility, leading to a temporary shift to a list-based UI for shops. The user then provided extensive new requirements, necessitating a major restructure to accommodate User, Member, and Merchant flows. The AI engineer adapted by implementing new dashboards, registration forms with validations, and a comprehensive member flow, including search, categories, shop details, and mock payment. The current phase is focused on resolving a persistent logout functionality issue across dashboards, demonstrating iterative problem-solving and responsiveness to user feedback.
-</analysis>
+<analysis>**original_problem_statement**: The user wants to take the latest code from the main branch of the GitHub repository , run the application, and see a preview.
 
-<product_requirements>
-The IntownLocal mobile app aims to connect local retail shops with customers. The initial goal was a professional Android/iOS app with Expo/React Native frontend and Node.js backend, using dummy data.
-**Core User Flow:** Splash screen, location permission, mobile number login via OTP (mocked), Dashboard, Map/Search results, Shop details, and a mocked payment flow.
-**Dashboard features:** Intown logo, user details, search box for categories/shops, popular categories as tiles, two subscription/pricing options (IT Max, IT Max Plus), estimated savings summary, Find Nearby Shops button.
-**Map View:** Google Maps centered on user, shop markers, filtered by category, list view of shops.
-**Shop Details:** Name, category, distance, route on map, Pay Now button, merchant savings/offer.
-**Payment:** Mocked page for plan/shop amount, savings, multiple payment methods.
-**Visual & UX:** Orange accent color, clean layout, high-quality icons, responsive, smooth transitions.
-**Technical Choices:** Expo + React Native, , , React Navigation, AsyncStorage, Node.js + Express backend with specific mock API endpoints.
-**Updated Requirements (Multi-Flow):**
-1.  **User Flow:** After OTP, user lands on a User Dashboard.
-    *   Dashboard: Logo, profile, search, popular categories, Present Local Retail Shops to Digital Presence theme.
-    *   Savings Calculator: Estimated Monthly Spend, Monthly Savings, Annual Savings.
-    *   Member/Merchant Tabs:
-        *   **Member Tab:** Shows IT Max and IT Max Plus plans. Tapping a plan leads to **Member Registration Form**: Contact Name, Customer Location (full-screen map picker), Email, Phone Number, Pincode, Multi Image Uploader, Terms & Conditions. API call () on registration (mocked success). Redirect to Member Dashboard.
-        *   **Merchant Tab:** Leads to **Merchant Registration Form**: Business Name, Contact Name, Business Category, Description, Years in Business, Branches, Email, Phone Number, Pincode, Business Location (full-screen map picker), Address, Introduced By, Multi Image Uploader, Terms & Conditions. API call () on registration (mocked success). Redirect to Merchant Dashboard.
-    *   Nearby Shops Section: Scrollable list with image, name, category, distance (auto-scrolling infinite loop added).
-    *   Footer: Shop Local, Save Instantly! statement.
-2.  **Member Flow (after registration):**
-    *   **Member Dashboard:** Logo, user profile (member dropdown with account, membership, logout). Search field (show shop list based on category/location), Popular Categories, Savings Calculator, Nearby Shops, Footer.
-    *   **Shop Details Page:** Shop image, name, rating, Navigate to Shop, Pay buttons.
-    *   **Payment Flow:** Total amount, instant savings (10%), total payable amount, payment options (PhonePe, GooglePay, Paytm, Cash - mocked). Confirm payment popup.
-    *   **Navigate Page:** Full-screen map with route to shop, Pay button (same payment flow).
-3.  **Merchant Flow (after registration):**
-    *   **Merchant Dashboard:** Logo, merchant profile (merchant dropdown with account, merchant, logout). Full details of merchant shop with images, names, ratings, total payments list (customer amount, discount, total received, payment completed button).
+Throughout the session, the user added a series of requests, including:
+- Fixing multiple issues related to Firebase Phone Authentication on both web and real mobile devices, which was a recurring theme. The primary issue was reCAPTCHA appearing on the production mobile app, which was traced to an incorrect  file missing the Play Store's App signing key hash.
+- Fixing broken UPI payment app deep links (PhonePe, Google Pay) on Android.
+- Implementing dynamic profile pictures in the header for all user roles.
+- Fixing various UI bugs, such as the bottom navigation overlapping with system UI and keyboard hiding input fields.
+- Correcting data display issues on dashboards where savings amounts showed '0' due to API response changes.
+- Updating the payment modal UI and the corresponding API payload to match new requirements.
+- Fixing the merchant registration flow to correctly save custom-added products.
+- Resolving a blank white screen issue when running the app in the local development environment.
+- Adding a feature to view carousel images in a full-screen modal.
 
-All new API calls for registration are to be considered successful for now. Maps API key  is provided. Image uploads should be base64.
-</product_requirements>
+**User's preferred language**: English
 
-<key_technical_concepts>
-- **Frontend:** Expo, React Native,  (file-based routing), React Navigation, Zustand (state management), AsyncStorage, ,  (with  compatibility challenges),  (for auto-scrolling).
-- **Backend:** Node.js, Express (for mock APIs), FastAPI (for new APIs).
-- **Data:** In-memory dummy data (JSON).
-- **Other:** Google Maps API, Base64 encoding for images, Git/GitLab for version control.
-</key_technical_concepts>
+**what currently exists?**
+The application is an Expo (React Native) app designed for local shopping and savings. It has been deployed as a static web build for preview purposes due to environment limitations, but its primary target is native Android. The app features multiple user roles and dashboards (user, member, merchant, dual), Firebase phone authentication, and integration with an external API for all its data.
 
-<code_architecture>
-The application uses a monorepo structure with a  (FastAPI/Node.js) and  (Expo/React Native) directory.
+Key functionalities include:
+- A split authentication system: test OTP () on the web, and real Firebase Phone Authentication on mobile.
+- Role-based dashboards displaying user-specific information.
+- A payment flow that now uses  to reliably open UPI payment apps on Android.
+- Profile customization, including image uploads (saved to AsyncStorage on web, sent to an API on mobile).
+- The web preview has a known, unfixable CORS issue that prevents most API calls from succeeding.
 
+**Last working item**:
+-   **Last item agent was working**: Resolving a critical issue where the real mobile app (from Google Play Store) was showing a reCAPTCHA during phone authentication instead of using the silent Play Integrity verification. The root cause was identified as the  file missing the correct App signing key SHA-1 hash from the Play Console. The user provided an updated , which the agent has integrated into the project.
+-   **Status**: USER VERIFICATION PENDING
+-   **Agent Testing Done**: N
+-   **Which testing method agent to use?**: NA (User must create a new build and test on a real device).
+-   **User Testing Done**: N
 
+**All Pending/In progress Issue list**:
+-   **Issue 1**: Firebase phone auth on the production Android app shows reCAPTCHA. (Priority: P0)
 
--   ****:
-    -   **Summary**: Contains the FastAPI backend stub.
-    -   **Changes**: Initially, it had mock endpoints for OTP, verify-OTP, shops, plans, and categories. No new explicit changes were made to the backend for the new member/merchant registration APIs; the frontend was instructed to mock success.
--   ****:
-    -   **Summary**: The splash screen and initial routing logic.
-    -   **Changes**: Updated to check  from  and redirect to  or / based on login status and user role after the restructure.
--   ****:
-    -   **Summary**: Defines the global navigation stack using .
-    -   **Changes**: Continuously updated to include new routes as screens were added (e.g., , , , , , , , ).
--   ****:
-    -   **Summary**: Handles OTP verification.
-    -   **Changes**: Modified to redirect to  after successful (mocked) OTP verification.
--   ****:
-    -   **Summary**: The main dashboard after initial login, presenting Member/Merchant registration options.
-    -   **Changes**: Created from scratch to implement the new dashboard layout, popular categories, savings calculator, Member/Merchant tabs, navigation to registration forms, Nearby Shops section (with auto-scrolling), and footer.
--   ****:
-    -   **Summary**: Member registration form.
-    -   **Changes**: Created with fields for Contact Name, Location picker (dummy map), Email, Phone, Pincode, Multi-image upload, and T&C. It includes local validations and a mocked API call that always succeeds, navigating to .
--   ****:
-    -   **Summary**: Merchant registration form.
-    -   **Changes**: Created with fields for Business Name, Contact Name, Category, Description, Years in Business, Branches, Email, Phone, Pincode, Business Location picker (dummy map), Address, Introduced By, Multi-image upload, and T&C. Includes local validations and a mocked API call that always succeeds, intended to navigate to .
--   ****:
-    -   **Summary**: The dashboard for registered members.
-    -   **Changes**: Created to include logo, user profile with member status and dropdown (account, membership, logout), search box, popular categories, savings calculator, Nearby Shops section, and footer. Implements navigation to  and .
--   ****:
-    -   **Summary**: The dashboard for registered merchants.
-    -   **Changes**: Created to include logo, merchant profile with dropdown, and displays shop details, images, ratings, and a payment tracking list (customer amount, discount, total received). Logout functionality needs fixing.
--   ****:
-    -   **Summary**: Displays shops on a map.
-    -   **Changes**: Initially tried , then switched to a list-based UI due to compatibility issues. The user's new requirements mention a full-screen map, implying a re-introduction of map functionality.
--   ****:
-    -   **Summary**: Displays details of a selected shop.
-    -   **Changes**: Modified to reflect new navigation flows.
--   ****:
-    -   **Summary**: Displays a list of shops for members based on search/category.
-    -   **Changes**: Created to show shops with images, names, ratings, and View/Navigate buttons.
--   ****:
-    -   **Summary**: Detailed view of a shop for members.
-    -   **Changes**: Created to show shop image, name, rating, Navigate and Pay buttons.
--   ****:
-    -   **Summary**: Shows a map route to a shop and handles payment for members.
-    -   **Changes**: Created to display a full-screen map with navigation route and includes the payment flow.
--   ****:
-    -   **Summary**: Zustand store for authentication state.
-    -   **Changes**: Updated to manage  (user, member, merchant) and handle login/logout, including persisting state with AsyncStorage. Current work involves fixing its logout logic.
--   ****:
-    -   **Summary**: Utility for API calls.
-    -   **Changes**: Contains logic to interact with backend endpoints.
--   ****:
-    -   **Summary**: Expo configuration file.
-    -   **Changes**: Updated to include  plugin configuration (though the integration has been problematic).
--   ****: Initial documentation.
--   ****: Summary of architecture.
--   ****: Plan for the multi-flow app.
--   ****: Instructions for testing.
-</code_architecture>
+**Issues Detail**:
+-   **Issue 1: Firebase reCAPTCHA on production Android app**
+    -   **Attempted fixes**:
+        1.  Modified  to force auto-verification and disable reCAPTCHA fallback, which did not work.
+        2.  Diagnosed that the issue stemmed from a mismatch between the app's signing certificate hash and the one registered in Firebase.
+        3.  Guided the user to get the correct SHA-1 hash for the App signing key from their Google Play Console.
+        4.  Replaced the project's  with a new version provided by the user that includes the correct key.
+    -   **Next debug checklist**: The user must generate a new production Android build (), install it on a real device, and test the phone login flow. This should resolve the issue.
+    -   **Why fix this issue and what will be achieved with the fix?**: This is a critical blocker for the user's production app. A successful fix will provide a seamless (reCAPTCHA-free) login experience for users downloading the app from the Play Store.
+    -   **Status**: USER VERIFICATION PENDING
+    -   **Is recurring issue?**: Y
+    -   **Should Test frontend/backend/both after fix?**: Frontend (Requires user to test the native build).
+    -   **Blocked on other issue**: None
 
-<pending_tasks>
--   Full implementation of real backend APIs for customer and merchant registration.
--   Integration of actual Google Maps for location selection in registration forms and shop navigation, as  has shown compatibility issues with the current Expo SDK.
--   Real payment gateway integration instead of mocked payment flows.
--   Implementation of search functionality for member/merchant dashboards to fetch shops based on location/category (backend API pending).
--   Category page with list of items and full-screen map showing shops for that category (backend API pending).
-</pending_tasks>
+**In progress Task List**:
+-   None.
 
-<current_work>
-Immediately before this summary request, the AI engineer was focused on fixing the logout functionality. The user reported that for merchant logout is not working properly ..please update when logout clicked user or merchant has to logged out and come to mobile number screen (Chat Message 353 and 359). The AI engineer identified that  might not be completely cleared upon logout and attempted to update  to ensure proper session clearing and redirection. The previous attempt involved modifying the  function within the  to clear  and reset the user state. This is an ongoing debugging effort to ensure both member and merchant flows correctly log out and navigate back to the initial mobile number entry screen.
-</current_work>
+**Upcoming and Future Tasks**
+-   None mentioned by the user.
 
-<optional_next_step>
-The next step is to continue debugging and fixing the logout functionality in  and related dashboard components.
-</optional_next_step>
+**Completed work in this session**
+-   **Firebase Authentication**:
+    -   Successfully diagnosed and fixed the App is not authorized error on Android by updating  with the correct SHA certificate hash from the Google Play Console.
+    -   Configured the app to use a test OTP () on the web and real Firebase OTP on mobile.
+-   **Local Development**:
+    -   Fixed the blank white screen error on  by deleting a conflicting  file.
+-   **UI/UX Fixes**:
+    -   Replaced the static header user icon with a dynamic profile image across all dashboards.
+    -   Fixed the bottom tab menu from overlapping with Android system navigation buttons using .
+    -   Fixed the payment modal so that input fields are not hidden by the keyboard using .
+    -   Implemented a full-screen modal to view carousel images.
+    -   Updated payment modal labels and added a calculated Intown Savings field.
+-   **Bug Fixes & Feature Enhancements**:
+    -   Fixed broken UPI payment app deep links (PhonePe, GPay) by implementing .
+    -   Resolved a  crash after payment by updating the code to use the latest API response field names.
+    -   Corrected the display of savings data on the member and savings dashboards to reflect API changes.
+    -   Ensured custom products added during merchant registration are correctly included in the payload.
+    -   Updated category images to use  from the API response with a fallback to local images.
+    -   Fixed the broken Update Profile Image button on the account page.
+
+**Earlier issues found/mentioned but not fixed**
+-   None.
+
+**Known issue recurrence from previous fork**
+-   **Issue recurrence in previous fork**: The application showed a blank white screen when the user ran it locally.
+-   **Recurrence count**: 2
+-   **Status**: RESOLVED
+
+**Code Architecture**
+The project is a standard Expo (React Native) application with a file-based routing system ().
+-   ****: Contains all screens, navigators, and layouts.
+-   ****: Home to reusable components like  and .
+-   ****: Manages API calls to the external backend.
+-   ****: Contains the Zustand store for authentication state.
+-   ****: The critical Firebase configuration file for the Android app.
+
+**Key Technical Concepts**
+-   **Framework**: Expo (React Native)
+-   **Authentication**: Firebase Phone Authentication ().
+-   **Deep Linking**:  for native Android app intents.
+-   **UI**:  for handling device insets,  for form usability.
+-   **Deployment**: Static web export for preview, EAS Build for native Android production.
+
+**key DB schema**
+The application is database-less and relies entirely on a third-party REST API. Key data structures include:
+-   **TransactionSummary**: 
+-   **Transaction**: 
+-   **Category**: 
+
+**changes in tech stack**
+-   Added  to reliably open external Android applications.
+
+**All files of reference**
+-   ****: The most critical file worked on, updated multiple times to fix Firebase auth.
+-   ****: Contains the core logic for mobile and web authentication.
+-   ****: Updated with  for deep linking and  for UI.
+-   ****: Updated to use  to prevent UI overlap on Android.
+-   **All dashboard files ()**: Updated to display dynamic profile images and use correct transaction data fields.
+-   ****: Logic for image picking and uploading was fixed here.
+-   ****: This file was **deleted** to resolve the local development blank screen issue.
+
+**Areas that need refactoring**:
+-   The four dashboard components (, , , ) share significant layout and logic (e.g., header, location fetching). This could be abstracted into a reusable  component to reduce duplication and improve maintainability.
+-   Data interfaces for API objects (like ) are defined in multiple places. Consolidating these into a central  directory would create a single source of truth.
+
+**key api endpoints**
+-   : Submit a new transaction.
+-   : Fetch savings summary and transaction history.
+-   : Fetch business categories.
+-   : Upload user profile image.
+
+**Critical Info for New Agent**
+1.  **Firebase Auth on Android is Sensitive**: The main blocker was Firebase Phone Auth failing on production builds. The root cause is almost always a mismatch between the SHA certificate fingerprints in your Firebase project settings and the key used to sign the app. Google Play signs apps with its own App signing key. The  file in the project **must** contain the  entry for this key. The last action was to update this file, but verification from the user is pending.
+2.  **Platform-Specific Logic**: The app has distinct behaviors on web vs. mobile (e.g., test vs. real OTP, local vs. API image storage). Always check for  conditions when debugging.
+3.  **CORS is Expected**: API calls in the web preview environment will fail due to CORS. This is a known limitation. Focus on code logic, not live data, when testing in the preview.
+4.  **Rebuilds are Necessary**: Any frontend code change requires a rebuild () to be visible in the preview environment. A native build () is required for the user to test mobile-specific changes.
+
+**documents and test reports created in this job**
+None.
+
+**Last 10 User Messages and any pending HUMAN messages**
+1.  **User**: Provided the latest  file with the correct SHA key. (Handled)
+2.  **User**: Confirmed that all required APIs are enabled in their Google Cloud project. (Acknowledged)
+3.  **User**: Provided the SHA-256 hashes for their upload and app signing keys. (Used for diagnosis)
+4.  **User**:  (This is the active, pending issue).
+5.  **User**:  (Fixed with ).
+6.  **User**: Asked to remove reCAPTCHA from the OTP service. (Attempted, which led to the deeper Firebase diagnosis).
+7.  **User**:  (Previous failed attempt to fix deep links).
+8.  **User**:  (Fixed).
+9.  **User**:  (Implemented).
+10. **User**:  (Clarified that UPI links are mobile-only).
+
+**Project Health Check:**
+-   **Broken**: API-dependent features are broken *only in the web preview* due to CORS. They are expected to work on a native build.
+-   **Mocked**: The web version uses a mock OTP flow () and saves profile images to local storage instead of the backend API.
+
+**3rd Party Integrations**
+-   **Firebase**: Used for phone authentication on native mobile via .
+-   The application consumes a proprietary external API at .
+
+**Testing status**
+-   **Testing agent used after significant changes**: NO
+-   **Troubleshoot agent used after agent stuck in loop**: NO
+-   **Test files created**: []
+-   **Known regressions**: None
+
+**Credentials to test flow:**
+-   **Web**: Use any mobile number. The required OTP is .
+-   **Mobile**: Requires a real device and a native build. The user must perform this testing.
+
+**What agent forgot to execute**
+-   The agent was systematic and addressed all user requests. The iterative nature of debugging native mobile issues like Firebase auth and deep linking required multiple attempts, which is normal for such complex, environment-dependent problems.</analysis>
