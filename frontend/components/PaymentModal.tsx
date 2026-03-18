@@ -131,43 +131,50 @@ export default function PaymentModal({
     }
   };
 
-  const buildUpiUrl = (scheme: string) => {
-    const params = new URLSearchParams();
-    if (merchantUpiId) params.append('pa', merchantUpiId);
-    if (merchantName) params.append('pn', merchantName);
-    if (finalPaidAmount > 0) params.append('am', finalPaidAmount.toFixed(2));
-    params.append('cu', 'INR');
-    params.append('tn', 'Payment via InTown');
-    return `${scheme}?${params.toString()}`;
+  const buildUpiParams = () => {
+    const params: string[] = [];
+    if (merchantUpiId) params.push(`pa=${encodeURIComponent(merchantUpiId)}`);
+    if (merchantName) params.push(`pn=${encodeURIComponent(merchantName)}`);
+    if (finalPaidAmount > 0) params.push(`am=${finalPaidAmount.toFixed(2)}`);
+    params.push('cu=INR');
+    params.push(`tn=${encodeURIComponent('Payment via InTown')}`);
+    return params.join('&');
   };
 
-  const getPaymentAppUrls = (methodId: string): string[] => {
+  const getPaymentAppConfig = (methodId: string) => {
+    const upiParams = buildUpiParams();
+    // Android intent URI format targets specific app by package name
     switch (methodId) {
       case 'phonepe':
-        return [
-          buildUpiUrl('phonepe://pay'),
-          buildUpiUrl('upi://pay'),
-        ];
+        return {
+          intentUri: `intent://pay?${upiParams}#Intent;scheme=upi;package=com.phonepe.app;end`,
+          fallbackUrl: `upi://pay?${upiParams}`,
+          appName: 'PhonePe',
+        };
       case 'googlepay':
-        return [
-          buildUpiUrl('tez://upi/pay'),
-          buildUpiUrl('gpay://upi/pay'),
-          buildUpiUrl('upi://pay'),
-        ];
+        return {
+          intentUri: `intent://pay?${upiParams}#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end`,
+          fallbackUrl: `tez://upi/pay?${upiParams}`,
+          appName: 'Google Pay',
+        };
       case 'paytm':
-        return [
-          buildUpiUrl('paytmmp://pay'),
-          buildUpiUrl('upi://pay'),
-        ];
+        return {
+          intentUri: `intent://pay?${upiParams}#Intent;scheme=upi;package=net.one97.paytm;end`,
+          fallbackUrl: `upi://pay?${upiParams}`,
+          appName: 'Paytm',
+        };
       case 'amazonpay':
-        return [
-          buildUpiUrl('amazonpay://pay'),
-          buildUpiUrl('upi://pay'),
-        ];
-      case 'cash':
-        return [];
+        return {
+          intentUri: `intent://pay?${upiParams}#Intent;scheme=upi;package=in.amazon.mShop.android.shopping;end`,
+          fallbackUrl: `upi://pay?${upiParams}`,
+          appName: 'Amazon Pay',
+        };
       default:
-        return [buildUpiUrl('upi://pay')];
+        return {
+          intentUri: `upi://pay?${upiParams}`,
+          fallbackUrl: `upi://pay?${upiParams}`,
+          appName: methodId,
+        };
     }
   };
 
@@ -186,31 +193,39 @@ export default function PaymentModal({
         return;
       }
 
-      const urls = getPaymentAppUrls(methodId);
-
+      const config = getPaymentAppConfig(methodId);
       let opened = false;
-      for (const url of urls) {
+
+      // Try Android intent URI first (targets specific app by package name)
+      if (Platform.OS === 'android') {
         try {
-          const canOpen = await Linking.canOpenURL(url);
-          if (canOpen) {
-            await Linking.openURL(url);
-            opened = true;
-            break;
-          }
+          await Linking.openURL(config.intentUri);
+          opened = true;
         } catch (e) {
-          continue;
+          console.log(`Intent URI failed for ${methodName}, trying fallback`);
         }
       }
 
+      // Try fallback URL (works on iOS and as Android fallback)
       if (!opened) {
-        // Fallback: try generic UPI intent which shows system app picker
         try {
-          const genericUpi = buildUpiUrl('upi://pay');
-          await Linking.openURL(genericUpi);
+          await Linking.openURL(config.fallbackUrl);
+          opened = true;
+        } catch (e) {
+          console.log(`Fallback URL failed for ${methodName}, trying generic UPI`);
+        }
+      }
+
+      // Last resort: generic UPI scheme (opens system app picker)
+      if (!opened) {
+        try {
+          const upiParams = buildUpiParams();
+          await Linking.openURL(`upi://pay?${upiParams}`);
+          opened = true;
         } catch (e) {
           Alert.alert(
             'App Not Found',
-            `${methodName} is not installed on this device. Please install it or try a different payment method.`
+            `${methodName} is not installed on this device. Please install it from Play Store or try a different payment method.`
           );
         }
       }
