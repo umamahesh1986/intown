@@ -9,10 +9,16 @@
       "distribution": "internal"
     },
     "preview": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "EAS_BUILD_DISABLE_NPM_CACHE": "1"
+      }
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "env": {
+        "EAS_BUILD_DISABLE_NPM_CACHE": "1"
+      }
     }
   },
   "submit": {

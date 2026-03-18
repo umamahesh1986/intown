@@ -124,13 +124,16 @@ export default function OTPScreen() {
   /* ===============================
      SEND OTP
   ================================ */
-  const sendOtp = async () => {
+  const [isResend, setIsResend] = useState(false);
+
+  const sendOtp = async (forceResend = false) => {
     if (isSendingOtp) return;
     
     const formattedPhone = formatPhoneNumber(phone || "");
     console.log("=== SENDING OTP ===");
     console.log("Platform:", Platform.OS);
     console.log("Phone:", formattedPhone);
+    console.log("Force resend:", forceResend);
     
     setStatusMessage("Sending OTP...");
     setIsSendingOtp(true);
@@ -160,17 +163,13 @@ export default function OTPScreen() {
         
         const auth = firebaseAuth();
         
-        // Force native app verification only (no reCAPTCHA fallback)
-        if (auth.settings) {
-          auth.settings.appVerificationDisabledForTesting = false;
-          auth.settings.forceRecaptchaFlowForTesting = false;
-        }
-        
-        const confirmation = await auth.signInWithPhoneNumber(formattedPhone, true);
+        // Only pass forceResend=true when user explicitly clicks "Resend OTP"
+        const confirmation = await auth.signInWithPhoneNumber(formattedPhone, forceResend);
         
         console.log("=== OTP SENT SUCCESSFULLY (Mobile) ===");
         setConfirmationResult(confirmation);
         setOtpSent(true);
+        setIsResend(true);
         setStatusMessage("OTP sent! Check your SMS.");
         showOtpSentPopup("OTP sent successfully");
       } else if (isMobile && !firebaseAuth) {
@@ -215,7 +214,7 @@ export default function OTPScreen() {
      AUTO SEND OTP ON MOUNT
   ================================ */
   useEffect(() => {
-    const t = setTimeout(sendOtp, 1000);
+    const t = setTimeout(() => sendOtp(false), 1000);
     return () => clearTimeout(t);
   }, []);
 
@@ -252,7 +251,7 @@ export default function OTPScreen() {
         "OTP Not Sent", 
         "Please wait for OTP to be sent first, or click 'Resend OTP'",
         [
-          { text: "Resend OTP", onPress: () => sendOtp() },
+          { text: "Resend OTP", onPress: () => sendOtp(true) },
           { text: "Cancel", style: "cancel" }
         ]
       );
@@ -509,7 +508,7 @@ export default function OTPScreen() {
         <View style={styles.resendContainer}>
           <Text style={styles.resendLabel}>Didn't receive the code? </Text>
           <TouchableOpacity 
-            onPress={sendOtp} 
+            onPress={() => sendOtp(true)} 
             disabled={!canResend || isSendingOtp}
           >
             <Text style={[styles.resendText, (!canResend || isSendingOtp) && styles.resendDisabled]}>
