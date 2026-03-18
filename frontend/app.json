@@ -68,7 +68,8 @@
       ],
       "@react-native-firebase/app",
       "@react-native-firebase/auth",
-      "expo-build-properties"
+      "expo-build-properties",
+      "./plugins/withUpiQueries"
     ],
     "experiments": {
       "typedRoutes": true

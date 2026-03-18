@@ -165,54 +165,64 @@ export default function PaymentModal({
       if (!packageName) return;
 
       let opened = false;
+      const upiId = merchantUpiId || '';
+      const name = merchantName || 'Merchant';
+      const payAmount = finalPaidAmount > 0 ? finalPaidAmount.toFixed(2) : '0';
 
       if (Platform.OS === 'android') {
-        // Build UPI payment URI with merchant details
-        const upiId = merchantUpiId || '';
-        const name = encodeURIComponent(merchantName || 'Merchant');
-        const payAmount = finalPaidAmount > 0 ? finalPaidAmount.toFixed(2) : '0';
-        const upiUri = upiId
-          ? `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${name}&am=${payAmount}&cu=INR`
-          : `upi://pay?pn=${name}&am=${payAmount}&cu=INR`;
+        // Strategy 1: Use app-specific UPI deep link schemes (most reliable with <queries> declared)
+        const appSpecificUpiLinks: Record<string, string> = {
+          phonepe: `phonepe://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(name)}&am=${payAmount}&cu=INR`,
+          googlepay: `tez://upi/pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(name)}&am=${payAmount}&cu=INR`,
+          paytm: `paytmmp://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(name)}&am=${payAmount}&cu=INR`,
+          amazonpay: `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(name)}&am=${payAmount}&cu=INR`,
+        };
 
-        // Method 1: Use ACTION_VIEW with UPI URI + specific package (most reliable)
-        try {
-          await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
-            data: upiUri,
-            packageName: packageName,
-          });
-          opened = true;
-        } catch (e) {
-          console.log(`IntentLauncher VIEW failed for ${methodName}:`, e);
+        const deepLink = appSpecificUpiLinks[methodId];
+        if (deepLink) {
+          try {
+            const canOpen = await Linking.canOpenURL(deepLink);
+            if (canOpen) {
+              await Linking.openURL(deepLink);
+              opened = true;
+            }
+          } catch (e) {
+            console.log(`Deep link failed for ${methodName}:`, e);
+          }
         }
 
-        // Method 2: Fallback - use Linking with Android intent URI targeting specific package
+        // Strategy 2: Fallback to expo-intent-launcher with package targeting
         if (!opened) {
           try {
-            const intentUri = `intent://pay${upiId ? `?pa=${encodeURIComponent(upiId)}&pn=${name}&am=${payAmount}&cu=INR` : ''}#Intent;scheme=upi;package=${packageName};end`;
-            await Linking.openURL(intentUri);
+            const upiUri = upiId
+              ? `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(name)}&am=${payAmount}&cu=INR`
+              : `upi://pay?pn=${encodeURIComponent(name)}&am=${payAmount}&cu=INR`;
+            await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
+              data: upiUri,
+              packageName: packageName,
+            });
             opened = true;
           } catch (e) {
-            console.log(`Intent URI failed for ${methodName}:`, e);
+            console.log(`IntentLauncher failed for ${methodName}:`, e);
           }
         }
       }
 
-      // iOS or final fallback: app-specific URL schemes
-      if (!opened) {
-        const schemes: Record<string, string> = {
+      // iOS fallback
+      if (!opened && Platform.OS === 'ios') {
+        const iosSchemes: Record<string, string> = {
           phonepe: 'phonepe://',
           googlepay: 'tez://',
           paytm: 'paytmmp://',
           amazonpay: 'amazonpay://',
         };
-        const scheme = schemes[methodId];
+        const scheme = iosSchemes[methodId];
         if (scheme) {
           try {
             await Linking.openURL(scheme);
             opened = true;
           } catch (e) {
-            console.log(`Scheme failed for ${methodName}`);
+            console.log(`iOS scheme failed for ${methodName}`);
           }
         }
       }
