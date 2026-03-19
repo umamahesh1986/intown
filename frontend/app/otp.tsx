@@ -219,8 +219,12 @@ export default function OTPScreen() {
       }
 
       // IMPORTANT: Await setUser and setToken to ensure state is set BEFORE navigation
+      console.log("=== SETTING AUTH STATE ===");
+      console.log("authUser:", JSON.stringify(authUser));
       await setUser(authUser);
+      console.log("=== setUser DONE ===");
       await setToken(`token_${userId}`);
+      console.log("=== setToken DONE ===");
 
       setStatusMessage("Success! Redirecting...");
 
@@ -231,10 +235,12 @@ export default function OTPScreen() {
         if (mId) routeParams.merchantId = String(mId);
       }
 
+      console.log("=== NAVIGATING TO ===", roleInfo.dashboard, JSON.stringify(routeParams));
       router.replace({
         pathname: roleInfo.dashboard as any,
         params: routeParams,
       });
+      console.log("=== NAVIGATION DISPATCHED ===");
     } catch (err: any) {
       console.error("=== PROCESS USER ERROR ===", err);
       hasProcessedAuth.current = false;

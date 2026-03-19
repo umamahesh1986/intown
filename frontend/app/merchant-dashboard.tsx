@@ -28,19 +28,17 @@ import {
   setManualLocation
 } from '../utils/location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { FontStylesWithFallback } from '../utils/fonts';
 import Footer from '../components/Footer'
 import { useFocusEffect } from '@react-navigation/native';
-
-import CommonBottomTabs from "../components/CommonBottomTabs";
+import { ErrorBoundary } from '../components/ErrorBoundary';
 
 // ===== MERCHANT CAROUSEL CONFIG (SAME AS MEMBER) =====
 const { width } = Dimensions.get('window');
 
-const SLIDE_WIDTH = Math.round(width);
+const SLIDE_WIDTH = Math.round(width) || 360;
 const CAROUSEL_HEIGHT = 160;
 
-const SHOP_IMAGE_WIDTH = width - 64;
+const SHOP_IMAGE_WIDTH = (width || 360) - 64;
 
 
 
@@ -104,9 +102,12 @@ const formatTransactionDate = (value: string) => {
 };
 
 export default function MerchantDashboard() {
+  console.log("=== MERCHANT DASHBOARD MOUNTING ===");
   const router = useRouter();
   const params = useLocalSearchParams<{ userType?: string; merchantId?: string }>();
+  console.log("=== MERCHANT DASHBOARD PARAMS ===", JSON.stringify(params));
   const { user, logout, token } = useAuthStore();
+  console.log("=== MERCHANT DASHBOARD USER ===", JSON.stringify(user));
   const [showDropdown, setShowDropdown] = useState(false);
   const [userType, setUserType] = useState<string>('Merchant');
   const [merchantId, setMerchantId] = useState<string | null>(null);
@@ -581,6 +582,7 @@ export default function MerchantDashboard() {
 
 
   return (
+    <ErrorBoundary fallbackText="Merchant Dashboard Error">
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Header */}
@@ -1103,6 +1105,7 @@ export default function MerchantDashboard() {
         </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
+    </ErrorBoundary>
   );
 }
 
@@ -1371,16 +1374,15 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   summaryLabel: {
-    ...FontStylesWithFallback.caption,
-    color: '#777777',
     fontSize: 11,
     fontWeight: '700',
     textAlign: 'center',
+    color: '#777777',
   },
   summaryValue: {
-    ...FontStylesWithFallback.h3,
-    color: '#fe6f09',
+    fontSize: 18,
     fontWeight: '700',
+    color: '#fe6f09',
     marginTop: 6,
   },
   transactionRow: {
