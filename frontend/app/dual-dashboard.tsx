@@ -216,7 +216,7 @@ const TransactionCard = ({ transaction }: { transaction: Transaction }) => (
             : styles.debitAmount,
         ]}
       >
-        {transaction.type === 'credit' ? '' : ''}₹{transaction.amount.toFixed(2)}
+        {transaction.type === 'credit' ? '' : ''}₹{(transaction.amount ?? 0).toFixed(2)}
       </Text>
       <Text
         style={[
@@ -1108,8 +1108,8 @@ export default function DualDashboard() {
             <Text style={styles.statValue}>
 
               {activeTab === 'customer'
-                ? customerTodaySaved.toFixed(0)
-                : merchantTodaySales.toFixed(0)}
+                ? (customerTodaySaved ?? 0).toFixed(0)
+                : (merchantTodaySales ?? 0).toFixed(0)}
             </Text>
             
           </View>
@@ -1122,8 +1122,8 @@ export default function DualDashboard() {
             <Text style={styles.statValue}>
 
               {activeTab === 'customer'
-                ? customerMonthSaved.toFixed(0)
-                : merchantMonthSales.toFixed(0)}
+                ? (customerMonthSaved ?? 0).toFixed(0)
+                : (merchantMonthSales ?? 0).toFixed(0)}
             </Text>
             
           </View>
@@ -1136,8 +1136,8 @@ export default function DualDashboard() {
             <Text style={styles.statValue}>
 
               {activeTab === 'customer'
-                ? customerYearSaved.toFixed(0)
-                : merchantYearSales.toFixed(0)}
+                ? (customerYearSaved ?? 0).toFixed(0)
+                : (merchantYearSales ?? 0).toFixed(0)}
             </Text>
             
           </View>

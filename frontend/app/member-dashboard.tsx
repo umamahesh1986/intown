@@ -1026,15 +1026,15 @@ export default function MemberDashboard() {
             <View style={styles.summaryRow}>
               <View style={styles.summaryItem}>
                 <Text style={styles.summaryLabel}>Today </Text>
-                <Text style={styles.summaryValue}>{todaySavedAmount.toFixed(0)}</Text>
+                <Text style={styles.summaryValue}>{(todaySavedAmount ?? 0).toFixed(0)}</Text>
               </View>
               <View style={styles.summaryItem}>
                 <Text style={styles.summaryLabel}>Month</Text>
-                <Text style={styles.summaryValue}>{monthSavedAmount.toFixed(0)}</Text>
+                <Text style={styles.summaryValue}>{(monthSavedAmount ?? 0).toFixed(0)}</Text>
               </View>
               <View style={styles.summaryItem}>
                 <Text style={styles.summaryLabel}>Year</Text>
-                <Text style={styles.summaryValue}>{yearSavedAmount.toFixed(0)}</Text>
+                <Text style={styles.summaryValue}>{(yearSavedAmount ?? 0).toFixed(0)}</Text>
               </View>
             </View>
           </View>

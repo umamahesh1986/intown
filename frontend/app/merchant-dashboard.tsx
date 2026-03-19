@@ -813,16 +813,16 @@ export default function MerchantDashboard() {
                 <View style={{ flex: 2.5, flexDirection: 'row', justifyContent: 'flex-end', gap: 5 }}>
                   <View style={styles.transactionAmountBlock}>
                     <Text style={styles.transactionAmountLabel}>Sales</Text>
-                    <Text style={styles.transactionAmountValue}>₹{sale.totalSalesValue.toFixed(0)}</Text>
+                    <Text style={styles.transactionAmountValue}>₹{(sale.totalSalesValue ?? 0).toFixed(0)}</Text>
                   </View>
                   <View style={styles.transactionAmountBlock}>
                     <Text style={styles.transactionAmountLabel}>Disc.</Text>
-                    <Text style={styles.transactionAmountValue}>₹{sale.totalDiscountGiven.toFixed(0)}</Text>
+                    <Text style={styles.transactionAmountValue}>₹{(sale.totalDiscountGiven ?? 0).toFixed(0)}</Text>
                   </View>
                   <View style={styles.transactionAmountBlock}>
                     <Text style={styles.transactionAmountLabel}>Recv.</Text>
                     <Text style={[styles.transactionAmountValue, { color: '#4CAF50' }]}>
-                      ₹{sale.totalAmountReceived.toFixed(0)}
+                      ₹{(sale.totalAmountReceived ?? 0).toFixed(0)}
                     </Text>
                   </View>
                 </View>
@@ -979,19 +979,19 @@ export default function MerchantDashboard() {
                       <View style={styles.transactionAmountBlock}>
                         <Text style={styles.transactionAmountLabel}>Sales</Text>
                         <Text style={styles.transactionAmountValue}>
-                          ₹{sale.totalSalesValue.toFixed(2)}
+                          ₹{(sale.totalSalesValue ?? 0).toFixed(2)}
                         </Text>
                       </View>
                       <View style={styles.transactionAmountBlock}>
                         <Text style={styles.transactionAmountLabel}>Discount</Text>
                         <Text style={styles.transactionAmountValue}>
-                          ₹{sale.totalDiscountGiven.toFixed(2)}
+                          ₹{(sale.totalDiscountGiven ?? 0).toFixed(2)}
                         </Text>
                       </View>
                       <View style={styles.transactionAmountBlock}>
                         <Text style={styles.transactionAmountLabel}>Received</Text>
                         <Text style={styles.transactionAmountValue}>
-                          ₹{sale.totalAmountReceived.toFixed(2)}
+                          ₹{(sale.totalAmountReceived ?? 0).toFixed(2)}
                         </Text>
                       </View>
                     </View>
