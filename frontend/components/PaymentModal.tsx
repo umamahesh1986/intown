@@ -134,9 +134,25 @@ export default function PaymentModal({
     const payAmount = finalPaidAmount > 0 ? finalPaidAmount.toFixed(2) : '1';
     const upiUri = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(name)}&am=${payAmount}&cu=INR&tn=INtownPayment`;
 
+    console.log('=== UPI PAYMENT ===');
+    console.log('UPI URI:', upiUri);
+    console.log('Merchant UPI ID:', upiId);
+    console.log('Merchant Name:', name);
+    console.log('Amount:', payAmount);
+
     try {
-      // Open the native Android UPI app chooser
-      await Linking.openURL(upiUri);
+      // Check if any app can handle the UPI scheme first
+      const canOpen = await Linking.canOpenURL(upiUri);
+      console.log('Can open UPI URL:', canOpen);
+
+      if (canOpen) {
+        // Open the native Android UPI app chooser
+        await Linking.openURL(upiUri);
+      } else {
+        // Fallback: try generic upi://pay without parameters
+        console.log('Trying generic upi://pay...');
+        await Linking.openURL('upi://pay');
+      }
 
       // After the UPI app is launched, complete the flow
       onSuccess(amountValue, intownSavings > 0 ? intownSavings : 0, 'UPI');

@@ -394,6 +394,7 @@ export default function MemberNavigate() {
         onSuccess={handlePaymentSuccess}
         merchantId={shopId}
         customerId={customerId ?? undefined}
+        merchantName={shopName || 'Shop'}
         redirectTo={redirectTo}
       />
     </SafeAreaView>

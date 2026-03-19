@@ -452,6 +452,7 @@ export default function MemberShopDetails() {
         onSuccess={handlePaymentSuccess}
         merchantId={shop.id}
         customerId={customerId ?? ''}
+        merchantName={shop.businessName || 'Shop'}
         redirectTo={redirectTo}
       />
 
