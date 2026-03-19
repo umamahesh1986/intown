@@ -13,7 +13,6 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useState } from 'react';
-import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 interface PaymentModalProps {
@@ -37,7 +36,6 @@ export default function PaymentModal({
   merchantName,
   redirectTo,
 }: PaymentModalProps) {
-  const router = useRouter();
   const [amount, setAmount] = useState('');
   const [instantSavingsInput, setInstantSavingsInput] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -140,45 +138,43 @@ export default function PaymentModal({
     console.log('Merchant Name:', name);
     console.log('Amount:', payAmount);
 
-    try {
-      // Check if any app can handle the UPI scheme first
-      const canOpen = await Linking.canOpenURL(upiUri);
-      console.log('Can open UPI URL:', canOpen);
+    // Step 1: Complete the transaction and close the modal FIRST
+    onSuccess(amountValue, intownSavings > 0 ? intownSavings : 0, 'UPI');
+    setAmount('');
+    setInstantSavingsInput('');
+    setShowSuccess(false);
+    onClose();
 
-      if (canOpen) {
-        // Open the native Android UPI app chooser
-        await Linking.openURL(upiUri);
-      } else {
-        // Fallback: try generic upi://pay without parameters
-        console.log('Trying generic upi://pay...');
-        await Linking.openURL('upi://pay');
+    // Step 2: Open UPI app chooser AFTER modal is closed
+    // Small delay to ensure modal dismisses before the native chooser appears
+    setTimeout(async () => {
+      try {
+        const canOpen = await Linking.canOpenURL(upiUri);
+        console.log('Can open UPI URL:', canOpen);
+
+        if (canOpen) {
+          await Linking.openURL(upiUri);
+        } else {
+          // Fallback: try generic upi://pay
+          console.log('Trying generic upi://pay...');
+          const canOpenGeneric = await Linking.canOpenURL('upi://pay');
+          if (canOpenGeneric) {
+            await Linking.openURL('upi://pay');
+          } else {
+            Alert.alert(
+              'No UPI App Found',
+              'No UPI payment app found on your device. Please install a UPI app like PhonePe, Google Pay, or Paytm.'
+            );
+          }
+        }
+      } catch (error) {
+        console.error('UPI open error:', error);
+        Alert.alert(
+          'No UPI App Found',
+          'Could not open UPI payment. Please install a UPI app like PhonePe, Google Pay, or Paytm.'
+        );
       }
-
-      // After the UPI app is launched, complete the flow
-      onSuccess(amountValue, intownSavings > 0 ? intownSavings : 0, 'UPI');
-      setAmount('');
-      setInstantSavingsInput('');
-      setShowSuccess(false);
-      onClose();
-      router.replace((redirectTo || '/member-dashboard') as any);
-    } catch (error) {
-      console.error('UPI open error:', error);
-      Alert.alert(
-        'No UPI App Found',
-        'No UPI payment app found on your device. Please install a UPI app like PhonePe, Google Pay, or Paytm.',
-        [
-          { text: 'OK', onPress: () => {
-            // Still complete the transaction since API call already succeeded
-            onSuccess(amountValue, intownSavings > 0 ? intownSavings : 0, 'Cash');
-            setAmount('');
-            setInstantSavingsInput('');
-            setShowSuccess(false);
-            onClose();
-            router.replace((redirectTo || '/member-dashboard') as any);
-          }}
-        ]
-      );
-    }
+    }, 500);
   };
 
   const handleDismiss = () => {
