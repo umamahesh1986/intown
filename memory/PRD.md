@@ -32,14 +32,16 @@ Build and maintain a local shopping and savings mobile app (Expo/React Native) t
 - **Auto OTP Detection (Android)**: Firebase reads SMS silently and auto-verifies. Uses `onAuthStateChanged` listener to detect auto-verification. When detected, skips manual OTP entry and proceeds directly to login. Shows "OTP auto-detected! Logging you in..." UI indicator. Falls back to manual entry if auto-detect times out.
 
 ### UPI Payment Deep Links
-- `PaymentModal.tsx` refactored with `openUpiApp()` using `expo-intent-launcher`
-- Uses `ACTION_VIEW` with `upi://pay` URI + specific `packageName` per app
-- `onSuccess()` only called when app actually opens (not in `finally` block)
-- **Dynamic App Detection**: On "OK" click after payment success, detects which UPI apps (PhonePe, GPay, Paytm, Amazon Pay, BHIM, CRED) are installed on the device using `Linking.canOpenURL`. Shows only installed apps + Cash fallback.
-- `AndroidManifest.xml` updated with `<queries>` for all UPI apps (Android 11+ package visibility)
-- Expo config plugin `withUpiQueries.js` to persist queries across rebuilds
-- `app.json` includes UPI intent filters
-- Fallback: If specific app launch fails, opens generic UPI chooser via `Linking.openURL`
+- `PaymentModal.tsx` uses `Linking.openURL` with Android intent URIs to target specific UPI apps
+- Intent URI format: `intent://pay?params#Intent;scheme=upi;package=com.app.name;end`
+- This directly opens the selected app without showing a system chooser
+- Fallback chain: intent URI → app-specific scheme → generic UPI chooser
+- **Dynamic App Detection**: Detects installed UPI apps (PhonePe, GPay, Paytm, Amazon Pay, BHIM, CRED, iMobile Pay, Axis Mobile, IDFC FIRST Bank) using `Linking.canOpenURL` with intent URIs and scheme checks
+- Shows only installed apps + Cash fallback
+- `AndroidManifest.xml` updated with `<queries>` for all 9 UPI app packages (Android 11+ package visibility)
+- Expo config plugin `withUpiQueries.js` persists queries across rebuilds
+- **REMOVED** `upi` intent filter from `app.json` to prevent IntownLocal from appearing as a UPI handler in Android chooser
+- **REMOVED** `expo-intent-launcher` dependency (was causing "Something went wrong" errors); replaced with `Linking.openURL`
 
 ### UI/UX Fixes (Previous Sessions)
 - Dynamic profile images in headers across all dashboards
@@ -72,12 +74,15 @@ Build and maintain a local shopping and savings mobile app (Expo/React Native) t
   - Rebuild and test (may need 30min-few hours for API propagation)
 
 ### P0: UPI Apps Not Opening Directly
-- **Status**: Code refactored per user's approach, awaiting build + test
+- **Status**: FIXED — Code updated, awaiting user build + device test
+- **Root cause**: `expo-intent-launcher` (`IntentLauncher.startActivityAsync`) was failing on device. Also, `app.json` had a `upi` intent filter making IntownLocal appear as a UPI handler.
 - **Code fixes done**:
-  - Replaced with clean `openUpiApp()` using `IntentLauncher.startActivityAsync`
-  - Added `<queries>` to AndroidManifest for package visibility
-  - Fixed `onSuccess` to only trigger when app actually opens
-- **User action needed**: Build with EAS and test on device
+  - Removed `upi` intent filter from `app.json`
+  - Replaced `expo-intent-launcher` with `Linking.openURL` using Android intent URIs (`intent://...#Intent;scheme=upi;package=...;end`)
+  - Added 3 more UPI apps to detection list (iMobile Pay, Axis Mobile, IDFC FIRST Bank)
+  - Updated `withUpiQueries.js` plugin with all 9 app packages
+  - Multi-fallback: intent URI → app scheme → generic UPI chooser
+- **User action needed**: Run `npx expo prebuild --clean` then `eas build` and test on device
 
 ### P1: EAS Build Failure
 - **Status**: Build config updated, awaiting user retry

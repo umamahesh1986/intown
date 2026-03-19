@@ -16,7 +16,6 @@ import {
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import * as IntentLauncher from 'expo-intent-launcher';
 
 interface PaymentApp {
   id: string;
@@ -34,6 +33,9 @@ const ALL_UPI_APPS: PaymentApp[] = [
   { id: 'amazonpay', name: 'Amazon Pay', packageName: 'in.amazon.mShop.android.shopping', scheme: 'amazonpay://', icon: 'cart', color: '#FF9900' },
   { id: 'bhim', name: 'BHIM UPI', packageName: 'in.org.npci.upiapp', scheme: 'upi://', icon: 'shield-checkmark', color: '#00695C' },
   { id: 'cred', name: 'CRED', packageName: 'com.dreamplug.androidapp', scheme: 'cred://', icon: 'diamond', color: '#1A1A1A' },
+  { id: 'imobile', name: 'iMobile Pay', packageName: 'com.csam.icici.bank.imobile', scheme: 'iMobile://', icon: 'business', color: '#F37021' },
+  { id: 'axispay', name: 'Axis Mobile', packageName: 'com.upi.axispay', scheme: 'axisbank://', icon: 'globe', color: '#97144D' },
+  { id: 'idfcfirst', name: 'IDFC FIRST Bank', packageName: 'com.idfcfirstbank.optimus', scheme: 'idfcfirst://', icon: 'card', color: '#9C1D26' },
 ];
 
 interface PaymentModalProps {
@@ -79,16 +81,29 @@ export default function PaymentModal({
 
   /* ===============================
      DETECT INSTALLED UPI APPS
-     Checks which payment apps are installed on the device
+     Uses multiple detection methods to find which UPI apps are installed.
+     On Android 11+, package visibility requires <queries> in AndroidManifest.xml.
   ================================ */
   const detectInstalledApps = async () => {
     setIsDetectingApps(true);
     const installed: PaymentApp[] = [];
 
     if (Platform.OS === 'android') {
-      // First pass: scheme-level detection
       for (const app of ALL_UPI_APPS) {
         try {
+          // Method 1: Check intent URI with package name (most reliable on Android 11+)
+          const intentUri = `intent://pay#Intent;scheme=upi;package=${app.packageName};end`;
+          const canOpenIntent = await Linking.canOpenURL(intentUri);
+          if (canOpenIntent) {
+            installed.push(app);
+            continue;
+          }
+        } catch (e) {
+          // ignore
+        }
+
+        try {
+          // Method 2: Check app-specific scheme (phonepe://, tez://, etc.)
           const canOpen = await Linking.canOpenURL(app.scheme);
           if (canOpen) {
             installed.push(app);
@@ -98,26 +113,12 @@ export default function PaymentModal({
         }
       }
 
-      // Second pass: package-specific intent URL probing (helps on Android 11+)
-      if (installed.length === 0) {
-        for (const app of ALL_UPI_APPS) {
-          try {
-            const intentUrl = `intent://pay#Intent;scheme=upi;package=${app.packageName};end`;
-            const canOpenIntent = await Linking.canOpenURL(intentUrl);
-            if (canOpenIntent) {
-              installed.push(app);
-            }
-          } catch (e) {
-            // ignore
-          }
-        }
-      }
-
-      // Last fallback: show common UPI apps if generic UPI handler exists
+      // Fallback: If no apps detected but generic UPI is available, show common apps
       if (installed.length === 0) {
         try {
           const canOpenUpi = await Linking.canOpenURL('upi://pay');
           if (canOpenUpi) {
+            // Show top 4 popular UPI apps as suggestions
             installed.push(...ALL_UPI_APPS.slice(0, 4));
           }
         } catch (e) {}
@@ -204,102 +205,94 @@ export default function PaymentModal({
     }
   };
 
-  const openUpiApp = async (methodId: string, methodName: string) => {
+  /* ===============================
+     BUILD UPI PAY URI
+  ================================ */
+  const buildUpiPayUri = () => {
+    const upiId = merchantUpiId || '';
+    const name = merchantName || 'INtown';
+    const payAmount = finalPaidAmount > 0 ? finalPaidAmount.toFixed(2) : '1';
+    return `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(name)}&am=${payAmount}&cu=INR&tn=INtownPayment`;
+  };
+
+  /* ===============================
+     COMPLETE PAYMENT & NAVIGATE
+  ================================ */
+  const completePayment = (methodName: string) => {
+    onSuccess(amountValue, intownSavings > 0 ? intownSavings : 0, methodName);
+    setAmount('');
+    setInstantSavingsInput('');
+    setSelectedMethod('');
+    setShowMethods(false);
+    setShowSuccess(false);
+    onClose();
+    router.replace((redirectTo || '/member-dashboard') as any);
+  };
+
+  /* ===============================
+     OPEN UPI APP USING Linking.openURL
+     Uses Android intent URI to target a specific package directly.
+     Format: intent://pay?params#Intent;scheme=upi;package=com.app.name;end
+     This avoids IntentLauncher issues and opens the exact app.
+  ================================ */
+  const handlePaymentMethodSelect = async (methodId: string, methodName: string) => {
+    if (methodId === 'cash') {
+      completePayment(methodName);
+      return;
+    }
+
+    const app = ALL_UPI_APPS.find(a => a.id === methodId);
+    if (!app) return;
+
     const upiId = merchantUpiId || '';
     const name = merchantName || 'INtown';
     const payAmount = finalPaidAmount > 0 ? finalPaidAmount.toFixed(2) : '1';
 
-    const upiUri = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(name)}&am=${payAmount}&cu=INR&tn=INtownPayment`;
-
-    const app = ALL_UPI_APPS.find(a => a.id === methodId);
-    const packageName = app?.packageName;
-
-    if (!packageName) return false;
-
     try {
-      await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
-        data: upiUri,
-        packageName: packageName,
-      });
-      return true;
-    } catch (error) {
-      console.log(`${methodName} open failed`, error);
-      return false;
-    }
-  };
-
-  const handlePaymentMethodSelect = async (methodId: string, methodName: string) => {
-    try {
-      if (methodId === 'cash') {
-        onSuccess(amountValue, intownSavings > 0 ? intownSavings : 0, methodName);
-        setAmount('');
-        setInstantSavingsInput('');
-        setSelectedMethod('');
-        setShowMethods(false);
-        setShowSuccess(false);
-        onClose();
-        router.replace((redirectTo || '/member-dashboard') as any);
-        return;
-      }
-
-      let opened = false;
-
       if (Platform.OS === 'android') {
-        opened = await openUpiApp(methodId, methodName);
-      }
+        // Use Android intent URI to target the specific package
+        // This opens the exact app without showing a chooser
+        const intentUri = `intent://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(name)}&am=${payAmount}&cu=INR&tn=INtownPayment#Intent;scheme=upi;package=${app.packageName};end`;
 
-      // iOS fallback
-      if (!opened && Platform.OS === 'ios') {
-        const iosSchemes: Record<string, string> = {
-          phonepe: 'phonepe://',
-          googlepay: 'tez://',
-          paytm: 'paytmmp://',
-          amazonpay: 'amazonpay://',
-        };
-        const scheme = iosSchemes[methodId];
-        if (scheme) {
-          try {
-            await Linking.openURL(scheme);
-            opened = true;
-          } catch (e) {
-            console.log(`iOS scheme failed for ${methodName}`);
-          }
+        const canOpen = await Linking.canOpenURL(intentUri);
+        if (canOpen) {
+          await Linking.openURL(intentUri);
+          completePayment(methodName);
+          return;
         }
-      }
 
-      if (opened) {
-        onSuccess(amountValue, intownSavings > 0 ? intownSavings : 0, methodName);
-        setAmount('');
-        setInstantSavingsInput('');
-        setSelectedMethod('');
-        setShowMethods(false);
-        onClose();
-        router.replace((redirectTo || '/member-dashboard') as any);
-      } else {
-        // Fallback: open generic UPI chooser
+        // Fallback 1: Try the app's own scheme (phonepe://, tez://, etc.)
         try {
-          const upiId = merchantUpiId || '';
-          const name = merchantName || 'INtown';
-          const payAmount = finalPaidAmount > 0 ? finalPaidAmount.toFixed(2) : '1';
-          const upiUri = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(name)}&am=${payAmount}&cu=INR&tn=INtownPayment`;
-          await Linking.openURL(upiUri);
-          onSuccess(amountValue, intownSavings > 0 ? intownSavings : 0, methodName);
-          setAmount('');
-          setInstantSavingsInput('');
-          setSelectedMethod('');
-          setShowMethods(false);
-          onClose();
-          router.replace((redirectTo || '/member-dashboard') as any);
+          const schemeUri = `${app.scheme}pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(name)}&am=${payAmount}&cu=INR&tn=INtownPayment`;
+          await Linking.openURL(schemeUri);
+          completePayment(methodName);
+          return;
+        } catch (schemeErr) {
+          console.log(`${methodName} scheme open failed:`, schemeErr);
+        }
+
+        // Fallback 2: Open generic UPI URI (shows native Android chooser)
+        const genericUri = buildUpiPayUri();
+        await Linking.openURL(genericUri);
+        completePayment(methodName);
+      } else {
+        // iOS: Try app-specific scheme, then generic UPI
+        try {
+          const schemeUri = `${app.scheme}pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(name)}&am=${payAmount}&cu=INR&tn=INtownPayment`;
+          await Linking.openURL(schemeUri);
+          completePayment(methodName);
         } catch (e) {
-          Alert.alert(
-            'App Not Found',
-            `${methodName} is not installed on this device. Please install it from Play Store.`
-          );
+          const genericUri = buildUpiPayUri();
+          await Linking.openURL(genericUri);
+          completePayment(methodName);
         }
       }
     } catch (error) {
-      console.error('Open payment app error:', error);
-      Alert.alert('Error', `Unable to open ${methodName}.`);
+      console.error(`Open ${methodName} error:`, error);
+      Alert.alert(
+        'App Not Found',
+        `Could not open ${methodName}. Please make sure it is installed on your device.`
+      );
     }
   };
 

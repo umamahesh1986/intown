@@ -15,7 +15,7 @@ function withUpiQueries(config) {
     }
 
     // Add UPI scheme intent query
-    const upiSchemes = ['upi', 'phonepe', 'tez', 'paytmmp'];
+    const upiSchemes = ['upi', 'phonepe', 'tez', 'paytmmp', 'amazonpay', 'cred', 'iMobile', 'axisbank', 'idfcfirst'];
     const packages = [
       'com.phonepe.app',
       'com.google.android.apps.nbu.paisa.user',
@@ -23,6 +23,9 @@ function withUpiQueries(config) {
       'in.amazon.mShop.android.shopping',
       'in.org.npci.upiapp',
       'com.dreamplug.androidapp',
+      'com.csam.icici.bank.imobile',
+      'com.upi.axispay',
+      'com.idfcfirstbank.optimus',
     ];
 
     const queries = manifest['queries'];
