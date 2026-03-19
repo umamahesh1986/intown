@@ -2309,9 +2309,6 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#0F172A",
     maxWidth: 200,
-    whiteSpace: "nowrap",
-    textOverflow: "ellipsis",
-    overflow: "hidden"
   },
 
   headerIcons: {

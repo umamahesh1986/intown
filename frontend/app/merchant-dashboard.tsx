@@ -167,7 +167,6 @@ export default function MerchantDashboard() {
     rating: 4.5,
     totalPayments: sales.length,
   };
-  console.log(user, "user")
 
   useEffect(() => {
     loadUserType();
@@ -1684,9 +1683,6 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#0F172A",
     maxWidth: 200,
-    whiteSpace: "nowrap",
-    textOverflow: "ellipsis",
-    overflow: "hidden"
   },
 
   headerIcons: {

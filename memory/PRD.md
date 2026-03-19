@@ -73,20 +73,29 @@ Build and maintain a local shopping and savings mobile app (Expo/React Native) t
   - Check API key restrictions
   - Rebuild and test (may need 30min-few hours for API propagation)
 
-### P0: UPI Apps Not Opening Directly
-- **Status**: FIXED — Code updated, awaiting user build + device test
-- **Root cause**: `expo-intent-launcher` (`IntentLauncher.startActivityAsync`) was failing on device. Also, `app.json` had a `upi` intent filter making IntownLocal appear as a UPI handler.
+### P0: UPI Payment Flow
+- **Status**: FIXED — Simplified to use native Android UPI chooser
+- **What changed**: After clicking OK on success modal, `Linking.openURL('upi://pay?...')` is called directly, which opens the native Android "Open with" dialog showing all installed UPI apps. No custom modal.
 - **Code fixes done**:
-  - Removed `upi` intent filter from `app.json`
-  - Replaced `expo-intent-launcher` with `Linking.openURL` using Android intent URIs (`intent://...#Intent;scheme=upi;package=...;end`)
-  - Added 3 more UPI apps to detection list (iMobile Pay, Axis Mobile, IDFC FIRST Bank)
-  - Updated `withUpiQueries.js` plugin with all 9 app packages
-  - Multi-fallback: intent URI → app scheme → generic UPI chooser
+  - Removed `upi` intent filter from `app.json` (prevents IntownLocal from appearing in chooser)
+  - Removed `expo-intent-launcher` dependency
+  - Simplified `PaymentModal.tsx` — OK click → `Linking.openURL` → native chooser → app opens
+  - Updated `withUpiQueries.js` plugin with 9 UPI app packages for Android 11+ visibility
 - **User action needed**: Run `npx expo prebuild --clean` then `eas build` and test on device
 
 ### P1: EAS Build Failure
 - **Status**: Build config updated, awaiting user retry
 - **Fixes**: Disabled npm cache in `eas.json`, removed duplicate deps from `devDependencies`
+
+### P1: Merchant Login Crash (App closes on merchant login)
+- **Status**: FIXED — Code updated, awaiting user build + device test
+- **Root causes found and fixed**:
+  1. `setUser()` and `setToken()` were async but NOT awaited before `router.replace()` — dashboard mounted with `user = null`
+  2. `merchantId` not passed as route param — only `userType` was passed
+  3. Merchant data not stored to AsyncStorage before navigation (race condition)
+  4. Invalid web-only CSS properties in native StyleSheet (`whiteSpace`, `textOverflow`)
+- **Code files changed**: `otp.tsx`, `merchant-dashboard.tsx`, `member-dashboard.tsx`
+- **User action needed**: Run `npx expo prebuild --clean` then `eas build` and test merchant login
 
 ## Build Configuration
 - `eas.json` — Added `EAS_BUILD_DISABLE_NPM_CACHE` for preview and production

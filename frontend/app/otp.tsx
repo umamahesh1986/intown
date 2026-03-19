@@ -206,15 +206,34 @@ export default function OTPScreen() {
       await AsyncStorage.setItem("user_data", JSON.stringify(authUser));
       await AsyncStorage.setItem("user_role", roleInfo.role);
       await AsyncStorage.setItem("user_type", roleInfo.userType);
-      
-      setUser(authUser);
-      setToken(`token_${userId}`);
+
+      // Store merchant-specific data before navigating
+      if (searchResponse?.merchant?.businessName) {
+        await AsyncStorage.setItem("merchant_shop_name", String(searchResponse.merchant.businessName));
+      }
+      if (searchResponse?.merchant?.description) {
+        await AsyncStorage.setItem("merchant_description", String(searchResponse.merchant.description));
+      }
+      if (searchResponse?.merchant?.contactName) {
+        await AsyncStorage.setItem("merchant_contact_name", String(searchResponse.merchant.contactName));
+      }
+
+      // IMPORTANT: Await setUser and setToken to ensure state is set BEFORE navigation
+      await setUser(authUser);
+      await setToken(`token_${userId}`);
 
       setStatusMessage("Success! Redirecting...");
-      
+
+      // Build route params — include merchantId for merchant/dual dashboards
+      const routeParams: Record<string, string> = { userType: roleInfo.userType };
+      if (roleInfo.role === 'merchant' || roleInfo.role === 'dual') {
+        const mId = searchResponse?.merchant?.id;
+        if (mId) routeParams.merchantId = String(mId);
+      }
+
       router.replace({
         pathname: roleInfo.dashboard as any,
-        params: { userType: roleInfo.userType }
+        params: routeParams,
       });
     } catch (err: any) {
       console.error("=== PROCESS USER ERROR ===", err);
