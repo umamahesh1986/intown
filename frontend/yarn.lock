@@ -2225,6 +2225,11 @@
   dependencies:
     merge-options "^3.0.4"
 
+"@react-native-firebase/app-check@^23.8.8":
+  version "23.8.8"
+  resolved "https://registry.yarnpkg.com/@react-native-firebase/app-check/-/app-check-23.8.8.tgz#f28e963c6dcc0cab09f38798c70235cfc713010d"
+  integrity sha512-AG6AVwIg2pF6eLuMoMDCL+xZljJxi50VM5qCjq/YysC236upvglg7pkZHT5VPz2YGx2DBN8WVLuTQZHfoLzgHQ==
+
 "@react-native-firebase/app@^23.8.5":
   version "23.8.5"
   resolved "https://registry.yarnpkg.com/@react-native-firebase/app/-/app-23.8.5.tgz#a691e924efaf042786b796d4a7ee14e62e03a72f"
@@ -4333,6 +4338,11 @@ expo-image@~3.0.11:
   version "3.0.11"
   resolved "https://registry.npmjs.org/expo-image/-/expo-image-3.0.11.tgz"
   integrity sha512-4TudfUCLgYgENv+f48omnU8tjS2S0Pd9EaON5/s1ZUBRwZ7K8acEr4NfvLPSaeXvxW24iLAiyQ7sV7BXQH3RoA==
+
+expo-intent-launcher@^55.0.9:
+  version "55.0.9"
+  resolved "https://registry.yarnpkg.com/expo-intent-launcher/-/expo-intent-launcher-55.0.9.tgz#b9dc2484f977ff6423b4c2ca5c5b4d9c5432ce57"
+  integrity sha512-s8k8dF8PfgzN0c+xzNTd9ceHh+/6mt2ncnMuqFaIIry2BeDGITbsgVijHr39eB5vS+KopCcOYYBYr+O1epx4TA==
 
 expo-json-utils@~0.15.0:
   version "0.15.0"
@@ -6653,6 +6663,11 @@ react-native-maps@1.20.1:
   integrity sha512-NZI3B5Z6kxAb8gzb2Wxzu/+P2SlFIg1waHGIpQmazDSCRkNoHNY4g96g+xS0QPSaG/9xRBbDNnd2f2/OW6t6LQ==
   dependencies:
     "@types/geojson" "^7946.0.13"
+
+react-native-otp-verify@^1.1.8:
+  version "1.1.8"
+  resolved "https://registry.yarnpkg.com/react-native-otp-verify/-/react-native-otp-verify-1.1.8.tgz#3eadfecff9e1844bb537f9d03cdb7d8694b46948"
+  integrity sha512-hlgNqVBhmsxh/LHJWEVrbku81GXMS0QDJiHLhQW96dr3awYYbrkVf7979zYqi5rSTEajUQzHShvMQwOc0gIlBA==
 
 react-native-reanimated@~4.1.1:
   version "4.1.6"

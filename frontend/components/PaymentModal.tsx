@@ -86,28 +86,39 @@ export default function PaymentModal({
     const installed: PaymentApp[] = [];
 
     if (Platform.OS === 'android') {
-      // On Android, try to check each app using Linking.canOpenURL
+      // First pass: scheme-level detection
       for (const app of ALL_UPI_APPS) {
         try {
-          // Try checking if the app's package is available via intent
           const canOpen = await Linking.canOpenURL(app.scheme);
           if (canOpen) {
             installed.push(app);
           }
         } catch (e) {
-          // App not installed, skip
+          // ignore
         }
       }
 
-      // If no apps detected via scheme (Android 11+ may block canOpenURL), 
-      // try opening a generic upi:// link to see if any UPI app exists
+      // Second pass: package-specific intent URL probing (helps on Android 11+)
+      if (installed.length === 0) {
+        for (const app of ALL_UPI_APPS) {
+          try {
+            const intentUrl = `intent://pay#Intent;scheme=upi;package=${app.packageName};end`;
+            const canOpenIntent = await Linking.canOpenURL(intentUrl);
+            if (canOpenIntent) {
+              installed.push(app);
+            }
+          } catch (e) {
+            // ignore
+          }
+        }
+      }
+
+      // Last fallback: show common UPI apps if generic UPI handler exists
       if (installed.length === 0) {
         try {
           const canOpenUpi = await Linking.canOpenURL('upi://pay');
           if (canOpenUpi) {
-            // UPI is available but we couldn't detect individual apps
-            // Show all common apps and let the system handle it
-            installed.push(...ALL_UPI_APPS.slice(0, 4)); // PhonePe, GPay, Paytm, Amazon
+            installed.push(...ALL_UPI_APPS.slice(0, 4));
           }
         } catch (e) {}
       }
@@ -116,7 +127,11 @@ export default function PaymentModal({
       installed.push(...ALL_UPI_APPS.slice(0, 4));
     }
 
-    setInstalledApps(installed);
+    // De-duplicate by id
+    const unique = installed.filter(
+      (app, index, arr) => arr.findIndex((a) => a.id === app.id) === index
+    );
+    setInstalledApps(unique);
     setIsDetectingApps(false);
   };
 
@@ -290,6 +305,8 @@ export default function PaymentModal({
 
   const handleDismiss = () => {
     setShowSuccess(false);
+    setShowMethods(false);
+    setInstalledApps([]);
     onClose();
   };
 
@@ -391,9 +408,9 @@ export default function PaymentModal({
               <View style={{ height: 20 }} />
             </ScrollView>
           ) : (
-            <>
+            <ScrollView>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Select Payment App</Text>
+                <Text style={styles.modalTitle}>Choose Payment App</Text>
                 <TouchableOpacity onPress={handleDismiss}>
                   <Ionicons name="close" size={28} color="#666" />
                 </TouchableOpacity>
@@ -405,10 +422,9 @@ export default function PaymentModal({
                   <Text style={styles.detectingText}>Detecting payment apps...</Text>
                 </View>
               ) : (
-                <ScrollView>
+                <>
                   {installedApps.length > 0 ? (
                     <>
-                      <Text style={styles.sectionLabel}>UPI Apps on your device</Text>
                       {installedApps.map((app) => (
                         <TouchableOpacity
                           key={app.id}
@@ -431,9 +447,7 @@ export default function PaymentModal({
                   )}
 
                   <View style={styles.divider} />
-                  <Text style={styles.sectionLabel}>Other</Text>
 
-                  {/* Cash option always available */}
                   <TouchableOpacity
                     style={styles.methodCard}
                     onPress={() => handlePaymentMethodSelect('cash', 'Cash')}
@@ -444,9 +458,9 @@ export default function PaymentModal({
                     <Text style={styles.methodName}>Cash</Text>
                     <Ionicons name="chevron-forward" size={24} color="#999" />
                   </TouchableOpacity>
-                </ScrollView>
+                </>
               )}
-            </>
+            </ScrollView>
           )}
         </View>
       </KeyboardAvoidingView>
