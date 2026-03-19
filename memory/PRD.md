@@ -29,6 +29,7 @@ Build and maintain a local shopping and savings mobile app (Expo/React Native) t
 - `firebase.json` with `auth_android_phone_auto_verify_enabled: true`
 - Removed `auth.settings` manipulation that could interfere with Play Integrity
 - Fixed `forceResend` parameter: `false` on first call, `true` only on resend
+- **Auto OTP Detection (Android)**: Firebase reads SMS silently and auto-verifies. Uses `onAuthStateChanged` listener to detect auto-verification. When detected, skips manual OTP entry and proceeds directly to login. Shows "OTP auto-detected! Logging you in..." UI indicator. Falls back to manual entry if auto-detect times out.
 
 ### UPI Payment Deep Links
 - `PaymentModal.tsx` refactored with `openUpiApp()` using `expo-intent-launcher`

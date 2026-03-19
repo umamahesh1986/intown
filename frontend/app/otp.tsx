@@ -11,7 +11,7 @@ import {
   ActivityIndicator,
   Modal,
 } from "react-native";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
@@ -76,6 +76,7 @@ export default function OTPScreen() {
   const [otpSent, setOtpSent] = useState(false);
   const [showOtpPopup, setShowOtpPopup] = useState(false);
   const [otpPopupMessage, setOtpPopupMessage] = useState("");
+  const [autoVerifying, setAutoVerifying] = useState(false);
 
   const [timer, setTimer] = useState(RESEND_SECONDS);
   const [canResend, setCanResend] = useState(false);
@@ -83,6 +84,8 @@ export default function OTPScreen() {
   const inputRefs = useRef<(TextInput | null)[]>([]);
   const shakeAnim = useRef(new Animated.Value(0)).current;
   const popupTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hasProcessedAuth = useRef(false);
+  const authUnsubscribe = useRef<(() => void) | null>(null);
 
   const showOtpSentPopup = (message: string) => {
     setOtpPopupMessage(message);
@@ -100,8 +103,132 @@ export default function OTPScreen() {
       if (popupTimerRef.current) {
         clearTimeout(popupTimerRef.current);
       }
+      // Clean up auth listener on unmount
+      if (authUnsubscribe.current) {
+        authUnsubscribe.current();
+      }
     };
   }, []);
+
+  /* ===============================
+     SHARED POST-VERIFICATION LOGIC
+  ================================ */
+  const processVerifiedUser = useCallback(async (userId: string) => {
+    if (hasProcessedAuth.current) return;
+    hasProcessedAuth.current = true;
+
+    // Clean up auth listener
+    if (authUnsubscribe.current) {
+      authUnsubscribe.current();
+      authUnsubscribe.current = null;
+    }
+
+    try {
+      const phoneNumber = formatPhoneNumber(phone || "");
+
+      setStatusMessage("Checking user type...");
+      console.log("Calling userType API for:", phoneNumber);
+      
+      const searchResponse = await searchUserByPhone(phoneNumber);
+      console.log("API Response:", JSON.stringify(searchResponse, null, 2));
+
+      await AsyncStorage.setItem(
+        "user_search_response",
+        JSON.stringify(searchResponse)
+      );
+
+      if (searchResponse?.customer?.id) {
+        await AsyncStorage.setItem("customer_id", String(searchResponse.customer.id));
+      }
+      if (searchResponse?.merchant?.id) {
+        await AsyncStorage.setItem("merchant_id", String(searchResponse.merchant.id));
+      }
+      if (searchResponse?.merchant?.shopName) {
+        await AsyncStorage.setItem("merchant_shop_name", String(searchResponse.merchant.shopName));
+      }
+      
+      const roleInfo = determineUserRole(searchResponse);
+      console.log("User Type:", roleInfo.userType);
+      console.log("Dashboard:", roleInfo.dashboard);
+
+      const lowerUserType = (roleInfo.userType ?? '').toLowerCase();
+      const mappedUserType: 'merchant' | 'member' | 'user' =
+        lowerUserType.includes('merchant')
+          ? 'merchant'
+          : lowerUserType.includes('customer') || lowerUserType === 'dual'
+          ? 'member'
+          : 'user';
+      const resolvedId =
+        roleInfo.userData?.customer?.id ??
+        roleInfo.userData?.merchant?.id ??
+        roleInfo.userData?.user?.id ??
+        userId;
+      const resolvedName =
+        roleInfo.userData?.customer?.contactName ??
+        roleInfo.userData?.customer?.name ??
+        roleInfo.userData?.merchant?.contactName ??
+        roleInfo.userData?.merchant?.name ??
+        roleInfo.userData?.merchant?.shopName ??
+        roleInfo.userData?.user?.name ??
+        'User';
+
+      const authUser = {
+        id: String(resolvedId ?? userId),
+        name: resolvedName,
+        phone: phoneNumber,
+        userType: mappedUserType,
+      };
+
+      await AsyncStorage.setItem("user_data", JSON.stringify(authUser));
+      await AsyncStorage.setItem("user_role", roleInfo.role);
+      await AsyncStorage.setItem("user_type", roleInfo.userType);
+      
+      setUser(authUser);
+      setToken(`token_${userId}`);
+
+      setStatusMessage("Success! Redirecting...");
+      
+      router.replace({
+        pathname: roleInfo.dashboard as any,
+        params: { userType: roleInfo.userType }
+      });
+    } catch (err: any) {
+      console.error("=== PROCESS USER ERROR ===", err);
+      hasProcessedAuth.current = false;
+      Alert.alert("Error", "Failed to complete login. Please try again.");
+      setStatusMessage("");
+      setIsLoading(false);
+      setAutoVerifying(false);
+    }
+  }, [phone, router, setUser, setToken]);
+
+  /* ===============================
+     AUTO OTP DETECTION (Android)
+     Firebase reads SMS silently and auto-verifies.
+     onAuthStateChanged fires when auto-verification succeeds.
+  ================================ */
+  const startAutoVerifyListener = useCallback(() => {
+    if (!isMobile || !firebaseAuth) return;
+
+    // Clean up any previous listener
+    if (authUnsubscribe.current) {
+      authUnsubscribe.current();
+    }
+
+    hasProcessedAuth.current = false;
+    const auth = firebaseAuth();
+
+    authUnsubscribe.current = auth.onAuthStateChanged((user: any) => {
+      if (user && !hasProcessedAuth.current) {
+        console.log("=== AUTO-VERIFICATION DETECTED ===");
+        console.log("User UID:", user.uid);
+        setAutoVerifying(true);
+        setStatusMessage("OTP auto-detected! Verifying...");
+        setIsLoading(true);
+        processVerifiedUser(user.uid);
+      }
+    });
+  }, [isMobile, processVerifiedUser]);
 
   /* ===============================
      RESEND TIMER
@@ -172,6 +299,9 @@ export default function OTPScreen() {
         setIsResend(true);
         setStatusMessage("OTP sent! Check your SMS.");
         showOtpSentPopup("OTP sent successfully");
+        
+        // Start listening for auto-verification (Android reads SMS silently)
+        startAutoVerifyListener();
       } else if (isMobile && !firebaseAuth) {
         throw new Error('Firebase native module not available. Please ensure @react-native-firebase/auth is properly installed.');
       }
@@ -233,10 +363,10 @@ export default function OTPScreen() {
      VERIFY OTP
   ================================ */
   const handleVerifyOTP = async () => {
-    if (isLoading) return;
+    if (isLoading || hasProcessedAuth.current) return;
 
     const code = otp.join("");
-    console.log("=== VERIFYING OTP ===");
+    console.log("=== VERIFYING OTP (Manual) ===");
     console.log("Platform:", Platform.OS);
     console.log("Entered OTP:", code);
 
@@ -276,90 +406,20 @@ export default function OTPScreen() {
       }
       // MOBILE: Real Firebase verification
       else if (confirmationResult) {
-        console.log("=== MOBILE REAL VERIFICATION ===");
+        console.log("=== MOBILE MANUAL VERIFICATION ===");
+        // Stop auto-verify listener since user is verifying manually
+        if (authUnsubscribe.current) {
+          authUnsubscribe.current();
+          authUnsubscribe.current = null;
+        }
         const userCredential = await confirmationResult.confirm(code);
         console.log("=== OTP VERIFIED SUCCESSFULLY ===");
         console.log("User UID:", userCredential.user.uid);
         userId = userCredential.user.uid;
       }
 
-      // Call the userType API
-      setStatusMessage("Checking user type...");
-      console.log("Calling userType API for:", phoneNumber);
-      
-      const searchResponse = await searchUserByPhone(phoneNumber);
-      console.log("API Response:", JSON.stringify(searchResponse, null, 2));
-
-      await AsyncStorage.setItem(
-        "user_search_response",
-        JSON.stringify(searchResponse)
-      );
-
-      if (searchResponse?.customer?.id) {
-        await AsyncStorage.setItem(
-          "customer_id",
-          String(searchResponse.customer.id)
-        );
-      }
-      if (searchResponse?.merchant?.id) {
-        await AsyncStorage.setItem(
-          "merchant_id",
-          String(searchResponse.merchant.id)
-        );
-      }
-      if (searchResponse?.merchant?.shopName) {
-        await AsyncStorage.setItem(
-          "merchant_shop_name",
-          String(searchResponse.merchant.shopName)
-        );
-      }
-      
-      // Determine dashboard based on userType
-      const roleInfo = determineUserRole(searchResponse);
-      console.log("User Type:", roleInfo.userType);
-      console.log("Dashboard:", roleInfo.dashboard);
-
-      const lowerUserType = (roleInfo.userType ?? '').toLowerCase();
-      const mappedUserType: 'merchant' | 'member' | 'user' =
-        lowerUserType.includes('merchant')
-          ? 'merchant'
-          : lowerUserType.includes('customer') || lowerUserType === 'dual'
-          ? 'member'
-          : 'user';
-      const resolvedId =
-        roleInfo.userData?.customer?.id ??
-        roleInfo.userData?.merchant?.id ??
-        roleInfo.userData?.user?.id ??
-        userId;
-      const resolvedName =
-        roleInfo.userData?.customer?.contactName ??
-        roleInfo.userData?.customer?.name ??
-        roleInfo.userData?.merchant?.contactName ??
-        roleInfo.userData?.merchant?.name ??
-        roleInfo.userData?.merchant?.shopName ??
-        roleInfo.userData?.user?.name ??
-        'User';
-
-      const authUser = {
-        id: String(resolvedId ?? userId),
-        name: resolvedName,
-        phone: phoneNumber,
-        userType: mappedUserType,
-      };
-
-      await AsyncStorage.setItem("user_data", JSON.stringify(authUser));
-      await AsyncStorage.setItem("user_role", roleInfo.role);
-      await AsyncStorage.setItem("user_type", roleInfo.userType);
-      
-      setUser(authUser);
-      setToken(`token_${userId}`);
-
-      setStatusMessage("Success! Redirecting...");
-      
-      router.replace({
-        pathname: roleInfo.dashboard as any,
-        params: { userType: roleInfo.userType }
-      });
+      // Use shared post-verification logic
+      await processVerifiedUser(userId);
       
     } catch (err: any) {
       console.error("=== VERIFY OTP ERROR ===");
@@ -368,6 +428,7 @@ export default function OTPScreen() {
       
       shake();
       setStatusMessage("");
+      hasProcessedAuth.current = false;
       
       let errorMessage = "Verification failed. Please try again.";
       
@@ -448,7 +509,12 @@ export default function OTPScreen() {
         <Text style={styles.phoneNumber}>+91 {phone}</Text>
         
         {/* Status Indicator */}
-        {otpSent ? (
+        {autoVerifying ? (
+          <View style={styles.autoVerifyContainer}>
+            <ActivityIndicator size="small" color="#4CAF50" />
+            <Text style={styles.autoVerifyText}>OTP auto-detected! Logging you in...</Text>
+          </View>
+        ) : otpSent ? (
           <View style={styles.successContainer}>
             <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
             <Text style={styles.successText}>OTP sent successfully</Text>
@@ -555,6 +621,23 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#4CAF50',
     fontWeight: '500',
+  },
+  autoVerifyContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E8F5E9',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: '#4CAF50',
+  },
+  autoVerifyText: {
+    marginLeft: 10,
+    fontSize: 15,
+    color: '#2E7D32',
+    fontWeight: '600',
   },
   waitingContainer: {
     flexDirection: 'row',
