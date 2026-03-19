@@ -10,11 +10,31 @@ import {
   Linking,
   Platform,
   KeyboardAvoidingView,
+  ActivityIndicator,
+  Image,
 } from 'react-native';
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as IntentLauncher from 'expo-intent-launcher';
+
+interface PaymentApp {
+  id: string;
+  name: string;
+  packageName: string;
+  scheme: string;
+  icon: any;
+  color: string;
+}
+
+const ALL_UPI_APPS: PaymentApp[] = [
+  { id: 'phonepe', name: 'PhonePe', packageName: 'com.phonepe.app', scheme: 'phonepe://', icon: 'phone-portrait', color: '#5F259F' },
+  { id: 'googlepay', name: 'Google Pay', packageName: 'com.google.android.apps.nbu.paisa.user', scheme: 'tez://', icon: 'logo-google', color: '#4285F4' },
+  { id: 'paytm', name: 'Paytm', packageName: 'net.one97.paytm', scheme: 'paytmmp://', icon: 'wallet', color: '#00BAF2' },
+  { id: 'amazonpay', name: 'Amazon Pay', packageName: 'in.amazon.mShop.android.shopping', scheme: 'amazonpay://', icon: 'cart', color: '#FF9900' },
+  { id: 'bhim', name: 'BHIM UPI', packageName: 'in.org.npci.upiapp', scheme: 'upi://', icon: 'shield-checkmark', color: '#00695C' },
+  { id: 'cred', name: 'CRED', packageName: 'com.dreamplug.androidapp', scheme: 'cred://', icon: 'diamond', color: '#1A1A1A' },
+];
 
 interface PaymentModalProps {
   visible: boolean;
@@ -26,14 +46,6 @@ interface PaymentModalProps {
   merchantName?: string;
   redirectTo?: string;
 }
-
-const PAYMENT_METHODS = [
-  { id: 'phonepe', name: 'PhonePe', icon: 'call' },
-  { id: 'googlepay', name: 'Google Pay', icon: 'logo-google' },
-  { id: 'paytm', name: 'Paytm', icon: 'wallet' },
-  { id: 'amazonpay', name: 'Amazon Pay', icon: 'cart' },
-  { id: 'cash', name: 'Cash', icon: 'cash' },
-];
 
 export default function PaymentModal({
   visible,
@@ -52,6 +64,8 @@ export default function PaymentModal({
   const [showMethods, setShowMethods] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [installedApps, setInstalledApps] = useState<PaymentApp[]>([]);
+  const [isDetectingApps, setIsDetectingApps] = useState(false);
 
   const parseAmount = (value: string) => {
     const normalized = value.replace(/,/g, '').trim();
@@ -62,6 +76,49 @@ export default function PaymentModal({
   const intownPrice = parseAmount(instantSavingsInput);
   const intownSavings = amountValue - intownPrice;
   const finalPaidAmount = intownPrice;
+
+  /* ===============================
+     DETECT INSTALLED UPI APPS
+     Checks which payment apps are installed on the device
+  ================================ */
+  const detectInstalledApps = async () => {
+    setIsDetectingApps(true);
+    const installed: PaymentApp[] = [];
+
+    if (Platform.OS === 'android') {
+      // On Android, try to check each app using Linking.canOpenURL
+      for (const app of ALL_UPI_APPS) {
+        try {
+          // Try checking if the app's package is available via intent
+          const canOpen = await Linking.canOpenURL(app.scheme);
+          if (canOpen) {
+            installed.push(app);
+          }
+        } catch (e) {
+          // App not installed, skip
+        }
+      }
+
+      // If no apps detected via scheme (Android 11+ may block canOpenURL), 
+      // try opening a generic upi:// link to see if any UPI app exists
+      if (installed.length === 0) {
+        try {
+          const canOpenUpi = await Linking.canOpenURL('upi://pay');
+          if (canOpenUpi) {
+            // UPI is available but we couldn't detect individual apps
+            // Show all common apps and let the system handle it
+            installed.push(...ALL_UPI_APPS.slice(0, 4)); // PhonePe, GPay, Paytm, Amazon
+          }
+        } catch (e) {}
+      }
+    } else {
+      // On iOS/web, show common apps
+      installed.push(...ALL_UPI_APPS.slice(0, 4));
+    }
+
+    setInstalledApps(installed);
+    setIsDetectingApps(false);
+  };
 
   const handlePayNow = async () => {
     if (!amount || !Number.isFinite(amountValue) || amountValue <= 0) {
@@ -139,14 +196,10 @@ export default function PaymentModal({
 
     const upiUri = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(name)}&am=${payAmount}&cu=INR&tn=INtownPayment`;
 
-    const packageMap: Record<string, string> = {
-      phonepe: 'com.phonepe.app',
-      googlepay: 'com.google.android.apps.nbu.paisa.user',
-      paytm: 'net.one97.paytm',
-      amazonpay: 'in.amazon.mShop.android.shopping',
-    };
+    const app = ALL_UPI_APPS.find(a => a.id === methodId);
+    const packageName = app?.packageName;
 
-    const packageName = packageMap[methodId];
+    if (!packageName) return false;
 
     try {
       await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
@@ -240,9 +293,11 @@ export default function PaymentModal({
     onClose();
   };
 
-  const handleSuccessOk = () => {
+  const handleSuccessOk = async () => {
     setShowSuccess(false);
     setShowMethods(true);
+    // Detect which UPI apps are installed on the device
+    await detectInstalledApps();
   };
 
   return (
@@ -338,28 +393,59 @@ export default function PaymentModal({
           ) : (
             <>
               <View style={styles.modalHeader}>
-                {/* <TouchableOpacity onPress={() => setShowMethods(false)}>
-                  <Ionicons name="arrow-back" size={24} color="#666" />
-                </TouchableOpacity> */}
                 <Text style={styles.modalTitle}>Select Payment App</Text>
-                <View style={{width: 28}} />
+                <TouchableOpacity onPress={handleDismiss}>
+                  <Ionicons name="close" size={28} color="#666" />
+                </TouchableOpacity>
               </View>
 
-              <ScrollView>
-                {PAYMENT_METHODS.map((method) => (
-                  <TouchableOpacity
-                    key={method.id}
-                    style={styles.methodCard}
-                    onPress={() => handlePaymentMethodSelect(method.id, method.name)}
-                  >
-                    <View style={styles.methodIcon}>
-                      <Ionicons name={method.icon as any} size={28} color="#FF8A00" />
+              {isDetectingApps ? (
+                <View style={styles.detectingContainer}>
+                  <ActivityIndicator size="large" color="#FF8A00" />
+                  <Text style={styles.detectingText}>Detecting payment apps...</Text>
+                </View>
+              ) : (
+                <ScrollView>
+                  {installedApps.length > 0 ? (
+                    <>
+                      <Text style={styles.sectionLabel}>UPI Apps on your device</Text>
+                      {installedApps.map((app) => (
+                        <TouchableOpacity
+                          key={app.id}
+                          style={styles.methodCard}
+                          onPress={() => handlePaymentMethodSelect(app.id, app.name)}
+                        >
+                          <View style={[styles.methodIcon, { backgroundColor: app.color + '15' }]}>
+                            <Ionicons name={app.icon as any} size={26} color={app.color} />
+                          </View>
+                          <Text style={styles.methodName}>{app.name}</Text>
+                          <Ionicons name="chevron-forward" size={24} color="#999" />
+                        </TouchableOpacity>
+                      ))}
+                    </>
+                  ) : (
+                    <View style={styles.noAppsContainer}>
+                      <Ionicons name="alert-circle-outline" size={40} color="#999" />
+                      <Text style={styles.noAppsText}>No UPI apps detected</Text>
                     </View>
-                    <Text style={styles.methodName}>{method.name}</Text>
+                  )}
+
+                  <View style={styles.divider} />
+                  <Text style={styles.sectionLabel}>Other</Text>
+
+                  {/* Cash option always available */}
+                  <TouchableOpacity
+                    style={styles.methodCard}
+                    onPress={() => handlePaymentMethodSelect('cash', 'Cash')}
+                  >
+                    <View style={[styles.methodIcon, { backgroundColor: '#E8F5E915' }]}>
+                      <Ionicons name="cash" size={26} color="#4CAF50" />
+                    </View>
+                    <Text style={styles.methodName}>Cash</Text>
                     <Ionicons name="chevron-forward" size={24} color="#999" />
                   </TouchableOpacity>
-                ))}
-              </ScrollView>
+                </ScrollView>
+              )}
             </>
           )}
         </View>
@@ -418,4 +504,10 @@ const styles = StyleSheet.create({
   successMessage: { fontSize: 14, color: '#555', textAlign: 'center', marginBottom: 20 },
   successButton: { backgroundColor: '#FF8A00', borderRadius: 12, paddingVertical: 12, paddingHorizontal: 32 },
   successButtonText: { color: '#FFF', fontSize: 16, fontWeight: '700' },
+  detectingContainer: { alignItems: 'center', paddingVertical: 40 },
+  detectingText: { marginTop: 12, fontSize: 14, color: '#666' },
+  sectionLabel: { fontSize: 13, fontWeight: '600', color: '#999', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10, marginTop: 4 },
+  noAppsContainer: { alignItems: 'center', paddingVertical: 24 },
+  noAppsText: { marginTop: 8, fontSize: 14, color: '#999' },
+  divider: { height: 1, backgroundColor: '#E0E0E0', marginVertical: 16 },
 });
