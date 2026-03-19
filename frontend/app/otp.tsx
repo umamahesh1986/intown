@@ -20,20 +20,10 @@ import { useAuthStore } from "../store/authStore";
 import { searchUserByPhone, determineUserRole } from "../utils/api";
 
 // SMS Auto-Read for Android (reads OTP from SMS and auto-fills input fields)
+// NOTE: Only loaded on native Android, not on web (web bundler cannot resolve native modules)
 let startOtpListener: any = null;
 let removeOtpListener: any = null;
 let getOtpHash: any = null;
-
-if (Platform.OS === 'android') {
-  try {
-    const otpVerify = require('react-native-otp-verify');
-    startOtpListener = otpVerify.startOtpListener;
-    removeOtpListener = otpVerify.removeListener;
-    getOtpHash = otpVerify.getHash;
-  } catch (e) {
-    console.log('react-native-otp-verify not available:', e);
-  }
-}
 
 // Platform-specific Firebase imports
 let firebaseAuth: any = null;
@@ -83,6 +73,20 @@ export default function OTPScreen() {
 
   const { setUser, setToken } = useAuthStore();
 
+  // Lazy-load OTP verify on Android only (inside component to avoid web bundler issues)
+  useEffect(() => {
+    if (Platform.OS === 'android') {
+      try {
+        const otpVerify = require('react-native-otp-verify');
+        startOtpListener = otpVerify.startOtpListener;
+        removeOtpListener = otpVerify.removeListener;
+        getOtpHash = otpVerify.getHash;
+      } catch (e) {
+        console.log('react-native-otp-verify not available:', e);
+      }
+    }
+  }, []);
+
   const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(""));
   const [confirmationResult, setConfirmationResult] = useState<any>(null);
   const [verificationId, setVerificationId] = useState<string | null>(null);
@@ -129,84 +133,6 @@ export default function OTPScreen() {
       }
     };
   }, []);
-
-  /* ===============================
-     SMS AUTO-READ & AUTO-FILL OTP
-     Reads incoming SMS, extracts 6-digit OTP, and fills input fields automatically.
-  ================================ */
-  const startSmsAutoRead = useCallback(() => {
-    if (!startOtpListener || Platform.OS !== 'android') return;
-
-    try {
-      // Log the app hash (needed for SMS format if using custom backend)
-      if (getOtpHash) {
-        getOtpHash().then((hash: string[]) => {
-          console.log('=== App SMS Hash ===', hash);
-        }).catch(() => {});
-      }
-
-      startOtpListener((message: string) => {
-        console.log('=== SMS RECEIVED ===', message);
-        // Extract 6-digit OTP from the SMS message
-        const otpMatch = /(\d{6})/.exec(message);
-        if (otpMatch && otpMatch[1]) {
-          const otpCode = otpMatch[1];
-          console.log('=== OTP AUTO-READ ===', otpCode);
-          
-          // Auto-fill OTP digits in input fields
-          const digits = otpCode.split('');
-          setOtp(digits);
-          
-          // Focus on the last input field to show it's filled
-          setTimeout(() => {
-            inputRefs.current[OTP_LENGTH - 1]?.focus();
-          }, 100);
-
-          // Show auto-fill feedback
-          setStatusMessage("OTP auto-filled! Verifying...");
-          
-          // Auto-submit after a brief delay so user can see the filled digits
-          setTimeout(() => {
-            autoSubmitOtp(digits);
-          }, 800);
-        }
-      });
-      console.log('=== SMS Auto-Read listener started ===');
-    } catch (error) {
-      console.log('SMS Auto-Read failed to start:', error);
-    }
-  }, []);
-
-  /* ===============================
-     AUTO-SUBMIT OTP (after SMS auto-fill)
-  ================================ */
-  const autoSubmitOtp = useCallback(async (digits: string[]) => {
-    if (hasProcessedAuth.current || !confirmationResult) return;
-    
-    const code = digits.join('');
-    if (code.length !== OTP_LENGTH) return;
-
-    console.log('=== AUTO-SUBMITTING OTP ===', code);
-    setIsLoading(true);
-    setStatusMessage("Auto-verifying OTP...");
-
-    try {
-      // Stop auth listener to prevent double-processing
-      if (authUnsubscribe.current) {
-        authUnsubscribe.current();
-        authUnsubscribe.current = null;
-      }
-
-      const userCredential = await confirmationResult.confirm(code);
-      console.log('=== AUTO-SUBMIT OTP VERIFIED ===', userCredential.user.uid);
-      await processVerifiedUser(userCredential.user.uid);
-    } catch (err: any) {
-      console.log('Auto-submit verification failed:', err.code);
-      setStatusMessage("");
-      setIsLoading(false);
-      // Don't show error - let user try manually
-    }
-  }, [confirmationResult, processVerifiedUser]);
 
   /* ===============================
      SHARED POST-VERIFICATION LOGIC
@@ -299,6 +225,84 @@ export default function OTPScreen() {
       setAutoVerifying(false);
     }
   }, [phone, router, setUser, setToken]);
+
+  /* ===============================
+     AUTO-SUBMIT OTP (after SMS auto-fill)
+  ================================ */
+  const autoSubmitOtp = useCallback(async (digits: string[]) => {
+    if (hasProcessedAuth.current || !confirmationResult) return;
+    
+    const code = digits.join('');
+    if (code.length !== OTP_LENGTH) return;
+
+    console.log('=== AUTO-SUBMITTING OTP ===', code);
+    setIsLoading(true);
+    setStatusMessage("Auto-verifying OTP...");
+
+    try {
+      // Stop auth listener to prevent double-processing
+      if (authUnsubscribe.current) {
+        authUnsubscribe.current();
+        authUnsubscribe.current = null;
+      }
+
+      const userCredential = await confirmationResult.confirm(code);
+      console.log('=== AUTO-SUBMIT OTP VERIFIED ===', userCredential.user.uid);
+      await processVerifiedUser(userCredential.user.uid);
+    } catch (err: any) {
+      console.log('Auto-submit verification failed:', err.code);
+      setStatusMessage("");
+      setIsLoading(false);
+      // Don't show error - let user try manually
+    }
+  }, [confirmationResult, processVerifiedUser]);
+
+  /* ===============================
+     SMS AUTO-READ & AUTO-FILL OTP
+     Reads incoming SMS, extracts 6-digit OTP, and fills input fields automatically.
+  ================================ */
+  const startSmsAutoRead = useCallback(() => {
+    if (!startOtpListener || Platform.OS !== 'android') return;
+
+    try {
+      // Log the app hash (needed for SMS format if using custom backend)
+      if (getOtpHash) {
+        getOtpHash().then((hash: string[]) => {
+          console.log('=== App SMS Hash ===', hash);
+        }).catch(() => {});
+      }
+
+      startOtpListener((message: string) => {
+        console.log('=== SMS RECEIVED ===', message);
+        // Extract 6-digit OTP from the SMS message
+        const otpMatch = /(\d{6})/.exec(message);
+        if (otpMatch && otpMatch[1]) {
+          const otpCode = otpMatch[1];
+          console.log('=== OTP AUTO-READ ===', otpCode);
+          
+          // Auto-fill OTP digits in input fields
+          const digits = otpCode.split('');
+          setOtp(digits);
+          
+          // Focus on the last input field to show it's filled
+          setTimeout(() => {
+            inputRefs.current[OTP_LENGTH - 1]?.focus();
+          }, 100);
+
+          // Show auto-fill feedback
+          setStatusMessage("OTP auto-filled! Verifying...");
+          
+          // Auto-submit after a brief delay so user can see the filled digits
+          setTimeout(() => {
+            autoSubmitOtp(digits);
+          }, 800);
+        }
+      });
+      console.log('=== SMS Auto-Read listener started ===');
+    } catch (error) {
+      console.log('SMS Auto-Read failed to start:', error);
+    }
+  }, [autoSubmitOtp]);
 
   /* ===============================
      AUTO OTP DETECTION (Android)
