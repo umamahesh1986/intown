@@ -21,6 +21,8 @@ function withUpiQueries(config) {
       'com.google.android.apps.nbu.paisa.user',
       'net.one97.paytm',
       'in.amazon.mShop.android.shopping',
+      'in.org.npci.upiapp',
+      'com.dreamplug.androidapp',
     ];
 
     const queries = manifest['queries'];

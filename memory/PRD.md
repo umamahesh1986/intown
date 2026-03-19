@@ -34,10 +34,12 @@ Build and maintain a local shopping and savings mobile app (Expo/React Native) t
 ### UPI Payment Deep Links
 - `PaymentModal.tsx` refactored with `openUpiApp()` using `expo-intent-launcher`
 - Uses `ACTION_VIEW` with `upi://pay` URI + specific `packageName` per app
-- `onSuccess()` moved out of `finally` block — only called when app actually opens
+- `onSuccess()` only called when app actually opens (not in `finally` block)
+- **Dynamic App Detection**: On "OK" click after payment success, detects which UPI apps (PhonePe, GPay, Paytm, Amazon Pay, BHIM, CRED) are installed on the device using `Linking.canOpenURL`. Shows only installed apps + Cash fallback.
 - `AndroidManifest.xml` updated with `<queries>` for all UPI apps (Android 11+ package visibility)
 - Expo config plugin `withUpiQueries.js` to persist queries across rebuilds
 - `app.json` includes UPI intent filters
+- Fallback: If specific app launch fails, opens generic UPI chooser via `Linking.openURL`
 
 ### UI/UX Fixes (Previous Sessions)
 - Dynamic profile images in headers across all dashboards
