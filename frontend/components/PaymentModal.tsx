@@ -122,9 +122,9 @@ export default function PaymentModal({
 
   /* ===============================
      HANDLE OK BUTTON ON SUCCESS MODAL
-     Directly opens native Android UPI chooser via Linking.openURL('upi://pay?...')
-     Android will show all installed UPI apps in its native "Open with" dialog.
-     IntownLocal won't appear because the upi intent filter was removed from app.json.
+     Opens native Android UPI chooser directly.
+     Flow: Open UPI → then close modal.
+     The native chooser overlays on top of the app.
   ================================ */
   const handleSuccessOk = async () => {
     const upiId = merchantUpiId || '';
@@ -132,49 +132,38 @@ export default function PaymentModal({
     const payAmount = finalPaidAmount > 0 ? finalPaidAmount.toFixed(2) : '1';
     const upiUri = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(name)}&am=${payAmount}&cu=INR&tn=INtownPayment`;
 
-    console.log('=== UPI PAYMENT ===');
-    console.log('UPI URI:', upiUri);
-    console.log('Merchant UPI ID:', upiId);
-    console.log('Merchant Name:', name);
-    console.log('Amount:', payAmount);
+    if (Platform.OS === 'web') {
+      // Web can't open UPI apps, just complete
+      onSuccess(amountValue, intownSavings > 0 ? intownSavings : 0, 'UPI');
+      setAmount('');
+      setInstantSavingsInput('');
+      setShowSuccess(false);
+      onClose();
+      return;
+    }
 
-    // Step 1: Complete the transaction and close the modal FIRST
+    // Try to open UPI FIRST, while modal is still visible
+    try {
+      await Linking.openURL(upiUri);
+    } catch (err1) {
+      console.log('UPI URI failed, trying generic:', err1);
+      try {
+        await Linking.openURL('upi://pay');
+      } catch (err2) {
+        console.log('Generic UPI also failed:', err2);
+        Alert.alert(
+          'No UPI App Found',
+          'No UPI payment app found on your device. Please install a UPI app like PhonePe, Google Pay, or Paytm.'
+        );
+      }
+    }
+
+    // Complete transaction and close modal AFTER UPI chooser is shown
     onSuccess(amountValue, intownSavings > 0 ? intownSavings : 0, 'UPI');
     setAmount('');
     setInstantSavingsInput('');
     setShowSuccess(false);
     onClose();
-
-    // Step 2: Open UPI app chooser AFTER modal is closed
-    // Small delay to ensure modal dismisses before the native chooser appears
-    setTimeout(async () => {
-      try {
-        const canOpen = await Linking.canOpenURL(upiUri);
-        console.log('Can open UPI URL:', canOpen);
-
-        if (canOpen) {
-          await Linking.openURL(upiUri);
-        } else {
-          // Fallback: try generic upi://pay
-          console.log('Trying generic upi://pay...');
-          const canOpenGeneric = await Linking.canOpenURL('upi://pay');
-          if (canOpenGeneric) {
-            await Linking.openURL('upi://pay');
-          } else {
-            Alert.alert(
-              'No UPI App Found',
-              'No UPI payment app found on your device. Please install a UPI app like PhonePe, Google Pay, or Paytm.'
-            );
-          }
-        }
-      } catch (error) {
-        console.error('UPI open error:', error);
-        Alert.alert(
-          'No UPI App Found',
-          'Could not open UPI payment. Please install a UPI app like PhonePe, Google Pay, or Paytm.'
-        );
-      }
-    }, 500);
   };
 
   const handleDismiss = () => {
