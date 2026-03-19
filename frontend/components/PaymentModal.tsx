@@ -208,10 +208,26 @@ export default function PaymentModal({
         onClose();
         router.replace((redirectTo || '/member-dashboard') as any);
       } else {
-        Alert.alert(
-          'App Not Found',
-          `${methodName} is not installed on this device. Please install it from Play Store.`
-        );
+        // Fallback: open generic UPI chooser
+        try {
+          const upiId = merchantUpiId || '';
+          const name = merchantName || 'INtown';
+          const payAmount = finalPaidAmount > 0 ? finalPaidAmount.toFixed(2) : '1';
+          const upiUri = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(name)}&am=${payAmount}&cu=INR&tn=INtownPayment`;
+          await Linking.openURL(upiUri);
+          onSuccess(amountValue, intownSavings > 0 ? intownSavings : 0, methodName);
+          setAmount('');
+          setInstantSavingsInput('');
+          setSelectedMethod('');
+          setShowMethods(false);
+          onClose();
+          router.replace((redirectTo || '/member-dashboard') as any);
+        } catch (e) {
+          Alert.alert(
+            'App Not Found',
+            `${methodName} is not installed on this device. Please install it from Play Store.`
+          );
+        }
       }
     } catch (error) {
       console.error('Open payment app error:', error);
