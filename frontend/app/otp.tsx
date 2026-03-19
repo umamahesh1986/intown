@@ -308,6 +308,7 @@ export default function OTPScreen() {
      AUTO OTP DETECTION (Android)
      Firebase reads SMS silently and auto-verifies.
      onAuthStateChanged fires when auto-verification succeeds.
+     IMPORTANT: Skip the first event (cached user from previous session).
   ================================ */
   const startAutoVerifyListener = useCallback(() => {
     if (!isMobile || !firebaseAuth) return;
@@ -320,9 +321,19 @@ export default function OTPScreen() {
     hasProcessedAuth.current = false;
     const auth = firebaseAuth();
 
+    // Skip the first onAuthStateChanged event — it fires immediately
+    // with the cached user from a previous session, NOT from a new OTP verification.
+    let isInitialEvent = true;
+
     authUnsubscribe.current = auth.onAuthStateChanged((user: any) => {
+      if (isInitialEvent) {
+        isInitialEvent = false;
+        console.log("=== Skipping initial cached auth event ===", user?.uid || 'null');
+        return;
+      }
+
       if (user && !hasProcessedAuth.current) {
-        console.log("=== AUTO-VERIFICATION DETECTED ===");
+        console.log("=== AUTO-VERIFICATION DETECTED (new auth) ===");
         console.log("User UID:", user.uid);
         setAutoVerifying(true);
         setStatusMessage("OTP auto-detected! Verifying...");
@@ -391,6 +402,17 @@ export default function OTPScreen() {
         setStatusMessage("Sending SMS...");
         
         const auth = firebaseAuth();
+        
+        // Sign out any previously cached user to prevent auto-verify
+        // from triggering with the old session
+        try {
+          if (auth.currentUser) {
+            console.log("=== Signing out cached user before OTP ===");
+            await auth.signOut();
+          }
+        } catch (e) {
+          console.log("Sign out failed (non-critical):", e);
+        }
         
         // Only pass forceResend=true when user explicitly clicks "Resend OTP"
         const confirmation = await auth.signInWithPhoneNumber(formattedPhone, forceResend);
