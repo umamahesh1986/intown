@@ -13,6 +13,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useState } from 'react';
+import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
 interface PaymentModalProps {
@@ -36,6 +37,7 @@ export default function PaymentModal({
   merchantName,
   redirectTo,
 }: PaymentModalProps) {
+  const router = useRouter();
   const [amount, setAmount] = useState('');
   const [instantSavingsInput, setInstantSavingsInput] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -122,27 +124,43 @@ export default function PaymentModal({
 
   /* ===============================
      HANDLE OK BUTTON ON SUCCESS MODAL
-     Opens native Android UPI chooser directly.
-     Flow: Open UPI → then close modal.
-     The native chooser overlays on top of the app.
+     1. Open native Android UPI chooser
+     2. Complete transaction (onSuccess callback)
+     3. Navigate to dashboard
   ================================ */
   const handleSuccessOk = async () => {
-    const upiId = merchantUpiId || '';
-    const name = merchantName || 'INtown';
-    const payAmount = finalPaidAmount > 0 ? finalPaidAmount.toFixed(2) : '1';
-    const upiUri = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(name)}&am=${payAmount}&cu=INR&tn=INtownPayment`;
+    // Capture values before resetting state
+    const savedAmount = amountValue;
+    const savedSavings = intownSavings > 0 ? intownSavings : 0;
 
     if (Platform.OS === 'web') {
-      // Web can't open UPI apps, just complete
-      onSuccess(amountValue, intownSavings > 0 ? intownSavings : 0, 'UPI');
+      onSuccess(savedAmount, savedSavings, 'UPI');
       setAmount('');
       setInstantSavingsInput('');
       setShowSuccess(false);
       onClose();
+      router.replace((redirectTo || '/member-dashboard') as any);
       return;
     }
 
-    // Try to open UPI FIRST, while modal is still visible
+    // Build UPI URI — only include pa= if we have a valid merchant UPI ID
+    // PhonePe crashes with "Something went wrong" when pa= is empty
+    const name = merchantName || 'INtown';
+    const payAmount = finalPaidAmount > 0 ? finalPaidAmount.toFixed(2) : '1';
+    const upiId = (merchantUpiId || '').trim();
+
+    let upiUri = 'upi://pay?';
+    const params: string[] = [];
+    if (upiId) {
+      params.push(`pa=${encodeURIComponent(upiId)}`);
+    }
+    params.push(`pn=${encodeURIComponent(name)}`);
+    params.push(`am=${payAmount}`);
+    params.push('cu=INR');
+    params.push('tn=INtownPayment');
+    upiUri += params.join('&');
+
+    // Open UPI chooser while modal is still visible
     try {
       await Linking.openURL(upiUri);
     } catch (err1) {
@@ -158,12 +176,13 @@ export default function PaymentModal({
       }
     }
 
-    // Complete transaction and close modal AFTER UPI chooser is shown
-    onSuccess(amountValue, intownSavings > 0 ? intownSavings : 0, 'UPI');
+    // Complete transaction, close modal, and navigate to dashboard
+    onSuccess(savedAmount, savedSavings, 'UPI');
     setAmount('');
     setInstantSavingsInput('');
     setShowSuccess(false);
     onClose();
+    router.replace((redirectTo || '/member-dashboard') as any);
   };
 
   const handleDismiss = () => {
