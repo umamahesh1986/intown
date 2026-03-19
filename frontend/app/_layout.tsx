@@ -5,6 +5,12 @@ import { useAuthStore } from '../store/authStore';
 import CommonBottomTabs from '../components/CommonBottomTabs';
 import { Fonts } from '../utils/fonts';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { initializeAppCheck } from '../firebase/appCheck';
+
+// Initialize App Check as early as possible (before any Firebase Auth calls)
+if (Platform.OS !== 'web') {
+  initializeAppCheck();
+}
 
 const LAST_DASHBOARD_KEY = 'last_visited_dashboard';
 
