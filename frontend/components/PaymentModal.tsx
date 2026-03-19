@@ -132,18 +132,31 @@ export default function PaymentModal({
     }
   };
 
-  const getAppPackage = (methodId: string) => {
-    switch (methodId) {
-      case 'phonepe':
-        return 'com.phonepe.app';
-      case 'googlepay':
-        return 'com.google.android.apps.nbu.paisa.user';
-      case 'paytm':
-        return 'net.one97.paytm';
-      case 'amazonpay':
-        return 'in.amazon.mShop.android.shopping';
-      default:
-        return null;
+  const openUpiApp = async (methodId: string, methodName: string) => {
+    const upiId = merchantUpiId || '';
+    const name = merchantName || 'INtown';
+    const payAmount = finalPaidAmount > 0 ? finalPaidAmount.toFixed(2) : '1';
+
+    const upiUri = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(name)}&am=${payAmount}&cu=INR&tn=INtownPayment`;
+
+    const packageMap: Record<string, string> = {
+      phonepe: 'com.phonepe.app',
+      googlepay: 'com.google.android.apps.nbu.paisa.user',
+      paytm: 'net.one97.paytm',
+      amazonpay: 'in.amazon.mShop.android.shopping',
+    };
+
+    const packageName = packageMap[methodId];
+
+    try {
+      await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
+        data: upiUri,
+        packageName: packageName,
+      });
+      return true;
+    } catch (error) {
+      console.log(`${methodName} open failed`, error);
+      return false;
     }
   };
 
@@ -161,51 +174,10 @@ export default function PaymentModal({
         return;
       }
 
-      const packageName = getAppPackage(methodId);
-      if (!packageName) return;
-
       let opened = false;
-      const upiId = merchantUpiId || '';
-      const name = merchantName || 'Merchant';
-      const payAmount = finalPaidAmount > 0 ? finalPaidAmount.toFixed(2) : '0';
 
       if (Platform.OS === 'android') {
-        // Strategy 1: Use app-specific UPI deep link schemes (most reliable with <queries> declared)
-        const appSpecificUpiLinks: Record<string, string> = {
-          phonepe: `phonepe://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(name)}&am=${payAmount}&cu=INR`,
-          googlepay: `tez://upi/pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(name)}&am=${payAmount}&cu=INR`,
-          paytm: `paytmmp://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(name)}&am=${payAmount}&cu=INR`,
-          amazonpay: `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(name)}&am=${payAmount}&cu=INR`,
-        };
-
-        const deepLink = appSpecificUpiLinks[methodId];
-        if (deepLink) {
-          try {
-            const canOpen = await Linking.canOpenURL(deepLink);
-            if (canOpen) {
-              await Linking.openURL(deepLink);
-              opened = true;
-            }
-          } catch (e) {
-            console.log(`Deep link failed for ${methodName}:`, e);
-          }
-        }
-
-        // Strategy 2: Fallback to expo-intent-launcher with package targeting
-        if (!opened) {
-          try {
-            const upiUri = upiId
-              ? `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(name)}&am=${payAmount}&cu=INR`
-              : `upi://pay?pn=${encodeURIComponent(name)}&am=${payAmount}&cu=INR`;
-            await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
-              data: upiUri,
-              packageName: packageName,
-            });
-            opened = true;
-          } catch (e) {
-            console.log(`IntentLauncher failed for ${methodName}:`, e);
-          }
-        }
+        opened = await openUpiApp(methodId, methodName);
       }
 
       // iOS fallback
@@ -227,23 +199,39 @@ export default function PaymentModal({
         }
       }
 
-      if (!opened) {
-        Alert.alert(
-          'App Not Found',
-          `${methodName} is not installed on this device. Please install it from Play Store.`
-        );
+      if (opened) {
+        onSuccess(amountValue, intownSavings > 0 ? intownSavings : 0, methodName);
+        setAmount('');
+        setInstantSavingsInput('');
+        setSelectedMethod('');
+        setShowMethods(false);
+        onClose();
+        router.replace((redirectTo || '/member-dashboard') as any);
+      } else {
+        // Fallback: open generic UPI chooser
+        try {
+          const upiId = merchantUpiId || '';
+          const name = merchantName || 'INtown';
+          const payAmount = finalPaidAmount > 0 ? finalPaidAmount.toFixed(2) : '1';
+          const upiUri = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(name)}&am=${payAmount}&cu=INR&tn=INtownPayment`;
+          await Linking.openURL(upiUri);
+          onSuccess(amountValue, intownSavings > 0 ? intownSavings : 0, methodName);
+          setAmount('');
+          setInstantSavingsInput('');
+          setSelectedMethod('');
+          setShowMethods(false);
+          onClose();
+          router.replace((redirectTo || '/member-dashboard') as any);
+        } catch (e) {
+          Alert.alert(
+            'App Not Found',
+            `${methodName} is not installed on this device. Please install it from Play Store.`
+          );
+        }
       }
     } catch (error) {
       console.error('Open payment app error:', error);
       Alert.alert('Error', `Unable to open ${methodName}.`);
-    } finally {
-      onSuccess(amountValue, intownSavings > 0 ? intownSavings : 0, methodName);
-      setAmount('');
-      setInstantSavingsInput('');
-      setSelectedMethod('');
-      setShowMethods(false);
-      onClose();
-      router.replace((redirectTo || '/member-dashboard') as any);
     }
   };
 
