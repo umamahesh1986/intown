@@ -429,12 +429,13 @@ export default function MerchantDashboard() {
           // ignore storage parse errors and fall back to fetch
         }
       }
-      const res = await fetch(`https://api.intownlocal.com/IN/s3/upload?userType=IN_MERCHANT&merchantId=${id}`);
+      const res = await fetch(`https://api.intownlocal.com/IN/customer/${id}`);
       if (!res.ok) {
-        throw new Error(`S3 image fetch failed: ${res.status}`);
+        throw new Error(`Image fetch failed: ${res.status}`);
       }
       const data = await res.json();
-      const images = Array.isArray(data?.s3ImageUrl) ? data.s3ImageUrl : [];
+      const rawUrls = data?.s3ImageUrl;
+      const images = Array.isArray(rawUrls) ? rawUrls.filter((u: any) => typeof u === 'string' && u.length > 0) : (typeof rawUrls === 'string' && rawUrls.length > 0 ? [rawUrls] : []);
       if (images.length > 0) {
         setShopImages(images);
         setShopImageIndex(0);
