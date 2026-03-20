@@ -28,6 +28,14 @@
             "package_name": "com.intown.andriod",
             "certificate_hash": "bf3a4b463c7f507750bce0edacb20fe9b424cbad"
           }
+        },
+        {
+          "client_id": "365677663172-doj2hvs600a53nd67p6fbncl32uqe017.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.intown.andriod",
+            "certificate_hash": "6e9f95df624b3807305c214080171e71b2e87e7c"
+          }
         }
       ],
       "api_key": [
