@@ -170,20 +170,24 @@ export default function PaymentModal({
     }
 
     // Build UPI URI
-    const name = merchantName || 'INtown';
-    const payAmount = finalPaidAmount > 0 ? finalPaidAmount.toFixed(2) : '1';
     const upiId = (merchantUpiId || '').trim();
 
-    let upiUri = 'upi://pay?';
-    const params: string[] = [];
+    let upiUri: string;
     if (upiId) {
+      // Full UPI payment link with merchant VPA
+      const name = merchantName || 'INtown';
+      const payAmount = finalPaidAmount > 0 ? finalPaidAmount.toFixed(2) : '1';
+      const params: string[] = [];
       params.push(`pa=${encodeURIComponent(upiId)}`);
+      params.push(`pn=${encodeURIComponent(name)}`);
+      params.push(`am=${payAmount}`);
+      params.push('cu=INR');
+      params.push('tn=INtownPayment');
+      upiUri = 'upi://pay?' + params.join('&');
+    } else {
+      // No merchant UPI ID — open UPI app generically (user enters payee manually)
+      upiUri = 'upi://pay';
     }
-    params.push(`pn=${encodeURIComponent(name)}`);
-    params.push(`am=${payAmount}`);
-    params.push('cu=INR');
-    params.push('tn=INtownPayment');
-    upiUri += params.join('&');
 
     waitingForUpiReturn.current = true;
     redirectPath.current = redirectTo || '/member-dashboard';

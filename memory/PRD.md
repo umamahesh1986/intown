@@ -20,15 +20,19 @@ Build, run, and fix critical issues in the Expo (React Native) mobile app "InTow
 - [x] iOS setup: `GoogleService-Info.plist` created
 - [x] UPI flow: AppState-based redirect (waits for user to return from UPI app)
 - [x] UI fix: layout gap at bottom of payment modal
-- [x] **Payment method chooser**: Added in-app "Pay with" screen after successful transaction with UPI and Cash options (Feb 2026)
+- [x] Payment method chooser: "Pay with" screen with UPI and Cash options (Feb 2026)
+- [x] UPI fix: When no merchant UPI ID available, open UPI app generically (`upi://pay`) so user enters payee manually (Feb 2026)
 
 ### Payment Flow (Current - Feb 2026)
 1. User enters amounts and clicks Submit
 2. API call records transaction
 3. Success screen appears, user clicks OK
 4. **"Pay with" chooser** appears with two options:
-   - **UPI**: Opens native Android UPI app chooser, waits for return via AppState, then redirects to dashboard
+   - **UPI**: Opens native Android UPI app chooser via `upi://pay` (no payee pre-filled since API doesn't provide merchant VPA). User enters payee manually in UPI app. AppState redirects to dashboard on return.
    - **Cash**: Redirects directly to dashboard
+
+### Key Technical Note
+The InTown API (`/IN/merchant/{id}` and `/IN/search/by-product-names`) does NOT return merchant UPI IDs. So UPI payments open the app generically without pre-filling the payee address.
 
 ## Pending User Verification
 - UPI payment flow (requires APK build + real device)
@@ -42,6 +46,7 @@ Build, run, and fix critical issues in the Expo (React Native) mobile app "InTow
 
 ## Key Files
 - `/app/frontend/components/PaymentModal.tsx` - Payment flow with UPI/Cash chooser
+- `/app/frontend/app/member-shop-details.tsx` - Shop details page that triggers PaymentModal
 - `/app/frontend/app/merchant-dashboard.tsx` - Merchant dashboard
 - `/app/frontend/app/dual-dashboard.tsx` - Dual dashboard
 - `/app/frontend/app/member-dashboard.tsx` - Member dashboard
