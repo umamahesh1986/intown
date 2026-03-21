@@ -10,9 +10,9 @@ import {
   Linking,
   Platform,
   KeyboardAvoidingView,
-  ActivityIndicator,
+  AppState,
 } from 'react-native';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -42,6 +42,11 @@ export default function PaymentModal({
   const [instantSavingsInput, setInstantSavingsInput] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [showPaymentChooser, setShowPaymentChooser] = useState(false);
+
+  // Track if we're waiting for user to return from UPI app
+  const waitingForUpiReturn = useRef(false);
+  const redirectPath = useRef('');
 
   const parseAmount = (value: string) => {
     const normalized = value.replace(/,/g, '').trim();
@@ -52,6 +57,23 @@ export default function PaymentModal({
   const intownPrice = parseAmount(instantSavingsInput);
   const intownSavings = amountValue - intownPrice;
   const finalPaidAmount = intownPrice;
+
+  // Listen for app returning to foreground after UPI app
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (nextAppState) => {
+      // When app comes back to foreground and we were waiting for UPI return
+      if (nextAppState === 'active' && waitingForUpiReturn.current) {
+        waitingForUpiReturn.current = false;
+        // Navigate to dashboard
+        const path = redirectPath.current || '/member-dashboard';
+        router.replace(path as any);
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [router]);
 
   const handlePayNow = async () => {
     if (!amount || !Number.isFinite(amountValue) || amountValue <= 0) {
@@ -124,27 +146,30 @@ export default function PaymentModal({
 
   /* ===============================
      HANDLE OK BUTTON ON SUCCESS MODAL
-     1. Open native Android UPI chooser
-     2. Complete transaction (onSuccess callback)
-     3. Navigate to dashboard
+     Shows payment method chooser (UPI or Cash)
   ================================ */
-  const handleSuccessOk = async () => {
-    // Capture values before resetting state
+  const handleSuccessOk = () => {
+    setShowSuccess(false);
+    setShowPaymentChooser(true);
+  };
+
+  /* Handle UPI payment selection */
+  const handleUpiPayment = async () => {
     const savedAmount = amountValue;
     const savedSavings = intownSavings > 0 ? intownSavings : 0;
 
+    onSuccess(savedAmount, savedSavings, 'UPI');
+    setAmount('');
+    setInstantSavingsInput('');
+    setShowPaymentChooser(false);
+    onClose();
+
     if (Platform.OS === 'web') {
-      onSuccess(savedAmount, savedSavings, 'UPI');
-      setAmount('');
-      setInstantSavingsInput('');
-      setShowSuccess(false);
-      onClose();
       router.replace((redirectTo || '/member-dashboard') as any);
       return;
     }
 
-    // Build UPI URI — only include pa= if we have a valid merchant UPI ID
-    // PhonePe crashes with "Something went wrong" when pa= is empty
+    // Build UPI URI
     const name = merchantName || 'INtown';
     const payAmount = finalPaidAmount > 0 ? finalPaidAmount.toFixed(2) : '1';
     const upiId = (merchantUpiId || '').trim();
@@ -160,33 +185,42 @@ export default function PaymentModal({
     params.push('tn=INtownPayment');
     upiUri += params.join('&');
 
-    // Open UPI chooser while modal is still visible
+    waitingForUpiReturn.current = true;
+    redirectPath.current = redirectTo || '/member-dashboard';
+
     try {
       await Linking.openURL(upiUri);
     } catch (err1) {
-      console.log('UPI URI failed, trying generic:', err1);
       try {
         await Linking.openURL('upi://pay');
       } catch (err2) {
-        console.log('Generic UPI also failed:', err2);
+        waitingForUpiReturn.current = false;
         Alert.alert(
           'No UPI App Found',
-          'No UPI payment app found on your device. Please install a UPI app like PhonePe, Google Pay, or Paytm.'
+          'No UPI payment app found on your device.',
+          [{ text: 'OK', onPress: () => router.replace((redirectTo || '/member-dashboard') as any) }]
         );
       }
     }
+  };
 
-    // Complete transaction, close modal, and navigate to dashboard
-    onSuccess(savedAmount, savedSavings, 'UPI');
+  /* Handle Cash payment selection */
+  const handleCashPayment = () => {
+    const savedAmount = amountValue;
+    const savedSavings = intownSavings > 0 ? intownSavings : 0;
+
+    onSuccess(savedAmount, savedSavings, 'Cash');
     setAmount('');
     setInstantSavingsInput('');
-    setShowSuccess(false);
+    setShowPaymentChooser(false);
     onClose();
+
     router.replace((redirectTo || '/member-dashboard') as any);
   };
 
   const handleDismiss = () => {
     setShowSuccess(false);
+    setShowPaymentChooser(false);
     onClose();
   };
 
@@ -195,7 +229,6 @@ export default function PaymentModal({
       <KeyboardAvoidingView
         style={styles.modalOverlay}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
         <View style={styles.modalContent}>
           {showSuccess ? (
@@ -211,8 +244,55 @@ export default function PaymentModal({
                 <Text style={styles.successButtonText}>OK</Text>
               </TouchableOpacity>
             </View>
+          ) : showPaymentChooser ? (
+            <View style={styles.chooserContainer}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Pay with</Text>
+                <TouchableOpacity onPress={handleDismiss}>
+                  <Ionicons name="close" size={28} color="#666" />
+                </TouchableOpacity>
+              </View>
+
+              <Text style={styles.chooserSubtitle}>
+                Amount: &#8377;{Number.isFinite(finalPaidAmount) && finalPaidAmount >= 0 ? finalPaidAmount.toFixed(2) : '0.00'}
+              </Text>
+
+              <TouchableOpacity
+                style={styles.chooserOption}
+                onPress={handleUpiPayment}
+                data-testid="pay-upi-option"
+              >
+                <View style={styles.chooserIconWrap}>
+                  <Ionicons name="phone-portrait-outline" size={28} color="#5C2D91" />
+                </View>
+                <View style={styles.chooserTextWrap}>
+                  <Text style={styles.chooserOptionTitle}>UPI</Text>
+                  <Text style={styles.chooserOptionDesc}>Pay using any UPI app</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={22} color="#999" />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.chooserOption}
+                onPress={handleCashPayment}
+                data-testid="pay-cash-option"
+              >
+                <View style={[styles.chooserIconWrap, { backgroundColor: '#E8F5E9' }]}>
+                  <Ionicons name="cash-outline" size={28} color="#2E7D32" />
+                </View>
+                <View style={styles.chooserTextWrap}>
+                  <Text style={styles.chooserOptionTitle}>Cash</Text>
+                  <Text style={styles.chooserOptionDesc}>Pay with cash at the store</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={22} color="#999" />
+              </TouchableOpacity>
+            </View>
           ) : (
-            <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+            <ScrollView
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.scrollContent}
+            >
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Payment</Text>
                 <TouchableOpacity onPress={handleDismiss}>
@@ -278,7 +358,6 @@ export default function PaymentModal({
                   {isSubmitting ? 'Processing...' : 'Submit'}
                 </Text>
               </TouchableOpacity>
-              <View style={{ height: 20 }} />
             </ScrollView>
           )}
         </View>
@@ -288,9 +367,28 @@ export default function PaymentModal({
 }
 
 const styles = StyleSheet.create({
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalContent: { backgroundColor: '#FFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, maxHeight: '80%' },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#FFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: Platform.OS === 'ios' ? 34 : 16,
+  },
+  scrollContent: {
+    paddingBottom: 0,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
   modalTitle: { fontSize: 20, fontWeight: 'bold', color: '#1A1A1A' },
   amountSection: { marginBottom: 24 },
   label: { fontSize: 14, fontWeight: '600', color: '#666', marginBottom: 8 },
@@ -311,8 +409,17 @@ const styles = StyleSheet.create({
     textAlign: 'left',
     ...(Platform.OS === 'web' ? { outlineStyle: 'none' as any } : {}),
   },
-  savingsSection: { backgroundColor: '#E8F5E9', borderRadius: 12, padding: 16, marginBottom: 24 },
-  savingsRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginVertical: 8 },
+  savingsSection: {
+    backgroundColor: '#E8F5E9',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+  },
+  savingsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   savingsLabel: { fontSize: 14, color: '#2E7D32', fontWeight: '600' },
   savingsValue: { fontSize: 18, fontWeight: 'bold', color: '#2E7D32' },
   totalLabel: { fontSize: 16, fontWeight: 'bold', color: '#1B5E20' },
@@ -324,13 +431,51 @@ const styles = StyleSheet.create({
     color: '#1B5E20',
     paddingVertical: 0,
   },
-  payButton: { backgroundColor: '#FF8A00', borderRadius: 12, paddingVertical: 16, alignItems: 'center' },
+  payButton: {
+    backgroundColor: '#FF8A00',
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: 'center',
+    marginTop: 8,
+  },
   payButtonDisabled: { opacity: 0.7 },
   payButtonText: { color: '#FFF', fontSize: 18, fontWeight: 'bold' },
   successContainer: { alignItems: 'center', paddingVertical: 24 },
   successIconWrap: { marginBottom: 12 },
   successTitle: { fontSize: 22, fontWeight: '700', color: '#1A1A1A', marginBottom: 8 },
   successMessage: { fontSize: 14, color: '#555', textAlign: 'center', marginBottom: 20 },
-  successButton: { backgroundColor: '#FF8A00', borderRadius: 12, paddingVertical: 12, paddingHorizontal: 32 },
+  successButton: {
+    backgroundColor: '#FF8A00',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 32,
+  },
   successButtonText: { color: '#FFF', fontSize: 16, fontWeight: '700' },
+  chooserContainer: { paddingVertical: 8 },
+  chooserSubtitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1A1A1A',
+    marginBottom: 20,
+  },
+  chooserOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8F8F8',
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 12,
+  },
+  chooserIconWrap: {
+    width: 50,
+    height: 50,
+    borderRadius: 14,
+    backgroundColor: '#F3E8FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
+  },
+  chooserTextWrap: { flex: 1 },
+  chooserOptionTitle: { fontSize: 16, fontWeight: '700', color: '#1A1A1A' },
+  chooserOptionDesc: { fontSize: 13, color: '#777', marginTop: 2 },
 });
