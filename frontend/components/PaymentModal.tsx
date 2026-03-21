@@ -10,8 +10,9 @@ import {
   Linking,
   Platform,
   KeyboardAvoidingView,
+  AppState,
 } from 'react-native';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -42,6 +43,10 @@ export default function PaymentModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
+  // Track if we're waiting for user to return from UPI app
+  const waitingForUpiReturn = useRef(false);
+  const redirectPath = useRef('');
+
   const parseAmount = (value: string) => {
     const normalized = value.replace(/,/g, '').trim();
     return parseFloat(normalized || '0');
@@ -51,6 +56,23 @@ export default function PaymentModal({
   const intownPrice = parseAmount(instantSavingsInput);
   const intownSavings = amountValue - intownPrice;
   const finalPaidAmount = intownPrice;
+
+  // Listen for app returning to foreground after UPI app
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (nextAppState) => {
+      // When app comes back to foreground and we were waiting for UPI return
+      if (nextAppState === 'active' && waitingForUpiReturn.current) {
+        waitingForUpiReturn.current = false;
+        // Navigate to dashboard
+        const path = redirectPath.current || '/member-dashboard';
+        router.replace(path as any);
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [router]);
 
   const handlePayNow = async () => {
     if (!amount || !Number.isFinite(amountValue) || amountValue <= 0) {
@@ -124,27 +146,27 @@ export default function PaymentModal({
   /* ===============================
      HANDLE OK BUTTON ON SUCCESS MODAL
      Flow:
-     1. Open native UPI chooser (Linking.openURL) — shows "Open with" dialog
-     2. User selects a UPI app → that app opens
-     3. Meanwhile, complete transaction and navigate to dashboard
-     The UPI chooser appears ON TOP of the app, so navigation underneath is fine.
+     1. Open native UPI chooser — user sees list of installed UPI apps
+     2. User taps a UPI app → that app opens → our app goes to background
+     3. AppState listener detects app returning to foreground → redirects to dashboard
   ================================ */
   const handleSuccessOk = async () => {
-    // Capture values before resetting state
     const savedAmount = amountValue;
     const savedSavings = intownSavings > 0 ? intownSavings : 0;
 
+    // Complete the transaction first (API call already saved payment)
+    onSuccess(savedAmount, savedSavings, 'UPI');
+    setAmount('');
+    setInstantSavingsInput('');
+    setShowSuccess(false);
+    onClose();
+
     if (Platform.OS === 'web') {
-      onSuccess(savedAmount, savedSavings, 'UPI');
-      setAmount('');
-      setInstantSavingsInput('');
-      setShowSuccess(false);
-      onClose();
       router.replace((redirectTo || '/member-dashboard') as any);
       return;
     }
 
-    // Build UPI URI — only include pa= if merchant UPI ID exists
+    // Build UPI URI
     const name = merchantName || 'INtown';
     const payAmount = finalPaidAmount > 0 ? finalPaidAmount.toFixed(2) : '1';
     const upiId = (merchantUpiId || '').trim();
@@ -160,35 +182,26 @@ export default function PaymentModal({
     params.push('tn=INtownPayment');
     upiUri += params.join('&');
 
-    // Step 1: Open UPI chooser FIRST (while modal and screen are still visible)
-    // The native "Open with" dialog appears on top of the current screen
+    // Set flag: when app returns from background, navigate to dashboard
+    waitingForUpiReturn.current = true;
+    redirectPath.current = redirectTo || '/member-dashboard';
+
+    // Open UPI chooser
     try {
       await Linking.openURL(upiUri);
     } catch (err1) {
       try {
         await Linking.openURL('upi://pay');
       } catch (err2) {
+        // No UPI app available — redirect to dashboard directly
+        waitingForUpiReturn.current = false;
         Alert.alert(
           'No UPI App Found',
-          'No UPI payment app found on your device. Please install a UPI app like PhonePe, Google Pay, or Paytm.'
+          'No UPI payment app found on your device.',
+          [{ text: 'OK', onPress: () => router.replace((redirectTo || '/member-dashboard') as any) }]
         );
       }
     }
-
-    // Step 2: Complete transaction (API call already saved the payment in handlePayNow)
-    onSuccess(savedAmount, savedSavings, 'UPI');
-    setAmount('');
-    setInstantSavingsInput('');
-    setShowSuccess(false);
-    onClose();
-
-    // Step 3: Navigate to dashboard AFTER a delay
-    // This delay ensures the UPI chooser has fully appeared before navigation.
-    // The chooser is a system dialog on TOP of the app, so navigation happens underneath.
-    // When user returns from the UPI app, they'll see the dashboard.
-    setTimeout(() => {
-      router.replace((redirectTo || '/member-dashboard') as any);
-    }, 1500);
   };
 
   const handleDismiss = () => {
