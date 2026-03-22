@@ -147,6 +147,11 @@ export default function OTPScreen() {
       authUnsubscribe.current = null;
     }
 
+    // Clean up SMS listener to prevent race conditions
+    if (removeOtpListener) {
+      try { removeOtpListener(); } catch (e) {}
+    }
+
     try {
       const phoneNumber = formatPhoneNumber(phone || "");
 
@@ -271,20 +276,28 @@ export default function OTPScreen() {
         authUnsubscribe.current = null;
       }
 
+      // Stop SMS listener
+      if (removeOtpListener) {
+        try { removeOtpListener(); } catch (e) {}
+      }
+
       const userCredential = await confirmationResult.confirm(code);
       console.log('=== AUTO-SUBMIT OTP VERIFIED ===', userCredential.user.uid);
       await processVerifiedUser(userCredential.user.uid);
     } catch (err: any) {
       console.log('Auto-submit verification failed:', err.code);
-      setStatusMessage("");
-      setIsLoading(false);
-      // Don't show error - let user try manually
+      if (!hasProcessedAuth.current) {
+        setStatusMessage("");
+        setIsLoading(false);
+      }
     }
   }, [confirmationResult, processVerifiedUser]);
 
   /* ===============================
      SMS AUTO-READ & AUTO-FILL OTP
      Reads incoming SMS, extracts 6-digit OTP, and fills input fields automatically.
+     IMPORTANT: Guard all state updates with hasProcessedAuth to prevent
+     crashes when Firebase auto-verify has already navigated away.
   ================================ */
   const startSmsAutoRead = useCallback(() => {
     if (!startOtpListener || Platform.OS !== 'android') return;
@@ -299,6 +312,14 @@ export default function OTPScreen() {
 
       startOtpListener((message: string) => {
         console.log('=== SMS RECEIVED ===', message);
+
+        // If auth was already processed (e.g., Firebase auto-verified),
+        // do NOT touch any state or refs — the component may be unmounting.
+        if (hasProcessedAuth.current) {
+          console.log('=== SMS ignored: auth already processed ===');
+          return;
+        }
+
         // Extract 6-digit OTP from the SMS message
         const otpMatch = /(\d{6})/.exec(message);
         if (otpMatch && otpMatch[1]) {
@@ -311,7 +332,9 @@ export default function OTPScreen() {
           
           // Focus on the last input field to show it's filled
           setTimeout(() => {
-            inputRefs.current[OTP_LENGTH - 1]?.focus();
+            if (!hasProcessedAuth.current) {
+              try { inputRefs.current[OTP_LENGTH - 1]?.focus(); } catch (_) {}
+            }
           }, 100);
 
           // Show auto-fill feedback
@@ -319,7 +342,9 @@ export default function OTPScreen() {
           
           // Auto-submit after a brief delay so user can see the filled digits
           setTimeout(() => {
-            autoSubmitOtp(digits);
+            if (!hasProcessedAuth.current) {
+              autoSubmitOtp(digits);
+            }
           }, 800);
         }
       });
@@ -360,6 +385,12 @@ export default function OTPScreen() {
       if (user && !hasProcessedAuth.current) {
         console.log("=== AUTO-VERIFICATION DETECTED (new auth) ===");
         console.log("User UID:", user.uid);
+
+        // Clean up SMS listener immediately to prevent race condition
+        if (removeOtpListener) {
+          try { removeOtpListener(); } catch (e) {}
+        }
+
         setAutoVerifying(true);
         setStatusMessage("OTP auto-detected! Verifying...");
         setIsLoading(true);
