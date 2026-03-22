@@ -22,18 +22,23 @@ Build, run, and fix critical issues in the Expo (React Native) mobile app "InTow
 - [x] UI fix: layout gap at bottom of payment modal
 - [x] Payment method chooser: "Pay with" screen with UPI and Cash options
 - [x] UPI fix: Open UPI app generically (`upi://pay`) when no merchant VPA
-- [x] **OTP crash fix**: Fixed race condition between Firebase auto-verify and SMS auto-read that caused native crash on new devices (Feb 2026)
+- [x] **OTP crash fix v2**: Comprehensive fix for new user crash (Feb 2026)
 
-### OTP Flow Fix Details (Feb 2026)
-**Root Cause**: When a new user logs in on a new device, Firebase silently auto-verifies the phone (SIM matches phone number). Simultaneously, the SMS arrives and `react-native-otp-verify` fires. Both paths tried to process the user concurrently, causing `.focus()` to be called on a disposing native TextInput, resulting in a native crash ("IntownLocal keeps stopping").
+### OTP Crash Fix v2 Details (Feb 2026)
+**Reported Issue**: New users crash instantly after OTP auto-select on Android ("IntownLocal keeps stopping"). Existing users work fine.
 
-**Fix Applied** (in `/app/frontend/app/otp.tsx`):
-1. SMS listener callback now checks `hasProcessedAuth.current` BEFORE touching any state/refs
-2. `processVerifiedUser` now cleans up SMS listener (`removeOtpListener`) immediately
-3. `autoSubmitOtp` now cleans up SMS listener before calling `.confirm()`
-4. Auto-verify listener (`onAuthStateChanged`) now cleans up SMS listener when it fires
-5. All `setTimeout` callbacks guarded with `hasProcessedAuth.current` check
-6. Error handlers in `autoSubmitOtp` guarded against state updates after unmount
+**Root Cause Analysis**: Multiple potential native crash vectors:
+1. **Double confirm()**: Firebase silently auto-verifies the phone (SIM match), then SMS auto-read also calls `confirmationResult.confirm()` on the already-verified session → native Firebase SDK crash
+2. **State updates after unmount**: SMS listener fires after component has navigated away → `.focus()` on disposed native TextInput
+3. **Multiple removeOtpListener calls**: Native module crash from removing already-removed listener
+
+**Fixes Applied** (in `/app/frontend/app/otp.tsx`):
+1. **Check `auth().currentUser` before `confirm()`** — if Firebase already verified, skip `confirm()` and use existing user directly (prevents native crash from double-confirm)
+2. **Mounted ref guard** (`isMountedRef`) — all state updates check if component is still mounted
+3. **Single-use SMS cleanup** (`smsListenerActive` ref + `cleanupSmsListener()`) — ensures `removeOtpListener` is called exactly once, not multiple times
+4. **Auto-verify recovery** — if `confirm()` fails because session already verified, recovers by checking `auth().currentUser`
+5. **300ms navigation delay** — lets React state flush before triggering native navigation
+6. **ErrorBoundary** wrapped around `user-dashboard` component
 
 ### Payment Flow (Current)
 1. User enters amounts and clicks Submit
@@ -55,8 +60,10 @@ Build, run, and fix critical issues in the Expo (React Native) mobile app "InTow
 - P2: Consolidate TypeScript interfaces into central types directory
 
 ## Key Files
-- `/app/frontend/app/otp.tsx` - OTP verification with race condition fix
+- `/app/frontend/app/otp.tsx` - OTP verification with comprehensive crash prevention
 - `/app/frontend/components/PaymentModal.tsx` - Payment flow with UPI/Cash chooser
+- `/app/frontend/components/ErrorBoundary.tsx` - Error boundary for crash recovery
+- `/app/frontend/app/user-dashboard.tsx` - User dashboard (wrapped in ErrorBoundary)
 - `/app/frontend/app/member-shop-details.tsx` - Shop details page
 - `/app/frontend/app/merchant-dashboard.tsx` - Merchant dashboard
 - `/app/frontend/app/dual-dashboard.tsx` - Dual dashboard
