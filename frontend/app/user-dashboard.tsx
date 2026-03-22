@@ -1,6 +1,7 @@
 // user-dashboard.tsx
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Footer from '../components/Footer';
+import ErrorBoundary from '../components/ErrorBoundary';
 import {
   CATEGORY_IMAGE_LIST,
   FALLBACK_CATEGORY_IMAGE,
@@ -523,6 +524,7 @@ export default function UserDashboard() {
 
 
   return (
+    <ErrorBoundary>
     <SafeAreaView style={styles.container}>
       <View style={styles.container}>
         <ScrollView showsVerticalScrollIndicator={false}>
@@ -1285,6 +1287,7 @@ export default function UserDashboard() {
         </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
+    </ErrorBoundary>
   );
 }
 

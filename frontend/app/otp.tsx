@@ -106,6 +106,8 @@ export default function OTPScreen() {
   const popupTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasProcessedAuth = useRef(false);
   const authUnsubscribe = useRef<(() => void) | null>(null);
+  const isMountedRef = useRef(true);
+  const smsListenerActive = useRef(false);
 
   const showOtpSentPopup = (message: string) => {
     setOtpPopupMessage(message);
@@ -119,7 +121,9 @@ export default function OTPScreen() {
   };
 
   useEffect(() => {
+    isMountedRef.current = true;
     return () => {
+      isMountedRef.current = false;
       if (popupTimerRef.current) {
         clearTimeout(popupTimerRef.current);
       }
@@ -128,10 +132,28 @@ export default function OTPScreen() {
         authUnsubscribe.current();
       }
       // Clean up SMS listener
-      if (removeOtpListener) {
+      if (smsListenerActive.current && removeOtpListener) {
         try { removeOtpListener(); } catch (e) {}
+        smsListenerActive.current = false;
       }
     };
+  }, []);
+
+  /* ===============================
+     HELPER: Safely clean up SMS listener (call only once)
+  ================================ */
+  const cleanupSmsListener = useCallback(() => {
+    if (smsListenerActive.current && removeOtpListener) {
+      try { removeOtpListener(); } catch (e) {}
+      smsListenerActive.current = false;
+    }
+  }, []);
+
+  /* ===============================
+     HELPER: Safe state update (only if component is still mounted)
+  ================================ */
+  const safeSetState = useCallback(<T,>(setter: (val: T) => void, val: T) => {
+    if (isMountedRef.current) setter(val);
   }, []);
 
   /* ===============================
@@ -141,16 +163,12 @@ export default function OTPScreen() {
     if (hasProcessedAuth.current) return;
     hasProcessedAuth.current = true;
 
-    // Clean up auth listener
+    // Clean up ALL listeners immediately to prevent race conditions
     if (authUnsubscribe.current) {
       authUnsubscribe.current();
       authUnsubscribe.current = null;
     }
-
-    // Clean up SMS listener to prevent race conditions
-    if (removeOtpListener) {
-      try { removeOtpListener(); } catch (e) {}
-    }
+    cleanupSmsListener();
 
     try {
       const phoneNumber = formatPhoneNumber(phone || "");
@@ -231,7 +249,9 @@ export default function OTPScreen() {
       await setToken(`token_${userId}`);
       console.log("=== setToken DONE ===");
 
-      setStatusMessage("Success! Redirecting...");
+      if (isMountedRef.current) {
+        setStatusMessage("Success! Redirecting...");
+      }
 
       // Build route params — include merchantId for merchant/dual dashboards
       const routeParams: Record<string, string> = { userType: roleInfo.userType };
@@ -241,6 +261,10 @@ export default function OTPScreen() {
       }
 
       console.log("=== NAVIGATING TO ===", roleInfo.dashboard, JSON.stringify(routeParams));
+
+      // Small delay to let state updates flush before navigation
+      await new Promise(resolve => setTimeout(resolve, 300));
+
       router.replace({
         pathname: roleInfo.dashboard as any,
         params: routeParams,
@@ -249,15 +273,20 @@ export default function OTPScreen() {
     } catch (err: any) {
       console.error("=== PROCESS USER ERROR ===", err);
       hasProcessedAuth.current = false;
-      Alert.alert("Error", "Failed to complete login. Please try again.");
-      setStatusMessage("");
-      setIsLoading(false);
-      setAutoVerifying(false);
+      if (isMountedRef.current) {
+        Alert.alert("Error", "Failed to complete login. Please try again.");
+        setStatusMessage("");
+        setIsLoading(false);
+        setAutoVerifying(false);
+      }
     }
-  }, [phone, router, setUser, setToken]);
+  }, [phone, router, setUser, setToken, cleanupSmsListener]);
 
   /* ===============================
      AUTO-SUBMIT OTP (after SMS auto-fill)
+     CRITICAL: Check if Firebase already auto-verified before calling confirm().
+     Calling confirm() on an already-verified session causes a native crash
+     on some Android devices.
   ================================ */
   const autoSubmitOtp = useCallback(async (digits: string[]) => {
     if (hasProcessedAuth.current || !confirmationResult) return;
@@ -266,38 +295,61 @@ export default function OTPScreen() {
     if (code.length !== OTP_LENGTH) return;
 
     console.log('=== AUTO-SUBMITTING OTP ===', code);
-    setIsLoading(true);
-    setStatusMessage("Auto-verifying OTP...");
+    if (isMountedRef.current) {
+      setIsLoading(true);
+      setStatusMessage("Auto-verifying OTP...");
+    }
 
     try {
-      // Stop auth listener to prevent double-processing
+      // Stop ALL listeners first to prevent any concurrent processing
       if (authUnsubscribe.current) {
         authUnsubscribe.current();
         authUnsubscribe.current = null;
       }
+      cleanupSmsListener();
 
-      // Stop SMS listener
-      if (removeOtpListener) {
-        try { removeOtpListener(); } catch (e) {}
+      // CRITICAL: Check if Firebase already auto-verified this session.
+      // If the user is already signed in, calling confirm() again may crash
+      // the native Firebase SDK on some Android devices.
+      if (firebaseAuth) {
+        const auth = firebaseAuth();
+        const currentUser = auth.currentUser;
+        if (currentUser) {
+          console.log('=== USER ALREADY VERIFIED BY FIREBASE ===', currentUser.uid);
+          await processVerifiedUser(currentUser.uid);
+          return;
+        }
       }
 
       const userCredential = await confirmationResult.confirm(code);
       console.log('=== AUTO-SUBMIT OTP VERIFIED ===', userCredential.user.uid);
       await processVerifiedUser(userCredential.user.uid);
     } catch (err: any) {
-      console.log('Auto-submit verification failed:', err.code);
-      if (!hasProcessedAuth.current) {
+      console.log('Auto-submit verification failed:', err.code, err.message);
+      
+      // If the error is because auth was already completed, process the current user
+      if (firebaseAuth && !hasProcessedAuth.current) {
+        const auth = firebaseAuth();
+        const currentUser = auth.currentUser;
+        if (currentUser) {
+          console.log('=== RECOVERING: Using already-signed-in user ===', currentUser.uid);
+          await processVerifiedUser(currentUser.uid);
+          return;
+        }
+      }
+
+      if (!hasProcessedAuth.current && isMountedRef.current) {
         setStatusMessage("");
         setIsLoading(false);
       }
     }
-  }, [confirmationResult, processVerifiedUser]);
+  }, [confirmationResult, processVerifiedUser, cleanupSmsListener]);
 
   /* ===============================
      SMS AUTO-READ & AUTO-FILL OTP
      Reads incoming SMS, extracts 6-digit OTP, and fills input fields automatically.
-     IMPORTANT: Guard all state updates with hasProcessedAuth to prevent
-     crashes when Firebase auto-verify has already navigated away.
+     IMPORTANT: Guard all state updates with hasProcessedAuth and isMountedRef
+     to prevent crashes when Firebase auto-verify has already navigated away.
   ================================ */
   const startSmsAutoRead = useCallback(() => {
     if (!startOtpListener || Platform.OS !== 'android') return;
@@ -315,8 +367,8 @@ export default function OTPScreen() {
 
         // If auth was already processed (e.g., Firebase auto-verified),
         // do NOT touch any state or refs — the component may be unmounting.
-        if (hasProcessedAuth.current) {
-          console.log('=== SMS ignored: auth already processed ===');
+        if (hasProcessedAuth.current || !isMountedRef.current) {
+          console.log('=== SMS ignored: auth already processed or unmounted ===');
           return;
         }
 
@@ -328,26 +380,27 @@ export default function OTPScreen() {
           
           // Auto-fill OTP digits in input fields
           const digits = otpCode.split('');
-          setOtp(digits);
+          if (isMountedRef.current) setOtp(digits);
           
           // Focus on the last input field to show it's filled
           setTimeout(() => {
-            if (!hasProcessedAuth.current) {
+            if (!hasProcessedAuth.current && isMountedRef.current) {
               try { inputRefs.current[OTP_LENGTH - 1]?.focus(); } catch (_) {}
             }
           }, 100);
 
           // Show auto-fill feedback
-          setStatusMessage("OTP auto-filled! Verifying...");
+          if (isMountedRef.current) setStatusMessage("OTP auto-filled! Verifying...");
           
           // Auto-submit after a brief delay so user can see the filled digits
           setTimeout(() => {
-            if (!hasProcessedAuth.current) {
+            if (!hasProcessedAuth.current && isMountedRef.current) {
               autoSubmitOtp(digits);
             }
           }, 800);
         }
       });
+      smsListenerActive.current = true;
       console.log('=== SMS Auto-Read listener started ===');
     } catch (error) {
       console.log('SMS Auto-Read failed to start:', error);
@@ -387,13 +440,13 @@ export default function OTPScreen() {
         console.log("User UID:", user.uid);
 
         // Clean up SMS listener immediately to prevent race condition
-        if (removeOtpListener) {
-          try { removeOtpListener(); } catch (e) {}
-        }
+        cleanupSmsListener();
 
-        setAutoVerifying(true);
-        setStatusMessage("OTP auto-detected! Verifying...");
-        setIsLoading(true);
+        if (isMountedRef.current) {
+          setAutoVerifying(true);
+          setStatusMessage("OTP auto-detected! Verifying...");
+          setIsLoading(true);
+        }
         processVerifiedUser(user.uid);
       }
     });
@@ -595,10 +648,27 @@ export default function OTPScreen() {
           authUnsubscribe.current();
           authUnsubscribe.current = null;
         }
-        const userCredential = await confirmationResult.confirm(code);
-        console.log("=== OTP VERIFIED SUCCESSFULLY ===");
-        console.log("User UID:", userCredential.user.uid);
-        userId = userCredential.user.uid;
+        cleanupSmsListener();
+
+        // Check if Firebase already auto-verified (prevents native crash)
+        if (firebaseAuth) {
+          const auth = firebaseAuth();
+          const currentUser = auth.currentUser;
+          if (currentUser) {
+            console.log("=== USER ALREADY VERIFIED ===", currentUser.uid);
+            userId = currentUser.uid;
+          } else {
+            const userCredential = await confirmationResult.confirm(code);
+            console.log("=== OTP VERIFIED SUCCESSFULLY ===");
+            console.log("User UID:", userCredential.user.uid);
+            userId = userCredential.user.uid;
+          }
+        } else {
+          const userCredential = await confirmationResult.confirm(code);
+          console.log("=== OTP VERIFIED SUCCESSFULLY ===");
+          console.log("User UID:", userCredential.user.uid);
+          userId = userCredential.user.uid;
+        }
       }
 
       // Use shared post-verification logic
