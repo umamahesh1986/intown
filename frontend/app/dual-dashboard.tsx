@@ -1164,7 +1164,7 @@ export default function DualDashboard() {
               <ActivityIndicator size="small" color="#FF8A00" />
             </View>
           ) : currentTransactions.length > 0 ? (
-            currentTransactions.slice(0, 10).map((transaction) => (
+            currentTransactions.slice(0, 6).map((transaction) => (
               <TransactionCard key={transaction.id} transaction={transaction} />
             ))
           ) : (
@@ -1463,7 +1463,7 @@ export default function DualDashboard() {
             </View>
             <ScrollView>
               {currentTransactions.length > 0 ? (
-                currentTransactions.map((transaction) => (
+                currentTransactions.slice(0, 6).map((transaction) => (
                   <TransactionCard
                     key={`all-${transaction.id}`}
                     transaction={transaction}

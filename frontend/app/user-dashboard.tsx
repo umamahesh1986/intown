@@ -2346,6 +2346,8 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 15,
     marginRight: 10,
+    borderColor: "rgba(255, 140, 0, 0.1)",
+    borderWidth: 1,
   },
 
   annualBox: {
@@ -2353,6 +2355,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#FF8A00",
     borderRadius: 20,
     padding: 15,
+    borderColor: "rgba(255, 140, 0, 0.1)",
+    borderWidth: 1,
   },
 
   resultLabel: {

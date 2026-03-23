@@ -799,7 +799,7 @@ export default function MerchantDashboard() {
               <ActivityIndicator size="small" color="#FF8A00" />
             </View>
           ) : sales.length > 0 ? (
-            sales.slice(0, 10).map((sale) => (
+            sales.slice(0, 6).map((sale) => (
               <View key={sale.transactionId} style={styles.transactionRow}>
                 {/* Left: Customer Info */}
                 <View style={{ flex: 1.5 }}>
