@@ -1,7 +1,6 @@
 // user-dashboard.tsx
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Footer from '../components/Footer';
-import { ErrorBoundary } from '../components/ErrorBoundary';
 import {
   CATEGORY_IMAGE_LIST,
   FALLBACK_CATEGORY_IMAGE,
@@ -33,7 +32,6 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useFocusEffect } from '@react-navigation/native';
 import { useAuthStore } from '../store/authStore';
 import { useLocationStore, LocationDetails } from '../store/locationStore';
 import { getPlans, getCategories, getNearbyShops, getMerchantImageByShopId, extractImageUrls } from '../utils/api';
@@ -195,13 +193,11 @@ export default function UserDashboard() {
 
 
   useEffect(() => {
-    loadData();
-    loadUserType();
-    loadProfileImage();
-
-    requestLocationOnMount();
-
-    // loadCarouselImages(); 
+    // Each operation wrapped independently so one failure doesn't block others
+    loadData().catch(e => console.warn('loadData failed:', e));
+    loadUserType().catch(e => console.warn('loadUserType failed:', e));
+    loadProfileImage().catch(e => console.warn('loadProfileImage failed:', e));
+    requestLocationOnMount().catch(e => console.warn('requestLocation failed:', e));
   }, []);
   useEffect(() => {
     if (carouselImages.length === 0) return;
@@ -524,7 +520,6 @@ export default function UserDashboard() {
 
 
   return (
-    <ErrorBoundary>
     <SafeAreaView style={styles.container}>
       <View style={styles.container}>
         <ScrollView showsVerticalScrollIndicator={false}>
@@ -1287,7 +1282,6 @@ export default function UserDashboard() {
         </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
-    </ErrorBoundary>
   );
 }
 

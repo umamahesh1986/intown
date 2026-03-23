@@ -132,10 +132,7 @@ export const getPlans = async () => {
     return response.data;
   } catch (error: any) {
     console.warn("getPlans API failed:", error.message);
-    if (isNetworkError(error)) {
-      return [];
-    }
-    throw error;
+    return [];
   }
 };
 
