@@ -1,7 +1,6 @@
 // user-dashboard.tsx
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Footer from '../components/Footer';
-import { ErrorBoundary } from '../components/ErrorBoundary';
 import {
   CATEGORY_IMAGE_LIST,
   FALLBACK_CATEGORY_IMAGE,
@@ -33,7 +32,6 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useFocusEffect } from '@react-navigation/native';
 import { useAuthStore } from '../store/authStore';
 import { useLocationStore, LocationDetails } from '../store/locationStore';
 import { getPlans, getCategories, getNearbyShops, getMerchantImageByShopId, extractImageUrls } from '../utils/api';
@@ -195,13 +193,11 @@ export default function UserDashboard() {
 
 
   useEffect(() => {
-    loadData();
-    loadUserType();
-    loadProfileImage();
-
-    requestLocationOnMount();
-
-    // loadCarouselImages(); 
+    // Each operation wrapped independently so one failure doesn't block others
+    loadData().catch(e => console.warn('loadData failed:', e));
+    loadUserType().catch(e => console.warn('loadUserType failed:', e));
+    loadProfileImage().catch(e => console.warn('loadProfileImage failed:', e));
+    requestLocationOnMount().catch(e => console.warn('requestLocation failed:', e));
   }, []);
   useEffect(() => {
     if (carouselImages.length === 0) return;
@@ -524,7 +520,6 @@ export default function UserDashboard() {
 
 
   return (
-    <ErrorBoundary>
     <SafeAreaView style={styles.container}>
       <View style={styles.container}>
         <ScrollView showsVerticalScrollIndicator={false}>
@@ -882,7 +877,7 @@ export default function UserDashboard() {
                 <View style={styles.planCard}>
                   <Text style={styles.planName}>Silver</Text>
                   <View style={styles.planPriceRow}>
-                    <Text style={styles.planPrice}><s>₹399</s> Free</Text>
+                    <Text style={styles.planPrice}><Text style={{textDecorationLine: 'line-through'}}>₹399</Text> Free</Text>
                     <Text style={styles.planDuration}>/ 3 months</Text>
                   </View>
                   <TouchableOpacity
@@ -900,7 +895,7 @@ export default function UserDashboard() {
                   </View>
                   <Text style={styles.planName}>Gold</Text>
                   <View style={styles.planPriceRow}>
-                    <Text style={styles.planPrice}><s>₹599</s> Free</Text>
+                    <Text style={styles.planPrice}><Text style={{textDecorationLine: 'line-through'}}>₹599</Text> Free</Text>
                     <Text style={styles.planDuration}>/ 6 months</Text>
                   </View>
                   <TouchableOpacity
@@ -915,7 +910,7 @@ export default function UserDashboard() {
                 <View style={styles.planCard}>
                   <Text style={styles.planName}>Platinum</Text>
                   <View style={styles.planPriceRow}>
-                    <Text style={styles.planPrice}><s>₹999</s> Free</Text>
+                    <Text style={styles.planPrice}><Text style={{textDecorationLine: 'line-through'}}>₹999</Text> Free</Text>
                     <Text style={styles.planDuration}>/ Year</Text>
                   </View>
                   <TouchableOpacity
@@ -1287,7 +1282,6 @@ export default function UserDashboard() {
         </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
-    </ErrorBoundary>
   );
 }
 
