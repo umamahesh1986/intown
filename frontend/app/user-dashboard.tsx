@@ -111,12 +111,12 @@ export default function UserDashboard() {
   ];
 
   const DUMMY_CATEGORIES = [
-    { id: '1', name: 'Grocery', icon: 'storefront' },
-    { id: '2', name: 'Salon', icon: 'cut' },
-    { id: '3', name: 'Restaurant', icon: 'restaurant' },
-    { id: '4', name: 'Pharmacy', icon: 'medical' },
-    { id: '5', name: 'Fashion', icon: 'shirt' },
-    { id: '6', name: 'Electronics', icon: 'phone-portrait' },
+    { id: '1', name: 'Grocery', icon: 'storefront', imageUrl: 'https://intown-prod.s3.ap-south-1.amazonaws.com/category/01-Groceries%26Kirana.png' },
+    { id: '2', name: 'Salon', icon: 'cut', imageUrl: 'https://intown-prod.s3.ap-south-1.amazonaws.com/category/06-Salon%26Spa.png' },
+    { id: '3', name: 'Restaurant', icon: 'restaurant', imageUrl: 'https://intown-prod.s3.ap-south-1.amazonaws.com/category/11-Restaurants%26Cafes.png' },
+    { id: '4', name: 'Pharmacy', icon: 'medical', imageUrl: 'https://intown-prod.s3.ap-south-1.amazonaws.com/category/08-Pharmacy%26MedicalStores.png' },
+    { id: '5', name: 'Fashion', icon: 'shirt', imageUrl: 'https://intown-prod.s3.ap-south-1.amazonaws.com/category/15-Clothing%26Fashion.png' },
+    { id: '6', name: 'Electronics', icon: 'phone-portrait', imageUrl: 'https://intown-prod.s3.ap-south-1.amazonaws.com/category/17-Electronics%26Gadgets.png' },
   ];
 
   // ----------------- CAROUSEL IMAGES (FIXED for Web compatibility) -----------------
@@ -378,8 +378,14 @@ export default function UserDashboard() {
   const loadData = async () => {
     try {
       const [plansData, categoriesData] = await Promise.all([getPlans(), getCategories()]);
-      setPlans(plansData || []);
-      setCategories(categoriesData && categoriesData.length > 0 ? categoriesData : DUMMY_CATEGORIES);
+      setPlans(Array.isArray(plansData) ? plansData : []);
+      setCategories(
+        Array.isArray(categoriesData) && categoriesData.length > 0
+          ? categoriesData
+          : DUMMY_CATEGORIES
+      );
+      console.log('loadData: plans=', Array.isArray(plansData) ? plansData.length : 0,
+        'categories=', Array.isArray(categoriesData) ? categoriesData.length : 0);
     } catch (error) {
       console.error('Error loading data:', error);
       setPlans([]);

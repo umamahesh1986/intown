@@ -516,13 +516,19 @@ export const searchByProductNames = async (
 ================================ */
 
 export const getCategories = async () => {
-  const response = await fetch(`${BASE_URL}/IN/categories/`);
-
-  if (!response.ok) {
-    throw new Error('Failed to fetch categories');
+  try {
+    const response = await fetch(`${BASE_URL}/IN/categories/`);
+    if (!response.ok) {
+      console.warn('getCategories: API returned status', response.status);
+      return [];
+    }
+    const data = await response.json();
+    console.log('getCategories: loaded', Array.isArray(data) ? data.length : 0, 'categories');
+    return data;
+  } catch (error: any) {
+    console.warn('getCategories failed:', error.message);
+    return [];
   }
-
-  return response.json();
 };
 
 
