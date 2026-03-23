@@ -2,14 +2,14 @@ import { View, Text, StyleSheet, Image, Platform } from 'react-native';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../store/authStore';
+import { searchUserByPhone } from '../utils/api';
 
 export default function SplashScreen() {
   const router = useRouter();
-  const { isAuthenticated, user, loadAuth } = useAuthStore();
+  const { isAuthenticated, user, loadAuth, logout } = useAuthStore();
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Load auth state first
     const init = async () => {
       try {
         await loadAuth();
@@ -25,9 +25,30 @@ export default function SplashScreen() {
   useEffect(() => {
     if (isLoading) return;
 
-    const timer = setTimeout(() => {
+    const timer = setTimeout(async () => {
       try {
-        if (isAuthenticated) {
+        if (isAuthenticated && user?.phone) {
+          // Verify user still exists in the database
+          console.log('=== VERIFYING USER IN DATABASE ===', user.phone);
+          try {
+            const phoneDigits = user.phone.replace(/\D/g, '').slice(-10);
+            const response = await searchUserByPhone(phoneDigits);
+            const hasCustomer = response?.customer && Object.keys(response.customer).length > 0;
+            const hasMerchant = response?.merchant && Object.keys(response.merchant).length > 0;
+
+            if (!hasCustomer && !hasMerchant && !response?.user) {
+              // User no longer exists in the database — force logout
+              console.log('=== USER NOT FOUND IN DB — LOGGING OUT ===');
+              await logout();
+              router.replace('/login');
+              return;
+            }
+            console.log('=== USER VERIFIED ===');
+          } catch (verifyErr) {
+            // Network error — allow cached login (don't block offline users)
+            console.log('=== DB verify failed (network?), using cached auth ===', verifyErr);
+          }
+
           const userType = user?.userType?.toLowerCase();
           if (userType === 'member' || userType === 'in_member' || userType === 'customer') {
             router.replace('/member-dashboard');
