@@ -1,7 +1,7 @@
 // user-dashboard.tsx
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Footer from '../components/Footer';
-import ErrorBoundary from '../components/ErrorBoundary';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 import {
   CATEGORY_IMAGE_LIST,
   FALLBACK_CATEGORY_IMAGE,
