@@ -89,13 +89,13 @@ export default function PaymentModal({
       return;
     }
     const merchantIdValue = Number(merchantId);
-    if (!merchantId || !Number.isFinite(merchantIdValue)) {
-      Alert.alert('Missing Merchant', 'Merchant details not available');
+    if (!merchantId || !Number.isFinite(merchantIdValue) || merchantIdValue <= 0) {
+      Alert.alert('Missing Merchant', 'Merchant details not available. Please go back and try again.');
       return;
     }
     const customerIdValue = Number(customerId);
-    if (!customerId || !Number.isFinite(customerIdValue)) {
-      Alert.alert('Missing Customer', 'Customer details not available');
+    if (!customerId || !Number.isFinite(customerIdValue) || customerIdValue <= 0) {
+      Alert.alert('Missing Customer', 'Please register as a customer first to make payments.');
       return;
     }
 
@@ -109,6 +109,9 @@ export default function PaymentModal({
         inTownSavings: intownSavings > 0 ? intownSavings : 0,
         payablePrice: finalPaidAmount,
       };
+
+      console.log('=== PAYMENT API CALL ===');
+      console.log('Payload:', JSON.stringify(payload));
 
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 15000);
@@ -124,20 +127,31 @@ export default function PaymentModal({
       });
       clearTimeout(timeout);
 
+      console.log('=== PAYMENT API RESPONSE ===');
+      console.log('Status:', res.status);
+
       const data = await res.json().catch(() => ({}));
+      console.log('Data:', JSON.stringify(data));
+
       const isSuccessStatus =
         res.status === 201 || res.status === 200 || data?.transactionId;
       if (isSuccessStatus) {
         setShowSuccess(true);
       } else {
-        Alert.alert('Payment Failed', data?.message || 'Please try again later.');
+        const errorMsg = data?.message || data?.error || 
+          (res.status === 404 ? 'Customer or merchant not found. Please re-register.' :
+           res.status === 400 ? 'Invalid payment details. Please check and try again.' :
+           'Server error. Please try again later.');
+        Alert.alert('Payment Failed', errorMsg);
       }
     } catch (error: any) {
-      console.error('Payment error:', error);
+      console.error('Payment error:', error?.name, error?.message);
       if (error?.name === 'AbortError') {
-        Alert.alert('Payment Failed', 'Request timed out. Please try again.');
+        Alert.alert('Payment Failed', 'Request timed out. Please check your internet and try again.');
+      } else if (error?.message === 'Network request failed' || error?.message === 'Network Error') {
+        Alert.alert('Payment Failed', 'No internet connection. Please check your network and try again.');
       } else {
-        Alert.alert('Payment Failed', 'Please try again later.');
+        Alert.alert('Payment Failed', 'Something went wrong. Please try again.');
       }
     } finally {
       setIsSubmitting(false);
