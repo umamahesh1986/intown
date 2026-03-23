@@ -113,46 +113,69 @@ export default function PaymentModal({
       console.log('=== PAYMENT API CALL ===');
       console.log('Payload:', JSON.stringify(payload));
 
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 15000);
+      // Retry logic — try up to 3 times for API failures
+      const MAX_RETRIES = 3;
+      let lastError: any = null;
+      let lastData: any = null;
+      let lastStatus = 0;
 
-      const res = await fetch('https://api.intownlocal.com/IN/transactions/', {
-        method: 'POST',
-        headers: {
-          Accept: 'application/json',
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-        signal: controller.signal,
-      });
-      clearTimeout(timeout);
+      for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+        try {
+          console.log(`=== PAYMENT ATTEMPT ${attempt}/${MAX_RETRIES} ===`);
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 15000);
 
-      console.log('=== PAYMENT API RESPONSE ===');
-      console.log('Status:', res.status);
+          const res = await fetch('https://api.intownlocal.com/IN/transactions/', {
+            method: 'POST',
+            headers: {
+              Accept: 'application/json',
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload),
+            signal: controller.signal,
+          });
+          clearTimeout(timeout);
 
-      const data = await res.json().catch(() => ({}));
-      console.log('Data:', JSON.stringify(data));
+          lastStatus = res.status;
+          lastData = await res.json().catch(() => ({}));
+          console.log(`Attempt ${attempt} - Status:`, res.status, 'Data:', JSON.stringify(lastData));
 
-      const isSuccessStatus =
-        res.status === 201 || res.status === 200 || data?.transactionId;
-      if (isSuccessStatus) {
-        setShowSuccess(true);
+          const isSuccess = res.status === 201 || res.status === 200 || lastData?.transactionId;
+          if (isSuccess) {
+            setShowSuccess(true);
+            return; // Payment succeeded — exit
+          }
+
+          // Client errors (400) — don't retry, it won't help
+          if (res.status === 400) break;
+
+          // Server errors (5xx) or other — retry
+          lastError = { status: res.status, data: lastData };
+        } catch (fetchErr: any) {
+          console.log(`Attempt ${attempt} error:`, fetchErr?.name, fetchErr?.message);
+          lastError = fetchErr;
+          // Network / timeout errors — retry after a short delay
+          if (attempt < MAX_RETRIES) {
+            await new Promise(r => setTimeout(r, 1000 * attempt));
+          }
+        }
+      }
+
+      // All retries failed — show error
+      if (lastError?.name === 'AbortError') {
+        Alert.alert('Payment Failed', 'Request timed out. Please check your internet and try again.');
+      } else if (lastError?.message === 'Network request failed' || lastError?.message === 'Network Error') {
+        Alert.alert('Payment Failed', 'No internet connection. Please check your network and try again.');
       } else {
-        const errorMsg = data?.message || data?.error || 
-          (res.status === 404 ? 'Customer or merchant not found. Please re-register.' :
-           res.status === 400 ? 'Invalid payment details. Please check and try again.' :
+        const errorMsg = lastData?.message || lastData?.error ||
+          (lastStatus === 404 ? 'Customer or merchant not found. Please re-register.' :
+           lastStatus === 400 ? 'Invalid payment details. Please check and try again.' :
            'Server error. Please try again later.');
         Alert.alert('Payment Failed', errorMsg);
       }
     } catch (error: any) {
-      console.error('Payment error:', error?.name, error?.message);
-      if (error?.name === 'AbortError') {
-        Alert.alert('Payment Failed', 'Request timed out. Please check your internet and try again.');
-      } else if (error?.message === 'Network request failed' || error?.message === 'Network Error') {
-        Alert.alert('Payment Failed', 'No internet connection. Please check your network and try again.');
-      } else {
-        Alert.alert('Payment Failed', 'Something went wrong. Please try again.');
-      }
+      console.error('Payment unexpected error:', error?.name, error?.message);
+      Alert.alert('Payment Failed', 'Something went wrong. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
