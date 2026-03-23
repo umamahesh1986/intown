@@ -877,7 +877,7 @@ export default function UserDashboard() {
                 <View style={styles.planCard}>
                   <Text style={styles.planName}>Silver</Text>
                   <View style={styles.planPriceRow}>
-                    <Text style={styles.planPrice}><s>₹399</s> Free</Text>
+                    <Text style={styles.planPrice}><Text style={{textDecorationLine: 'line-through'}}>₹399</Text> Free</Text>
                     <Text style={styles.planDuration}>/ 3 months</Text>
                   </View>
                   <TouchableOpacity
@@ -895,7 +895,7 @@ export default function UserDashboard() {
                   </View>
                   <Text style={styles.planName}>Gold</Text>
                   <View style={styles.planPriceRow}>
-                    <Text style={styles.planPrice}><s>₹599</s> Free</Text>
+                    <Text style={styles.planPrice}><Text style={{textDecorationLine: 'line-through'}}>₹599</Text> Free</Text>
                     <Text style={styles.planDuration}>/ 6 months</Text>
                   </View>
                   <TouchableOpacity
@@ -910,7 +910,7 @@ export default function UserDashboard() {
                 <View style={styles.planCard}>
                   <Text style={styles.planName}>Platinum</Text>
                   <View style={styles.planPriceRow}>
-                    <Text style={styles.planPrice}><s>₹999</s> Free</Text>
+                    <Text style={styles.planPrice}><Text style={{textDecorationLine: 'line-through'}}>₹999</Text> Free</Text>
                     <Text style={styles.planDuration}>/ Year</Text>
                   </View>
                   <TouchableOpacity
