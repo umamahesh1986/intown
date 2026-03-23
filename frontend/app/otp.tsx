@@ -327,6 +327,23 @@ export default function OTPScreen() {
     } catch (err: any) {
       console.log('Auto-submit verification failed:', err.code, err.message);
       
+      // Session/code expired — auto-resend OTP
+      if (err.code === 'auth/session-expired' || err.code === 'auth/code-expired') {
+        console.log("=== AUTO-SUBMIT: SESSION EXPIRED — RESENDING OTP ===");
+        hasProcessedAuth.current = false;
+        if (isMountedRef.current) {
+          setStatusMessage("OTP expired, resending...");
+          setIsLoading(false);
+        }
+        try {
+          await sendOtp(true);
+          if (isMountedRef.current) {
+            Alert.alert("OTP Resent", "Your previous OTP expired. A new OTP has been sent.");
+          }
+        } catch (_) {}
+        return;
+      }
+
       // If the error is because auth was already completed, process the current user
       if (firebaseAuth && !hasProcessedAuth.current) {
         const auth = firebaseAuth();
@@ -687,14 +704,22 @@ export default function OTPScreen() {
       
       if (err.code === 'auth/invalid-verification-code') {
         errorMessage = "Invalid OTP. Please check the code and try again.";
-      } else if (err.code === 'auth/code-expired') {
-        errorMessage = "OTP has expired. Please request a new one.";
-        setCanResend(true);
-      } else if (err.code === 'auth/session-expired') {
-        errorMessage = "Session expired. Please request a new OTP.";
-        setCanResend(true);
-        setConfirmationResult(null);
-        setVerificationId(null);
+      } else if (err.code === 'auth/code-expired' || err.code === 'auth/session-expired') {
+        // Session/code expired — auto-resend OTP and let user try again
+        console.log("=== SESSION/CODE EXPIRED — AUTO-RESENDING OTP ===");
+        hasProcessedAuth.current = false;
+        setStatusMessage("OTP expired, resending...");
+        setIsLoading(false);
+        try {
+          await sendOtp(true);
+          Alert.alert(
+            "OTP Resent",
+            "Your previous OTP expired. A new OTP has been sent. Please enter the new code."
+          );
+        } catch (_) {
+          Alert.alert("Session Expired", "Please go back and try again.");
+        }
+        return; // Skip the generic error alert below
       } else if (err.code === 'auth/network-request-failed') {
         errorMessage = "Network error. Please check your connection.";
       } else if (err.message) {
