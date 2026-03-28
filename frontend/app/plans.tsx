@@ -131,9 +131,16 @@ export default function Plans() {
   };
 
   const handleSubscribe = (plan: Plan) => {
-    // TODO: Implement subscription flow
-    console.log('Subscribe to plan:', plan);
-    router.push({ pathname: '/register-member', params: { planId: plan.id } });
+    router.push({
+      pathname: '/checkout',
+      params: {
+        planId: String(plan.id),
+        planName: plan.name,
+        planPrice: String(plan.price),
+        planDuration: plan.duration,
+        planCode: plan.id === 2 ? 'QUARTERLY' : plan.id === 3 ? 'SEMI_ANNUAL' : 'ANNUAL',
+      },
+    });
   };
 
   if (isLoading) {
