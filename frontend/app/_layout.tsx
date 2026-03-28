@@ -93,7 +93,6 @@ export default function RootLayout() {
 
   // 1. Define all screens that should show the navigation bar
   const showTabs = [
-    '/user-dashboard',
     '/member-dashboard',
     '/merchant-dashboard',
     '/dual-dashboard',
@@ -114,17 +113,19 @@ export default function RootLayout() {
     user?.userType?.toLowerCase() === 'merchant' ||
     user?.userType?.toLowerCase() === 'in_merchant';
 
-  // Define tabs - filter out Savings and Plans for merchant
+  // Define tabs - hide Plans for non-merchant users; hide Savings+Plans for merchant
   const allTabs = [
-    { name: 'Home', icon: 'home', link: '/user-dashboard' },
+    { name: 'Home', icon: 'home', link: lastDashboard || '/member-dashboard' },
     { name: 'Savings', icon: 'wallet', link: '/savings' },
-    { name: 'Plans', icon: 'pricetag', link: '/plans' },
     { name: 'Profile', icon: 'person', link: '/account' },
   ];
 
-  const tabs = isMerchant 
-    ? allTabs.filter(tab => tab.name !== 'Savings' && tab.name !== 'Plans')
-    : allTabs;
+  const merchantTabs = [
+    { name: 'Home', icon: 'home', link: '/merchant-dashboard' },
+    { name: 'Profile', icon: 'person', link: '/account' },
+  ];
+
+  const tabs = isMerchant ? merchantTabs : allTabs;
 
   return (
     <View style={{ flex: 1, backgroundColor: '#FFFFFF', ...(Platform.OS === 'web' ? { minHeight: '100vh' } : {}) } as any}>
