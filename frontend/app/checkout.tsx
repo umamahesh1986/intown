@@ -6,6 +6,9 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { INTOWN_API_BASE } from '../utils/api';
 
+// Razorpay Production Key ID (public key - safe for client-side)
+const RAZORPAY_KEY_ID = 'rzp_live_RrNfvARmKIkZ7C';
+
 interface PlanOption {
   id: number;
   name: string;
@@ -126,7 +129,7 @@ export default function Checkout() {
         description: `INtown ${selectedPlan.name} Plan`,
         image: 'https://intown-prod.s3.ap-south-1.amazonaws.com/logo/intown-logo.png',
         currency: orderData.currency || 'INR',
-        key: orderData.keyId,
+        key: orderData.keyId || RAZORPAY_KEY_ID,
         amount: String(orderData.amount),
         name: 'INtown',
         order_id: orderData.razorpayOrderId,
