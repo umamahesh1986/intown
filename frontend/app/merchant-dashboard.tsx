@@ -28,6 +28,7 @@ import {
   setManualLocation
 } from '../utils/location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { INTOWN_API_BASE } from '../utils/api';
 import Footer from '../components/Footer'
 import { useFocusEffect } from '@react-navigation/native';
 import { ErrorBoundary } from '../components/ErrorBoundary';
@@ -429,7 +430,7 @@ export default function MerchantDashboard() {
           // ignore storage parse errors and fall back to fetch
         }
       }
-      const res = await fetch(`https://api.intownlocal.com/IN/customer/${id}`);
+      const res = await fetch(`${INTOWN_API_BASE}/customer/${id}`);
       if (!res.ok) {
         throw new Error(`Image fetch failed: ${res.status}`);
       }
@@ -458,7 +459,7 @@ export default function MerchantDashboard() {
       setIsSalesLoading(true);
       try {
         const res = await fetch(
-          `https://api.intownlocal.com/IN/transactions/merchants/${merchantId}`,
+          `${INTOWN_API_BASE}/transactions/merchants/${merchantId}`,
           {
             headers: token
               ? {
@@ -500,7 +501,7 @@ export default function MerchantDashboard() {
       setIsMerchantDetailsLoading(true);
       try {
         const res = await fetch(
-          `https://api.intownlocal.com/IN/merchant/${merchantId}`,
+          `${INTOWN_API_BASE}/merchant/${merchantId}`,
           {
             headers: {
               Accept: 'application/json',

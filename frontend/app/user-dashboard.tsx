@@ -111,12 +111,12 @@ export default function UserDashboard() {
   ];
 
   const DUMMY_CATEGORIES = [
-    { id: '1', name: 'Grocery', icon: 'storefront' },
-    { id: '2', name: 'Salon', icon: 'cut' },
-    { id: '3', name: 'Restaurant', icon: 'restaurant' },
-    { id: '4', name: 'Pharmacy', icon: 'medical' },
-    { id: '5', name: 'Fashion', icon: 'shirt' },
-    { id: '6', name: 'Electronics', icon: 'phone-portrait' },
+    { id: '1', name: 'Grocery', icon: 'storefront', imageUrl: 'https://intown-prod.s3.ap-south-1.amazonaws.com/category/01-Groceries%26Kirana.png' },
+    { id: '2', name: 'Salon', icon: 'cut', imageUrl: 'https://intown-prod.s3.ap-south-1.amazonaws.com/category/06-Salon%26Spa.png' },
+    { id: '3', name: 'Restaurant', icon: 'restaurant', imageUrl: 'https://intown-prod.s3.ap-south-1.amazonaws.com/category/11-Restaurants%26Cafes.png' },
+    { id: '4', name: 'Pharmacy', icon: 'medical', imageUrl: 'https://intown-prod.s3.ap-south-1.amazonaws.com/category/08-Pharmacy%26MedicalStores.png' },
+    { id: '5', name: 'Fashion', icon: 'shirt', imageUrl: 'https://intown-prod.s3.ap-south-1.amazonaws.com/category/15-Clothing%26Fashion.png' },
+    { id: '6', name: 'Electronics', icon: 'phone-portrait', imageUrl: 'https://intown-prod.s3.ap-south-1.amazonaws.com/category/17-Electronics%26Gadgets.png' },
   ];
 
   // ----------------- CAROUSEL IMAGES (FIXED for Web compatibility) -----------------
@@ -378,8 +378,14 @@ export default function UserDashboard() {
   const loadData = async () => {
     try {
       const [plansData, categoriesData] = await Promise.all([getPlans(), getCategories()]);
-      setPlans(plansData || []);
-      setCategories(categoriesData && categoriesData.length > 0 ? categoriesData : DUMMY_CATEGORIES);
+      setPlans(Array.isArray(plansData) ? plansData : []);
+      setCategories(
+        Array.isArray(categoriesData) && categoriesData.length > 0
+          ? categoriesData
+          : DUMMY_CATEGORIES
+      );
+      console.log('loadData: plans=', Array.isArray(plansData) ? plansData.length : 0,
+        'categories=', Array.isArray(categoriesData) ? categoriesData.length : 0);
     } catch (error) {
       console.error('Error loading data:', error);
       setPlans([]);
@@ -873,51 +879,40 @@ export default function UserDashboard() {
             {/* Customer Tab Content */}
             {activeTab === 'customer' && (
               <View style={styles.tabContent}>
-                {/* Silver Plan */}
-                <View style={styles.planCard}>
-                  <Text style={styles.planName}>Silver</Text>
-                  <View style={styles.planPriceRow}>
-                    <Text style={styles.planPrice}><Text style={{textDecorationLine: 'line-through'}}>₹399</Text> Free</Text>
-                    <Text style={styles.planDuration}>/ 3 months</Text>
-                  </View>
-                  <TouchableOpacity
-                    style={styles.registerButton}
-                    onPress={() => router.push('/register-member')}
-                  >
-                    <Text style={styles.registerButtonText}>Get Started</Text>
-                  </TouchableOpacity>
-                </View>
+                <View style={styles.merchantContent}>
+                  <Text style={styles.merchantTagline}>"Local. Trusted. Rewarding."</Text>
+                  <Text style={styles.merchantDescription}>
+                    Save on every purchase from your favourite local shops. Join the INtown community today.
+                  </Text>
 
-                {/* Gold Plan */}
-                <View style={[styles.planCard, styles.popularPlan]}>
-                  <View style={styles.popularBadge}>
-                    <Text style={styles.popularBadgeText}>MOST POPULAR</Text>
+                  <View style={styles.featuresList}>
+                    <View style={styles.featureItem}>
+                      <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+                      <Text style={styles.featureText}>Exclusive Local Discounts</Text>
+                    </View>
+                    <View style={styles.featureItem}>
+                      <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+                      <Text style={styles.featureText}>Instant Savings on Every Visit</Text>
+                    </View>
+                    <View style={styles.featureItem}>
+                      <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+                      <Text style={styles.featureText}>Discover Nearby Shops</Text>
+                    </View>
+                    <View style={styles.featureItem}>
+                      <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+                      <Text style={styles.featureText}>Track Your Savings</Text>
+                    </View>
+                    <View style={styles.featureItem}>
+                      <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+                      <Text style={styles.featureText}>Support Local Businesses</Text>
+                    </View>
                   </View>
-                  <Text style={styles.planName}>Gold</Text>
-                  <View style={styles.planPriceRow}>
-                    <Text style={styles.planPrice}><Text style={{textDecorationLine: 'line-through'}}>₹599</Text> Free</Text>
-                    <Text style={styles.planDuration}>/ 6 months</Text>
-                  </View>
-                  <TouchableOpacity
-                    style={[styles.purchaseButton, styles.purchaseButtonPrimary]}
-                    onPress={() => router.push('/register-member')}
-                  >
-                    <Text style={styles.purchaseButtonText}>Get Started</Text>
-                  </TouchableOpacity>
-                </View>
 
-                {/* Platinum Plan */}
-                <View style={styles.planCard}>
-                  <Text style={styles.planName}>Platinum</Text>
-                  <View style={styles.planPriceRow}>
-                    <Text style={styles.planPrice}><Text style={{textDecorationLine: 'line-through'}}>₹999</Text> Free</Text>
-                    <Text style={styles.planDuration}>/ Year</Text>
-                  </View>
                   <TouchableOpacity
-                    style={styles.registerButton}
+                    style={styles.registerMerchantButton}
                     onPress={() => router.push('/register-member')}
                   >
-                    <Text style={styles.registerButtonText}>Get Started</Text>
+                    <Text style={styles.registerMerchantButtonText}>Register as Customer</Text>
                   </TouchableOpacity>
                 </View>
               </View>

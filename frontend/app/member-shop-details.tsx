@@ -4,7 +4,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistance } from '../utils/formatDistance';
-import { extractImageUrls } from '../utils/api';
+import { extractImageUrls, INTOWN_API_BASE } from '../utils/api';
 import { useLocationStore } from '../store/locationStore';
 import { useAuthStore } from '../store/authStore';
 import PaymentModal from '../components/PaymentModal';
@@ -77,7 +77,7 @@ export default function MemberShopDetails() {
       const lng = storedLocation?.longitude ?? location?.longitude ?? 78.4008412;
 
       // Build API URL
-      let apiUrl = `https://api.intownlocal.com/IN/search/by-product-names?customerLatitude=${lat}&customerLongitude=${lng}`;
+      let apiUrl = `${INTOWN_API_BASE}/search/by-product-names?customerLatitude=${lat}&customerLongitude=${lng}`;
       if (categoryId) {
         apiUrl += `&categoryId=${categoryId}`;
       }

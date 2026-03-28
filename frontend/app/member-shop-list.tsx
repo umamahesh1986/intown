@@ -11,7 +11,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { searchByProductNames, getMerchantImageByShopId, extractImageUrls } from '../utils/api';
+import { searchByProductNames, getMerchantImageByShopId, extractImageUrls, INTOWN_API_BASE } from '../utils/api';
 import { useLocationStore } from '../store/locationStore';
 import { formatDistance } from '../utils/formatDistance';
 
@@ -57,7 +57,7 @@ export default function MemberShopList() {
       }
 
       const res = await fetch(
-        `https://api.intownlocal.com/IN/search/by-product-names?categoryId=${encodeURIComponent(categoryId)}&customerLatitude=${location.latitude}&customerLongitude=${location.longitude}`
+        `${INTOWN_API_BASE}/search/by-product-names?categoryId=${encodeURIComponent(categoryId)}&customerLatitude=${location.latitude}&customerLongitude=${location.longitude}`
       );
 
       if (!res.ok) {

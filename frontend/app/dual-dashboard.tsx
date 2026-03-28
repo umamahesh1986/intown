@@ -27,7 +27,7 @@ import { useLocationStore } from '../store/locationStore';
 import { useFocusEffect } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import Footer from '../components/Footer';
-import { getNearbyShops, getCategories, getMerchantImageByShopId, extractImageUrls } from '../utils/api';
+import { getNearbyShops, getCategories, getMerchantImageByShopId, extractImageUrls, INTOWN_API_BASE } from '../utils/api';
 import {
   CATEGORY_IMAGE_LIST,
   FALLBACK_CATEGORY_IMAGE,
@@ -361,7 +361,7 @@ export default function DualDashboard() {
       setIsMerchantDetailsLoading(true);
       try {
         const res = await fetch(
-          `https://api.intownlocal.com/IN/merchant/${merchantId}`,
+          `${INTOWN_API_BASE}/merchant/${merchantId}`,
           {
             headers: {
               Accept: 'application/json',
@@ -592,7 +592,7 @@ export default function DualDashboard() {
       setIsCustomerLoading(true);
       try {
         const res = await fetch(
-          `https://api.intownlocal.com/IN/transactions/customers/${id}`,
+          `${INTOWN_API_BASE}/transactions/customers/${id}`,
           {
             headers: token
               ? {
@@ -641,7 +641,7 @@ export default function DualDashboard() {
       setIsMerchantLoading(true);
       try {
         const res = await fetch(
-          `https://api.intownlocal.com/IN/transactions/merchants/${id}`,
+          `${INTOWN_API_BASE}/transactions/merchants/${id}`,
           {
             headers: token
               ? {

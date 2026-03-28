@@ -93,7 +93,6 @@ export default function RootLayout() {
 
   // 1. Define all screens that should show the navigation bar
   const showTabs = [
-    '/user-dashboard',
     '/member-dashboard',
     '/merchant-dashboard',
     '/dual-dashboard',
@@ -150,6 +149,8 @@ export default function RootLayout() {
         <Stack.Screen name="account" />
         <Stack.Screen name="savings" />
         <Stack.Screen name="plans" />
+        <Stack.Screen name="checkout" />
+        <Stack.Screen name="payment-history" />
       </Stack>
 
       {/* Conditionally render the bar with dynamic tabs */}

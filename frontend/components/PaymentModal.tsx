@@ -15,6 +15,7 @@ import {
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { INTOWN_API_BASE } from '../utils/api';
 
 interface PaymentModalProps {
   visible: boolean;
@@ -125,7 +126,7 @@ export default function PaymentModal({
           const controller = new AbortController();
           const timeout = setTimeout(() => controller.abort(), 15000);
 
-          const res = await fetch('https://api.intownlocal.com/IN/transactions/', {
+          const res = await fetch(`${INTOWN_API_BASE}/transactions/`, {
             method: 'POST',
             headers: {
               Accept: 'application/json',
