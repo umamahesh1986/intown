@@ -2,6 +2,7 @@ import axios from "axios";
 import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 const BASE_URL = 'https://api.intownlocal.com';
+export const INTOWN_API_BASE = `${BASE_URL}/IN`;
 
 
 /* ===============================
@@ -142,7 +143,7 @@ export const getPlans = async () => {
    CUSTOMER REGISTRATION API
 ================================ */
 
-const INTOWN_API_BASE = "https://api.intownlocal.com/IN";
+// INTOWN_API_BASE is defined at top of file
 
 export const registerMember = async (memberData: any) => {
   try {
@@ -493,7 +494,7 @@ export const searchByProductNames = async (
   longitude: number
 ) => {
   const url =
-    `https://api.intownlocal.com/IN/search/by-product-names` +
+    `${INTOWN_API_BASE}/search/by-product-names` +
     `?productNames=${encodeURIComponent(productName)}` +
     `&customerLatitude=${latitude}` +
     `&customerLongitude=${longitude}`;
@@ -517,7 +518,7 @@ export const searchByProductNames = async (
 
 export const getCategories = async () => {
   try {
-    const response = await fetch(`${BASE_URL}/IN/categories/`);
+    const response = await fetch(`${INTOWN_API_BASE}/categories/`);
     if (!response.ok) {
       console.warn('getCategories: API returned status', response.status);
       return [];
@@ -537,7 +538,7 @@ export const getCategories = async () => {
 ================================ */
 export const getProductsByCategory = async (categoryId: number) => {
   const response = await fetch(
-    `${BASE_URL}/IN/products/by-category/${categoryId}`
+    `${INTOWN_API_BASE}/products/by-category/${categoryId}`
   );
 
   if (!response.ok) {
@@ -548,7 +549,7 @@ export const getProductsByCategory = async (categoryId: number) => {
 };
 export const getCustomerProfile = async (customerId: number) => {
   const res = await fetch(
-    `https://api.intownlocal.com/IN/customer/${customerId}/profile`,
+    `${INTOWN_API_BASE}/customer/${customerId}/profile`,
     {
       method: 'GET',
       headers: {
@@ -670,7 +671,7 @@ export const getMerchantImageByShopId = async (
     return merchantImageCache.get(key) ?? null;
   }
   try {
-    const res = await fetch(`https://api.intownlocal.com/IN/customer/${key}`);
+    const res = await fetch(`${INTOWN_API_BASE}/customer/${key}`);
     if (!res.ok) {
       merchantImageCache.set(key, null);
       await persistMerchantImageCache();
@@ -702,7 +703,7 @@ export const getMerchantImagesByShopId = async (
     return merchantImageListCache.get(key) ?? [];
   }
   try {
-    const res = await fetch(`https://api.intownlocal.com/IN/customer/${key}`);
+    const res = await fetch(`${INTOWN_API_BASE}/customer/${key}`);
     if (!res.ok) {
       merchantImageListCache.set(key, []);
       await persistMerchantImageListCache();
@@ -728,7 +729,7 @@ export const getMerchantImagesByShopId = async (
 
 export const searchProducts = async (text: string) => {
   const res = await fetch(
-    'https://api.intownlocal.com/IN/products/'
+    `${INTOWN_API_BASE}/products/`
   );
 
   if (!res.ok) {
@@ -755,7 +756,7 @@ export const getNearbyShops = async (
   latitude: number,
   longitude: number
 ) => {
-  const url = `https://api.intownlocal.com/IN/search/by-product-names?customerLatitude=${latitude}&customerLongitude=${longitude}`;
+  const url = `${INTOWN_API_BASE}/search/by-product-names?customerLatitude=${latitude}&customerLongitude=${longitude}`;
 
   const res = await fetch(url);
   if (!res.ok) throw new Error('Failed to fetch nearby shops');
@@ -771,7 +772,7 @@ export const getNearbyShopsByCategory = async (
   latitude: number,
   longitude: number
 ) => {
-  const url = `https://api.intownlocal.com/IN/search/by-product-names?categoryId=${categoryId}&customerLatitude=${latitude}&customerLongitude=${longitude}`;
+  const url = `${INTOWN_API_BASE}/search/by-product-names?categoryId=${categoryId}&customerLatitude=${latitude}&customerLongitude=${longitude}`;
 
   const response = await fetch(url, {
     method: 'GET',
@@ -797,7 +798,7 @@ export const assignCategoryToMerchant = async (
   categoryId: number
 ) => {
   const response = await fetch(
-    'https://api.intownlocal.com/IN/merchant/assign-to-merchant',
+    `${INTOWN_API_BASE}/merchant/assign-to-merchant`,
     {
       method: 'POST',
       headers: {

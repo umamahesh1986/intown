@@ -4,6 +4,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { INTOWN_API_BASE } from '../utils/api';
 
 interface PlanOption {
   id: number;
@@ -45,8 +46,6 @@ const PLANS: PlanOption[] = [
   },
 ];
 
-const API_BASE = 'https://api.intownlocal.com';
-
 export default function Checkout() {
   const router = useRouter();
   const params = useLocalSearchParams<{
@@ -83,7 +82,7 @@ export default function Checkout() {
     try {
       // Step 1: Create Order
       console.log('=== CREATING ORDER ===');
-      const createOrderRes = await fetch(`${API_BASE}/IN/payment/create-order`, {
+      const createOrderRes = await fetch(`${INTOWN_API_BASE}/payment/create-order`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
         body: JSON.stringify({
@@ -159,7 +158,7 @@ export default function Checkout() {
 
   const verifyPayment = async (paymentResponse: any, orderData: any) => {
     console.log('=== VERIFYING PAYMENT ===');
-    const verifyRes = await fetch(`${API_BASE}/IN/payment/verify`, {
+    const verifyRes = await fetch(`${INTOWN_API_BASE}/payment/verify`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
       body: JSON.stringify({

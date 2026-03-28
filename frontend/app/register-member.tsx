@@ -19,7 +19,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { registerMember } from '../utils/api';
+import { registerMember, INTOWN_API_BASE } from '../utils/api';
 import { useAuthStore } from '../store/authStore';
 import { useFocusEffect } from '@react-navigation/native';
 
@@ -75,7 +75,7 @@ export default function RegisterMember() {
 
   const uploadImagesToS3 = async (inTownIdValue: string | number, files: string[]) => {
     if (!files.length) return;
-    const url = `https://api.intownlocal.com/IN/s3/upload?userType=IN_CUSTOMER&inTownId=${inTownIdValue}`;
+    const url = `${INTOWN_API_BASE}/s3/upload?userType=IN_CUSTOMER&inTownId=${inTownIdValue}`;
     const formData = await buildImageFormData(files, inTownIdValue);
 
     const res = await fetch(url, {

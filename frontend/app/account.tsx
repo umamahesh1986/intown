@@ -7,7 +7,7 @@ import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { useAuthStore } from '../store/authStore';
-
+import { INTOWN_API_BASE } from '../utils/api';
 
 export default function Account() {
   const router = useRouter();
@@ -245,7 +245,7 @@ export default function Account() {
 
   const fetchLatestProfileImage = async (isMerchant: boolean, inTownId: string | number) => {
     const queryParam = isMerchant ? 'merchantId' : 'customerId';
-    const res = await fetch(`https://api.intownlocal.com/IN/s3?${queryParam}=${inTownId}`);
+    const res = await fetch(`${INTOWN_API_BASE}/s3?${queryParam}=${inTownId}`);
     if (!res.ok) {
       throw new Error(`Image fetch failed: ${res.status}`);
     }
@@ -301,7 +301,7 @@ export default function Account() {
       // If we have a valid numeric ID, try uploading to the server
       if (inTownId && /^\d+$/.test(inTownId)) {
         try {
-          const uploadUrl = `https://api.intownlocal.com/IN/s3/upload?userType=${userTypeParam}&inTownId=${inTownId}`;
+          const uploadUrl = `${INTOWN_API_BASE}/s3/upload?userType=${userTypeParam}&inTownId=${inTownId}`;
           const fileName = `${isMerchant ? 'merchant' : 'customer'}_${inTownId}_${Date.now()}.jpg`;
           const formData = await buildImageFormData(pendingImageUri, fileName);
 

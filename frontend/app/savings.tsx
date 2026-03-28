@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
+import { INTOWN_API_BASE } from '../utils/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface ApiTransaction {
@@ -85,7 +86,7 @@ export default function Savings() {
 
       // Fetch savings data from API
       const response = await fetch(
-        `https://api.intownlocal.com/IN/transactions/customers/${effectiveCustomerId}`,
+        `${INTOWN_API_BASE}/transactions/customers/${effectiveCustomerId}`,
         {
           headers: {
             Accept: 'application/json',

@@ -36,7 +36,7 @@ import {
   getNearbyShops,
   getNearbyShopsByCategory,
 } from '../utils/api';
-import { getCustomerProfile, getMerchantImageByShopId, extractImageUrls } from '../utils/api';
+import { getCustomerProfile, getMerchantImageByShopId, extractImageUrls, INTOWN_API_BASE } from '../utils/api';
 
 
 import {
@@ -448,7 +448,7 @@ export default function MemberDashboard() {
       setIsTransactionsLoading(true);
       try {
         const res = await fetch(
-          `https://api.intownlocal.com/IN/transactions/customers/${effectiveCustomerId}`,
+          `${INTOWN_API_BASE}/transactions/customers/${effectiveCustomerId}`,
           {
             headers: token
               ? {
@@ -739,7 +739,7 @@ export default function MemberDashboard() {
   };
 
   const fetchLatestCustomerImage = async (inTownId: string | number) => {
-    const res = await fetch(`https://api.intownlocal.com/IN/s3?customerId=${inTownId}`);
+    const res = await fetch(`${INTOWN_API_BASE}/s3?customerId=${inTownId}`);
     if (!res.ok) {
       throw new Error(`Image fetch failed: ${res.status}`);
     }
@@ -783,7 +783,7 @@ export default function MemberDashboard() {
         throw new Error('Missing customer id for image upload.');
       }
 
-      const uploadUrl = `https://api.intownlocal.com/IN/s3/upload?userType=IN_CUSTOMER&inTownId=${inTownId}`;
+      const uploadUrl = `${INTOWN_API_BASE}/s3/upload?userType=IN_CUSTOMER&inTownId=${inTownId}`;
       const fileName = `customer_${inTownId}_${Date.now()}.jpg`;
       const formData = await buildImageFormData(uri, fileName);
 

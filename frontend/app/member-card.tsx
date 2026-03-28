@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 
 import { useAuthStore } from '../store/authStore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { INTOWN_API_BASE } from '../utils/api';
 import { useEffect, useState } from 'react';
 
 
@@ -38,7 +39,7 @@ const [loading, setLoading] = useState(true);
       if (!finalId) return;
 
       const res = await fetch(
-        `https://api.intownlocal.com/IN/customer/${finalId}/profile`
+        `${INTOWN_API_BASE}/customer/${finalId}/profile`
       );
 
       if (!res.ok) {
