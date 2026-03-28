@@ -52,7 +52,6 @@ Build, run, and fix critical issues in the Expo (React Native) mobile app "InTow
 - Firebase Auth fix (SHA keys from Play Console)
 
 ## Backlog
-- P1: Add Razorpay Production Keys
 - P1: iOS deployment (Apple Developer account)
 - P2: Refactor `user-dashboard.tsx` (>2500 lines) into sub-components
 - P2: Consolidate TypeScript interfaces into central `types` directory
