@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, Alert, Platform } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, Alert, Platform, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'expo-router';
@@ -380,6 +380,7 @@ export default function Account() {
         </TouchableOpacity>
       </View>
 
+      <ScrollView showsVerticalScrollIndicator={false}>
       <View style={styles.profileCard}>
         <View style={styles.profileImageWrapper}>
           {pendingImageUri || profileImage ? (
@@ -459,6 +460,59 @@ export default function Account() {
           </TouchableOpacity>
         )}
       </View>
+
+      {/* Quick Links */}
+      <View style={styles.menuCard}>
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => router.push('/payment-history')}
+          data-testid="payment-history-link"
+        >
+          <View style={styles.menuIconWrap}>
+            <Ionicons name="receipt-outline" size={20} color="#FF8A00" />
+          </View>
+          <View style={styles.menuTextWrap}>
+            <Text style={styles.menuTitle}>Payment History</Text>
+            <Text style={styles.menuSubtitle}>View past transactions and savings</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color="#CCC" />
+        </TouchableOpacity>
+
+        <View style={styles.menuDivider} />
+
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => router.push('/plans')}
+          data-testid="subscription-plans-link"
+        >
+          <View style={[styles.menuIconWrap, { backgroundColor: '#E8F5E9' }]}>
+            <Ionicons name="diamond-outline" size={20} color="#4CAF50" />
+          </View>
+          <View style={styles.menuTextWrap}>
+            <Text style={styles.menuTitle}>Subscription Plans</Text>
+            <Text style={styles.menuSubtitle}>Manage or upgrade your plan</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color="#CCC" />
+        </TouchableOpacity>
+
+        <View style={styles.menuDivider} />
+
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => router.push('/savings')}
+          data-testid="savings-link"
+        >
+          <View style={[styles.menuIconWrap, { backgroundColor: '#F0F4FF' }]}>
+            <Ionicons name="wallet-outline" size={20} color="#2196F3" />
+          </View>
+          <View style={styles.menuTextWrap}>
+            <Text style={styles.menuTitle}>My Savings</Text>
+            <Text style={styles.menuSubtitle}>Track your savings breakdown</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color="#CCC" />
+        </TouchableOpacity>
+      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -560,4 +614,31 @@ const styles = StyleSheet.create({
     backgroundColor: '#F4B183',
   },
   saveText: { color: '#fff', fontWeight: '700' },
+
+  // Quick Links Menu
+  menuCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 4,
+    marginTop: 16,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+  },
+  menuIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: '#FFF3E0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  menuTextWrap: { flex: 1 },
+  menuTitle: { fontSize: 15, fontWeight: '600', color: '#1A1A1A' },
+  menuSubtitle: { fontSize: 12, color: '#999', marginTop: 2 },
+  menuDivider: { height: 1, backgroundColor: '#F0F0F0', marginHorizontal: 12 },
 });

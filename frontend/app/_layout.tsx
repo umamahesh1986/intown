@@ -150,6 +150,7 @@ export default function RootLayout() {
         <Stack.Screen name="savings" />
         <Stack.Screen name="plans" />
         <Stack.Screen name="checkout" />
+        <Stack.Screen name="payment-history" />
       </Stack>
 
       {/* Conditionally render the bar with dynamic tabs */}

@@ -27,19 +27,27 @@ Build, run, and fix critical issues in the Expo (React Native) mobile app "InTow
 - [x] Hide bottom menu on user-dashboard
 - [x] Mirror Merchant layout to Customer tab
 - [x] **Razorpay Subscription Integration** (checkout.tsx, plans routing, _layout registration)
-- [x] **URL Consolidation Refactor** — All 20+ hardcoded `api.intownlocal.com` URLs across 12 files consolidated to single `INTOWN_API_BASE` constant exported from `utils/api.ts`
+- [x] **URL Consolidation Refactor** — All hardcoded URLs consolidated to single `INTOWN_API_BASE` constant
+- [x] **Payment History Screen** — New screen showing transaction history, savings, subscription info, with filters
 
 ### Razorpay Subscription Flow
 `/plans` → select plan → `/checkout` → Create Order API → Razorpay Native Checkout → Verify Payment → Dashboard redirect
 
+### Payment History Screen (Feb 2026)
+- New screen at `/app/frontend/app/payment-history.tsx`
+- Features: transaction list with date/time, amount, savings badges, summary cards (count/paid/saved), subscription info card, filter tabs (All/This Month/This Year), pull-to-refresh, empty state
+- Accessible from Account page via Quick Links menu
+- Uses `GET /IN/transactions/customers/{customerId}` API
+- Account page enhanced with Quick Links section (Payment History, Subscription Plans, My Savings) and made scrollable
+
 ### URL Consolidation (Feb 2026)
 - Single source of truth: `BASE_URL` in `utils/api.ts` line 4
-- Derived constant: `INTOWN_API_BASE = ${BASE_URL}/IN` (exported)
-- 12 files updated to import `INTOWN_API_BASE` instead of hardcoding URLs
-- Files updated: checkout, member-card, savings, merchant-dashboard, register-member, account, member-shop-details, member-shop-list, member-dashboard, register-merchant, dual-dashboard, PaymentModal
+- Derived constant: `INTOWN_API_BASE` (exported)
+- 12+ files updated to import from single source
 
 ## Pending User Verification
 - Razorpay checkout (requires APK rebuild + real device)
+- Payment History screen (requires APK rebuild + real device)
 - OTP crash fix for new users
 - Firebase Auth fix (SHA keys from Play Console)
 
@@ -51,8 +59,10 @@ Build, run, and fix critical issues in the Expo (React Native) mobile app "InTow
 
 ## Key Files
 - `/app/frontend/utils/api.ts` — Single source for all API URLs + exports `INTOWN_API_BASE`
+- `/app/frontend/app/payment-history.tsx` — Payment History screen (NEW)
 - `/app/frontend/app/checkout.tsx` — Razorpay checkout page
 - `/app/frontend/app/plans.tsx` — Subscription plans page
+- `/app/frontend/app/account.tsx` — Account page with Quick Links menu
 - `/app/frontend/app/_layout.tsx` — Root layout with navigation
 - `/app/frontend/app/otp.tsx` — OTP verification
 - `/app/frontend/store/authStore.ts` — Zustand auth store
