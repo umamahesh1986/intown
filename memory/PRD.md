@@ -59,6 +59,16 @@
 - Same fix applied to paste auto-submit path
 - 9/10 tests passed (1 minor: back button automation selector — works fine for real users)
 
+### Session 5 (Jan 2026) - EAS Build Fix (Android)
+- **Root cause**: `android/` directory had stale Firebase/Google Services references from before removal
+  - `android/app/build.gradle:184` — `apply plugin: 'com.google.gms.google-services'`
+  - `android/build.gradle:9` — `classpath 'com.google.gms:google-services:4.4.1'`
+  - `android/app/google-services.json` still present
+- **Fix**: Removed entire `android/` directory — EAS Build will regenerate via `expo prebuild`
+- Removed `googleServicesFile` from both `ios` and `android` sections in `app.json`
+- Deleted stale `scripts/disable-recaptcha.js`
+- Web build verified working after cleanup
+
 ## Backlog
 - P1: Test full end-to-end login with real OTP on mobile device
 - P2: Real payment gateway integration
