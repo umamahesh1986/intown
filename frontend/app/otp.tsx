@@ -243,12 +243,10 @@ export default function OTPScreen() {
   };
 
   /* ===============================
-     VERIFY OTP
+     VERIFY OTP (core logic - takes code directly)
   ================================ */
-  const handleVerifyOTP = async () => {
+  const verifyWithCode = async (code: string) => {
     if (isLoading || hasProcessedAuth.current) return;
-
-    const code = otp.join("");
 
     if (code.length !== OTP_LENGTH) {
       shake();
@@ -279,8 +277,12 @@ export default function OTPScreen() {
       const msg = err.message || "Invalid or expired OTP. Please try again.";
       setErrorMessage(msg);
     } finally {
-      setIsLoading(false);
+      if (isMountedRef.current) setIsLoading(false);
     }
+  };
+
+  const handleVerifyOTP = () => {
+    verifyWithCode(otp.join(""));
   };
 
   /* ===============================
@@ -300,13 +302,9 @@ export default function OTPScreen() {
 
       if (digits.length >= OTP_LENGTH) {
         inputRefs.current[OTP_LENGTH - 1]?.focus();
-        // Auto-submit when all digits pasted
-        setTimeout(() => {
-          const code = newOtp.join("");
-          if (code.length === OTP_LENGTH) {
-            handleVerifyOTP();
-          }
-        }, 300);
+        // Auto-submit when all digits pasted — pass code directly
+        const code = digits.join("");
+        setTimeout(() => verifyWithCode(code), 300);
       } else {
         inputRefs.current[digits.length]?.focus();
       }
@@ -323,11 +321,11 @@ export default function OTPScreen() {
       inputRefs.current[index + 1]?.focus();
     }
 
-    // Auto-submit when last digit entered
+    // Auto-submit when last digit entered — pass code directly
     if (value && index === OTP_LENGTH - 1) {
       const code = newOtp.join("");
       if (code.length === OTP_LENGTH) {
-        setTimeout(() => handleVerifyOTP(), 300);
+        setTimeout(() => verifyWithCode(code), 300);
       }
     }
   };
