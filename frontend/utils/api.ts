@@ -1,0 +1,824 @@
+import axios from "axios";
+import { Platform } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+const BASE_URL = 'https://api.intownlocal.com';
+export const INTOWN_API_BASE = `${BASE_URL}/IN`;
+
+
+/* ===============================
+   BASE URL RESOLUTION
+================================ */
+
+// Android emulator → 10.0.2.2
+// iOS simulator / web → localhost
+const LOCAL_BACKEND =
+  Platform.OS === "android"
+    ? "http://10.0.2.2:8001"
+    : "http://localhost:8001";
+
+const BACKEND_URL =
+  process.env.EXPO_PUBLIC_BACKEND_URL || LOCAL_BACKEND;
+
+const EXTERNAL_API =
+  "http://intownlocal.us-east-1.elasticbeanstalk.com/it";
+
+/* ===============================
+   AXIOS INSTANCES
+================================ */
+
+export const api = axios.create({
+  baseURL: `${BACKEND_URL}/api`,
+  timeout: 10000, // 10 seconds
+  headers: {
+    "Content-Type": "application/json",
+  },
+});
+
+export const externalApi = axios.create({
+  baseURL: EXTERNAL_API,
+  timeout: 10000,
+  headers: {
+    "Content-Type": "application/json",
+  },
+});
+
+/* ===============================
+   HELPER: NETWORK ERROR CHECK
+================================ */
+const isNetworkError = (error: any) => {
+  return (
+    !error.response &&
+    (error.message === "Network Error" ||
+      error.code === "ECONNABORTED")
+  );
+};
+
+/* ===============================
+   AUTH APIs
+================================ */
+
+export const sendOTP = async (phone: string) => {
+  try {
+    const response = await api.post("/send-otp", { phone });
+    return response.data;
+  } catch (error: any) {
+    console.warn("sendOTP API failed:", error.message);
+
+    // ✅ Offline / backend-down fallback
+    if (isNetworkError(error)) {
+      return {
+        success: true,
+        message: "OTP sent successfully (offline mode)",
+        otp: "1234",
+      };
+    }
+
+    throw error;
+  }
+};
+
+export const verifyOTP = async (phone: string, otp: string) => {
+  try {
+    const response = await api.post("/verify-otp", { phone, otp });
+    return response.data;
+  } catch (error: any) {
+    console.warn("verifyOTP API failed:", error.message);
+
+    // ✅ Offline fallback
+    if (isNetworkError(error)) {
+      if (otp === "1234") {
+        return {
+          success: true,
+          message: "OTP verified successfully (offline mode)",
+          user: {
+            id: `user_${Date.now()}`,
+            name: "Test User",
+            phone,
+            email: `${phone}@test.com`,
+            userType: "user",
+          },
+          token: `token_${Date.now()}`,
+        };
+      }
+
+      return {
+        success: false,
+        message: "Invalid OTP",
+      };
+    }
+
+    throw error;
+  }
+};
+
+/* ===============================
+   SHOPS & MASTER DATA
+================================ */
+
+export const getShops = async (
+  lat: number,
+  lng: number,
+  category?: string
+) => {
+  const params: any = { lat, lng };
+  if (category) params.category = category;
+
+  const response = await api.get("/shops", { params });
+  return response.data;
+};
+
+export const getPlans = async () => {
+  try {
+    const response = await api.get("/plans");
+    return response.data;
+  } catch (error: any) {
+    console.warn("getPlans API failed:", error.message);
+    return [];
+  }
+};
+
+
+
+/* ===============================
+   CUSTOMER REGISTRATION API
+================================ */
+
+// INTOWN_API_BASE is defined at top of file
+
+export const registerMember = async (memberData: any) => {
+  try {
+    console.log("Registering customer:", memberData);
+    
+    // Prepare payload - ensure phone number is clean
+    let cleanPhone = memberData.phoneNumber?.replace(/\D/g, "") || "";
+    if (cleanPhone.startsWith("91") && cleanPhone.length > 10) {
+      cleanPhone = cleanPhone.substring(2);
+    }
+    
+    const payload = {
+      contactName: memberData.contactName,
+      email: memberData.email,
+      phoneNumber: cleanPhone,
+      pincode: memberData.pincode,
+      address: memberData.address || '',
+      latitude: memberData.location?.latitude,
+      longitude: memberData.location?.longitude,
+      images: memberData.images || [],
+      isPrivileged: true,
+      userType: "IN_CUSTOMER",
+    };
+    
+    console.log("Customer registration payload:", payload);
+    
+    const response = await axios.post(`${INTOWN_API_BASE}/customer/`, payload, {
+      timeout: 30000,
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+    
+    console.log("Customer registration response:", response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error("Customer registration error:", error);
+    
+    // Return error details for proper handling
+    if (error.response) {
+      // Server responded with error status
+      throw {
+        message: error.response.data?.message || error.response.data?.error || "Registration failed",
+        status: error.response.status,
+        data: error.response.data,
+      };
+    } else if (error.request) {
+      // Request made but no response
+      throw {
+        message: "Network error. Please check your connection and try again.",
+        networkError: true,
+      };
+    } else {
+      // Something else happened
+      throw {
+        message: error.message || "An unexpected error occurred",
+      };
+    }
+  }
+};
+
+/* ===============================
+   MERCHANT REGISTRATION API
+================================ */
+
+export const registerMerchant = async (merchantData: any) => {
+  try {
+    console.log("Registering merchant:", merchantData);
+    
+    // Prepare payload - ensure phone number is clean
+    let cleanPhone = merchantData.phoneNumber?.replace(/\D/g, "") || "";
+    if (cleanPhone.startsWith("91") && cleanPhone.length > 10) {
+      cleanPhone = cleanPhone.substring(2);
+    }
+    
+    const payload = {
+      businessName: merchantData.businessName,
+      contactName: merchantData.contactName,
+      businessCategory: merchantData.businessCategory,
+      description: merchantData.description,
+      fromYears: merchantData.fromYears,
+      branchesOfBusiness: merchantData.branchesOfBusiness,
+      email: merchantData.email,
+      phoneNumber: cleanPhone,
+      pincode: merchantData.pincode,
+      userType: 'IN_MERCHANT',
+      latitude: merchantData.location?.latitude ?? merchantData.latitude ?? null,
+      longitude: merchantData.location?.longitude ?? merchantData.longitude ?? null,
+      address: merchantData.address,
+      introducedBy: merchantData.introducedBy,
+      images: merchantData.images || [],
+      agreedToTerms: merchantData.agreedToTerms,
+      categoryList: merchantData.categoryList || [],
+      productIds: merchantData.productIds || [],
+      productNames: merchantData.productNames || [],
+    };
+    
+    console.log("Merchant registration payload:", payload);
+    
+    const response = await axios.post(`${INTOWN_API_BASE}/merchant/`, payload, {
+      timeout: 30000,
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+    
+    console.log("Merchant registration response:", response.data);
+    return response.data;
+  } catch (error: any) {
+    console.error("Merchant registration error:", error);
+    
+    // Return error details for proper handling
+    if (error.response) {
+      // Server responded with error status
+      throw {
+        message: error.response.data?.message || error.response.data?.error || "Registration failed",
+        status: error.response.status,
+        data: error.response.data,
+      };
+    } else if (error.request) {
+      // Request made but no response
+      throw {
+        message: "Network error. Please check your connection and try again.",
+        networkError: true,
+      };
+    } else {
+      // Something else happened
+      throw {
+        message: error.message || "An unexpected error occurred",
+      };
+    }
+  }
+};
+
+/* ===============================
+   PAYMENT (MOCK)
+================================ */
+
+export const processPayment = async (paymentData: any) => {
+  console.log("Processing payment (mock):", paymentData);
+
+  return {
+    success: true,
+    transactionId: `TXN${Date.now()}`,
+    message: "Payment successful",
+    savings: paymentData.amount * 0.1,
+  };
+};
+
+/* ===============================
+   USER SEARCH API (After OTP Verification)
+================================ */
+
+export interface UserSearchResponse {
+  userType?: string;
+  user?: any;
+  customer?: any;
+  merchant?: any;
+  [key: string]: any;
+}
+
+export const searchUserByPhone = async (phoneNumber: string): Promise<UserSearchResponse> => {
+  try {
+    // Clean phone number - remove +91 or 91 prefix if present
+    let cleanPhone = phoneNumber.replace(/\D/g, "");
+    if (cleanPhone.startsWith("91") && cleanPhone.length > 10) {
+      cleanPhone = cleanPhone.substring(2);
+    }
+    
+    const apiUrl = `${INTOWN_API_BASE}/search/${cleanPhone}`;
+    console.log("=== SEARCH USER API CALL ===");
+    console.log("Phone (cleaned):", cleanPhone);
+    console.log("API URL:", apiUrl);
+    console.log("Platform:", Platform.OS);
+    
+    const response = await axios.get(apiUrl, {
+      timeout: 30000, // Increased timeout for mobile networks
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+      },
+    });
+    
+    console.log("=== API SUCCESS ===");
+    console.log("Status:", response.status);
+    console.log("User search response:", JSON.stringify(response.data, null, 2));
+    return response.data;
+  } catch (error: any) {
+    console.error("=== API ERROR ===");
+    console.error("Error name:", error.name);
+    console.error("Error message:", error.message);
+    console.error("Error code:", error.code);
+    
+    // Detailed error logging for debugging mobile network issues
+    if (error.response) {
+      // Server responded with error status
+      console.error("Response status:", error.response.status);
+      console.error("Response data:", JSON.stringify(error.response.data, null, 2));
+    } else if (error.request) {
+      // Request was made but no response received (Network Error)
+      console.error("No response received - Network Error");
+      console.error("Request URL:", error.config?.url);
+      console.error("Request timeout:", error.config?.timeout);
+      console.error("This may be due to:");
+      console.error("  1. No internet connection on device");
+      console.error("  2. Server unreachable from device network");
+      console.error("  3. SSL/TLS certificate issues");
+      console.error("  4. CORS issues (web only)");
+    } else {
+      console.error("Error setting up request:", error.message);
+    }
+    
+    // Return empty response on error - user will be treated as new user
+    return {
+      userType: 'new_user',
+      user: null,
+      customer: null,
+      merchant: null,
+    };
+  }
+};
+
+/* ===============================
+   DETERMINE USER ROLE & DASHBOARD
+   Based on userType from API response:
+   - "new_user" or empty → /user-dashboard
+   - "in_Customer" → /member-dashboard
+   - "in_Merchant" → /merchant-dashboard
+   - Both customer & merchant → /dual-dashboard
+================================ */
+
+export type UserRole = 'user' | 'customer' | 'merchant' | 'dual' | 'new';
+
+export interface RoleInfo {
+  role: UserRole;
+  dashboard: string;
+  userType: string;
+  userData: UserSearchResponse;
+}
+
+export const determineUserRole = (response: UserSearchResponse): RoleInfo => {
+  const userType = response.userType || '';
+  
+  console.log("Determining role from userType:", userType);
+  console.log("Full response:", JSON.stringify(response, null, 2));
+  
+  // Check userType field first
+  if (userType) {
+    const lowerUserType = userType.toLowerCase();
+    
+    // Check for merchant
+    if (lowerUserType === 'in_merchant' || lowerUserType.includes('merchant')) {
+      // Check if also customer (dual role)
+      if (response.customer && Object.keys(response.customer).length > 0) {
+        return {
+          role: 'dual',
+          dashboard: '/dual-dashboard',
+          userType: userType,
+          userData: response,
+        };
+      }
+      return {
+        role: 'merchant',
+        dashboard: '/merchant-dashboard',
+        userType: userType,
+        userData: response,
+      };
+    }
+    
+    // Check for customer
+    if (lowerUserType === 'in_customer' || lowerUserType.includes('customer')) {
+      // Check if also merchant (dual role)
+      if (response.merchant && Object.keys(response.merchant).length > 0) {
+        return {
+          role: 'dual',
+          dashboard: '/dual-dashboard',
+          userType: userType,
+          userData: response,
+        };
+      }
+      return {
+        role: 'customer',
+        dashboard: '/member-dashboard',
+        userType: userType,
+        userData: response,
+      };
+    }
+    
+    // New user or unknown type
+    if (lowerUserType === 'new_user' || lowerUserType === 'new' || lowerUserType === 'user') {
+      return {
+        role: 'new',
+        dashboard: '/user-dashboard',
+        userType: userType,
+        userData: response,
+      };
+    }
+  }
+  
+  // Fallback: Check object presence
+  const hasCustomer = response.customer && Object.keys(response.customer).length > 0;
+  const hasMerchant = response.merchant && Object.keys(response.merchant).length > 0;
+  
+  if (hasCustomer && hasMerchant) {
+    return {
+      role: 'dual',
+      dashboard: '/dual-dashboard',
+      userType: 'dual',
+      userData: response,
+    };
+  }
+  
+  if (hasMerchant) {
+    return {
+      role: 'merchant',
+      dashboard: '/merchant-dashboard',
+      userType: 'in_Merchant',
+      userData: response,
+    };
+  }
+  
+  if (hasCustomer) {
+    return {
+      role: 'customer',
+      dashboard: '/member-dashboard',
+      userType: 'in_Customer',
+      userData: response,
+    };
+  }
+  
+  // Default: New user
+  return {
+    role: 'new',
+    dashboard: '/user-dashboard',
+    userType: 'new_user',
+    userData: response,
+  };
+};
+
+/* ===============================
+   MEMBER SEARCH  API
+================================ */
+
+// 🔍 SEARCH PRODUCTS / CATEGORIES (REAL API)
+export const searchByProductNames = async (
+  productName: string,
+  latitude: number,
+  longitude: number
+) => {
+  const url =
+    `${INTOWN_API_BASE}/search/by-product-names` +
+    `?productNames=${encodeURIComponent(productName)}` +
+    `&customerLatitude=${latitude}` +
+    `&customerLongitude=${longitude}`;
+
+  const res = await fetch(url);
+
+  if (!res.ok) {
+    throw new Error('Search by product failed');
+  }
+
+  return res.json();
+};
+
+
+
+
+
+/* ===============================
+   MERCHANT CATEGORY  API
+================================ */
+
+export const getCategories = async () => {
+  try {
+    const response = await fetch(`${INTOWN_API_BASE}/categories/`);
+    if (!response.ok) {
+      console.warn('getCategories: API returned status', response.status);
+      return [];
+    }
+    const data = await response.json();
+    console.log('getCategories: loaded', Array.isArray(data) ? data.length : 0, 'categories');
+    return data;
+  } catch (error: any) {
+    console.warn('getCategories failed:', error.message);
+    return [];
+  }
+};
+
+
+/* ===============================
+   MERCHANT CATEGORY-PRODUCT  API
+================================ */
+export const getProductsByCategory = async (categoryId: number) => {
+  const response = await fetch(
+    `${INTOWN_API_BASE}/products/by-category/${categoryId}`
+  );
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch products');
+  }
+
+  return response.json();
+};
+export const getCustomerProfile = async (customerId: number) => {
+  const res = await fetch(
+    `${INTOWN_API_BASE}/customer/${customerId}/profile`,
+    {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        // Add Authorization header if backend requires it
+        // Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  if (!res.ok) {
+    throw new Error('Failed to fetch customer profile');
+  }
+
+  return res.json();
+};
+
+/* Extract image URL(s) from API response. Supports:
+   - string: single URL
+   - string[]: array of URLs
+   - object[]: array of { s3ImageUrl: string, ... } */
+export const extractImageUrls = (raw: unknown): string[] => {
+  if (raw == null) return [];
+  if (typeof raw === 'string') return raw ? [raw] : [];
+  if (Array.isArray(raw)) {
+    return raw
+      .map((item: unknown) => {
+        if (typeof item === 'string') return item;
+        if (item && typeof item === 'object' && 's3ImageUrl' in item) {
+          const url = (item as { s3ImageUrl?: unknown }).s3ImageUrl;
+          return typeof url === 'string' ? url : null;
+        }
+        return null;
+      })
+      .filter((u): u is string => typeof u === 'string');
+  }
+  return [];
+};
+
+const merchantImageCache = new Map<string, string | null>();
+const merchantImageListCache = new Map<string, string[]>();
+const MERCHANT_IMAGE_CACHE_KEY = "merchant_image_cache";
+const MERCHANT_IMAGE_LIST_CACHE_KEY = "merchant_image_list_cache";
+
+const loadMerchantImageCache = async () => {
+  try {
+    const raw = await AsyncStorage.getItem(MERCHANT_IMAGE_CACHE_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === "object") {
+      Object.entries(parsed).forEach(([key, value]) => {
+        if (!merchantImageCache.has(key)) {
+          merchantImageCache.set(key, typeof value === "string" ? value : null);
+        }
+      });
+    }
+  } catch {
+    // ignore cache load errors
+  }
+};
+
+const loadMerchantImageListCache = async () => {
+  try {
+    const raw = await AsyncStorage.getItem(MERCHANT_IMAGE_LIST_CACHE_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === "object") {
+      Object.entries(parsed).forEach(([key, value]) => {
+        if (!merchantImageListCache.has(key) && Array.isArray(value)) {
+          merchantImageListCache.set(
+            key,
+            value.filter((item) => typeof item === "string")
+          );
+        }
+      });
+    }
+  } catch {
+    // ignore cache load errors
+  }
+};
+
+const persistMerchantImageCache = async () => {
+  try {
+    const obj: Record<string, string | null> = {};
+    merchantImageCache.forEach((value, key) => {
+      obj[key] = value ?? null;
+    });
+    await AsyncStorage.setItem(MERCHANT_IMAGE_CACHE_KEY, JSON.stringify(obj));
+  } catch {
+    // ignore cache save errors
+  }
+};
+
+const persistMerchantImageListCache = async () => {
+  try {
+    const obj: Record<string, string[]> = {};
+    merchantImageListCache.forEach((value, key) => {
+      obj[key] = value ?? [];
+    });
+    await AsyncStorage.setItem(
+      MERCHANT_IMAGE_LIST_CACHE_KEY,
+      JSON.stringify(obj)
+    );
+  } catch {
+    // ignore cache save errors
+  }
+};
+
+export const getMerchantImageByShopId = async (
+  shopId?: string | number | null
+): Promise<string | null> => {
+  if (shopId == null) return null;
+  const key = String(shopId);
+  if (merchantImageCache.has(key)) {
+    return merchantImageCache.get(key) ?? null;
+  }
+  await loadMerchantImageCache();
+  if (merchantImageCache.has(key)) {
+    return merchantImageCache.get(key) ?? null;
+  }
+  try {
+    const res = await fetch(`${INTOWN_API_BASE}/customer/${key}`);
+    if (!res.ok) {
+      merchantImageCache.set(key, null);
+      await persistMerchantImageCache();
+      return null;
+    }
+    const data = await res.json();
+    const urls = extractImageUrls(data?.s3ImageUrl);
+    const firstImage = urls[0] ?? null;
+    merchantImageCache.set(key, firstImage);
+    await persistMerchantImageCache();
+    return firstImage;
+  } catch {
+    merchantImageCache.set(key, null);
+    await persistMerchantImageCache();
+    return null;
+  }
+};
+
+export const getMerchantImagesByShopId = async (
+  shopId?: string | number | null
+): Promise<string[]> => {
+  if (shopId == null) return [];
+  const key = String(shopId);
+  if (merchantImageListCache.has(key)) {
+    return merchantImageListCache.get(key) ?? [];
+  }
+  await loadMerchantImageListCache();
+  if (merchantImageListCache.has(key)) {
+    return merchantImageListCache.get(key) ?? [];
+  }
+  try {
+    const res = await fetch(`${INTOWN_API_BASE}/customer/${key}`);
+    if (!res.ok) {
+      merchantImageListCache.set(key, []);
+      await persistMerchantImageListCache();
+      return [];
+    }
+    const data = await res.json();
+    const images = extractImageUrls(data?.s3ImageUrl);
+    merchantImageListCache.set(key, images);
+    if (images.length > 0) {
+      merchantImageCache.set(key, images[0]);
+      await persistMerchantImageCache();
+    }
+    await persistMerchantImageListCache();
+    return images;
+  } catch {
+    merchantImageListCache.set(key, []);
+    await persistMerchantImageListCache();
+    return [];
+  }
+};
+
+
+
+export const searchProducts = async (text: string) => {
+  const res = await fetch(
+    `${INTOWN_API_BASE}/products/`
+  );
+
+  if (!res.ok) {
+    throw new Error('Products API failed');
+  }
+
+  const data = await res.json();
+
+  // 🔍 filter locally for auto-suggestions
+  return Array.isArray(data)
+    ? data.filter((item: any) =>
+        (item.productName || item.name || '')
+          .toLowerCase()
+          .includes(text.toLowerCase())
+      )
+    : [];
+};
+
+/* ===============================
+   Near-by-shops   API
+================================ */
+
+export const getNearbyShops = async (
+  latitude: number,
+  longitude: number
+) => {
+  const url = `${INTOWN_API_BASE}/search/by-product-names?customerLatitude=${latitude}&customerLongitude=${longitude}`;
+
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('Failed to fetch nearby shops');
+
+  return res.json();
+};
+
+
+// ================= Member-dashboard CATEGORY → NEARBY SHOPS API =================
+
+export const getNearbyShopsByCategory = async (
+  categoryId: number,
+  latitude: number,
+  longitude: number
+) => {
+  const url = `${INTOWN_API_BASE}/search/by-product-names?categoryId=${categoryId}&customerLatitude=${latitude}&customerLongitude=${longitude}`;
+
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      Accept: 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch nearby shops by category');
+  }
+
+  return response.json();
+};
+
+
+
+/* ===============================
+   Near-by-shops   API
+================================ */
+export const assignCategoryToMerchant = async (
+  merchantId: number | string,
+  categoryId: number
+) => {
+  const response = await fetch(
+    `${INTOWN_API_BASE}/merchant/assign-to-merchant`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        merchantId,
+        categoryId,
+      }),
+    }
+  );
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data?.message || 'Assign category failed');
+  }
+
+  return data;
+};
+
+
+
