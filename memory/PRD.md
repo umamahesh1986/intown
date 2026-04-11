@@ -53,6 +53,12 @@
 - Removed Firebase plugins from `app.json`
 - **Bundle size reduced from 2.39 MB to 1.9 MB (~500 KB / 20% reduction)**
 
+### Session 4 (Jan 2026) - OTP Auto-Submit Bug Fix
+- **Root cause**: Auto-submit on last digit read stale `otp` state via closure instead of using freshly built `newOtp` array
+- **Fix**: Created `verifyWithCode(code)` that accepts OTP code directly; auto-submit now passes `newOtp.join("")` instead of relying on React state
+- Same fix applied to paste auto-submit path
+- 9/10 tests passed (1 minor: back button automation selector — works fine for real users)
+
 ## Backlog
 - P1: Test full end-to-end login with real OTP on mobile device
 - P2: Real payment gateway integration
