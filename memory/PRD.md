@@ -47,8 +47,13 @@
 - `/app/frontend/utils/api.ts` - Added sendOtpApi() and verifyOtpApi() functions
 - `/app/frontend/store/authStore.ts` - Removed Firebase signOut from logout
 
+### Session 3 (Jan 2026) - Firebase Cleanup
+- Removed 5 Firebase packages: `@react-native-firebase/app`, `@react-native-firebase/app-check`, `@react-native-firebase/auth`, `firebase`, `react-native-otp-verify`
+- Deleted `firebase/` folder, `google-services.json`, `GoogleService-Info.plist`, `firebase.json`
+- Removed Firebase plugins from `app.json`
+- **Bundle size reduced from 2.39 MB to 1.9 MB (~500 KB / 20% reduction)**
+
 ## Backlog
 - P1: Test full end-to-end login with real OTP on mobile device
-- P2: Remove unused Firebase dependencies from package.json
-- P3: Real payment gateway integration
+- P2: Real payment gateway integration
 - P3: Push notifications, App Store/Play Store deployment
