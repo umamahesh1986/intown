@@ -1,49 +1,54 @@
 # IntownLocal - PRD & Progress
 
 ## Original Problem Statement
-Clone the InTown Local React Native Expo app from GitHub (https://github.com/umamahesh1986/intown.git, branch: main) and run the mobile app preview.
+1. Clone the InTown Local React Native Expo app from GitHub (https://github.com/umamahesh1986/intown.git, branch: main) and run the mobile app preview.
+2. OTP Authentication Flow Update: Remove Firebase, switch to custom OTP API services at devapi.intownlocal.com. Change OTP from 6 digits to 4 digits.
 
 ## Architecture
-- **Frontend**: React Native + Expo SDK 54 with expo-router
-- **Backend**: External APIs at `https://api.intownlocal.com` (pre-existing, no local backend needed)
+- **Frontend**: React Native + Expo SDK 54 with expo-router (web export served as static files)
+- **Backend**: External APIs at `https://api.intownlocal.com` (user search, shops)
+- **OTP APIs**: `https://devapi.intownlocal.com/IN/otp/` (send) and `/otp/verify` (verify)
 - **State Management**: Zustand
 - **Navigation**: expo-router (file-based routing)
-- **Web Rendering**: react-native-web
 
 ## User Personas
 - **Members (Customers)**: Local shoppers looking for nearby shops and savings
 - **Merchants**: Local shop owners registering their businesses
 
-## Core Features (Implemented in Cloned App)
-- OTP-based phone login (mock OTP: 1234)
+## Core Features
+- OTP-based phone login (custom API, 4-digit OTP)
 - User Dashboard with location, search, categories, savings calculator
-- Member registration & dashboard
-- Merchant registration & dashboard
-- Dual dashboard (both roles)
-- Shop discovery with categories (Groceries, Beauty, Laundry, etc.)
-- Savings calculator
-- Payment flow (mocked)
-- Shop details & navigation
+- Member/Merchant registration & dashboards
+- Shop discovery, payments (mocked)
 
-## What's Been Done (Jan 2026)
+## What's Been Done
+
+### Session 1 (Jan 2026) - Initial Setup
 - Cloned repo from GitHub (main branch)
-- Set up Expo web build (static export via `expo export --platform web`)
-- Created static file server (`serve-web.js`) on port 3000
-- App running successfully with all screens accessible
-- Live API connection to `https://api.intownlocal.com` working
-- Login flow → OTP verification → Dashboard flow verified
+- Set up Expo web build (static export)
+- Created static file server on port 3000
 
-## Tech Stack
-- Expo SDK 54, React Native 0.81.5, React 19.1.0
-- expo-router 6.x, zustand 5.x
-- Firebase (auth + app-check), react-native-maps
-- axios for API calls
+### Session 2 (Jan 2026) - OTP Flow Update
+- **Removed Firebase** from login.tsx, otp.tsx, authStore.ts
+- **New Send OTP API**: POST `https://devapi.intownlocal.com/IN/otp/` with `{mobileNumber: "91XXXXXXXXXX"}`
+- **New Verify OTP API**: POST `https://devapi.intownlocal.com/IN/otp/verify` with `{mobileNumber, otpCode}`
+- **OTP changed from 6 to 4 digits** with larger, better-styled input boxes
+- **Phone masking**: Shows `******3080` instead of full number
+- **30-second resend timer** (was 60s)
+- **Inline phone validation** on login screen
+- **Error handling**: Shows error messages for invalid/expired OTP
+- **Auto-submit**: OTP auto-submits when all 4 digits are entered
+- **Loading states**: Proper loading indicators during API calls
+- All 13 test cases passed (100%)
 
-## Screens Available
-/, /login, /otp, /user-dashboard, /member-dashboard, /merchant-dashboard, /dual-dashboard, /register-member, /register-merchant, /search, /shop-details, /member-shop-list, /member-shop-details, /plans, /payment, /checkout, /savings, /account, /addresses, /map, /location, /location-picker, /profile-menu, /member-card, /member-navigate, /payment-history
+## Files Modified
+- `/app/frontend/app/login.tsx` - Removed Firebase, added Send OTP API call, inline validation
+- `/app/frontend/app/otp.tsx` - Complete rewrite: 4-digit OTP, custom verify API, no Firebase
+- `/app/frontend/utils/api.ts` - Added sendOtpApi() and verifyOtpApi() functions
+- `/app/frontend/store/authStore.ts` - Removed Firebase signOut from logout
 
-## Backlog / Next Steps
-- P0: None (app is running)
-- P1: UI/UX improvements for web layout (currently mobile-optimized)
-- P2: Real SMS/OTP integration, real payment gateway
-- P3: Push notifications, analytics, App Store/Play Store deployment
+## Backlog
+- P1: Test full end-to-end login with real OTP on mobile device
+- P2: Remove unused Firebase dependencies from package.json
+- P3: Real payment gateway integration
+- P3: Push notifications, App Store/Play Store deployment

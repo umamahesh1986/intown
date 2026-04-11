@@ -62,12 +62,14 @@ export default function LoginScreen() {
   const router = useRouter();
   const [phone, setPhone] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [phoneError, setPhoneError] = useState('');
 
   const handleSendOTP = async () => {
-    if (!phone || phone.length < 10) {
-      Alert.alert('Invalid Phone', 'Please enter a valid 10-digit phone number');
+    if (!phone || phone.replace(/\D/g, '').length < 10) {
+      setPhoneError('Please enter a valid 10-digit phone number');
       return;
     }
+    setPhoneError('');
 
     setIsLoading(true);
     try {
@@ -121,10 +123,14 @@ export default function LoginScreen() {
                   placeholderTextColor="#9b9b9b"
                   keyboardType="phone-pad"
                   value={phone}
-                  onChangeText={setPhone}
+                  onChangeText={(v) => { setPhone(v); setPhoneError(''); }}
                   maxLength={10}
                 />
               </View>
+
+              {phoneError ? (
+                <Text style={styles.errorText}>{phoneError}</Text>
+              ) : null}
 
               <TouchableOpacity
                 style={[styles.button, isLoading && styles.buttonDisabled]}
@@ -278,6 +284,13 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 18,
     fontWeight: '700',
+  },
+
+  errorText: {
+    color: '#FFE0CC',
+    fontSize: 13,
+    marginBottom: 12,
+    marginTop: -8,
   },
 
   smallNote: {
