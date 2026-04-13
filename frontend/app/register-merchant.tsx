@@ -74,6 +74,16 @@ export default function RegisterMerchant() {
   const [address, setAddress] = useState('');
   const [introducedBy, setIntroducedBy] = useState('');
   const [images, setImages] = useState<string[]>([]);
+
+  // New business timing & offer fields
+  const [openAt, setOpenAt] = useState('');
+  const [closeAt, setCloseAt] = useState('');
+  const [breakStartAt, setBreakStartAt] = useState('');
+  const [breakEndAt, setBreakEndAt] = useState('');
+  const [weekOff, setWeekOff] = useState('');
+  const [offer, setOffer] = useState('');
+  const [showTimePicker, setShowTimePicker] = useState<string | null>(null);
+  const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [successMerchantId, setSuccessMerchantId] = useState<string | number | null>(null);
@@ -445,6 +455,12 @@ export default function RegisterMerchant() {
         selectedProductIds,
         hasOtherProducts,
         customProductsCsv,
+        openAt,
+        closeAt,
+        breakStartAt,
+        breakEndAt,
+        weekOff,
+        offer,
       };
       await AsyncStorage.setItem(draftKey, JSON.stringify(draft));
     } catch (error) {
@@ -489,6 +505,12 @@ export default function RegisterMerchant() {
       );
       setHasOtherProducts(Boolean(draft.hasOtherProducts));
       setCustomProductsCsv(draft.customProductsCsv ?? '');
+      setOpenAt(draft.openAt ?? '');
+      setCloseAt(draft.closeAt ?? '');
+      setBreakStartAt(draft.breakStartAt ?? '');
+      setBreakEndAt(draft.breakEndAt ?? '');
+      setWeekOff(draft.weekOff ?? '');
+      setOffer(draft.offer ?? '');
     } catch (error) {
       console.error('Failed to restore merchant draft', error);
     }
@@ -698,6 +720,12 @@ export default function RegisterMerchant() {
       categoryList: selectedCategoryId ? [selectedCategoryId] : [],
       productIds: selectedProductIds.map(id => id.toString()),
       productNames,
+      openAt,
+      closeAt,
+      breakStartAt,
+      breakEndAt,
+      weekOff,
+      offer,
     };
 
     try {
@@ -1085,6 +1113,110 @@ export default function RegisterMerchant() {
             />
           </View>
 
+          {/* ================= BUSINESS TIMINGS ================= */}
+          <View style={styles.sectionHeader}>
+            <Ionicons name="time-outline" size={18} color="#FF8A00" />
+            <Text style={styles.sectionTitle}>Business Timings</Text>
+          </View>
+
+          {/* ROW 1: Open Time / Close Time */}
+          <View style={styles.timeRow}>
+            <View style={styles.timeField}>
+              <Text style={styles.label}>Open Time</Text>
+              <TouchableOpacity
+                style={styles.timePickerBtn}
+                onPress={() => setShowTimePicker('openAt')}
+              >
+                <Ionicons name="time-outline" size={18} color="#FF8A00" />
+                <Text style={styles.timePickerText}>
+                  {openAt || 'Select'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.timeField}>
+              <Text style={styles.label}>Close Time</Text>
+              <TouchableOpacity
+                style={styles.timePickerBtn}
+                onPress={() => setShowTimePicker('closeAt')}
+              >
+                <Ionicons name="time-outline" size={18} color="#FF8A00" />
+                <Text style={styles.timePickerText}>
+                  {closeAt || 'Select'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* ROW 2: Break Start / Break End */}
+          <View style={styles.timeRow}>
+            <View style={styles.timeField}>
+              <Text style={styles.label}>Break Start</Text>
+              <TouchableOpacity
+                style={styles.timePickerBtn}
+                onPress={() => setShowTimePicker('breakStartAt')}
+              >
+                <Ionicons name="cafe-outline" size={18} color="#FF8A00" />
+                <Text style={styles.timePickerText}>
+                  {breakStartAt || 'Select'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.timeField}>
+              <Text style={styles.label}>Break End</Text>
+              <TouchableOpacity
+                style={styles.timePickerBtn}
+                onPress={() => setShowTimePicker('breakEndAt')}
+              >
+                <Ionicons name="cafe-outline" size={18} color="#FF8A00" />
+                <Text style={styles.timePickerText}>
+                  {breakEndAt || 'Select'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* ROW 3: Week Off */}
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>Week Off</Text>
+            <View style={styles.dayChipsContainer}>
+              {DAYS_OF_WEEK.map(day => {
+                const selected = weekOff.split(',').map(d => d.trim()).includes(day);
+                return (
+                  <TouchableOpacity
+                    key={day}
+                    style={[styles.dayChip, selected && styles.dayChipSelected]}
+                    onPress={() => {
+                      const current = weekOff ? weekOff.split(',').map(d => d.trim()).filter(Boolean) : [];
+                      if (selected) {
+                        setWeekOff(current.filter(d => d !== day).join(', '));
+                      } else {
+                        setWeekOff([...current, day].join(', '));
+                      }
+                    }}
+                  >
+                    <Text style={[styles.dayChipText, selected && styles.dayChipTextSelected]}>
+                      {day.slice(0, 3)}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+            {weekOff ? <Text style={styles.helperText}>Off: {weekOff}</Text> : null}
+          </View>
+
+          {/* ROW 4: Offer */}
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>Offer</Text>
+            <TextInput
+              style={styles.textArea}
+              value={offer}
+              onChangeText={setOffer}
+              multiline
+              placeholder="e.g. 10% off on weekdays, Buy 1 Get 1 Free..."
+              placeholderTextColor="#999"
+            />
+          </View>
+
           {/* TERMS */}
           <View style={styles.row}>
             <Switch value={agreedToTerms} onValueChange={setAgreedToTerms} />
@@ -1180,6 +1312,125 @@ export default function RegisterMerchant() {
           </View>
         </View>
       )}
+
+      {/* TIME PICKER MODAL */}
+      <Modal visible={!!showTimePicker} transparent animationType="fade">
+        <View style={styles.popupOverlay}>
+          <View style={[styles.popupCard, { maxWidth: 320 }]}>
+            <Text style={styles.popupTitle}>
+              {showTimePicker === 'openAt' ? 'Open Time' :
+               showTimePicker === 'closeAt' ? 'Close Time' :
+               showTimePicker === 'breakStartAt' ? 'Break Start' : 'Break End'}
+            </Text>
+            <View style={styles.timePickerRow}>
+              {/* Hour */}
+              <View style={styles.timeColumn}>
+                <Text style={styles.timeColumnLabel}>Hour</Text>
+                <ScrollView style={styles.timeScroll} showsVerticalScrollIndicator={false}>
+                  {Array.from({ length: 12 }, (_, i) => i + 1).map(h => {
+                    const currentVal = showTimePicker === 'openAt' ? openAt :
+                                       showTimePicker === 'closeAt' ? closeAt :
+                                       showTimePicker === 'breakStartAt' ? breakStartAt : breakEndAt;
+                    const currentHour = currentVal ? parseInt(currentVal.split(':')[0]) : 0;
+                    const isPM = currentVal?.includes('PM');
+                    const hour24 = isPM ? (h === 12 ? 12 : h + 12) : (h === 12 ? 0 : h);
+                    const isSelected = currentHour === hour24 || (currentHour === 0 && h === 12 && !isPM) || (currentHour === 12 && h === 12 && isPM);
+                    return (
+                      <TouchableOpacity
+                        key={h}
+                        style={[styles.timeOption, isSelected && styles.timeOptionSelected]}
+                        onPress={() => {
+                          const setter = showTimePicker === 'openAt' ? setOpenAt :
+                                         showTimePicker === 'closeAt' ? setCloseAt :
+                                         showTimePicker === 'breakStartAt' ? setBreakStartAt : setBreakEndAt;
+                          const cv = showTimePicker === 'openAt' ? openAt :
+                                     showTimePicker === 'closeAt' ? closeAt :
+                                     showTimePicker === 'breakStartAt' ? breakStartAt : breakEndAt;
+                          const parts = cv ? cv.replace(/\s*(AM|PM)$/i, '').split(':') : ['12', '00'];
+                          const ampm = cv?.includes('PM') ? 'PM' : 'AM';
+                          setter(`${String(h).padStart(2, '0')}:${parts[1] || '00'} ${ampm}`);
+                        }}
+                      >
+                        <Text style={[styles.timeOptionText, isSelected && styles.timeOptionTextSelected]}>
+                          {String(h).padStart(2, '0')}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+              {/* Minute */}
+              <View style={styles.timeColumn}>
+                <Text style={styles.timeColumnLabel}>Min</Text>
+                <ScrollView style={styles.timeScroll} showsVerticalScrollIndicator={false}>
+                  {[0, 15, 30, 45].map(m => {
+                    const currentVal = showTimePicker === 'openAt' ? openAt :
+                                       showTimePicker === 'closeAt' ? closeAt :
+                                       showTimePicker === 'breakStartAt' ? breakStartAt : breakEndAt;
+                    const currentMin = currentVal ? parseInt(currentVal.replace(/\s*(AM|PM)$/i, '').split(':')[1]) : -1;
+                    const isSelected = currentMin === m;
+                    return (
+                      <TouchableOpacity
+                        key={m}
+                        style={[styles.timeOption, isSelected && styles.timeOptionSelected]}
+                        onPress={() => {
+                          const setter = showTimePicker === 'openAt' ? setOpenAt :
+                                         showTimePicker === 'closeAt' ? setCloseAt :
+                                         showTimePicker === 'breakStartAt' ? setBreakStartAt : setBreakEndAt;
+                          const cv = showTimePicker === 'openAt' ? openAt :
+                                     showTimePicker === 'closeAt' ? closeAt :
+                                     showTimePicker === 'breakStartAt' ? breakStartAt : breakEndAt;
+                          const parts = cv ? cv.replace(/\s*(AM|PM)$/i, '').split(':') : ['09', '00'];
+                          const ampm = cv?.includes('PM') ? 'PM' : 'AM';
+                          setter(`${parts[0] || '09'}:${String(m).padStart(2, '0')} ${ampm}`);
+                        }}
+                      >
+                        <Text style={[styles.timeOptionText, isSelected && styles.timeOptionTextSelected]}>
+                          {String(m).padStart(2, '0')}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+              {/* AM/PM */}
+              <View style={styles.timeColumn}>
+                <Text style={styles.timeColumnLabel}>AM/PM</Text>
+                {['AM', 'PM'].map(period => {
+                  const currentVal = showTimePicker === 'openAt' ? openAt :
+                                     showTimePicker === 'closeAt' ? closeAt :
+                                     showTimePicker === 'breakStartAt' ? breakStartAt : breakEndAt;
+                  const isSelected = currentVal?.includes(period);
+                  return (
+                    <TouchableOpacity
+                      key={period}
+                      style={[styles.timeOption, { marginVertical: 4 }, isSelected && styles.timeOptionSelected]}
+                      onPress={() => {
+                        const setter = showTimePicker === 'openAt' ? setOpenAt :
+                                       showTimePicker === 'closeAt' ? setCloseAt :
+                                       showTimePicker === 'breakStartAt' ? setBreakStartAt : setBreakEndAt;
+                        const cv = showTimePicker === 'openAt' ? openAt :
+                                   showTimePicker === 'closeAt' ? closeAt :
+                                   showTimePicker === 'breakStartAt' ? breakStartAt : breakEndAt;
+                        const timePart = cv ? cv.replace(/\s*(AM|PM)$/i, '').trim() : '09:00';
+                        setter(`${timePart} ${period}`);
+                      }}
+                    >
+                      <Text style={[styles.timeOptionText, isSelected && styles.timeOptionTextSelected]}>{period}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+            <TouchableOpacity
+              style={styles.popupButton}
+              onPress={() => setShowTimePicker(null)}
+            >
+              <Text style={styles.popupButtonText}>Done</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       <Modal visible={showSuccessPopup} transparent animationType="fade">
         <View style={styles.popupOverlay}>
@@ -1478,6 +1729,108 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '600',
     fontSize: 14,
+  },
+
+  // Business Timings section
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    marginTop: 8,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#EEE',
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#333',
+    marginLeft: 8,
+  },
+  timeRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 16,
+  },
+  timeField: {
+    flex: 1,
+  },
+  timePickerBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF',
+    borderWidth: 1,
+    borderColor: '#DDD',
+    borderRadius: 8,
+    padding: 12,
+    gap: 8,
+  },
+  timePickerText: {
+    fontSize: 14,
+    color: '#333',
+  },
+  dayChipsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  dayChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#DDD',
+    backgroundColor: '#FFF',
+  },
+  dayChipSelected: {
+    backgroundColor: '#FF8A00',
+    borderColor: '#FF8A00',
+  },
+  dayChipText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#555',
+  },
+  dayChipTextSelected: {
+    color: '#FFF',
+  },
+  timePickerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+    gap: 8,
+  },
+  timeColumn: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  timeColumnLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#888',
+    marginBottom: 8,
+  },
+  timeScroll: {
+    maxHeight: 160,
+  },
+  timeOption: {
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+    marginBottom: 4,
+    alignItems: 'center',
+    backgroundColor: '#F5F5F5',
+  },
+  timeOptionSelected: {
+    backgroundColor: '#FF8A00',
+  },
+  timeOptionText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+  },
+  timeOptionTextSelected: {
+    color: '#FFF',
   },
 
 

@@ -282,6 +282,12 @@ export const registerMerchant = async (merchantData: any) => {
       categoryList: merchantData.categoryList || [],
       productIds: merchantData.productIds || [],
       productNames: merchantData.productNames || [],
+      openAt: merchantData.openAt || '',
+      closeAt: merchantData.closeAt || '',
+      breakStartAt: merchantData.breakStartAt || '',
+      breakEndAt: merchantData.breakEndAt || '',
+      weekOff: merchantData.weekOff || '',
+      offer: merchantData.offer || '',
     };
     
     console.log("Merchant registration payload:", payload);
