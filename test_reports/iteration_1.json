@@ -17,14 +17,14 @@
   },
   "passed_tests": [
     "Login screen shows 'Get OTP' button (correct text, not 'Send OTP')",
-    "Login screen calls Send OTP API successfully (POST https://devapi.intownlocal.com/IN/otp/)",
+    "Login screen calls Send OTP API successfully (POST https://api.intownlocal.com/IN/otp/)",
     "Login screen shows loading state while sending OTP ('Sending OTP...')",
     "OTP screen shows 4 input boxes (correct, not 6)",
     "OTP screen shows masked phone number (******3210)",
     "OTP screen shows 'OTP sent successfully' indicator",
     "OTP screen has 30-second resend timer working correctly",
     "OTP screen has 'Verify & Continue' button",
-    "OTP screen calls Verify OTP API (POST https://devapi.intownlocal.com/IN/otp/verify)",
+    "OTP screen calls Verify OTP API (POST https://api.intownlocal.com/IN/otp/verify)",
     "OTP screen shows error message on invalid OTP ('OTP verification failed. Invalid or expired OTP.')",
     "No Firebase references found in login.tsx, otp.tsx, utils/api.ts, or authStore.ts",
     "External OTP APIs are functional and responding correctly"
