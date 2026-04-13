@@ -148,6 +148,12 @@ Build, run, and fix critical issues in the Expo (React Native) mobile app "InTow
 - data-testid attributes added for time picker buttons
 - 11/12 tests passed (1 minor: automation selector, not user-facing)
 
+### Session 7 (Jan 2026) - OTP "Failed to send" Bug Fix (Post-Merge)
+- **Root cause**: Merge from `conflict_110426_1021` to `main` changed OTP_API_BASE from `devapi.intownlocal.com` to `api.intownlocal.com`
+- Production API (`api.intownlocal.com/IN/otp/`) returns HTTP 500 due to DB constraint error (`duplicate key violates unique constraint "otp_records_mobile_number_key"`)
+- **Fix**: Restored `OTP_API_BASE` to `https://devapi.intownlocal.com/IN` in `utils/api.ts` line 7
+- Verified: OTP sends successfully for phone 8639071519
+
 ## Backlog
 - P1: Test full end-to-end login with real OTP on mobile device
 - P2: Real payment gateway integration
