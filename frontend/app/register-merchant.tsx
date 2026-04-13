@@ -1215,7 +1215,7 @@ export default function RegisterMerchant() {
               value={offer}
               onChangeText={setOffer}
               multiline
-              placeholder="e.g. 10% off on weekdays, Buy 1 Get 1 Free..."
+              placeholder="e.g. 10 off on weekdays, Buy 1 Get 1 Free..."
               placeholderTextColor="#999"
             />
           </View>
