@@ -9,10 +9,12 @@ import {
   KeyboardAvoidingView,
   Platform,
   Image,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Video, ResizeMode } from 'expo-av';
+import { sendOtpApi } from '../utils/api';
 
 const CARD_WIDTH = 520;
 const RADIUS = 12;
@@ -60,13 +62,25 @@ export default function LoginScreen() {
   const router = useRouter();
   const [phone, setPhone] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [phoneError, setPhoneError] = useState('');
 
   const handleSendOTP = async () => {
-    if (!phone || phone.length < 10) {
-      Alert.alert('Invalid Phone', 'Please enter a valid 10-digit phone number');
+    if (!phone || phone.replace(/\D/g, '').length < 10) {
+      setPhoneError('Please enter a valid 10-digit phone number');
       return;
     }
-    router.push(`/otp?phone=${phone}`);
+    setPhoneError('');
+
+    setIsLoading(true);
+    try {
+      const mobileNumber = `91${phone.replace(/\D/g, '').slice(-10)}`;
+      await sendOtpApi(mobileNumber);
+      router.push(`/otp?phone=${phone}`);
+    } catch (err: any) {
+      Alert.alert('Error', err.message || 'Failed to send OTP. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const inputWebStyle: any =
@@ -109,19 +123,28 @@ export default function LoginScreen() {
                   placeholderTextColor="#9b9b9b"
                   keyboardType="phone-pad"
                   value={phone}
-                  onChangeText={setPhone}
+                  onChangeText={(v) => { setPhone(v); setPhoneError(''); }}
                   maxLength={10}
                 />
               </View>
+
+              {phoneError ? (
+                <Text style={styles.errorText}>{phoneError}</Text>
+              ) : null}
 
               <TouchableOpacity
                 style={[styles.button, isLoading && styles.buttonDisabled]}
                 onPress={handleSendOTP}
                 disabled={isLoading}
               >
-                <Text style={styles.buttonText}>
-                  {isLoading ? 'Sending OTP...' : 'Send OTP'}
-                </Text>
+                {isLoading ? (
+                  <View style={styles.buttonContent}>
+                    <ActivityIndicator color="#fff" size="small" />
+                    <Text style={styles.buttonText}> Sending OTP...</Text>
+                  </View>
+                ) : (
+                  <Text style={styles.buttonText}>Get OTP</Text>
+                )}
               </TouchableOpacity>
 
               <Text style={styles.smallNote}>
@@ -150,24 +173,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
 
-  /* HEADER (orange) */
   headerCard: {
     width: '100%',
     maxWidth: '100%',
     alignSelf: 'center',
     backgroundColor: '#fe6f09',
-
-    marginVertical: 0,     // top & bottom = 0
+    marginVertical: 0,
     marginHorizontal: 32,
     borderTopLeftRadius: RADIUS,
     borderTopRightRadius: RADIUS,
     borderBottomLeftRadius: 0,
     borderBottomRightRadius: 0,
-
     alignItems: 'center',
     paddingTop: 28,
     paddingBottom: 24,
-
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.18,
@@ -190,38 +209,26 @@ const styles = StyleSheet.create({
     height: 48,
   },
 
-  tagline: {
-    color: '#fff',
-    marginTop: 4,
-    fontSize: 14,
-    fontWeight: '600',
-    opacity: 0.95,
-  },
-
-  /* WRAP FOR FORM (no padding so widths match) */
   formWrap: {
     width: '100%',
     maxWidth: '100%',
     alignSelf: 'center',
-    marginTop: -18, // slight overlap; adjust if you want a gap
+    marginTop: -18,
   },
 
-  /* WHITE FORM CARD */
   formCard: {
     width: '100%',
     maxWidth: '100%',
     alignSelf: 'center',
-    backgroundColor:  '#fe6f09',
+    backgroundColor: '#fe6f09',
     marginVertical: 0,
     marginHorizontal: 32,
     borderTopLeftRadius: 0,
     borderTopRightRadius: 0,
     borderBottomLeftRadius: RADIUS,
     borderBottomRightRadius: RADIUS,
-
     paddingVertical: 20,
     paddingHorizontal: 18,
-
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.10,
@@ -268,10 +275,22 @@ const styles = StyleSheet.create({
 
   buttonDisabled: { opacity: 0.65 },
 
+  buttonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+
   buttonText: {
     color: '#fff',
     fontSize: 18,
     fontWeight: '700',
+  },
+
+  errorText: {
+    color: '#FFE0CC',
+    fontSize: 13,
+    marginBottom: 12,
+    marginTop: -8,
   },
 
   smallNote: {

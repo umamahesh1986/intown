@@ -350,7 +350,7 @@ export default function MemberShopDetails() {
           <View style={styles.infoRow}>
             <Ionicons name="call" size={20} color="#FF8A00" />
             <Text style={styles.infoLabel}>Phone:</Text>
-            <Text style={styles.infoValue}>{shop.phoneNumber}</Text>
+            <Text style={styles.infoValue}>{userPhone}</Text>
           </View>
 
           <View style={styles.infoRow}>

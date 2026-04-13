@@ -4,6 +4,49 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 const BASE_URL = 'https://api.intownlocal.com';
 export const INTOWN_API_BASE = `${BASE_URL}/IN`;
 
+const OTP_API_BASE = 'https://api.intownlocal.com/IN';
+
+/* ===============================
+   CUSTOM OTP APIs (No Firebase)
+================================ */
+
+export const sendOtpApi = async (mobileNumber: string) => {
+  try {
+    const response = await axios.post(`${OTP_API_BASE}/otp/`, {
+      mobileNumber,
+    }, { timeout: 15000 });
+    return response.data;
+  } catch (error: any) {
+    if (error.response) {
+      throw { message: error.response.data?.message || "Failed to send OTP" };
+    } else if (error.request) {
+      throw { message: "Network error. Please check your connection." };
+    }
+    throw { message: error.message || "Failed to send OTP" };
+  }
+};
+
+export const verifyOtpApi = async (mobileNumber: string, otpCode: string) => {
+  try {
+    const response = await axios.post(`${OTP_API_BASE}/otp/verify`, {
+      mobileNumber,
+      otpCode,
+    }, { timeout: 15000 });
+    return response.data;
+  } catch (error: any) {
+    if (error.response) {
+      const data = error.response.data;
+      if (data?.success === false) {
+        throw { message: data.message || "OTP verification failed. Invalid or expired OTP." };
+      }
+      throw { message: data?.message || "OTP verification failed" };
+    } else if (error.request) {
+      throw { message: "Network error. Please check your connection." };
+    }
+    throw { message: error.message || "OTP verification failed" };
+  }
+};
+
 
 /* ===============================
    BASE URL RESOLUTION
@@ -239,6 +282,12 @@ export const registerMerchant = async (merchantData: any) => {
       categoryList: merchantData.categoryList || [],
       productIds: merchantData.productIds || [],
       productNames: merchantData.productNames || [],
+      openAt: merchantData.openAt || '',
+      closeAt: merchantData.closeAt || '',
+      breakStartAt: merchantData.breakStartAt || '',
+      breakEndAt: merchantData.breakEndAt || '',
+      weekOff: merchantData.weekOff || '',
+      offer: merchantData.offer || '',
     };
     
     console.log("Merchant registration payload:", payload);

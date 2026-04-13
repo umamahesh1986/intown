@@ -51,17 +51,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
   logout: async () => {
     try {
-      // Sign out from Firebase Auth (clears native auth session)
-      try {
-        const firebaseAuth = require('@react-native-firebase/auth').default;
-        if (firebaseAuth && firebaseAuth().currentUser) {
-          await firebaseAuth().signOut();
-          console.log('Firebase signOut completed');
-        }
-      } catch (e) {
-        console.log('Firebase signOut skipped (web or not available)');
-      }
-
       // Clear ALL cached keys from AsyncStorage
       const keysToRemove = [
         'auth_token',
