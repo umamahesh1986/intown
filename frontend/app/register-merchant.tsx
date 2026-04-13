@@ -1138,6 +1138,7 @@ export default function RegisterMerchant() {
               <TouchableOpacity
                 style={styles.timePickerBtn}
                 onPress={() => setShowTimePicker('closeAt')}
+                data-testid="close-time-picker"
               >
                 <Ionicons name="time-outline" size={18} color="#FF8A00" />
                 <Text style={styles.timePickerText}>
@@ -1154,6 +1155,7 @@ export default function RegisterMerchant() {
               <TouchableOpacity
                 style={styles.timePickerBtn}
                 onPress={() => setShowTimePicker('breakStartAt')}
+                data-testid="break-start-picker"
               >
                 <Ionicons name="cafe-outline" size={18} color="#FF8A00" />
                 <Text style={styles.timePickerText}>
@@ -1166,6 +1168,7 @@ export default function RegisterMerchant() {
               <TouchableOpacity
                 style={styles.timePickerBtn}
                 onPress={() => setShowTimePicker('breakEndAt')}
+                data-testid="break-end-picker"
               >
                 <Ionicons name="cafe-outline" size={18} color="#FF8A00" />
                 <Text style={styles.timePickerText}>

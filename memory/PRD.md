@@ -69,6 +69,15 @@
 - Deleted stale `scripts/disable-recaptcha.js`
 - Web build verified working after cleanup
 
+### Session 6 (Jan 2026) - Merchant Registration New Fields
+- Added 6 new fields after "Introduced By": openAt, closeAt, breakStartAt, breakEndAt, weekOff, offer
+- Time picker modal with Hour (1-12), Min (00/15/30/45), AM/PM columns
+- Week Off: selectable day chips (Sun–Sat), multi-select, stored as comma-separated string
+- Offer: multi-line textarea
+- All fields included in API payload, draft save/restore
+- data-testid attributes added for time picker buttons
+- 11/12 tests passed (1 minor: automation selector, not user-facing)
+
 ## Backlog
 - P1: Test full end-to-end login with real OTP on mobile device
 - P2: Real payment gateway integration
