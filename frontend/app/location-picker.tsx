@@ -185,11 +185,10 @@ export default function LocationPickerScreen() {
 
           <TouchableOpacity
             style={styles.confirmButton}
-            onPress={handleUseDefaultLocation}
-            disabled={isLocating}
+            onPress={handleConfirmLocation}
           >
             <Text style={styles.confirmButtonText}>
-              {isLocating ? 'Getting Location...' : 'Use Default Location'}
+              Confirm Location
             </Text>
           </TouchableOpacity>
         </View>
@@ -228,17 +227,6 @@ export default function LocationPickerScreen() {
           Lat: {selectedLocation.latitude.toFixed(4)}, Lng: {selectedLocation.longitude.toFixed(4)}
         </Text>
       </View>
-
-      {/* Use Current Location */}
-      <TouchableOpacity
-        style={styles.useDefaultButton}
-        onPress={handleUseDefaultLocation}
-        disabled={isLocating}
-      >
-        <Text style={styles.useDefaultButtonText}>
-          {isLocating ? 'Getting Location...' : 'Use Default Location'}
-        </Text>
-      </TouchableOpacity>
 
       {/* Confirm Button */}
       <TouchableOpacity style={styles.confirmButton} onPress={handleConfirmLocation}>
@@ -299,23 +287,6 @@ const styles = StyleSheet.create({
   coordinatesText: {
     fontSize: 12,
     color: '#999999',
-    fontWeight: '600',
-  },
-  useDefaultButton: {
-    position: 'absolute',
-    bottom: 96,
-    left: 16,
-    right: 16,
-    backgroundColor: '#FFF3E0',
-    paddingVertical: 12,
-    borderRadius: 12,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#FFD9B3',
-  },
-  useDefaultButtonText: {
-    color: '#FF8A00',
-    fontSize: 14,
     fontWeight: '600',
   },
   confirmButton: {
