@@ -32,6 +32,12 @@ interface ShopData {
     s3ImageUrl: string;
   }>;
   distance: number;
+  offer?: string;
+  openAt?: string;
+  closeAt?: string;
+  breakStartAt?: string;
+  breakEndAt?: string;
+  weekOff?: string;
 }
 
 export default function MemberShopDetails() {
@@ -292,7 +298,8 @@ export default function MemberShopDetails() {
 
   const badge = getCategoryBadge(shop.businessCategory);
   // Get logged-in user's phone number
-  const userPhone = user?.phone || user?.phoneNumber || 'Not available';
+  const userPhone =
+    user?.phone ?? (user as { phoneNumber?: string } | null)?.phoneNumber ?? 'Not available';
 
   const ShopContent = () => (
     <ScrollView>
@@ -321,62 +328,121 @@ export default function MemberShopDetails() {
 
         {/* Info Card */}
         <View style={styles.infoCard}>
-          <View style={styles.infoRow}>
-            <Ionicons name="business" size={20} color="#FF8A00" />
-            <Text style={styles.infoLabel}>Business:</Text>
-            <Text style={styles.infoValue}>{shop.businessName || 'N/A'}</Text>
+            <View style={styles.infoRow}>
+              <Ionicons name="business" size={20} color="#FF8A00" />
+              <Text style={styles.infoLabel}>Business:</Text>
+              <Text style={styles.infoValue}>{shop.businessName || 'N/A'}</Text>
+            </View>
+
+            <View style={styles.infoRow}>
+              <Ionicons name="person" size={20} color="#FF8A00" />
+              <Text style={styles.infoLabel}>Contact:</Text>
+              <Text style={styles.infoValue}>{shop.contactName || 'N/A'}</Text>
+            </View>
+
+            <View style={styles.infoRow}>
+              <Ionicons name="location" size={20} color="#FF8A00" />
+              <Text style={styles.infoLabel}>Distance:</Text>
+              <Text style={styles.infoValue}>
+                {formatDistance(shop.distance != null ? Number(shop.distance) : null)}
+              </Text>
+            </View>
+
+            <View style={styles.infoRow}>
+              <Ionicons name="call" size={20} color="#FF8A00" />
+              <Text style={styles.infoLabel}>Phone:</Text>
+              <Text style={styles.infoValue}>{shop.phoneNumber}</Text>
+            </View>
+            <View style={styles.infoRow}>
+              <Ionicons name="call" size={20} color="#FF8A00" />
+              <Text style={styles.infoLabel}>Email:</Text>
+              <Text style={styles.infoValue}>{shop.email}</Text>
+            </View>
+
+            <View style={styles.infoRow}>
+              <Ionicons name="pin" size={20} color="#FF8A00" />
+              <Text style={styles.infoLabel}>Address:</Text>
+              <Text style={styles.infoValue} numberOfLines={2}>
+                {shop.address || 'Address not available'}
+              </Text>
+            </View>
+
+            <View style={styles.infoRow}>
+              <Ionicons name="mail" size={20} color="#FF8A00" />
+              <Text style={styles.infoLabel}>Pincode:</Text>
+              <Text style={styles.infoValue}>{shop.pincode || 'N/A'}</Text>
+            </View>
+
+            <View style={styles.infoRow}>
+              <Ionicons name="time" size={20} color="#FF8A00" />
+              <Text style={styles.infoLabel}>Years:</Text>
+              <Text style={styles.infoValue}>{shop.fromYears ? `${shop.fromYears} years` : 'N/A'}</Text>
+            </View>
+
+            <View style={styles.infoRow}>
+              <Ionicons name="gift" size={20} color="#FF8A00" />
+              <Text style={styles.infoLabel}>Offers:</Text>
+              <Text style={styles.infoValue}>{shop.offer || 'Guaranty Savings'}</Text>
+            </View>
+        </View>
+
+        <View style={styles.timeCard}>
+          <View style={styles.timeCardHeader}>
+            <View style={styles.timeCardHeaderLeft}>
+              <View style={styles.timeCardIconWrap}>
+                <Ionicons name="time-outline" size={22} color="#FF8A00" />
+              </View>
+              <View>
+                <Text style={styles.timeCardTitle}>Opening hours</Text>
+                <Text style={styles.timeCardSubtitle}>Shop timings & break</Text>
+              </View>
+            </View>
           </View>
 
-          <View style={styles.infoRow}>
-            <Ionicons name="pricetag" size={20} color="#FF8A00" />
-            <Text style={styles.infoLabel}>Category:</Text>
-            <Text style={styles.infoValue}>{shop.businessCategory || 'General'}</Text>
-          </View>
+          <View style={styles.timeDivider} />
 
-          <View style={styles.infoRow}>
-            <Ionicons name="person" size={20} color="#FF8A00" />
-            <Text style={styles.infoLabel}>Contact:</Text>
-            <Text style={styles.infoValue}>{shop.contactName || 'N/A'}</Text>
+          <View style={styles.timeRow}>
+            <View style={styles.timeRowLeft}>
+              <Ionicons name="sunny-outline" size={18} color="#FF8A00" />
+              <Text style={styles.timeLabel}>Opens</Text>
+            </View>
+            <Text style={styles.timeValue}>{shop.openAt || 'N/A'}</Text>
           </View>
+          <View style={styles.timeDivider} />
 
-          <View style={styles.infoRow}>
-            <Ionicons name="location" size={20} color="#FF8A00" />
-            <Text style={styles.infoLabel}>Distance:</Text>
-            <Text style={styles.infoValue}>
-              {formatDistance(shop.distance != null ? Number(shop.distance) : null)}
-            </Text>
+          <View style={styles.timeRow}>
+            <View style={styles.timeRowLeft}>
+              <Ionicons name="moon-outline" size={18} color="#FF8A00" />
+              <Text style={styles.timeLabel}>Closes</Text>
+            </View>
+            <Text style={styles.timeValue}>{shop.closeAt || 'N/A'}</Text>
           </View>
+          <View style={styles.timeDivider} />
 
-          <View style={styles.infoRow}>
-            <Ionicons name="call" size={20} color="#FF8A00" />
-            <Text style={styles.infoLabel}>Phone:</Text>
-            <Text style={styles.infoValue}>{userPhone}</Text>
+          <View style={styles.timeRow}>
+            <View style={styles.timeRowLeft}>
+              <Ionicons name="pause-circle-outline" size={18} color="#FF8A00" />
+              <Text style={styles.timeLabel}>Break starts</Text>
+            </View>
+            <Text style={styles.timeValue}>{shop.breakStartAt || 'N/A'}</Text>
           </View>
+          <View style={styles.timeDivider} />
 
-          <View style={styles.infoRow}>
-            <Ionicons name="pin" size={20} color="#FF8A00" />
-            <Text style={styles.infoLabel}>Address:</Text>
-            <Text style={styles.infoValue} numberOfLines={2}>
-              {shop.address || 'Address not available'}
-            </Text>
+          <View style={styles.timeRow}>
+            <View style={styles.timeRowLeft}>
+              <Ionicons name="play-circle-outline" size={18} color="#FF8A00" />
+              <Text style={styles.timeLabel}>Break ends</Text>
+            </View>
+            <Text style={styles.timeValue}>{shop.breakEndAt || 'N/A'}</Text>
           </View>
+          <View style={styles.timeDivider} />
 
-          <View style={styles.infoRow}>
-            <Ionicons name="mail" size={20} color="#FF8A00" />
-            <Text style={styles.infoLabel}>Pincode:</Text>
-            <Text style={styles.infoValue}>{shop.pincode || 'N/A'}</Text>
-          </View>
-
-          <View style={styles.infoRow}>
-            <Ionicons name="time" size={20} color="#FF8A00" />
-            <Text style={styles.infoLabel}>Years:</Text>
-            <Text style={styles.infoValue}>{shop.fromYears ? `${shop.fromYears} years` : 'N/A'}</Text>
-          </View>
-
-          <View style={styles.infoRow}>
-            <Ionicons name="gift" size={20} color="#FF8A00" />
-            <Text style={styles.infoLabel}>Offers:</Text>
-            <Text style={styles.infoValue}>Guaranty Savings</Text>
+          <View style={styles.timeRow}>
+            <View style={styles.timeRowLeft}>
+              <Ionicons name="calendar-outline" size={18} color="#FF8A00" />
+              <Text style={styles.timeLabel}>Week off</Text>
+            </View>
+            <Text style={styles.timeValue}>{shop.weekOff || 'N/A'}</Text>
           </View>
         </View>
 
@@ -384,7 +450,7 @@ export default function MemberShopDetails() {
         <View style={styles.savingsCard}>
           <Ionicons name="gift" size={32} color="#4CAF50" />
           <Text style={styles.savingsTitle}>Special Offer</Text>
-          <Text style={styles.savingsText}>Get INtown Guaranty instant savings on your purchases!</Text>
+          <Text style={styles.savingsText}>This store is happy to offer special "INtown Price" at checkout</Text>
         </View>
       </View>
     </ScrollView>
@@ -590,6 +656,57 @@ const styles = StyleSheet.create({
   descriptionTitle: { fontSize: 16, fontWeight: '700', color: '#1A1A1A', marginBottom: 8 },
   descriptionText: { fontSize: 14, color: '#666666', lineHeight: 22 },
   infoCard: { backgroundColor: '#FFF', borderRadius: 12, padding: 16, marginBottom: 16 },
+  timeCard: {
+    backgroundColor: '#FFF',
+    borderRadius: 12,
+    marginBottom: 16,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  timeCardHeader: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 12,
+    backgroundColor: '#FFFAF5',
+    borderBottomWidth: 1,
+    borderBottomColor: '#FFE8D6',
+  },
+  timeCardHeaderLeft: { flexDirection: 'row', alignItems: 'center' },
+  timeCardIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: '#FFF3E6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  timeCardTitle: { fontSize: 17, fontWeight: '700', color: '#1A1A1A' },
+  timeCardSubtitle: { fontSize: 12, color: '#888', marginTop: 2 },
+  timeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+  },
+  timeRowLeft: { flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 12 },
+  timeLabel: { fontSize: 14, color: '#666', marginLeft: 10, fontWeight: '500' },
+  timeValue: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1A1A1A',
+    textAlign: 'right',
+    flexShrink: 1,
+    marginLeft: 8,
+  },
+  timeDivider: { height: 1, backgroundColor: '#F1F1F1', marginLeft: 16 },
   infoRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 14 },
   infoLabel: { fontSize: 14, color: '#666', marginLeft: 10, width: 80 },
   infoValue: { fontSize: 14, fontWeight: '600', color: '#1A1A1A', flex: 1 },
