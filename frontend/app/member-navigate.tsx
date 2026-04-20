@@ -214,19 +214,46 @@ export default function MemberNavigate() {
     });
   };
 
-  const handleFocusUser = () => {
-    if (!mapRef.current || !hasOrigin) return;
+  const handleFocusUser = async () => {
+    if (!mapRef.current) return;
     setFollowUser(true);
     setAutoFitRoute(false);
-    mapRef.current.animateToRegion(
-      {
-        latitude: originLat,
-        longitude: originLng,
-        latitudeDelta: 0.005,
-        longitudeDelta: 0.005,
-      },
-      600
-    );
+    // Re-fetch current GPS position
+    try {
+      if (Platform.OS === 'web') {
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              const coords = { latitude: position.coords.latitude, longitude: position.coords.longitude };
+              setOriginCoords(coords);
+            },
+            () => {},
+            { enableHighAccuracy: true, timeout: 10000 }
+          );
+        }
+      } else {
+        const permission = await Location.requestForegroundPermissionsAsync();
+        if (permission.status === 'granted') {
+          const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+          const coords = { latitude: position.coords.latitude, longitude: position.coords.longitude };
+          setOriginCoords(coords);
+          mapRef.current.animateToRegion(
+            { ...coords, latitudeDelta: 0.005, longitudeDelta: 0.005 },
+            600
+          );
+          return;
+        }
+      }
+    } catch (e) {
+      console.log('Re-fetch location failed, using cached:', e);
+    }
+    // Fallback: use existing origin coords
+    if (hasOrigin) {
+      mapRef.current.animateToRegion(
+        { latitude: originLat, longitude: originLng, latitudeDelta: 0.005, longitudeDelta: 0.005 },
+        600
+      );
+    }
   };
 
   return (
