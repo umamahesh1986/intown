@@ -222,11 +222,39 @@ export default function LocationPickerScreen() {
 
       {/* Instructions */}
       <View style={styles.instructionsCard}>
-        <Text style={styles.instructionsText}>Tap on the map to select your location</Text>
+        <Text style={styles.instructionsText}>
+          {isLocating ? 'Getting your current location...' : 'Tap on the map to adjust location'}
+        </Text>
         <Text style={styles.coordinatesText}>
           Lat: {selectedLocation.latitude.toFixed(4)}, Lng: {selectedLocation.longitude.toFixed(4)}
         </Text>
       </View>
+
+      {/* My Location Button */}
+      <TouchableOpacity
+        style={styles.myLocationButton}
+        onPress={async () => {
+          setIsLocating(true);
+          try {
+            const result = await getUserLocationWithDetails();
+            if (result?.latitude && result?.longitude) {
+              const next = { latitude: result.latitude, longitude: result.longitude };
+              setSelectedLocation(next);
+              setMapRegion(prev => ({ ...prev, ...next }));
+              if (mapRef.current?.animateToRegion) {
+                mapRef.current.animateToRegion({ ...next, latitudeDelta: 0.01, longitudeDelta: 0.01 }, 400);
+              }
+            }
+          } catch (e) {
+            Alert.alert('Location', 'Unable to fetch current location');
+          } finally {
+            setIsLocating(false);
+          }
+        }}
+        disabled={isLocating}
+      >
+        <Ionicons name="locate" size={22} color={isLocating ? '#999' : '#FF8A00'} />
+      </TouchableOpacity>
 
       {/* Confirm Button */}
       <TouchableOpacity style={styles.confirmButton} onPress={handleConfirmLocation}>
@@ -302,6 +330,22 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
+    elevation: 4,
+  },
+  myLocationButton: {
+    position: 'absolute',
+    bottom: 100,
+    right: 16,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
     elevation: 4,
   },
   confirmButtonText: {

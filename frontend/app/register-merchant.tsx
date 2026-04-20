@@ -307,8 +307,6 @@ export default function RegisterMerchant() {
 
   useEffect(() => {
     fetchCategories();
-    // Auto-fetch current location on mount
-    pickLocation();
   }, []);
 
   const fetchCategories = async () => {
@@ -1032,13 +1030,13 @@ export default function RegisterMerchant() {
 
             <TouchableOpacity
               style={[styles.locationButton, errors.location && styles.inputError]}
-              onPress={pickLocation}
+              onPress={handleSelectLocation}
             >
               <Ionicons name="location" size={20} color="#FF8A00" />
               <Text style={styles.locationButtonText}>
                 {location
                   ? `Selected: ${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}`
-                  : 'Tap to get current location'}
+                  : 'Tap to select location on map'}
               </Text>
             </TouchableOpacity>
           </View>
