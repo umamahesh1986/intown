@@ -63,6 +63,7 @@ export default function MemberShopDetails() {
   const shopImageScrollRef = useRef<ScrollView | null>(null);
   const shopImageTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const SHOP_IMAGE_WIDTH = Dimensions.get('window').width;
+  const isCarouselVisible = useRef(true);
 
   // Fetch shop details from API
   const fetchShopDetails = async () => {
@@ -141,14 +142,16 @@ export default function MemberShopDetails() {
     loadCustomerId();
   }, []);
 
-  // Image carousel auto-scroll
+  // Image carousel auto-scroll — only scroll when carousel is visible
   useEffect(() => {
     if (shopImages.length <= 1) return;
     if (shopImageTimerRef.current) {
       clearInterval(shopImageTimerRef.current);
     }
     shopImageTimerRef.current = setInterval(() => {
-      setShopImageIndex((prev) => (prev + 1) % shopImages.length);
+      if (isCarouselVisible.current) {
+        setShopImageIndex((prev) => (prev + 1) % shopImages.length);
+      }
     }, 3000);
     return () => {
       if (shopImageTimerRef.current) {
@@ -158,7 +161,7 @@ export default function MemberShopDetails() {
   }, [shopImages]);
 
   useEffect(() => {
-    if (!shopImageScrollRef.current || shopImages.length === 0) return;
+    if (!shopImageScrollRef.current || shopImages.length === 0 || !isCarouselVisible.current) return;
     shopImageScrollRef.current.scrollTo({
       x: shopImageIndex * SHOP_IMAGE_WIDTH,
       animated: true,
@@ -190,6 +193,7 @@ export default function MemberShopDetails() {
           horizontal
           pagingEnabled
           showsHorizontalScrollIndicator={false}
+          nestedScrollEnabled={true}
           onMomentumScrollEnd={(e) => {
             const index = Math.round(e.nativeEvent.contentOffset.x / SHOP_IMAGE_WIDTH);
             setShopImageIndex(index);
@@ -295,7 +299,13 @@ export default function MemberShopDetails() {
   const userPhone = user?.phone || user?.phoneNumber || 'Not available';
 
   const ShopContent = () => (
-    <ScrollView>
+    <ScrollView
+      onScroll={(e) => {
+        const offsetY = e.nativeEvent.contentOffset.y;
+        isCarouselVisible.current = offsetY < 250;
+      }}
+      scrollEventThrottle={100}
+    >
       <View style={styles.shopImage}>
         {renderShopImageCarousel()}
       </View>
