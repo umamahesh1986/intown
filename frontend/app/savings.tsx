@@ -687,8 +687,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 12,
-    maxHeight: 260,
-    overflow: "auto"
   },
   transactionGridCard: {
     backgroundColor: '#FFF',
