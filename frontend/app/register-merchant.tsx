@@ -83,7 +83,7 @@ export default function RegisterMerchant() {
   const [weekOff, setWeekOff] = useState('');
   const [offer, setOffer] = useState('');
   const [showTimePicker, setShowTimePicker] = useState<string | null>(null);
-  const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const DAYS_OF_WEEK = ['None', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [successMerchantId, setSuccessMerchantId] = useState<string | number | null>(null);
@@ -1189,16 +1189,20 @@ export default function RegisterMerchant() {
                     key={day}
                     style={[styles.dayChip, selected && styles.dayChipSelected]}
                     onPress={() => {
-                      const current = weekOff ? weekOff.split(',').map(d => d.trim()).filter(Boolean) : [];
-                      if (selected) {
-                        setWeekOff(current.filter(d => d !== day).join(', '));
+                      if (day === 'None') {
+                        setWeekOff(selected ? '' : 'None');
                       } else {
-                        setWeekOff([...current, day].join(', '));
+                        const current = weekOff ? weekOff.split(',').map(d => d.trim()).filter(d => d && d !== 'None') : [];
+                        if (selected) {
+                          setWeekOff(current.filter(d => d !== day).join(', '));
+                        } else {
+                          setWeekOff([...current, day].join(', '));
+                        }
                       }
                     }}
                   >
                     <Text style={[styles.dayChipText, selected && styles.dayChipTextSelected]}>
-                      {day.slice(0, 3)}
+                      {day === 'None' ? 'None' : day.slice(0, 3)}
                     </Text>
                   </TouchableOpacity>
                 );
