@@ -1323,114 +1323,110 @@ export default function RegisterMerchant() {
       {/* TIME PICKER MODAL */}
       <Modal visible={!!showTimePicker} transparent animationType="fade">
         <View style={styles.popupOverlay}>
-          <View style={[styles.popupCard, { maxWidth: 320 }]}>
+          <View style={[styles.popupCard, { maxWidth: 340 }]}>
             <Text style={styles.popupTitle}>
               {showTimePicker === 'openAt' ? 'Open Time' :
                showTimePicker === 'closeAt' ? 'Close Time' :
                showTimePicker === 'breakStartAt' ? 'Break Start' : 'Break End'}
             </Text>
-            <View style={styles.timePickerRow}>
-              {/* Hour */}
-              <View style={styles.timeColumn}>
-                <Text style={styles.timeColumnLabel}>Hour</Text>
-                <ScrollView style={styles.timeScroll} showsVerticalScrollIndicator={false}>
-                  {Array.from({ length: 12 }, (_, i) => i + 1).map(h => {
-                    const currentVal = showTimePicker === 'openAt' ? openAt :
-                                       showTimePicker === 'closeAt' ? closeAt :
-                                       showTimePicker === 'breakStartAt' ? breakStartAt : breakEndAt;
-                    const currentHour = currentVal ? parseInt(currentVal.split(':')[0]) : 0;
-                    const isPM = currentVal?.includes('PM');
-                    const hour24 = isPM ? (h === 12 ? 12 : h + 12) : (h === 12 ? 0 : h);
-                    const isSelected = currentHour === hour24 || (currentHour === 0 && h === 12 && !isPM) || (currentHour === 12 && h === 12 && isPM);
-                    return (
-                      <TouchableOpacity
-                        key={h}
-                        style={[styles.timeOption, isSelected && styles.timeOptionSelected]}
-                        onPress={() => {
-                          const setter = showTimePicker === 'openAt' ? setOpenAt :
-                                         showTimePicker === 'closeAt' ? setCloseAt :
-                                         showTimePicker === 'breakStartAt' ? setBreakStartAt : setBreakEndAt;
-                          const cv = showTimePicker === 'openAt' ? openAt :
-                                     showTimePicker === 'closeAt' ? closeAt :
-                                     showTimePicker === 'breakStartAt' ? breakStartAt : breakEndAt;
-                          const parts = cv ? cv.replace(/\s*(AM|PM)$/i, '').split(':') : ['12', '00'];
-                          const ampm = cv?.includes('PM') ? 'PM' : 'AM';
-                          setter(`${String(h).padStart(2, '0')}:${parts[1] || '00'} ${ampm}`);
-                        }}
-                      >
-                        <Text style={[styles.timeOptionText, isSelected && styles.timeOptionTextSelected]}>
-                          {String(h).padStart(2, '0')}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </ScrollView>
-              </View>
-              {/* Minute */}
-              <View style={styles.timeColumn}>
-                <Text style={styles.timeColumnLabel}>Min</Text>
-                <ScrollView style={styles.timeScroll} showsVerticalScrollIndicator={false}>
-                  {[0, 15, 30, 45].map(m => {
-                    const currentVal = showTimePicker === 'openAt' ? openAt :
-                                       showTimePicker === 'closeAt' ? closeAt :
-                                       showTimePicker === 'breakStartAt' ? breakStartAt : breakEndAt;
-                    const currentMin = currentVal ? parseInt(currentVal.replace(/\s*(AM|PM)$/i, '').split(':')[1]) : -1;
-                    const isSelected = currentMin === m;
-                    return (
-                      <TouchableOpacity
-                        key={m}
-                        style={[styles.timeOption, isSelected && styles.timeOptionSelected]}
-                        onPress={() => {
-                          const setter = showTimePicker === 'openAt' ? setOpenAt :
-                                         showTimePicker === 'closeAt' ? setCloseAt :
-                                         showTimePicker === 'breakStartAt' ? setBreakStartAt : setBreakEndAt;
-                          const cv = showTimePicker === 'openAt' ? openAt :
-                                     showTimePicker === 'closeAt' ? closeAt :
-                                     showTimePicker === 'breakStartAt' ? breakStartAt : breakEndAt;
-                          const parts = cv ? cv.replace(/\s*(AM|PM)$/i, '').split(':') : ['09', '00'];
-                          const ampm = cv?.includes('PM') ? 'PM' : 'AM';
-                          setter(`${parts[0] || '09'}:${String(m).padStart(2, '0')} ${ampm}`);
-                        }}
-                      >
-                        <Text style={[styles.timeOptionText, isSelected && styles.timeOptionTextSelected]}>
-                          {String(m).padStart(2, '0')}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </ScrollView>
-              </View>
-              {/* AM/PM */}
-              <View style={styles.timeColumn}>
-                <Text style={styles.timeColumnLabel}>AM/PM</Text>
-                {['AM', 'PM'].map(period => {
-                  const currentVal = showTimePicker === 'openAt' ? openAt :
-                                     showTimePicker === 'closeAt' ? closeAt :
-                                     showTimePicker === 'breakStartAt' ? breakStartAt : breakEndAt;
-                  const isSelected = currentVal?.includes(period);
-                  return (
-                    <TouchableOpacity
-                      key={period}
-                      style={[styles.timeOption, { marginVertical: 4 }, isSelected && styles.timeOptionSelected]}
-                      onPress={() => {
-                        const setter = showTimePicker === 'openAt' ? setOpenAt :
-                                       showTimePicker === 'closeAt' ? setCloseAt :
-                                       showTimePicker === 'breakStartAt' ? setBreakStartAt : setBreakEndAt;
-                        const cv = showTimePicker === 'openAt' ? openAt :
+
+            {/* Hour Grid (4 columns x 3 rows) */}
+            <Text style={styles.timeColumnLabel}>Hour</Text>
+            <View style={styles.timeGrid}>
+              {Array.from({ length: 12 }, (_, i) => i + 1).map(h => {
+                const currentVal = showTimePicker === 'openAt' ? openAt :
                                    showTimePicker === 'closeAt' ? closeAt :
                                    showTimePicker === 'breakStartAt' ? breakStartAt : breakEndAt;
-                        const timePart = cv ? cv.replace(/\s*(AM|PM)$/i, '').trim() : '09:00';
-                        setter(`${timePart} ${period}`);
-                      }}
-                    >
-                      <Text style={[styles.timeOptionText, isSelected && styles.timeOptionTextSelected]}>{period}</Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
+                const selectedHour = currentVal ? parseInt(currentVal.split(':')[0]) : 0;
+                const isSelected = selectedHour === h;
+                return (
+                  <TouchableOpacity
+                    key={h}
+                    style={[styles.timeGridItem, isSelected && styles.timeOptionSelected]}
+                    onPress={() => {
+                      const setter = showTimePicker === 'openAt' ? setOpenAt :
+                                     showTimePicker === 'closeAt' ? setCloseAt :
+                                     showTimePicker === 'breakStartAt' ? setBreakStartAt : setBreakEndAt;
+                      const cv = showTimePicker === 'openAt' ? openAt :
+                                 showTimePicker === 'closeAt' ? closeAt :
+                                 showTimePicker === 'breakStartAt' ? breakStartAt : breakEndAt;
+                      const parts = cv ? cv.replace(/\s*(AM|PM)$/i, '').split(':') : ['12', '00'];
+                      const ampm = cv?.includes('PM') ? 'PM' : 'AM';
+                      setter(`${String(h).padStart(2, '0')}:${parts[1] || '00'} ${ampm}`);
+                    }}
+                  >
+                    <Text style={[styles.timeOptionText, isSelected && styles.timeOptionTextSelected]}>
+                      {String(h).padStart(2, '0')}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
+
+            {/* Minute Row */}
+            <Text style={[styles.timeColumnLabel, { marginTop: 12 }]}>Minute</Text>
+            <View style={styles.timeGrid}>
+              {[0, 15, 30, 45].map(m => {
+                const currentVal = showTimePicker === 'openAt' ? openAt :
+                                   showTimePicker === 'closeAt' ? closeAt :
+                                   showTimePicker === 'breakStartAt' ? breakStartAt : breakEndAt;
+                const currentMin = currentVal ? parseInt(currentVal.replace(/\s*(AM|PM)$/i, '').split(':')[1]) : -1;
+                const isSelected = currentMin === m;
+                return (
+                  <TouchableOpacity
+                    key={m}
+                    style={[styles.timeGridItem, isSelected && styles.timeOptionSelected]}
+                    onPress={() => {
+                      const setter = showTimePicker === 'openAt' ? setOpenAt :
+                                     showTimePicker === 'closeAt' ? setCloseAt :
+                                     showTimePicker === 'breakStartAt' ? setBreakStartAt : setBreakEndAt;
+                      const cv = showTimePicker === 'openAt' ? openAt :
+                                 showTimePicker === 'closeAt' ? closeAt :
+                                 showTimePicker === 'breakStartAt' ? breakStartAt : breakEndAt;
+                      const parts = cv ? cv.replace(/\s*(AM|PM)$/i, '').split(':') : ['09', '00'];
+                      const ampm = cv?.includes('PM') ? 'PM' : 'AM';
+                      setter(`${parts[0] || '09'}:${String(m).padStart(2, '0')} ${ampm}`);
+                    }}
+                  >
+                    <Text style={[styles.timeOptionText, isSelected && styles.timeOptionTextSelected]}>
+                      {String(m).padStart(2, '0')}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {/* AM/PM Row */}
+            <Text style={[styles.timeColumnLabel, { marginTop: 12 }]}>AM / PM</Text>
+            <View style={styles.timeGrid}>
+              {['AM', 'PM'].map(period => {
+                const currentVal = showTimePicker === 'openAt' ? openAt :
+                                   showTimePicker === 'closeAt' ? closeAt :
+                                   showTimePicker === 'breakStartAt' ? breakStartAt : breakEndAt;
+                const isSelected = currentVal?.includes(period);
+                return (
+                  <TouchableOpacity
+                    key={period}
+                    style={[styles.timeGridItem, isSelected && styles.timeOptionSelected]}
+                    onPress={() => {
+                      const setter = showTimePicker === 'openAt' ? setOpenAt :
+                                     showTimePicker === 'closeAt' ? setCloseAt :
+                                     showTimePicker === 'breakStartAt' ? setBreakStartAt : setBreakEndAt;
+                      const cv = showTimePicker === 'openAt' ? openAt :
+                                 showTimePicker === 'closeAt' ? closeAt :
+                                 showTimePicker === 'breakStartAt' ? breakStartAt : breakEndAt;
+                      const timePart = cv ? cv.replace(/\s*(AM|PM)$/i, '').trim() : '09:00';
+                      setter(`${timePart} ${period}`);
+                    }}
+                  >
+                    <Text style={[styles.timeOptionText, isSelected && styles.timeOptionTextSelected]}>{period}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
             <TouchableOpacity
-              style={styles.popupButton}
+              style={[styles.popupButton, { marginTop: 16 }]}
               onPress={() => setShowTimePicker(null)}
             >
               <Text style={styles.popupButtonText}>Done</Text>
@@ -1816,6 +1812,18 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#888',
     marginBottom: 8,
+  },
+  timeGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  timeGridItem: {
+    width: '22%',
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    backgroundColor: '#F5F5F5',
   },
   timeScroll: {
     maxHeight: 160,
