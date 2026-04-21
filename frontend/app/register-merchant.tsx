@@ -1323,114 +1323,143 @@ export default function RegisterMerchant() {
       {/* TIME PICKER MODAL */}
       <Modal visible={!!showTimePicker} transparent animationType="fade">
         <View style={styles.popupOverlay}>
-          <View style={[styles.popupCard, { maxWidth: 340 }]}>
-            <Text style={styles.popupTitle}>
-              {showTimePicker === 'openAt' ? 'Open Time' :
-               showTimePicker === 'closeAt' ? 'Close Time' :
-               showTimePicker === 'breakStartAt' ? 'Break Start' : 'Break End'}
-            </Text>
+          <View style={styles.wheelPickerCard}>
+            <Text style={styles.wheelPickerTitle}>Select time</Text>
 
-            {/* Hour Grid (4 columns x 3 rows) */}
-            <Text style={styles.timeColumnLabel}>Hour</Text>
-            <View style={styles.timeGrid}>
-              {Array.from({ length: 12 }, (_, i) => i + 1).map(h => {
-                const currentVal = showTimePicker === 'openAt' ? openAt :
-                                   showTimePicker === 'closeAt' ? closeAt :
-                                   showTimePicker === 'breakStartAt' ? breakStartAt : breakEndAt;
-                const selectedHour = currentVal ? parseInt(currentVal.split(':')[0]) : 0;
-                const isSelected = selectedHour === h;
-                return (
-                  <TouchableOpacity
-                    key={h}
-                    style={[styles.timeGridItem, isSelected && styles.timeOptionSelected]}
-                    onPress={() => {
-                      const setter = showTimePicker === 'openAt' ? setOpenAt :
-                                     showTimePicker === 'closeAt' ? setCloseAt :
-                                     showTimePicker === 'breakStartAt' ? setBreakStartAt : setBreakEndAt;
-                      const cv = showTimePicker === 'openAt' ? openAt :
-                                 showTimePicker === 'closeAt' ? closeAt :
-                                 showTimePicker === 'breakStartAt' ? breakStartAt : breakEndAt;
-                      const parts = cv ? cv.replace(/\s*(AM|PM)$/i, '').split(':') : ['12', '00'];
-                      const ampm = cv?.includes('PM') ? 'PM' : 'AM';
-                      setter(`${String(h).padStart(2, '0')}:${parts[1] || '00'} ${ampm}`);
-                    }}
-                  >
-                    <Text style={[styles.timeOptionText, isSelected && styles.timeOptionTextSelected]}>
-                      {String(h).padStart(2, '0')}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
+            <View style={styles.wheelRow}>
+              {/* Hour Wheel */}
+              <View style={styles.wheelContainer}>
+                <View style={styles.wheelHighlight} />
+                <ScrollView
+                  style={styles.wheelScroll}
+                  contentContainerStyle={{ paddingVertical: 88 }}
+                  showsVerticalScrollIndicator={false}
+                  snapToInterval={44}
+                  decelerationRate="fast"
+                  nestedScrollEnabled={true}
+                  onMomentumScrollEnd={(e) => {
+                    const index = Math.round(e.nativeEvent.contentOffset.y / 44);
+                    const h = (index % 12) + 1;
+                    const setter = showTimePicker === 'openAt' ? setOpenAt :
+                                   showTimePicker === 'closeAt' ? setCloseAt :
+                                   showTimePicker === 'breakStartAt' ? setBreakStartAt : setBreakEndAt;
+                    const cv = showTimePicker === 'openAt' ? openAt :
+                               showTimePicker === 'closeAt' ? closeAt :
+                               showTimePicker === 'breakStartAt' ? breakStartAt : breakEndAt;
+                    const parts = cv ? cv.replace(/\s*(AM|PM)$/i, '').split(':') : ['09', '00'];
+                    const ampm = cv?.includes('PM') ? 'PM' : 'AM';
+                    setter(`${String(h).padStart(2, '0')}:${parts[1] || '00'} ${ampm}`);
+                  }}
+                >
+                  {Array.from({ length: 12 }, (_, i) => i + 1).map(h => {
+                    const currentVal = showTimePicker === 'openAt' ? openAt :
+                                       showTimePicker === 'closeAt' ? closeAt :
+                                       showTimePicker === 'breakStartAt' ? breakStartAt : breakEndAt;
+                    const selectedH = currentVal ? parseInt(currentVal.split(':')[0]) : 9;
+                    const isSelected = selectedH === h;
+                    return (
+                      <View key={h} style={styles.wheelItem}>
+                        <Text style={[styles.wheelItemText, isSelected && styles.wheelItemTextSelected, !isSelected && styles.wheelItemTextFaded]}>
+                          {String(h).padStart(2, '0')}
+                        </Text>
+                      </View>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+
+              <Text style={styles.wheelColon}>:</Text>
+
+              {/* Minute Wheel */}
+              <View style={styles.wheelContainer}>
+                <View style={styles.wheelHighlight} />
+                <ScrollView
+                  style={styles.wheelScroll}
+                  contentContainerStyle={{ paddingVertical: 88 }}
+                  showsVerticalScrollIndicator={false}
+                  snapToInterval={44}
+                  decelerationRate="fast"
+                  nestedScrollEnabled={true}
+                  onMomentumScrollEnd={(e) => {
+                    const MINUTES = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
+                    const index = Math.round(e.nativeEvent.contentOffset.y / 44);
+                    const m = MINUTES[Math.min(index, MINUTES.length - 1)];
+                    const setter = showTimePicker === 'openAt' ? setOpenAt :
+                                   showTimePicker === 'closeAt' ? setCloseAt :
+                                   showTimePicker === 'breakStartAt' ? setBreakStartAt : setBreakEndAt;
+                    const cv = showTimePicker === 'openAt' ? openAt :
+                               showTimePicker === 'closeAt' ? closeAt :
+                               showTimePicker === 'breakStartAt' ? breakStartAt : breakEndAt;
+                    const parts = cv ? cv.replace(/\s*(AM|PM)$/i, '').split(':') : ['09', '00'];
+                    const ampm = cv?.includes('PM') ? 'PM' : 'AM';
+                    setter(`${parts[0] || '09'}:${String(m).padStart(2, '0')} ${ampm}`);
+                  }}
+                >
+                  {[0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55].map(m => {
+                    const currentVal = showTimePicker === 'openAt' ? openAt :
+                                       showTimePicker === 'closeAt' ? closeAt :
+                                       showTimePicker === 'breakStartAt' ? breakStartAt : breakEndAt;
+                    const selectedM = currentVal ? parseInt(currentVal.replace(/\s*(AM|PM)$/i, '').split(':')[1]) : 0;
+                    const isSelected = selectedM === m;
+                    return (
+                      <View key={m} style={styles.wheelItem}>
+                        <Text style={[styles.wheelItemText, isSelected && styles.wheelItemTextSelected, !isSelected && styles.wheelItemTextFaded]}>
+                          {String(m).padStart(2, '0')}
+                        </Text>
+                      </View>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+
+              {/* AM/PM Wheel */}
+              <View style={styles.wheelContainer}>
+                <View style={styles.wheelHighlight} />
+                <ScrollView
+                  style={styles.wheelScroll}
+                  contentContainerStyle={{ paddingVertical: 88 }}
+                  showsVerticalScrollIndicator={false}
+                  snapToInterval={44}
+                  decelerationRate="fast"
+                  nestedScrollEnabled={true}
+                  onMomentumScrollEnd={(e) => {
+                    const index = Math.round(e.nativeEvent.contentOffset.y / 44);
+                    const period = index === 0 ? 'AM' : 'PM';
+                    const setter = showTimePicker === 'openAt' ? setOpenAt :
+                                   showTimePicker === 'closeAt' ? setCloseAt :
+                                   showTimePicker === 'breakStartAt' ? setBreakStartAt : setBreakEndAt;
+                    const cv = showTimePicker === 'openAt' ? openAt :
+                               showTimePicker === 'closeAt' ? closeAt :
+                               showTimePicker === 'breakStartAt' ? breakStartAt : breakEndAt;
+                    const timePart = cv ? cv.replace(/\s*(AM|PM)$/i, '').trim() : '09:00';
+                    setter(`${timePart} ${period}`);
+                  }}
+                >
+                  {['AM', 'PM'].map(period => {
+                    const currentVal = showTimePicker === 'openAt' ? openAt :
+                                       showTimePicker === 'closeAt' ? closeAt :
+                                       showTimePicker === 'breakStartAt' ? breakStartAt : breakEndAt;
+                    const isSelected = currentVal?.includes(period);
+                    return (
+                      <View key={period} style={styles.wheelItem}>
+                        <Text style={[styles.wheelItemText, isSelected && styles.wheelItemTextSelected, !isSelected && styles.wheelItemTextFaded]}>
+                          {period}
+                        </Text>
+                      </View>
+                    );
+                  })}
+                </ScrollView>
+              </View>
             </View>
 
-            {/* Minute Row */}
-            <Text style={[styles.timeColumnLabel, { marginTop: 12 }]}>Minute</Text>
-            <View style={styles.timeGrid}>
-              {[0, 15, 30, 45].map(m => {
-                const currentVal = showTimePicker === 'openAt' ? openAt :
-                                   showTimePicker === 'closeAt' ? closeAt :
-                                   showTimePicker === 'breakStartAt' ? breakStartAt : breakEndAt;
-                const currentMin = currentVal ? parseInt(currentVal.replace(/\s*(AM|PM)$/i, '').split(':')[1]) : -1;
-                const isSelected = currentMin === m;
-                return (
-                  <TouchableOpacity
-                    key={m}
-                    style={[styles.timeGridItem, isSelected && styles.timeOptionSelected]}
-                    onPress={() => {
-                      const setter = showTimePicker === 'openAt' ? setOpenAt :
-                                     showTimePicker === 'closeAt' ? setCloseAt :
-                                     showTimePicker === 'breakStartAt' ? setBreakStartAt : setBreakEndAt;
-                      const cv = showTimePicker === 'openAt' ? openAt :
-                                 showTimePicker === 'closeAt' ? closeAt :
-                                 showTimePicker === 'breakStartAt' ? breakStartAt : breakEndAt;
-                      const parts = cv ? cv.replace(/\s*(AM|PM)$/i, '').split(':') : ['09', '00'];
-                      const ampm = cv?.includes('PM') ? 'PM' : 'AM';
-                      setter(`${parts[0] || '09'}:${String(m).padStart(2, '0')} ${ampm}`);
-                    }}
-                  >
-                    <Text style={[styles.timeOptionText, isSelected && styles.timeOptionTextSelected]}>
-                      {String(m).padStart(2, '0')}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
+            <View style={styles.wheelActions}>
+              <TouchableOpacity onPress={() => setShowTimePicker(null)} style={styles.wheelCancelBtn}>
+                <Text style={styles.wheelCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setShowTimePicker(null)} style={styles.wheelSaveBtn}>
+                <Text style={styles.wheelSaveText}>Save</Text>
+              </TouchableOpacity>
             </View>
-
-            {/* AM/PM Row */}
-            <Text style={[styles.timeColumnLabel, { marginTop: 12 }]}>AM / PM</Text>
-            <View style={styles.timeGrid}>
-              {['AM', 'PM'].map(period => {
-                const currentVal = showTimePicker === 'openAt' ? openAt :
-                                   showTimePicker === 'closeAt' ? closeAt :
-                                   showTimePicker === 'breakStartAt' ? breakStartAt : breakEndAt;
-                const isSelected = currentVal?.includes(period);
-                return (
-                  <TouchableOpacity
-                    key={period}
-                    style={[styles.timeGridItem, isSelected && styles.timeOptionSelected]}
-                    onPress={() => {
-                      const setter = showTimePicker === 'openAt' ? setOpenAt :
-                                     showTimePicker === 'closeAt' ? setCloseAt :
-                                     showTimePicker === 'breakStartAt' ? setBreakStartAt : setBreakEndAt;
-                      const cv = showTimePicker === 'openAt' ? openAt :
-                                 showTimePicker === 'closeAt' ? closeAt :
-                                 showTimePicker === 'breakStartAt' ? breakStartAt : breakEndAt;
-                      const timePart = cv ? cv.replace(/\s*(AM|PM)$/i, '').trim() : '09:00';
-                      setter(`${timePart} ${period}`);
-                    }}
-                  >
-                    <Text style={[styles.timeOptionText, isSelected && styles.timeOptionTextSelected]}>{period}</Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-
-            <TouchableOpacity
-              style={[styles.popupButton, { marginTop: 16 }]}
-              onPress={() => setShowTimePicker(null)}
-            >
-              <Text style={styles.popupButtonText}>Done</Text>
-            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -1846,6 +1875,107 @@ const styles = StyleSheet.create({
   },
   timeOptionTextSelected: {
     color: '#FFF',
+  },
+
+  // Wheel Picker Styles
+  wheelPickerCard: {
+    width: '85%',
+    maxWidth: 320,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 8,
+  },
+  wheelPickerTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1A1A1A',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  wheelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  wheelContainer: {
+    flex: 1,
+    height: 220,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  wheelHighlight: {
+    position: 'absolute',
+    top: 88,
+    left: 4,
+    right: 4,
+    height: 44,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#DDD',
+    backgroundColor: 'rgba(0,0,0,0.02)',
+    zIndex: 1,
+    pointerEvents: 'none',
+  },
+  wheelScroll: {
+    flex: 1,
+  },
+  wheelItem: {
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  wheelItemText: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#1A1A1A',
+  },
+  wheelItemTextSelected: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#1A1A1A',
+  },
+  wheelItemTextFaded: {
+    color: '#C0C0C0',
+  },
+  wheelColon: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#1A1A1A',
+    marginHorizontal: 2,
+    marginTop: -4,
+  },
+  wheelActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    marginTop: 16,
+    gap: 16,
+  },
+  wheelCancelBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+  },
+  wheelCancelText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#666',
+  },
+  wheelSaveBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#DDD',
+  },
+  wheelSaveText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1A1A1A',
   },
 
 
