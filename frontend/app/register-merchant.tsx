@@ -1324,131 +1324,106 @@ export default function RegisterMerchant() {
       <Modal visible={!!showTimePicker} transparent animationType="fade">
         <View style={styles.popupOverlay}>
           <View style={styles.wheelPickerCard}>
-            <Text style={styles.wheelPickerTitle}>Select time</Text>
+            <Text style={styles.wheelPickerTitle}>
+              {showTimePicker === 'openAt' ? 'Open Time' :
+               showTimePicker === 'closeAt' ? 'Close Time' :
+               showTimePicker === 'breakStartAt' ? 'Break Start' : 'Break End'}
+            </Text>
 
             <View style={styles.wheelRow}>
-              {/* Hour Wheel */}
-              <View style={styles.wheelContainer}>
-                <View style={styles.wheelHighlight} />
-                <ScrollView
-                  style={styles.wheelScroll}
-                  contentContainerStyle={{ paddingVertical: 88 }}
-                  showsVerticalScrollIndicator={false}
-                  snapToInterval={44}
-                  decelerationRate="fast"
-                  nestedScrollEnabled={true}
-                  onMomentumScrollEnd={(e) => {
-                    const index = Math.round(e.nativeEvent.contentOffset.y / 44);
-                    const h = (index % 12) + 1;
-                    const setter = showTimePicker === 'openAt' ? setOpenAt :
-                                   showTimePicker === 'closeAt' ? setCloseAt :
-                                   showTimePicker === 'breakStartAt' ? setBreakStartAt : setBreakEndAt;
-                    const cv = showTimePicker === 'openAt' ? openAt :
-                               showTimePicker === 'closeAt' ? closeAt :
-                               showTimePicker === 'breakStartAt' ? breakStartAt : breakEndAt;
-                    const parts = cv ? cv.replace(/\s*(AM|PM)$/i, '').split(':') : ['09', '00'];
-                    const ampm = cv?.includes('PM') ? 'PM' : 'AM';
-                    setter(`${String(h).padStart(2, '0')}:${parts[1] || '00'} ${ampm}`);
-                  }}
-                >
-                  {Array.from({ length: 12 }, (_, i) => i + 1).map(h => {
-                    const currentVal = showTimePicker === 'openAt' ? openAt :
-                                       showTimePicker === 'closeAt' ? closeAt :
-                                       showTimePicker === 'breakStartAt' ? breakStartAt : breakEndAt;
-                    const selectedH = currentVal ? parseInt(currentVal.split(':')[0]) : 9;
-                    const isSelected = selectedH === h;
-                    return (
-                      <View key={h} style={styles.wheelItem}>
-                        <Text style={[styles.wheelItemText, isSelected && styles.wheelItemTextSelected, !isSelected && styles.wheelItemTextFaded]}>
-                          {String(h).padStart(2, '0')}
-                        </Text>
-                      </View>
-                    );
-                  })}
-                </ScrollView>
+              {/* Hour Column */}
+              <View style={styles.spinnerColumn}>
+                <TouchableOpacity style={styles.spinnerArrow} onPress={() => {
+                  const cv = showTimePicker === 'openAt' ? openAt : showTimePicker === 'closeAt' ? closeAt : showTimePicker === 'breakStartAt' ? breakStartAt : breakEndAt;
+                  const setter = showTimePicker === 'openAt' ? setOpenAt : showTimePicker === 'closeAt' ? setCloseAt : showTimePicker === 'breakStartAt' ? setBreakStartAt : setBreakEndAt;
+                  const h = cv ? parseInt(cv.split(':')[0]) : 9;
+                  const parts = cv ? cv.replace(/\s*(AM|PM)$/i, '').split(':') : ['09', '00'];
+                  const ampm = cv?.includes('PM') ? 'PM' : 'AM';
+                  const next = h >= 12 ? 1 : h + 1;
+                  setter(`${String(next).padStart(2, '0')}:${parts[1] || '00'} ${ampm}`);
+                }}>
+                  <Ionicons name="chevron-up" size={28} color="#AAA" />
+                </TouchableOpacity>
+                <View style={styles.spinnerValueBox}>
+                  <Text style={styles.spinnerValue}>
+                    {(() => { const cv = showTimePicker === 'openAt' ? openAt : showTimePicker === 'closeAt' ? closeAt : showTimePicker === 'breakStartAt' ? breakStartAt : breakEndAt; return cv ? cv.split(':')[0] : '09'; })()}
+                  </Text>
+                </View>
+                <TouchableOpacity style={styles.spinnerArrow} onPress={() => {
+                  const cv = showTimePicker === 'openAt' ? openAt : showTimePicker === 'closeAt' ? closeAt : showTimePicker === 'breakStartAt' ? breakStartAt : breakEndAt;
+                  const setter = showTimePicker === 'openAt' ? setOpenAt : showTimePicker === 'closeAt' ? setCloseAt : showTimePicker === 'breakStartAt' ? setBreakStartAt : setBreakEndAt;
+                  const h = cv ? parseInt(cv.split(':')[0]) : 9;
+                  const parts = cv ? cv.replace(/\s*(AM|PM)$/i, '').split(':') : ['09', '00'];
+                  const ampm = cv?.includes('PM') ? 'PM' : 'AM';
+                  const next = h <= 1 ? 12 : h - 1;
+                  setter(`${String(next).padStart(2, '0')}:${parts[1] || '00'} ${ampm}`);
+                }}>
+                  <Ionicons name="chevron-down" size={28} color="#AAA" />
+                </TouchableOpacity>
               </View>
 
               <Text style={styles.wheelColon}>:</Text>
 
-              {/* Minute Wheel */}
-              <View style={styles.wheelContainer}>
-                <View style={styles.wheelHighlight} />
-                <ScrollView
-                  style={styles.wheelScroll}
-                  contentContainerStyle={{ paddingVertical: 88 }}
-                  showsVerticalScrollIndicator={false}
-                  snapToInterval={44}
-                  decelerationRate="fast"
-                  nestedScrollEnabled={true}
-                  onMomentumScrollEnd={(e) => {
-                    const MINUTES = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
-                    const index = Math.round(e.nativeEvent.contentOffset.y / 44);
-                    const m = MINUTES[Math.min(index, MINUTES.length - 1)];
-                    const setter = showTimePicker === 'openAt' ? setOpenAt :
-                                   showTimePicker === 'closeAt' ? setCloseAt :
-                                   showTimePicker === 'breakStartAt' ? setBreakStartAt : setBreakEndAt;
-                    const cv = showTimePicker === 'openAt' ? openAt :
-                               showTimePicker === 'closeAt' ? closeAt :
-                               showTimePicker === 'breakStartAt' ? breakStartAt : breakEndAt;
-                    const parts = cv ? cv.replace(/\s*(AM|PM)$/i, '').split(':') : ['09', '00'];
-                    const ampm = cv?.includes('PM') ? 'PM' : 'AM';
-                    setter(`${parts[0] || '09'}:${String(m).padStart(2, '0')} ${ampm}`);
-                  }}
-                >
-                  {[0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55].map(m => {
-                    const currentVal = showTimePicker === 'openAt' ? openAt :
-                                       showTimePicker === 'closeAt' ? closeAt :
-                                       showTimePicker === 'breakStartAt' ? breakStartAt : breakEndAt;
-                    const selectedM = currentVal ? parseInt(currentVal.replace(/\s*(AM|PM)$/i, '').split(':')[1]) : 0;
-                    const isSelected = selectedM === m;
-                    return (
-                      <View key={m} style={styles.wheelItem}>
-                        <Text style={[styles.wheelItemText, isSelected && styles.wheelItemTextSelected, !isSelected && styles.wheelItemTextFaded]}>
-                          {String(m).padStart(2, '0')}
-                        </Text>
-                      </View>
-                    );
-                  })}
-                </ScrollView>
+              {/* Minute Column */}
+              <View style={styles.spinnerColumn}>
+                <TouchableOpacity style={styles.spinnerArrow} onPress={() => {
+                  const MINS = [0,5,10,15,20,25,30,35,40,45,50,55];
+                  const cv = showTimePicker === 'openAt' ? openAt : showTimePicker === 'closeAt' ? closeAt : showTimePicker === 'breakStartAt' ? breakStartAt : breakEndAt;
+                  const setter = showTimePicker === 'openAt' ? setOpenAt : showTimePicker === 'closeAt' ? setCloseAt : showTimePicker === 'breakStartAt' ? setBreakStartAt : setBreakEndAt;
+                  const m = cv ? parseInt(cv.replace(/\s*(AM|PM)$/i, '').split(':')[1]) : 0;
+                  const idx = MINS.indexOf(m);
+                  const next = MINS[(idx + 1) % MINS.length];
+                  const parts = cv ? cv.replace(/\s*(AM|PM)$/i, '').split(':') : ['09', '00'];
+                  const ampm = cv?.includes('PM') ? 'PM' : 'AM';
+                  setter(`${parts[0] || '09'}:${String(next).padStart(2, '0')} ${ampm}`);
+                }}>
+                  <Ionicons name="chevron-up" size={28} color="#AAA" />
+                </TouchableOpacity>
+                <View style={styles.spinnerValueBox}>
+                  <Text style={styles.spinnerValue}>
+                    {(() => { const cv = showTimePicker === 'openAt' ? openAt : showTimePicker === 'closeAt' ? closeAt : showTimePicker === 'breakStartAt' ? breakStartAt : breakEndAt; const parts = cv ? cv.replace(/\s*(AM|PM)$/i, '').split(':') : ['09', '00']; return parts[1] || '00'; })()}
+                  </Text>
+                </View>
+                <TouchableOpacity style={styles.spinnerArrow} onPress={() => {
+                  const MINS = [0,5,10,15,20,25,30,35,40,45,50,55];
+                  const cv = showTimePicker === 'openAt' ? openAt : showTimePicker === 'closeAt' ? closeAt : showTimePicker === 'breakStartAt' ? breakStartAt : breakEndAt;
+                  const setter = showTimePicker === 'openAt' ? setOpenAt : showTimePicker === 'closeAt' ? setCloseAt : showTimePicker === 'breakStartAt' ? setBreakStartAt : setBreakEndAt;
+                  const m = cv ? parseInt(cv.replace(/\s*(AM|PM)$/i, '').split(':')[1]) : 0;
+                  const idx = MINS.indexOf(m);
+                  const next = MINS[(idx - 1 + MINS.length) % MINS.length];
+                  const parts = cv ? cv.replace(/\s*(AM|PM)$/i, '').split(':') : ['09', '00'];
+                  const ampm = cv?.includes('PM') ? 'PM' : 'AM';
+                  setter(`${parts[0] || '09'}:${String(next).padStart(2, '0')} ${ampm}`);
+                }}>
+                  <Ionicons name="chevron-down" size={28} color="#AAA" />
+                </TouchableOpacity>
               </View>
 
-              {/* AM/PM Wheel */}
-              <View style={styles.wheelContainer}>
-                <View style={styles.wheelHighlight} />
-                <ScrollView
-                  style={styles.wheelScroll}
-                  contentContainerStyle={{ paddingVertical: 88 }}
-                  showsVerticalScrollIndicator={false}
-                  snapToInterval={44}
-                  decelerationRate="fast"
-                  nestedScrollEnabled={true}
-                  onMomentumScrollEnd={(e) => {
-                    const index = Math.round(e.nativeEvent.contentOffset.y / 44);
-                    const period = index === 0 ? 'AM' : 'PM';
-                    const setter = showTimePicker === 'openAt' ? setOpenAt :
-                                   showTimePicker === 'closeAt' ? setCloseAt :
-                                   showTimePicker === 'breakStartAt' ? setBreakStartAt : setBreakEndAt;
-                    const cv = showTimePicker === 'openAt' ? openAt :
-                               showTimePicker === 'closeAt' ? closeAt :
-                               showTimePicker === 'breakStartAt' ? breakStartAt : breakEndAt;
-                    const timePart = cv ? cv.replace(/\s*(AM|PM)$/i, '').trim() : '09:00';
-                    setter(`${timePart} ${period}`);
-                  }}
-                >
-                  {['AM', 'PM'].map(period => {
-                    const currentVal = showTimePicker === 'openAt' ? openAt :
-                                       showTimePicker === 'closeAt' ? closeAt :
-                                       showTimePicker === 'breakStartAt' ? breakStartAt : breakEndAt;
-                    const isSelected = currentVal?.includes(period);
-                    return (
-                      <View key={period} style={styles.wheelItem}>
-                        <Text style={[styles.wheelItemText, isSelected && styles.wheelItemTextSelected, !isSelected && styles.wheelItemTextFaded]}>
-                          {period}
-                        </Text>
-                      </View>
-                    );
-                  })}
-                </ScrollView>
+              {/* AM/PM Column */}
+              <View style={styles.spinnerColumn}>
+                <TouchableOpacity style={styles.spinnerArrow} onPress={() => {
+                  const cv = showTimePicker === 'openAt' ? openAt : showTimePicker === 'closeAt' ? closeAt : showTimePicker === 'breakStartAt' ? breakStartAt : breakEndAt;
+                  const setter = showTimePicker === 'openAt' ? setOpenAt : showTimePicker === 'closeAt' ? setCloseAt : showTimePicker === 'breakStartAt' ? setBreakStartAt : setBreakEndAt;
+                  const timePart = cv ? cv.replace(/\s*(AM|PM)$/i, '').trim() : '09:00';
+                  const current = cv?.includes('PM') ? 'PM' : 'AM';
+                  setter(`${timePart} ${current === 'AM' ? 'PM' : 'AM'}`);
+                }}>
+                  <Ionicons name="chevron-up" size={28} color="#AAA" />
+                </TouchableOpacity>
+                <View style={styles.spinnerValueBox}>
+                  <Text style={styles.spinnerValue}>
+                    {(() => { const cv = showTimePicker === 'openAt' ? openAt : showTimePicker === 'closeAt' ? closeAt : showTimePicker === 'breakStartAt' ? breakStartAt : breakEndAt; return cv?.includes('PM') ? 'PM' : 'AM'; })()}
+                  </Text>
+                </View>
+                <TouchableOpacity style={styles.spinnerArrow} onPress={() => {
+                  const cv = showTimePicker === 'openAt' ? openAt : showTimePicker === 'closeAt' ? closeAt : showTimePicker === 'breakStartAt' ? breakStartAt : breakEndAt;
+                  const setter = showTimePicker === 'openAt' ? setOpenAt : showTimePicker === 'closeAt' ? setCloseAt : showTimePicker === 'breakStartAt' ? setBreakStartAt : setBreakEndAt;
+                  const timePart = cv ? cv.replace(/\s*(AM|PM)$/i, '').trim() : '09:00';
+                  const current = cv?.includes('PM') ? 'PM' : 'AM';
+                  setter(`${timePart} ${current === 'AM' ? 'PM' : 'AM'}`);
+                }}>
+                  <Ionicons name="chevron-down" size={28} color="#AAA" />
+                </TouchableOpacity>
               </View>
             </View>
 
@@ -1877,13 +1852,13 @@ const styles = StyleSheet.create({
     color: '#FFF',
   },
 
-  // Wheel Picker Styles
+  // Spinner Picker Styles
   wheelPickerCard: {
     width: '85%',
     maxWidth: 320,
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    padding: 20,
+    padding: 24,
     shadowColor: '#000',
     shadowOpacity: 0.15,
     shadowRadius: 12,
@@ -1895,65 +1870,50 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#1A1A1A',
     textAlign: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
   },
   wheelRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  wheelContainer: {
-    flex: 1,
-    height: 220,
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  wheelHighlight: {
-    position: 'absolute',
-    top: 88,
-    left: 4,
-    right: 4,
-    height: 44,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#DDD',
-    backgroundColor: 'rgba(0,0,0,0.02)',
-    zIndex: 1,
-    pointerEvents: 'none',
-  },
-  wheelScroll: {
+  spinnerColumn: {
+    alignItems: 'center',
     flex: 1,
   },
-  wheelItem: {
-    height: 44,
+  spinnerArrow: {
+    padding: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  wheelItemText: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#1A1A1A',
+  spinnerValueBox: {
+    borderWidth: 1,
+    borderColor: '#DDD',
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    minWidth: 64,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FAFAFA',
+    marginVertical: 4,
   },
-  wheelItemTextSelected: {
-    fontSize: 22,
+  spinnerValue: {
+    fontSize: 24,
     fontWeight: '700',
     color: '#1A1A1A',
-  },
-  wheelItemTextFaded: {
-    color: '#C0C0C0',
   },
   wheelColon: {
     fontSize: 24,
     fontWeight: '700',
     color: '#1A1A1A',
     marginHorizontal: 2,
-    marginTop: -4,
   },
   wheelActions: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
     alignItems: 'center',
-    marginTop: 16,
+    marginTop: 24,
     gap: 16,
   },
   wheelCancelBtn: {
