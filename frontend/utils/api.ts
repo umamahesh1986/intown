@@ -548,13 +548,29 @@ export const searchByProductNames = async (
     `&customerLatitude=${latitude}` +
     `&customerLongitude=${longitude}`;
 
-  const res = await fetch(url);
+  console.log('searchByProductNames URL:', url);
 
-  if (!res.ok) {
-    throw new Error('Search by product failed');
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+  try {
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: { 'Accept': 'application/json' },
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+
+    if (!res.ok) {
+      throw new Error(`Search failed: ${res.status}`);
+    }
+
+    return res.json();
+  } catch (error: any) {
+    clearTimeout(timeoutId);
+    console.error('searchByProductNames error:', error?.message || error);
+    throw error;
   }
-
-  return res.json();
 };
 
 
