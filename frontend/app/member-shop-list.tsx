@@ -6,14 +6,16 @@ import {
   TouchableOpacity,
   Image,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { searchByProductNames, getMerchantImageByShopId, extractImageUrls, INTOWN_API_BASE } from '../utils/api';
 import { useLocationStore } from '../store/locationStore';
 import { formatDistance } from '../utils/formatDistance';
+import * as Location from 'expo-location';
 
 // Normalize param (expo-router can return string | string[] on native)
 const toParam = (v: string | string[] | undefined): string | undefined =>
@@ -34,13 +36,51 @@ export default function MemberShopList() {
   const source = toParam(rawParams.source);
 
   const { location, loadFromStorage } = useLocationStore();
+  const setStoreLocation = useLocationStore((s) => s.setLocation);
 
   const [shops, setShops] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const locationReady = useRef(false);
 
+  // Ensure location is available — try store first, then GPS
   useEffect(() => {
-    loadFromStorage();
-  }, [loadFromStorage]);
+    const ensureLocation = async () => {
+      await loadFromStorage();
+      const stored = useLocationStore.getState().location;
+      if (stored?.latitude && stored?.longitude) {
+        locationReady.current = true;
+        return;
+      }
+      // Fallback: get live GPS
+      try {
+        if (Platform.OS === 'web') {
+          await new Promise<void>((resolve) => {
+            if (!navigator.geolocation) { resolve(); return; }
+            navigator.geolocation.getCurrentPosition(
+              (pos) => {
+                setStoreLocation({ latitude: pos.coords.latitude, longitude: pos.coords.longitude });
+                locationReady.current = true;
+                resolve();
+              },
+              () => resolve(),
+              { enableHighAccuracy: true, timeout: 10000 }
+            );
+          });
+        } else {
+          const perm = await Location.requestForegroundPermissionsAsync();
+          if (perm.status === 'granted') {
+            const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+            setStoreLocation({ latitude: pos.coords.latitude, longitude: pos.coords.longitude });
+            locationReady.current = true;
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to get GPS for shop search:', e);
+      }
+    };
+    ensureLocation();
+  }, []);
 
   const getFirstImageUrl = (img: unknown): string | null => {
     const urls = extractImageUrls(img);
@@ -49,15 +89,24 @@ export default function MemberShopList() {
 
   const fetchShopsByCategory = async () => {
     setIsLoading(true);
+    setErrorMsg(null);
     try {
-      if (!categoryId || !location?.latitude || !location?.longitude) {
+      const loc = useLocationStore.getState().location;
+      const lat = loc?.latitude || 17.385044;
+      const lng = loc?.longitude || 78.486671;
+
+      if (!categoryId) {
         setShops([]);
         setIsLoading(false);
         return;
       }
 
       const res = await fetch(
-        `${INTOWN_API_BASE}/search/by-product-names?categoryId=${encodeURIComponent(categoryId)}&customerLatitude=${location.latitude}&customerLongitude=${location.longitude}`
+        `${INTOWN_API_BASE}/search/by-product-names?categoryId=${encodeURIComponent(categoryId)}&customerLatitude=${lat}&customerLongitude=${lng}`,
+        {
+          method: 'GET',
+          headers: { 'Accept': 'application/json' },
+        }
       );
 
       if (!res.ok) {
@@ -102,18 +151,31 @@ export default function MemberShopList() {
   // 🔹 PRODUCT SEARCH (EXISTING LOGIC + FALLBACK)
   const fetchRealShops = async () => {
     setIsLoading(true);
+    setErrorMsg(null);
     try {
-      if (!query || !location?.latitude || !location?.longitude) {
+      const loc = useLocationStore.getState().location;
+      const lat = loc?.latitude;
+      const lng = loc?.longitude;
+
+      if (!query) {
         setShops([]);
         setIsLoading(false);
         return;
       }
 
+      // Use default Hyderabad coords if location not available
+      const finalLat = lat || 17.385044;
+      const finalLng = lng || 78.486671;
+
+      console.log(`Searching shops: query="${query}", lat=${finalLat}, lng=${finalLng}`);
+
       const data = await searchByProductNames(
         query,
-        location.latitude,
-        location.longitude
+        finalLat,
+        finalLng
       );
+
+      console.log(`Search result: ${Array.isArray(data) ? data.length : 0} shops found`);
 
       const mappedShops = Array.isArray(data)
         ? data.map((item: any) => ({
@@ -134,18 +196,23 @@ export default function MemberShopList() {
       if (mappedShops.length > 0) {
         const enriched = await Promise.all(
           mappedShops.map(async (shop: any) => {
-            const shopId = shop?.id ?? shop?.merchantId ?? shop?.merchant_id;
-            const image = await getMerchantImageByShopId(shopId);
-            const img = image ?? shop?.image ?? shop?.s3ImageUrl;
-            return { ...shop, image: getFirstImageUrl(img) };
+            try {
+              const shopId = shop?.id ?? shop?.merchantId ?? shop?.merchant_id;
+              const image = await getMerchantImageByShopId(shopId);
+              const img = image ?? shop?.image ?? shop?.s3ImageUrl;
+              return { ...shop, image: getFirstImageUrl(img) };
+            } catch {
+              return { ...shop };
+            }
           })
         );
         setShops(enriched);
       } else {
         setShops([]);
       }
-    } catch (error) {
-      console.error('Failed to fetch shops', error);
+    } catch (error: any) {
+      console.error('Failed to fetch shops:', error?.message || error);
+      setErrorMsg(error?.message || 'Failed to load shops');
       setShops([]);
     } finally {
       setIsLoading(false);
