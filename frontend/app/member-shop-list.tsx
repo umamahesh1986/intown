@@ -135,8 +135,25 @@ export default function MemberShopList() {
       console.log('[ShopList] Category results:', Array.isArray(data) ? data.length : 'not array');
 
       const list = Array.isArray(data) ? data : [];
-      const enriched = await enrichShops(list);
-      setShops(enriched);
+      // Show shops IMMEDIATELY without waiting for image enrichment
+      const mapped = list.map((item: any) => ({
+        id: item.id?.toString?.() ?? String(item.id ?? ''),
+        name: item.businessName ?? item.shopName,
+        businessName: item.businessName,
+        shopName: item.shopName ?? item.businessName,
+        contactName: item.contactName,
+        category: item.businessCategory,
+        businessCategory: item.businessCategory,
+        distance: item.distance,
+        image: getFirstImageUrl(item.s3ImageUrl),
+        latitude: item.latitude,
+        longitude: item.longitude,
+      }));
+      setShops(mapped);
+      setIsLoading(false);
+
+      // Enrich images in background (non-blocking)
+      enrichImagesInBackground(mapped);
     } catch (error: any) {
       console.error('[ShopList] Category search error:', error?.message || error);
       setShops([]);
@@ -176,9 +193,12 @@ export default function MemberShopList() {
         latitude: item.latitude,
         longitude: item.longitude,
       }));
+      // Show shops IMMEDIATELY
+      setShops(mapped);
+      setIsLoading(false);
 
-      const enriched = await enrichShops(mapped);
-      setShops(enriched);
+      // Enrich images in background (non-blocking)
+      enrichImagesInBackground(mapped);
     } catch (error: any) {
       console.error('[ShopList] Product search error:', error?.message || error);
       setShops([]);
@@ -187,23 +207,26 @@ export default function MemberShopList() {
     }
   };
 
-  // Enrich shops with images
-  const enrichShops = async (list: any[]) => {
-    const enriched: any[] = [];
-    for (const shop of list) {
-      try {
-        const shopId = shop?.id ?? shop?.merchantId ?? shop?.merchant_id;
-        let image = null;
+  // Background image enrichment — does NOT block shop display
+  const enrichImagesInBackground = async (shopList: any[]) => {
+    try {
+      const enriched = [...shopList];
+      let updated = false;
+      for (let i = 0; i < enriched.length; i++) {
         try {
-          image = await getMerchantImageByShopId(shopId);
+          const shopId = enriched[i]?.id;
+          if (!shopId) continue;
+          const image = await getMerchantImageByShopId(shopId);
+          if (image) {
+            enriched[i] = { ...enriched[i], image: getFirstImageUrl(image) || enriched[i].image };
+            updated = true;
+          }
         } catch {}
-        const img = image ?? shop?.image ?? shop?.s3ImageUrl;
-        enriched.push({ ...shop, image: getFirstImageUrl(img) });
-      } catch {
-        enriched.push({ ...shop, image: null });
       }
-    }
-    return enriched;
+      if (updated) {
+        setShops([...enriched]);
+      }
+    } catch {}
   };
 
   const handleViewShop = (shop: any) => {
