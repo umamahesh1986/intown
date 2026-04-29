@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   Image,
   ActivityIndicator,
-  Platform,
 } from 'react-native';
 import { useState, useEffect } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -15,7 +14,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { getMerchantImageByShopId, extractImageUrls, INTOWN_API_BASE } from '../utils/api';
 import { useLocationStore } from '../store/locationStore';
 import { formatDistance } from '../utils/formatDistance';
-import * as Location from 'expo-location';
 
 // Default Hyderabad coordinates as fallback
 const DEFAULT_LAT = 17.385044;
@@ -41,81 +39,56 @@ export default function MemberShopList() {
 
   const [shops, setShops] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
 
   const getFirstImageUrl = (img: unknown): string | null => {
     const urls = extractImageUrls(img);
     return urls[0] ?? null;
   };
 
-  // Step 1: Get coordinates first, THEN trigger search
+  // Run search IMMEDIATELY on mount with best available coords
   useEffect(() => {
-    const getCoords = async () => {
-      // Try location store
-      try {
-        await useLocationStore.getState().loadFromStorage();
-        const stored = useLocationStore.getState().location;
-        if (stored?.latitude && stored?.longitude) {
-          console.log('[ShopList] Using stored location:', stored.latitude, stored.longitude);
-          setCoords({ lat: stored.latitude, lng: stored.longitude });
-          return;
-        }
-      } catch (e) {
-        console.warn('[ShopList] Store load failed:', e);
-      }
-
-      // Try live GPS
-      try {
-        if (Platform.OS === 'web') {
-          const pos = await new Promise<{ lat: number; lng: number } | null>((resolve) => {
-            if (!navigator.geolocation) { resolve(null); return; }
-            navigator.geolocation.getCurrentPosition(
-              (p) => resolve({ lat: p.coords.latitude, lng: p.coords.longitude }),
-              () => resolve(null),
-              { enableHighAccuracy: true, timeout: 10000 }
-            );
-          });
-          if (pos) {
-            console.log('[ShopList] Using web GPS:', pos.lat, pos.lng);
-            setCoords(pos);
-            return;
-          }
-        } else {
-          const perm = await Location.requestForegroundPermissionsAsync();
-          if (perm.status === 'granted') {
-            const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-            console.log('[ShopList] Using mobile GPS:', pos.coords.latitude, pos.coords.longitude);
-            setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-            return;
-          }
-        }
-      } catch (e) {
-        console.warn('[ShopList] GPS failed:', e);
-      }
-
-      // Fallback to default
-      console.log('[ShopList] Using default Hyderabad coords');
-      setCoords({ lat: DEFAULT_LAT, lng: DEFAULT_LNG });
-    };
-
-    getCoords();
-  }, []);
-
-  // Step 2: Run search ONLY after coords are ready
-  useEffect(() => {
-    if (!coords) return; // Wait for coords
     if (!categoryId && !query) {
       setIsLoading(false);
-      setShops([]);
       return;
     }
 
-    if (categoryId) {
-      fetchShopsByCategory(coords.lat, coords.lng);
-    } else if (query) {
-      fetchShopsByProduct(coords.lat, coords.lng);
-    }
-  }, [coords, categoryId, query]);
+    const runSearch = async () => {
+      // Get best available coords — DO NOT wait for GPS
+      let lat = DEFAULT_LAT;
+      let lng = DEFAULT_LNG;
+
+      try {
+        const stored = useLocationStore.getState().location;
+        if (stored?.latitude && stored?.longitude) {
+          lat = stored.latitude;
+          lng = stored.longitude;
+          console.log('[ShopList] Using stored coords:', lat, lng);
+        } else {
+          // Try loading from AsyncStorage (fast, no GPS)
+          await useLocationStore.getState().loadFromStorage();
+          const loaded = useLocationStore.getState().location;
+          if (loaded?.latitude && loaded?.longitude) {
+            lat = loaded.latitude;
+            lng = loaded.longitude;
+            console.log('[ShopList] Using loaded coords:', lat, lng);
+          } else {
+            console.log('[ShopList] No stored location, using defaults:', lat, lng);
+          }
+        }
+      } catch (e) {
+        console.log('[ShopList] Location error, using defaults');
+      }
+
+      // Fire search immediately
+      if (categoryId) {
+        await fetchShopsByCategory(lat, lng);
+      } else if (query) {
+        await fetchShopsByProduct(lat, lng);
+      }
+    };
+
+    runSearch();
+  }, [categoryId, query]);
 
   // Category search
   const fetchShopsByCategory = async (lat: number, lng: number) => {
