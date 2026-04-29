@@ -550,15 +550,9 @@ export const searchByProductNames = async (
 
   console.log('[API] searchByProductNames:', url);
 
-  const res = await fetch(url);
-
-  if (!res.ok) {
-    throw new Error(`Search failed: ${res.status}`);
-  }
-
-  const data = await res.json();
-  console.log('[API] searchByProductNames result:', Array.isArray(data) ? `${data.length} items` : typeof data);
-  return data;
+  const response = await axios.get(url, { timeout: 30000 });
+  console.log('[API] searchByProductNames result:', Array.isArray(response.data) ? `${response.data.length} items` : typeof response.data);
+  return response.data;
 };
 
 

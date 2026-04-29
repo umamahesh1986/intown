@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { getMerchantImageByShopId, extractImageUrls, INTOWN_API_BASE } from '../utils/api';
 import { useLocationStore } from '../store/locationStore';
 import { formatDistance } from '../utils/formatDistance';
+import axios from 'axios';
 
 // Default Hyderabad coordinates as fallback
 const DEFAULT_LAT = 17.385044;
@@ -97,14 +98,8 @@ export default function MemberShopList() {
       const url = `${INTOWN_API_BASE}/search/by-product-names?categoryId=${encodeURIComponent(categoryId!)}&customerLatitude=${lat}&customerLongitude=${lng}`;
       console.log('[ShopList] Category search URL:', url);
 
-      const res = await fetch(url);
-      if (!res.ok) {
-        console.error('[ShopList] Category search failed:', res.status);
-        setShops([]);
-        return;
-      }
-
-      const data = await res.json();
+      const response = await axios.get(url, { timeout: 30000 });
+      const data = response.data;
       console.log('[ShopList] Category results:', Array.isArray(data) ? data.length : 'not array');
 
       const list = Array.isArray(data) ? data : [];
@@ -142,14 +137,8 @@ export default function MemberShopList() {
       const url = `${INTOWN_API_BASE}/search/by-product-names?productNames=${encodeURIComponent(query!)}&customerLatitude=${lat}&customerLongitude=${lng}`;
       console.log('[ShopList] Product search URL:', url);
 
-      const res = await fetch(url);
-      if (!res.ok) {
-        console.error('[ShopList] Product search failed:', res.status);
-        setShops([]);
-        return;
-      }
-
-      const data = await res.json();
+      const response = await axios.get(url, { timeout: 30000 });
+      const data = response.data;
       console.log('[ShopList] Product results:', Array.isArray(data) ? data.length : 'not array');
 
       const list = Array.isArray(data) ? data : [];
