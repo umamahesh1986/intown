@@ -15,11 +15,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { getMerchantImageByShopId, extractImageUrls, INTOWN_API_BASE } from '../utils/api';
 import { useLocationStore } from '../store/locationStore';
 import { formatDistance } from '../utils/formatDistance';
+import axios from 'axios';
 import * as Location from 'expo-location';
-
-// Default Hyderabad coordinates as fallback
-const DEFAULT_LAT = 17.385044;
-const DEFAULT_LNG = 78.486671;
 
 // Normalize param (expo-router can return string | string[] on native)
 const toParam = (v: string | string[] | undefined): string | undefined =>
@@ -41,81 +38,102 @@ export default function MemberShopList() {
 
   const [shops, setShops] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
 
   const getFirstImageUrl = (img: unknown): string | null => {
     const urls = extractImageUrls(img);
     return urls[0] ?? null;
   };
 
-  // Step 1: Get coordinates first, THEN trigger search
+  // Run search on mount with user's real location
   useEffect(() => {
-    const getCoords = async () => {
-      // Try location store
-      try {
-        await useLocationStore.getState().loadFromStorage();
-        const stored = useLocationStore.getState().location;
-        if (stored?.latitude && stored?.longitude) {
-          console.log('[ShopList] Using stored location:', stored.latitude, stored.longitude);
-          setCoords({ lat: stored.latitude, lng: stored.longitude });
-          return;
-        }
-      } catch (e) {
-        console.warn('[ShopList] Store load failed:', e);
-      }
-
-      // Try live GPS
-      try {
-        if (Platform.OS === 'web') {
-          const pos = await new Promise<{ lat: number; lng: number } | null>((resolve) => {
-            if (!navigator.geolocation) { resolve(null); return; }
-            navigator.geolocation.getCurrentPosition(
-              (p) => resolve({ lat: p.coords.latitude, lng: p.coords.longitude }),
-              () => resolve(null),
-              { enableHighAccuracy: true, timeout: 10000 }
-            );
-          });
-          if (pos) {
-            console.log('[ShopList] Using web GPS:', pos.lat, pos.lng);
-            setCoords(pos);
-            return;
-          }
-        } else {
-          const perm = await Location.requestForegroundPermissionsAsync();
-          if (perm.status === 'granted') {
-            const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-            console.log('[ShopList] Using mobile GPS:', pos.coords.latitude, pos.coords.longitude);
-            setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-            return;
-          }
-        }
-      } catch (e) {
-        console.warn('[ShopList] GPS failed:', e);
-      }
-
-      // Fallback to default
-      console.log('[ShopList] Using default Hyderabad coords');
-      setCoords({ lat: DEFAULT_LAT, lng: DEFAULT_LNG });
-    };
-
-    getCoords();
-  }, []);
-
-  // Step 2: Run search ONLY after coords are ready
-  useEffect(() => {
-    if (!coords) return; // Wait for coords
     if (!categoryId && !query) {
       setIsLoading(false);
-      setShops([]);
       return;
     }
 
-    if (categoryId) {
-      fetchShopsByCategory(coords.lat, coords.lng);
-    } else if (query) {
-      fetchShopsByProduct(coords.lat, coords.lng);
-    }
-  }, [coords, categoryId, query]);
+    const runSearch = async () => {
+      let lat: number | null = null;
+      let lng: number | null = null;
+
+      // 1. Try Zustand store (in-memory, instant)
+      try {
+        const stored = useLocationStore.getState().location;
+        if (stored?.latitude && stored?.longitude) {
+          lat = stored.latitude;
+          lng = stored.longitude;
+          console.log('[ShopList] Using in-memory coords:', lat, lng);
+        }
+      } catch (e) {}
+
+      // 2. Try AsyncStorage (fast read)
+      if (!lat || !lng) {
+        try {
+          await useLocationStore.getState().loadFromStorage();
+          const loaded = useLocationStore.getState().location;
+          if (loaded?.latitude && loaded?.longitude) {
+            lat = loaded.latitude;
+            lng = loaded.longitude;
+            console.log('[ShopList] Using AsyncStorage coords:', lat, lng);
+          }
+        } catch (e) {}
+      }
+
+      // 3. Try GPS with 5-second timeout (won't hang)
+      if (!lat || !lng) {
+        try {
+          if (Platform.OS === 'web') {
+            const pos = await new Promise<{ lat: number; lng: number } | null>((resolve) => {
+              if (!navigator.geolocation) { resolve(null); return; }
+              const timeout = setTimeout(() => resolve(null), 5000);
+              navigator.geolocation.getCurrentPosition(
+                (p) => { clearTimeout(timeout); resolve({ lat: p.coords.latitude, lng: p.coords.longitude }); },
+                () => { clearTimeout(timeout); resolve(null); },
+                { enableHighAccuracy: false, timeout: 5000 }
+              );
+            });
+            if (pos) { lat = pos.lat; lng = pos.lng; }
+          } else {
+            // Mobile: request with timeout
+            const perm = await Location.requestForegroundPermissionsAsync();
+            if (perm.status === 'granted') {
+              const pos = await Promise.race([
+                Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Low }),
+                new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000))
+              ]);
+              if (pos && 'coords' in pos) {
+                lat = pos.coords.latitude;
+                lng = pos.coords.longitude;
+                console.log('[ShopList] Using GPS coords:', lat, lng);
+                // Save for future use
+                useLocationStore.getState().setLocation({
+                  latitude: lat, longitude: lng,
+                  area: '', city: '', state: '', country: '', pincode: '', fullAddress: ''
+                });
+              }
+            }
+          }
+        } catch (e) {
+          console.warn('[ShopList] GPS failed:', e);
+        }
+      }
+
+      if (!lat || !lng) {
+        console.log('[ShopList] No location available');
+        setShops([]);
+        setIsLoading(false);
+        return;
+      }
+
+      // Fire search with user's real location
+      if (categoryId) {
+        await fetchShopsByCategory(lat, lng);
+      } else if (query) {
+        await fetchShopsByProduct(lat, lng);
+      }
+    };
+
+    runSearch();
+  }, [categoryId, query]);
 
   // Category search
   const fetchShopsByCategory = async (lat: number, lng: number) => {
@@ -124,14 +142,8 @@ export default function MemberShopList() {
       const url = `${INTOWN_API_BASE}/search/by-product-names?categoryId=${encodeURIComponent(categoryId!)}&customerLatitude=${lat}&customerLongitude=${lng}`;
       console.log('[ShopList] Category search URL:', url);
 
-      const res = await fetch(url);
-      if (!res.ok) {
-        console.error('[ShopList] Category search failed:', res.status);
-        setShops([]);
-        return;
-      }
-
-      const data = await res.json();
+      const response = await axios.get(url, { timeout: 30000 });
+      const data = response.data;
       console.log('[ShopList] Category results:', Array.isArray(data) ? data.length : 'not array');
 
       const list = Array.isArray(data) ? data : [];
@@ -169,14 +181,8 @@ export default function MemberShopList() {
       const url = `${INTOWN_API_BASE}/search/by-product-names?productNames=${encodeURIComponent(query!)}&customerLatitude=${lat}&customerLongitude=${lng}`;
       console.log('[ShopList] Product search URL:', url);
 
-      const res = await fetch(url);
-      if (!res.ok) {
-        console.error('[ShopList] Product search failed:', res.status);
-        setShops([]);
-        return;
-      }
-
-      const data = await res.json();
+      const response = await axios.get(url, { timeout: 30000 });
+      const data = response.data;
       console.log('[ShopList] Product results:', Array.isArray(data) ? data.length : 'not array');
 
       const list = Array.isArray(data) ? data : [];
