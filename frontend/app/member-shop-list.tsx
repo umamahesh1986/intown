@@ -16,10 +16,6 @@ import { useLocationStore } from '../store/locationStore';
 import { formatDistance } from '../utils/formatDistance';
 import axios from 'axios';
 
-// Default Hyderabad coordinates as fallback
-const DEFAULT_LAT = 17.385044;
-const DEFAULT_LNG = 78.486671;
-
 // Normalize param (expo-router can return string | string[] on native)
 const toParam = (v: string | string[] | undefined): string | undefined =>
   v == null ? undefined : Array.isArray(v) ? v[0] : String(v);
@@ -46,7 +42,7 @@ export default function MemberShopList() {
     return urls[0] ?? null;
   };
 
-  // Run search IMMEDIATELY on mount with best available coords
+  // Run search IMMEDIATELY on mount with user's real location
   useEffect(() => {
     if (!categoryId && !query) {
       setIsLoading(false);
@@ -54,10 +50,10 @@ export default function MemberShopList() {
     }
 
     const runSearch = async () => {
-      // Get best available coords — DO NOT wait for GPS
-      let lat = DEFAULT_LAT;
-      let lng = DEFAULT_LNG;
+      let lat: number | null = null;
+      let lng: number | null = null;
 
+      // Get user's real location from store
       try {
         const stored = useLocationStore.getState().location;
         if (stored?.latitude && stored?.longitude) {
@@ -65,22 +61,26 @@ export default function MemberShopList() {
           lng = stored.longitude;
           console.log('[ShopList] Using stored coords:', lat, lng);
         } else {
-          // Try loading from AsyncStorage (fast, no GPS)
           await useLocationStore.getState().loadFromStorage();
           const loaded = useLocationStore.getState().location;
           if (loaded?.latitude && loaded?.longitude) {
             lat = loaded.latitude;
             lng = loaded.longitude;
             console.log('[ShopList] Using loaded coords:', lat, lng);
-          } else {
-            console.log('[ShopList] No stored location, using defaults:', lat, lng);
           }
         }
       } catch (e) {
-        console.log('[ShopList] Location error, using defaults');
+        console.log('[ShopList] Location error:', e);
       }
 
-      // Fire search immediately
+      if (!lat || !lng) {
+        console.log('[ShopList] No location available');
+        setShops([]);
+        setIsLoading(false);
+        return;
+      }
+
+      // Fire search with user's real location
       if (categoryId) {
         await fetchShopsByCategory(lat, lng);
       } else if (query) {
