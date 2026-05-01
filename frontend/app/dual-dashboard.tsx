@@ -437,7 +437,8 @@ export default function DualDashboard() {
       setIsNearbyLoading(true);
       const response = await getNearbyShops(
         location.latitude,
-        location.longitude
+        location.longitude,
+        100001
       );
       const list = Array.isArray(response) ? response : [];
       const enriched = await Promise.all(

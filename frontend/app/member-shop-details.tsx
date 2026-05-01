@@ -94,11 +94,8 @@ export default function MemberShopDetails() {
       const lat = storedLocation?.latitude ?? location?.latitude ?? 17.4939602;
       const lng = storedLocation?.longitude ?? location?.longitude ?? 78.4008412;
 
-      // Build API URL - ALWAYS include categoryId to avoid 500 errors
-      let apiUrl = `${INTOWN_API_BASE}/search/by-product-names?customerLatitude=${lat}&customerLongitude=${lng}`;
-      if (categoryId) {
-        apiUrl += `&categoryId=${encodeURIComponent(categoryId)}`;
-      }
+      // Build API URL - categoryId is mandatory
+      let apiUrl = `${INTOWN_API_BASE}/search/by-product-names?categoryId=${encodeURIComponent(categoryId || '100001')}&customerLatitude=${lat}&customerLongitude=${lng}`;
 
       const res = await fetch(apiUrl, {
         method: 'GET',
