@@ -19,6 +19,16 @@ import { Ionicons } from "@expo/vector-icons";
 import { useAuthStore } from "../store/authStore";
 import { searchUserByPhone, determineUserRole, sendOtpApi, verifyOtpApi } from "../utils/api";
 
+// SMS auto-read (Android only)
+let OtpVerify: any = null;
+if (Platform.OS === 'android') {
+  try {
+    OtpVerify = require('react-native-otp-verify');
+  } catch (e) {
+    console.log('[OTP] react-native-otp-verify not available');
+  }
+}
+
 /* ===============================
    CONFIG
 ================================ */
@@ -89,6 +99,60 @@ export default function OTPScreen() {
     return () => {
       isMountedRef.current = false;
       if (popupTimerRef.current) clearTimeout(popupTimerRef.current);
+    };
+  }, []);
+
+  /* ===============================
+     SMS AUTO-READ (Android only)
+  ================================ */
+  useEffect(() => {
+    if (Platform.OS !== 'android' || !OtpVerify) return;
+
+    let isCancelled = false;
+
+    const startListening = async () => {
+      try {
+        // Get hash for SMS Retriever API
+        const hash = await OtpVerify.getHash();
+        console.log('[OTP] SMS Retriever hash:', hash);
+
+        // Start listening for OTP SMS
+        OtpVerify.startOtpListener((message: string) => {
+          if (isCancelled || !message) return;
+          console.log('[OTP] SMS received:', message);
+
+          // Extract 4-digit OTP from SMS
+          const otpMatch = message.match(/(\d{4})/);
+          if (otpMatch && otpMatch[1]) {
+            const receivedOtp = otpMatch[1];
+            console.log('[OTP] Auto-read OTP:', receivedOtp);
+
+            // Auto-fill OTP boxes
+            const digits = receivedOtp.split('');
+            setOtp(digits);
+
+            // Auto-submit
+            setTimeout(() => {
+              if (!isCancelled && !hasProcessedAuth.current) {
+                verifyWithCode(receivedOtp);
+              }
+            }, 500);
+          }
+        });
+      } catch (e) {
+        console.warn('[OTP] SMS listener setup failed:', e);
+      }
+    };
+
+    startListening();
+
+    return () => {
+      isCancelled = true;
+      try {
+        if (OtpVerify?.removeListener) {
+          OtpVerify.removeListener();
+        }
+      } catch (e) {}
     };
   }, []);
 
@@ -395,6 +459,8 @@ export default function OTPScreen() {
                 onChangeText={v => handleOtpChange(v, i)}
                 onKeyPress={({ nativeEvent }) => handleKeyPress(nativeEvent.key, i)}
                 autoFocus={i === 0}
+                textContentType="oneTimeCode"
+                autoComplete={i === 0 ? "sms-otp" : "off"}
               />
             ))}
           </View>
