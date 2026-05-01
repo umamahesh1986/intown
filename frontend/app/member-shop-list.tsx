@@ -326,12 +326,9 @@ export default function MemberShopList() {
                       <View style={styles.cardInfo}>
                         <Text style={styles.shopName} numberOfLines={1}>{shopName}</Text>
                         <View style={styles.distanceRow}>
-                          <Ionicons name="location-outline" size={14} color="#666" />
-                          <Text style={styles.distanceText}>{formatDistance(item?.distance)} away</Text>
+                          <Ionicons name="location-outline" size={14} color="#FF8A00" />
+                          <Text style={styles.distanceText}>{formatDistance(item?.distance)}</Text>
                         </View>
-                        {contactName && (
-                          <Text style={styles.contactText} numberOfLines={1}>{contactName}</Text>
-                        )}
                       </View>
                     </View>
                     <TouchableOpacity style={styles.viewButton} onPress={() => handleViewShop(item)}>
@@ -463,8 +460,9 @@ const styles = StyleSheet.create({
   },
   distanceText: {
     fontSize: 13,
-    color: '#666',
+    color: '#FF8A00',
     marginLeft: 4,
+    fontWeight: '700',
   },
   contactText: {
     fontSize: 12,
