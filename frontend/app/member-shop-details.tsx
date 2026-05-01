@@ -36,10 +36,11 @@ interface ShopData {
 
 export default function MemberShopDetails() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ shopId?: string; categoryId?: string; source?: string }>();
+  const params = useLocalSearchParams<{ shopId?: string; categoryId?: string; source?: string; shopData?: string }>();
   const shopId = params.shopId;
   const categoryId = params.categoryId;
   const source = params.source;
+  const shopDataParam = params.shopData;
 
   const [shop, setShop] = useState<ShopData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -70,24 +71,38 @@ export default function MemberShopDetails() {
     setIsLoading(true);
     setError(null);
 
+    // 1. Try to use shop data passed via params (no API call needed)
+    if (shopDataParam) {
+      try {
+        const parsed = JSON.parse(shopDataParam);
+        if (parsed && parsed.id) {
+          setShop(parsed);
+          const images = extractImageUrls(parsed.s3ImageUrl);
+          setShopImages(images);
+          setIsLoading(false);
+          return;
+        }
+      } catch (e) {
+        console.warn('[ShopDetails] Failed to parse shopData param');
+      }
+    }
+
+    // 2. Fallback: fetch from API
     try {
       await loadLocationFromStorage();
       const storedLocation = useLocationStore.getState().location;
-      // Use stored location or default to Hyderabad coordinates
       const lat = storedLocation?.latitude ?? location?.latitude ?? 17.4939602;
       const lng = storedLocation?.longitude ?? location?.longitude ?? 78.4008412;
 
-      // Build API URL
+      // Build API URL - ALWAYS include categoryId to avoid 500 errors
       let apiUrl = `${INTOWN_API_BASE}/search/by-product-names?customerLatitude=${lat}&customerLongitude=${lng}`;
       if (categoryId) {
-        apiUrl += `&categoryId=${categoryId}`;
+        apiUrl += `&categoryId=${encodeURIComponent(categoryId)}`;
       }
 
       const res = await fetch(apiUrl, {
         method: 'GET',
-        headers: {
-          Accept: 'application/json',
-        },
+        headers: { Accept: 'application/json' },
       });
       
       if (!res.ok) {

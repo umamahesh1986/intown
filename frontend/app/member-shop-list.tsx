@@ -249,6 +249,7 @@ export default function MemberShopList() {
           shopId: String(shopId),
           categoryId: categoryId ?? '',
           source: source ?? 'user',
+          shopData: JSON.stringify(shop),
         },
       });
     } catch (err) {

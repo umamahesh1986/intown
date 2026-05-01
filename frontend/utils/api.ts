@@ -805,10 +805,18 @@ export const getNearbyShops = async (
 ) => {
   const url = `${INTOWN_API_BASE}/search/by-product-names?customerLatitude=${latitude}&customerLongitude=${longitude}`;
 
-  const res = await fetch(url);
-  if (!res.ok) throw new Error('Failed to fetch nearby shops');
-
-  return res.json();
+  try {
+    const res = await fetch(url);
+    if (!res.ok) {
+      // API returns 500 for some locations — return empty array instead of crashing
+      console.warn('[API] getNearbyShops failed:', res.status, 'for coords:', latitude, longitude);
+      return [];
+    }
+    return res.json();
+  } catch (e) {
+    console.warn('[API] getNearbyShops error:', e);
+    return [];
+  }
 };
 
 
