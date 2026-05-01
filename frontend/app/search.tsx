@@ -12,6 +12,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { searchProducts } from '../utils/api';
+import { useLocationStore } from '../store/locationStore';
 
 
 type SearchResult = {
@@ -144,6 +145,8 @@ export default function Search() {
                   params: {
                     query: searchText,
                     source,
+                    lat: useLocationStore.getState().location?.latitude ? String(useLocationStore.getState().location!.latitude) : '',
+                    lng: useLocationStore.getState().location?.longitude ? String(useLocationStore.getState().location!.longitude) : '',
                   },
                 });
               }}
@@ -171,6 +174,8 @@ export default function Search() {
                       params: {
                         query: value,
                         source,
+                        lat: useLocationStore.getState().location?.latitude ? String(useLocationStore.getState().location!.latitude) : '',
+                        lng: useLocationStore.getState().location?.longitude ? String(useLocationStore.getState().location!.longitude) : '',
                       },
                     });
                   }}

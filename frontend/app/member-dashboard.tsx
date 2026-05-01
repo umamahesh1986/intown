@@ -628,12 +628,15 @@ export default function MemberDashboard() {
   /* ================= CATEGORY CLICK HANDLER ================= */
 
   const handleCategoryClick = (category: Category) => {
+    const loc = useLocationStore.getState().location;
     router.push({
       pathname: '/member-shop-list',
       params: {
         categoryId: String(category.id),
         categoryName: category.name,
         source: 'member',
+        lat: loc?.latitude ? String(loc.latitude) : '',
+        lng: loc?.longitude ? String(loc.longitude) : '',
       },
     });
   };
@@ -673,7 +676,8 @@ export default function MemberDashboard() {
 
   const handleSearch = () => {
     if (searchQuery.trim()) {
-      router.push({ pathname: '/member-shop-list', params: { query: searchQuery, source: 'member' } });
+      const loc = useLocationStore.getState().location;
+      router.push({ pathname: '/member-shop-list', params: { query: searchQuery, source: 'member', lat: loc?.latitude ? String(loc.latitude) : '', lng: loc?.longitude ? String(loc.longitude) : '' } });
     }
   };
 
@@ -954,7 +958,7 @@ export default function MemberDashboard() {
 
                         router.push({
                           pathname: '/member-shop-list',
-                          params: { query: item, source: 'member' },
+                          params: { query: item, source: 'member', lat: useLocationStore.getState().location?.latitude ? String(useLocationStore.getState().location!.latitude) : '', lng: useLocationStore.getState().location?.longitude ? String(useLocationStore.getState().location!.longitude) : '' },
                         });
                       }}
                     >
