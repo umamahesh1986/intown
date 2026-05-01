@@ -57,6 +57,7 @@ export default function Savings() {
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [transactions, setTransactions] = useState<SavingsTransaction[]>([]);
+  const [showAllTransactions, setShowAllTransactions] = useState(false);
   const [summary, setSummary] = useState<SavingsSummary>({
     today: 0,
     thisMonth: 0,
@@ -338,7 +339,7 @@ export default function Savings() {
           </View>
         ) : (
           <View style={styles.transactionsGrid}>
-            {transactions.map((transaction) => (
+            {(showAllTransactions ? transactions : transactions.slice(0, 4)).map((transaction) => (
               <View key={transaction.id} style={styles.transactionGridCard}>
                 <View style={styles.transactionGridHeader}>
                   <View style={styles.transactionGridIcon}>
@@ -364,6 +365,21 @@ export default function Savings() {
                 </View>
               </View>
             ))}
+            {transactions.length > 4 && (
+              <TouchableOpacity
+                style={styles.moreButton}
+                onPress={() => setShowAllTransactions(!showAllTransactions)}
+              >
+                <Text style={styles.moreButtonText}>
+                  {showAllTransactions ? 'Less' : 'More'}
+                </Text>
+                <Ionicons
+                  name={showAllTransactions ? 'chevron-up' : 'chevron-down'}
+                  size={18}
+                  color="#FF8A00"
+                />
+              </TouchableOpacity>
+            )}
           </View>
         )}
       </View>
@@ -687,6 +703,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 12,
+  },
+  moreButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+    paddingVertical: 12,
+    marginTop: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#FF8A00',
+    gap: 6,
+  },
+  moreButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#FF8A00',
   },
   transactionGridCard: {
     backgroundColor: '#FFF',
