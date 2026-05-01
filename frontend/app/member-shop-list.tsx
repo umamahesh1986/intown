@@ -147,7 +147,6 @@ export default function MemberShopList() {
       console.log('[ShopList] Category results:', Array.isArray(data) ? data.length : 'not array');
 
       const list = Array.isArray(data) ? data : [];
-      // Show shops IMMEDIATELY without waiting for image enrichment
       const mapped = list.map((item: any) => ({
         id: item.id?.toString?.() ?? String(item.id ?? ''),
         name: item.businessName ?? item.shopName,
@@ -163,11 +162,10 @@ export default function MemberShopList() {
       }));
       setShops(mapped);
       setIsLoading(false);
-
-      // Enrich images in background (non-blocking)
       enrichImagesInBackground(mapped);
     } catch (error: any) {
       console.error('[ShopList] Category search error:', error?.message || error);
+      // API returns 500 for unsupported areas — treat as no shops found
       setShops([]);
     } finally {
       setIsLoading(false);
@@ -199,14 +197,12 @@ export default function MemberShopList() {
         latitude: item.latitude,
         longitude: item.longitude,
       }));
-      // Show shops IMMEDIATELY
       setShops(mapped);
       setIsLoading(false);
-
-      // Enrich images in background (non-blocking)
       enrichImagesInBackground(mapped);
     } catch (error: any) {
       console.error('[ShopList] Product search error:', error?.message || error);
+      // API returns 500 for unsupported areas — treat as no shops found
       setShops([]);
     } finally {
       setIsLoading(false);
