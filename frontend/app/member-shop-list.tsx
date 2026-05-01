@@ -292,6 +292,9 @@ export default function MemberShopList() {
           data={shops}
           keyExtractor={(item, index) => String(item?.id ?? item?.merchantId ?? index)}
           contentContainerStyle={styles.listContent}
+          ListHeaderComponent={
+            <Text style={styles.sectionTitle}>Stores near you</Text>
+          }
           renderItem={({ item }) => {
             try {
               if (!item) return null;
@@ -299,41 +302,43 @@ export default function MemberShopList() {
               const shopName = item?.businessName || item?.shopName || item?.name || item?.contactName || 'Shop';
               const categoryText = item?.businessCategory || item?.category || 'General';
               const contactName = item?.contactName;
-              const showContactName = contactName && contactName !== item?.shopName;
 
               return (
-                <View style={styles.shopCard}>
-                  <View style={styles.shopRow}>
-                    <View style={styles.shopImageContainer}>
-                      {imageUri ? (
-                        <Image
-                          source={{ uri: imageUri }}
-                          style={{ width: 60, height: 60, borderRadius: 10 }}
-                        />
-                      ) : (
-                        <Ionicons name="storefront" size={40} color="#FF8A00" />
-                      )}
+                <TouchableOpacity style={styles.shopCard} onPress={() => handleViewShop(item)} activeOpacity={0.9}>
+                  {/* Hero Image */}
+                  <View style={styles.imageWrapper}>
+                    {imageUri ? (
+                      <Image source={{ uri: imageUri }} style={styles.heroImage} resizeMode="cover" />
+                    ) : (
+                      <View style={styles.heroPlaceholder}>
+                        <Ionicons name="storefront" size={48} color="#FF8A00" />
+                      </View>
+                    )}
+                    {/* Category Badge */}
+                    <View style={styles.categoryBadge}>
+                      <Text style={styles.categoryBadgeText}>{categoryText}</Text>
                     </View>
-                    <View style={styles.shopInfoRight}>
-                      <View style={styles.shopInfoRightnew}>
+                  </View>
+
+                  {/* Card Content */}
+                  <View style={styles.cardContent}>
+                    <View style={styles.cardRow}>
+                      <View style={styles.cardInfo}>
                         <Text style={styles.shopName} numberOfLines={1}>{shopName}</Text>
-                        <Text style={styles.categoryText}>{categoryText}</Text>
-                        {showContactName && (
-                          <Text style={styles.contactNameText} numberOfLines={1}>{contactName}</Text>
+                        <View style={styles.distanceRow}>
+                          <Ionicons name="location-outline" size={14} color="#666" />
+                          <Text style={styles.distanceText}>{formatDistance(item?.distance)} away</Text>
+                        </View>
+                        {contactName && (
+                          <Text style={styles.contactText} numberOfLines={1}>{contactName}</Text>
                         )}
                       </View>
-                      <View style={styles.distanceRow}>
-                        <Ionicons name="location" size={14} color="#FF8A00" />
-                        <Text style={styles.distanceText}>{formatDistance(item?.distance)}</Text>
-                      </View>
                     </View>
-                  </View>
-                  <View style={styles.buttonContainer}>
                     <TouchableOpacity style={styles.viewButton} onPress={() => handleViewShop(item)}>
-                      <Text style={styles.viewButtonText}>View</Text>
+                      <Text style={styles.viewButtonText}>View Shop</Text>
                     </TouchableOpacity>
                   </View>
-                </View>
+                </TouchableOpacity>
               );
             } catch {
               return null;
@@ -346,20 +351,27 @@ export default function MemberShopList() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F5F5F5' },
+  container: { flex: 1, backgroundColor: '#F8F8F8' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     backgroundColor: '#FFF',
     borderBottomWidth: 1,
-    borderBottomColor: '#EEE',
+    borderBottomColor: '#F0F0F0',
   },
   backButton: { width: 40, height: 40, justifyContent: 'center' },
-  headerTitle: { fontSize: 18, fontWeight: '600', color: '#1A1A1A' },
+  headerTitle: { fontSize: 20, fontWeight: '700', color: '#1A1A1A' },
   placeholder: { width: 40 },
-  listContent: { padding: 16 },
+  listContent: { padding: 16, paddingBottom: 32 },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1A1A1A',
+    marginBottom: 16,
+  },
   emptyContainer: {
     flex: 1,
     alignItems: 'center',
@@ -369,69 +381,107 @@ const styles = StyleSheet.create({
   },
   loadingText: { marginTop: 16, fontSize: 16, color: '#666' },
   emptyMessage: {
-    fontSize: 25,
+    fontSize: 22,
     color: '#666',
     marginTop: 12,
     textAlign: 'center',
-    lineHeight: 24,
+    lineHeight: 28,
   },
   goBackButton: {
     marginTop: 24,
     backgroundColor: '#FF8A00',
     paddingHorizontal: 32,
-    paddingVertical: 12,
-    borderRadius: 8,
+    paddingVertical: 14,
+    borderRadius: 25,
   },
   goBackButtonText: { color: '#FFF', fontSize: 16, fontWeight: '600' },
+
+  // Card styles
   shopCard: {
     backgroundColor: '#FFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#EEE',
+    borderRadius: 16,
+    marginBottom: 20,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
   },
-  shopImageContainer: {
-    width: 60,
-    height: 60,
+  imageWrapper: {
+    width: '100%',
+    height: 180,
+    position: 'relative',
+  },
+  heroImage: {
+    width: '100%',
+    height: '100%',
+  },
+  heroPlaceholder: {
+    width: '100%',
+    height: '100%',
     backgroundColor: '#FFF3E0',
-    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 12,
   },
-  shopName: { fontSize: 18, fontWeight: 'bold', color: '#1A1A1A', marginBottom: 6, maxWidth: 190 },
-  distanceText: { fontSize: 14, color: '#FF8A00', marginLeft: 4 },
-  categoryText: { fontSize: 14, color: '#999' },
-  contactNameText: { fontSize: 12, color: '#999', marginTop: 2 },
-  buttonContainer: { flexDirection: 'row', gap: 12 },
-  viewButton: {
-    flex: 1,
-    backgroundColor: '#FF8A00',
-    borderRadius: 8,
-    paddingVertical: 8,
-    alignItems: 'center',
+  categoryBadge: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    backgroundColor: 'rgba(255, 138, 0, 0.9)',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
-  viewButtonText: { color: '#FFF', fontSize: 16, fontWeight: '600' },
-  shopRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 12,
+  categoryBadgeText: {
+    color: '#FFF',
+    fontSize: 12,
+    fontWeight: '600',
   },
-  shopInfoRight: {
-    flex: 1,
-    marginLeft: 12,
+  cardContent: {
+    padding: 14,
+  },
+  cardRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-  },
-  shopInfoRightnew: {
-    flexDirection: 'column',
-    alignItems: 'flex-start',
     marginBottom: 12,
+  },
+  cardInfo: {
+    flex: 1,
+  },
+  shopName: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1A1A1A',
+    marginBottom: 4,
   },
   distanceRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginTop: 2,
+  },
+  distanceText: {
+    fontSize: 13,
+    color: '#666',
+    marginLeft: 4,
+  },
+  contactText: {
+    fontSize: 12,
+    color: '#999',
+    marginTop: 4,
+  },
+  viewButton: {
+    backgroundColor: '#FF8A00',
+    borderRadius: 25,
+    paddingVertical: 12,
+    alignItems: 'center',
+    alignSelf: 'flex-end',
+    paddingHorizontal: 28,
+  },
+  viewButtonText: {
+    color: '#FFF',
+    fontSize: 15,
+    fontWeight: '700',
   },
 });
