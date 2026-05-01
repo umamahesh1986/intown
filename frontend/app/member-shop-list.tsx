@@ -29,12 +29,16 @@ export default function MemberShopList() {
     categoryName?: string;
     query?: string;
     source?: string;
+    lat?: string;
+    lng?: string;
   }>();
 
   const categoryId = toParam(rawParams.categoryId);
   const categoryName = toParam(rawParams.categoryName);
   const query = toParam(rawParams.query);
   const source = toParam(rawParams.source);
+  const paramLat = toParam(rawParams.lat);
+  const paramLng = toParam(rawParams.lng);
 
   const [shops, setShops] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -44,7 +48,7 @@ export default function MemberShopList() {
     return urls[0] ?? null;
   };
 
-  // Run search on mount with user's real location
+  // Run search on mount — use coordinates from params (passed by dashboard)
   useEffect(() => {
     if (!categoryId && !query) {
       setIsLoading(false);
@@ -55,17 +59,26 @@ export default function MemberShopList() {
       let lat: number | null = null;
       let lng: number | null = null;
 
-      // 1. Try Zustand store (in-memory, instant)
-      try {
-        const stored = useLocationStore.getState().location;
-        if (stored?.latitude && stored?.longitude) {
-          lat = stored.latitude;
-          lng = stored.longitude;
-          console.log('[ShopList] Using in-memory coords:', lat, lng);
-        }
-      } catch (e) {}
+      // 1. Use coordinates from route params (most reliable on mobile)
+      if (paramLat && paramLng && parseFloat(paramLat) && parseFloat(paramLng)) {
+        lat = parseFloat(paramLat);
+        lng = parseFloat(paramLng);
+        console.log('[ShopList] Using params coords:', lat, lng);
+      }
 
-      // 2. Try AsyncStorage (fast read)
+      // 2. Fallback: try Zustand store
+      if (!lat || !lng) {
+        try {
+          const stored = useLocationStore.getState().location;
+          if (stored?.latitude && stored?.longitude) {
+            lat = stored.latitude;
+            lng = stored.longitude;
+            console.log('[ShopList] Using store coords:', lat, lng);
+          }
+        } catch (e) {}
+      }
+
+      // 3. Fallback: try AsyncStorage
       if (!lat || !lng) {
         try {
           await useLocationStore.getState().loadFromStorage();
@@ -78,22 +91,21 @@ export default function MemberShopList() {
         } catch (e) {}
       }
 
-      // 3. Try GPS with 5-second timeout (won't hang)
+      // 4. Fallback: try GPS with 5s timeout
       if (!lat || !lng) {
         try {
           if (Platform.OS === 'web') {
             const pos = await new Promise<{ lat: number; lng: number } | null>((resolve) => {
               if (!navigator.geolocation) { resolve(null); return; }
-              const timeout = setTimeout(() => resolve(null), 5000);
+              const t = setTimeout(() => resolve(null), 5000);
               navigator.geolocation.getCurrentPosition(
-                (p) => { clearTimeout(timeout); resolve({ lat: p.coords.latitude, lng: p.coords.longitude }); },
-                () => { clearTimeout(timeout); resolve(null); },
+                (p) => { clearTimeout(t); resolve({ lat: p.coords.latitude, lng: p.coords.longitude }); },
+                () => { clearTimeout(t); resolve(null); },
                 { enableHighAccuracy: false, timeout: 5000 }
               );
             });
             if (pos) { lat = pos.lat; lng = pos.lng; }
           } else {
-            // Mobile: request with timeout
             const perm = await Location.requestForegroundPermissionsAsync();
             if (perm.status === 'granted') {
               const pos = await Promise.race([
@@ -104,11 +116,6 @@ export default function MemberShopList() {
                 lat = pos.coords.latitude;
                 lng = pos.coords.longitude;
                 console.log('[ShopList] Using GPS coords:', lat, lng);
-                // Save for future use
-                useLocationStore.getState().setLocation({
-                  latitude: lat, longitude: lng,
-                  area: '', city: '', state: '', country: '', pincode: '', fullAddress: ''
-                });
               }
             }
           }
@@ -124,7 +131,7 @@ export default function MemberShopList() {
         return;
       }
 
-      // Fire search with user's real location
+      // Fire search
       if (categoryId) {
         await fetchShopsByCategory(lat, lng);
       } else if (query) {
@@ -133,7 +140,7 @@ export default function MemberShopList() {
     };
 
     runSearch();
-  }, [categoryId, query]);
+  }, [categoryId, query, paramLat, paramLng]);
 
   // Category search
   const fetchShopsByCategory = async (lat: number, lng: number) => {
