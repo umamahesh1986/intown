@@ -400,7 +400,8 @@ export default function UserDashboard() {
 
       const response = await getNearbyShops(
         location.latitude,
-        location.longitude
+        location.longitude,
+        100001
       );
 
       // backend returns ARRAY, not { data: [] }

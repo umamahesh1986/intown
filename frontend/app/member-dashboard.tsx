@@ -601,7 +601,8 @@ export default function MemberDashboard() {
 
       const response = await getNearbyShops(
         location.latitude,
-        location.longitude
+        location.longitude,
+        100001
       );
 
 
