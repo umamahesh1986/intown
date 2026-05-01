@@ -804,10 +804,7 @@ export const getNearbyShops = async (
   longitude: number,
   categoryId?: number | string
 ) => {
-  let url = `${INTOWN_API_BASE}/search/by-product-names?customerLatitude=${latitude}&customerLongitude=${longitude}`;
-  if (categoryId) {
-    url += `&categoryId=${categoryId}`;
-  }
+  let url = `${INTOWN_API_BASE}/search/by-product-names?categoryId=${categoryId}&customerLatitude=${latitude}&customerLongitude=${longitude}`;
 
   try {
     const res = await fetch(url);
