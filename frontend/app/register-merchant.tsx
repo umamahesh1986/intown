@@ -303,11 +303,48 @@ export default function RegisterMerchant() {
     loadPhoneNumber();
   }, [user]);
 
-  /* ================= FETCH CATEGORIES ================= */
+  /* ================= FETCH CATEGORIES & AUTO-DETECT LOCATION ================= */
 
   useEffect(() => {
     fetchCategories();
+    // Auto-detect current GPS location on form load
+    autoDetectLocation();
   }, []);
+
+  const autoDetectLocation = async () => {
+    // Don't overwrite if location is already set (from draft or map picker)
+    if (location?.latitude && location?.longitude) return;
+
+    try {
+      if (Platform.OS === 'web') {
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              setLocation({
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude,
+              });
+              console.log('[Register] Auto-detected web location:', position.coords.latitude, position.coords.longitude);
+            },
+            (err) => console.warn('[Register] Web GPS error:', err.message),
+            { enableHighAccuracy: false, timeout: 10000 }
+          );
+        }
+      } else {
+        const { requestLocationPermission, getCurrentCoordinates } = require('../utils/location');
+        const hasPermission = await requestLocationPermission();
+        if (hasPermission) {
+          const coords = await getCurrentCoordinates();
+          if (coords?.latitude && coords?.longitude) {
+            setLocation({ latitude: coords.latitude, longitude: coords.longitude });
+            console.log('[Register] Auto-detected mobile location:', coords.latitude, coords.longitude);
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('[Register] Auto-detect location failed:', e);
+    }
+  };
 
   const fetchCategories = async () => {
     try {
@@ -1028,17 +1065,34 @@ export default function RegisterMerchant() {
           <View style={styles.formGroup}>
             <Text style={styles.label}>Shop Location *</Text>
 
-            <TouchableOpacity
-              style={[styles.locationButton, errors.location && styles.inputError]}
-              onPress={handleSelectLocation}
-            >
-              <Ionicons name="location" size={20} color="#FF8A00" />
-              <Text style={styles.locationButtonText}>
-                {location
-                  ? `Selected: ${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}`
-                  : 'Tap to select location on map'}
-              </Text>
-            </TouchableOpacity>
+            {/* Auto-detected location display */}
+            {location ? (
+              <View style={styles.locationDisplay}>
+                <View style={styles.locationCoords}>
+                  <Ionicons name="checkmark-circle" size={18} color="#4CAF50" />
+                  <Text style={styles.locationCoordsText}>
+                    {location.latitude.toFixed(4)}, {location.longitude.toFixed(4)}
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.changeLocationBtn}
+                  onPress={handleSelectLocation}
+                >
+                  <Ionicons name="map-outline" size={16} color="#FF8A00" />
+                  <Text style={styles.changeLocationText}>Change on Map</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={[styles.locationButton, errors.location && styles.inputError]}
+                onPress={handleSelectLocation}
+              >
+                <Ionicons name="location" size={20} color="#FF8A00" />
+                <Text style={styles.locationButtonText}>
+                  Detecting current location...
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
 
 
@@ -1609,6 +1663,40 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     fontSize: 14,
     color: '#333',
+  },
+  locationDisplay: {
+    backgroundColor: '#FFF',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    borderRadius: 10,
+    padding: 12,
+  },
+  locationCoords: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 10,
+  },
+  locationCoordsText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1A1A1A',
+  },
+  changeLocationBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#FF8A00',
+    backgroundColor: '#FFF8F0',
+  },
+  changeLocationText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FF8A00',
   },
 
   categoryGrid: {
