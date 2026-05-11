@@ -48,7 +48,7 @@ export default function MemberShopList() {
     return urls[0] ?? null;
   };
 
-  // Run search on mount — use coordinates from params (passed by dashboard)
+  // ALWAYS fetch fresh GPS location for search
   useEffect(() => {
     if (!categoryId && !query) {
       setIsLoading(false);
@@ -59,26 +59,71 @@ export default function MemberShopList() {
       let lat: number | null = null;
       let lng: number | null = null;
 
-      // 1. Use coordinates from route params (most reliable on mobile)
-      if (paramLat && paramLng && parseFloat(paramLat) && parseFloat(paramLng)) {
-        lat = parseFloat(paramLat);
-        lng = parseFloat(paramLng);
-        console.log('[ShopList] Using params coords:', lat, lng);
+      // 1. ALWAYS try live GPS first (user's current device location)
+      try {
+        if (Platform.OS === 'web') {
+          const pos = await new Promise<{ lat: number; lng: number } | null>((resolve) => {
+            if (!navigator.geolocation) { resolve(null); return; }
+            const t = setTimeout(() => resolve(null), 10000);
+            navigator.geolocation.getCurrentPosition(
+              (p) => { clearTimeout(t); resolve({ lat: p.coords.latitude, lng: p.coords.longitude }); },
+              () => { clearTimeout(t); resolve(null); },
+              { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+            );
+          });
+          if (pos) {
+            lat = pos.lat;
+            lng = pos.lng;
+            console.log('[ShopList] Using LIVE GPS (web):', lat, lng);
+          }
+        } else {
+          // Mobile: request permission and get current position
+          const perm = await Location.requestForegroundPermissionsAsync();
+          if (perm.status === 'granted') {
+            // Try lastKnown first (instant, recent)
+            try {
+              const lastKnown = await Promise.race([
+                Location.getLastKnownPositionAsync(),
+                new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000))
+              ]);
+              if (lastKnown && lastKnown.coords) {
+                lat = lastKnown.coords.latitude;
+                lng = lastKnown.coords.longitude;
+                console.log('[ShopList] Using lastKnown GPS:', lat, lng);
+              }
+            } catch (e) {}
+
+            // If no lastKnown, get fresh position
+            if (!lat || !lng) {
+              const pos = await Promise.race([
+                Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }),
+                new Promise<null>((resolve) => setTimeout(() => resolve(null), 10000))
+              ]);
+              if (pos && 'coords' in pos) {
+                lat = pos.coords.latitude;
+                lng = pos.coords.longitude;
+                console.log('[ShopList] Using LIVE GPS (mobile):', lat, lng);
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('[ShopList] Live GPS failed:', e);
       }
 
-      // 2. Fallback: try Zustand store
+      // 2. Only if GPS completely fails, try stored location
       if (!lat || !lng) {
+        console.log('[ShopList] GPS unavailable, trying stored location...');
         try {
           const stored = useLocationStore.getState().location;
           if (stored?.latitude && stored?.longitude) {
             lat = stored.latitude;
             lng = stored.longitude;
-            console.log('[ShopList] Using store coords:', lat, lng);
+            console.log('[ShopList] Fallback to store coords:', lat, lng);
           }
         } catch (e) {}
       }
 
-      // 3. Fallback: try AsyncStorage
       if (!lat || !lng) {
         try {
           await useLocationStore.getState().loadFromStorage();
@@ -86,42 +131,9 @@ export default function MemberShopList() {
           if (loaded?.latitude && loaded?.longitude) {
             lat = loaded.latitude;
             lng = loaded.longitude;
-            console.log('[ShopList] Using AsyncStorage coords:', lat, lng);
+            console.log('[ShopList] Fallback to AsyncStorage coords:', lat, lng);
           }
         } catch (e) {}
-      }
-
-      // 4. Fallback: try GPS with 5s timeout
-      if (!lat || !lng) {
-        try {
-          if (Platform.OS === 'web') {
-            const pos = await new Promise<{ lat: number; lng: number } | null>((resolve) => {
-              if (!navigator.geolocation) { resolve(null); return; }
-              const t = setTimeout(() => resolve(null), 5000);
-              navigator.geolocation.getCurrentPosition(
-                (p) => { clearTimeout(t); resolve({ lat: p.coords.latitude, lng: p.coords.longitude }); },
-                () => { clearTimeout(t); resolve(null); },
-                { enableHighAccuracy: false, timeout: 5000 }
-              );
-            });
-            if (pos) { lat = pos.lat; lng = pos.lng; }
-          } else {
-            const perm = await Location.requestForegroundPermissionsAsync();
-            if (perm.status === 'granted') {
-              const pos = await Promise.race([
-                Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Low }),
-                new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000))
-              ]);
-              if (pos && 'coords' in pos) {
-                lat = pos.coords.latitude;
-                lng = pos.coords.longitude;
-                console.log('[ShopList] Using GPS coords:', lat, lng);
-              }
-            }
-          }
-        } catch (e) {
-          console.warn('[ShopList] GPS failed:', e);
-        }
       }
 
       if (!lat || !lng) {
@@ -131,7 +143,15 @@ export default function MemberShopList() {
         return;
       }
 
-      // Fire search
+      // Update store with fresh GPS coords for other screens
+      try {
+        useLocationStore.getState().setLocation({
+          latitude: lat, longitude: lng,
+          area: '', city: '', state: '', country: '', pincode: '', fullAddress: ''
+        });
+      } catch (e) {}
+
+      // Fire search with current location
       if (categoryId) {
         await fetchShopsByCategory(lat, lng);
       } else if (query) {
@@ -140,7 +160,7 @@ export default function MemberShopList() {
     };
 
     runSearch();
-  }, [categoryId, query, paramLat, paramLng]);
+  }, [categoryId, query]);
 
   // Category search
   const fetchShopsByCategory = async (lat: number, lng: number) => {
