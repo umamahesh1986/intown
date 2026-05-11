@@ -32,6 +32,12 @@ interface ShopData {
     s3ImageUrl: string;
   }>;
   distance: number;
+  openAt?: string;
+  closeAt?: string;
+  breakStartAt?: string;
+  breakEndAt?: string;
+  weekOff?: string;
+  offer?: string;
 }
 
 export default function MemberShopDetails() {
@@ -372,7 +378,13 @@ export default function MemberShopDetails() {
           <View style={styles.infoRow}>
             <Ionicons name="call" size={20} color="#FF8A00" />
             <Text style={styles.infoLabel}>Phone:</Text>
-            <Text style={styles.infoValue}>{userPhone}</Text>
+            <Text style={styles.infoValue}>{shop.phoneNumber || 'N/A'}</Text>
+          </View>
+
+          <View style={styles.infoRow}>
+            <Ionicons name="mail" size={20} color="#FF8A00" />
+            <Text style={styles.infoLabel}>Email:</Text>
+            <Text style={styles.infoValue}>{shop.email || 'N/A'}</Text>
           </View>
 
           <View style={styles.infoRow}>
@@ -384,13 +396,13 @@ export default function MemberShopDetails() {
           </View>
 
           <View style={styles.infoRow}>
-            <Ionicons name="mail" size={20} color="#FF8A00" />
+            <Ionicons name="keypad" size={20} color="#FF8A00" />
             <Text style={styles.infoLabel}>Pincode:</Text>
             <Text style={styles.infoValue}>{shop.pincode || 'N/A'}</Text>
           </View>
 
           <View style={styles.infoRow}>
-            <Ionicons name="time" size={20} color="#FF8A00" />
+            <Ionicons name="calendar" size={20} color="#FF8A00" />
             <Text style={styles.infoLabel}>Years:</Text>
             <Text style={styles.infoValue}>{shop.fromYears ? `${shop.fromYears} years` : 'N/A'}</Text>
           </View>
@@ -398,7 +410,40 @@ export default function MemberShopDetails() {
           <View style={styles.infoRow}>
             <Ionicons name="gift" size={20} color="#FF8A00" />
             <Text style={styles.infoLabel}>Offers:</Text>
-            <Text style={styles.infoValue}>Guaranty Savings</Text>
+            <Text style={styles.infoValue}>{shop.offer || 'Guaranty Savings'}</Text>
+          </View>
+        </View>
+
+        {/* Opening Hours */}
+        <View style={styles.infoCard}>
+          <Text style={styles.openingHoursTitle}>Opening Hours</Text>
+
+          <View style={styles.hoursRow}>
+            <Ionicons name="time-outline" size={18} color="#4CAF50" />
+            <Text style={styles.hoursLabel}>Open:</Text>
+            <Text style={styles.hoursValue}>{shop.openAt || 'N/A'}</Text>
+          </View>
+
+          <View style={styles.hoursRow}>
+            <Ionicons name="time-outline" size={18} color="#F44336" />
+            <Text style={styles.hoursLabel}>Close:</Text>
+            <Text style={styles.hoursValue}>{shop.closeAt || 'N/A'}</Text>
+          </View>
+
+          <View style={styles.hoursRow}>
+            <Ionicons name="cafe-outline" size={18} color="#FF8A00" />
+            <Text style={styles.hoursLabel}>Break:</Text>
+            <Text style={styles.hoursValue}>
+              {shop.breakStartAt && shop.breakEndAt
+                ? `${shop.breakStartAt} - ${shop.breakEndAt}`
+                : 'No break'}
+            </Text>
+          </View>
+
+          <View style={styles.hoursRow}>
+            <Ionicons name="calendar-outline" size={18} color="#666" />
+            <Text style={styles.hoursLabel}>Week Off:</Text>
+            <Text style={styles.hoursValue}>{shop.weekOff || 'None'}</Text>
           </View>
         </View>
 
@@ -615,6 +660,31 @@ const styles = StyleSheet.create({
   infoRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 14 },
   infoLabel: { fontSize: 14, color: '#666', marginLeft: 10, width: 80 },
   infoValue: { fontSize: 14, fontWeight: '600', color: '#1A1A1A', flex: 1 },
+  openingHoursTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1A1A1A',
+    marginBottom: 12,
+  },
+  hoursRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F5F5F5',
+    gap: 10,
+  },
+  hoursLabel: {
+    fontSize: 14,
+    color: '#666',
+    width: 70,
+  },
+  hoursValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1A1A1A',
+    flex: 1,
+  },
   savingsCard: {
     backgroundColor: '#E8F5E9',
     borderRadius: 12,
