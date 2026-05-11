@@ -155,17 +155,9 @@ export default function MemberShopList() {
 
       const list = Array.isArray(data) ? data : [];
       const mapped = list.map((item: any) => ({
+        ...item,
         id: item.id?.toString?.() ?? String(item.id ?? ''),
-        name: item.businessName ?? item.shopName,
-        businessName: item.businessName,
-        shopName: item.shopName ?? item.businessName,
-        contactName: item.contactName,
-        category: item.businessCategory,
-        businessCategory: item.businessCategory,
-        distance: item.distance,
         image: getFirstImageUrl(item.s3ImageUrl),
-        latitude: item.latitude,
-        longitude: item.longitude,
       }));
       setShops(mapped);
       setIsLoading(false);
@@ -192,17 +184,9 @@ export default function MemberShopList() {
 
       const list = Array.isArray(data) ? data : [];
       const mapped = list.map((item: any) => ({
+        ...item,
         id: item.id?.toString?.() ?? String(item.id ?? ''),
-        name: item.businessName ?? item.shopName,
-        businessName: item.businessName,
-        shopName: item.shopName ?? item.businessName,
-        contactName: item.contactName,
-        category: item.businessCategory,
-        businessCategory: item.businessCategory,
-        distance: item.distance,
         image: getFirstImageUrl(item.s3ImageUrl),
-        latitude: item.latitude,
-        longitude: item.longitude,
       }));
       setShops(mapped);
       setIsLoading(false);
