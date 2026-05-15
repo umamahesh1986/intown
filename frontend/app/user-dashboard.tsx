@@ -217,7 +217,30 @@ export default function UserDashboard() {
   }, [carouselImages]);
 
   const stopCategoriesAutoScroll = () => { };
-  const stopNearbyAutoScroll = () => { };
+  // Merchant carousel auto-scroll (right-to-left)
+  const nearbyAutoScrollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const nearbyScrollPos = useRef(0);
+
+  const startNearbyAutoScroll = () => {
+    if (nearbyAutoScrollRef.current) clearInterval(nearbyAutoScrollRef.current);
+    nearbyAutoScrollRef.current = setInterval(() => {
+      if (!nearbyScrollRef.current || nearbyShops.length === 0) return;
+      nearbyScrollPos.current += 1;
+      nearbyScrollRef.current.scrollTo({ x: nearbyScrollPos.current, animated: false });
+    }, 30);
+  };
+
+  const stopNearbyAutoScroll = () => {
+    if (nearbyAutoScrollRef.current) {
+      clearInterval(nearbyAutoScrollRef.current);
+      nearbyAutoScrollRef.current = null;
+    }
+  };
+
+  useEffect(() => {
+    if (nearbyShops.length > 0) startNearbyAutoScroll();
+    return () => stopNearbyAutoScroll();
+  }, [nearbyShops.length]);
 
   const categoryColumns = [];
   for (let i = 0; i < categories.length; i += 2) {
@@ -966,63 +989,82 @@ export default function UserDashboard() {
             )}
           </View>
 
-          {/* Nearby Shops Section */}
-          {/* <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Nearby Stores </Text>
-            <Text style={styles.normalText}>(Based on Location):</Text>
-            <ScrollView
-              ref={nearbyScrollRef}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              snapToInterval={CARD_WIDTH}
-              decelerationRate="fast"
-              contentContainerStyle={styles.nearbyCarouselContent}
-              onScrollBeginDrag={stopNearbyAutoScroll}
-            >
-              {nearbyShops.map((shop, index) => (
-                <TouchableOpacity
-                  key={`${shop.id}-${index}`}
-                  style={styles.shopCard}
-                  onPress={() =>
-                    router.push({
-                      pathname: '/member-shop-details',
-                      params: {
-                        shopId: shop.id,
-                        shop: JSON.stringify(shop),
-                        source: 'user',
-                      },
-                    })
-                  }
-                >
-                  <View style={styles.shopImagePlaceholder}>
-                    {(() => {
-                      const urls = extractImageUrls(shop.image ?? shop.s3ImageUrl);
-                      const uri = urls[0] ?? (typeof shop.image === 'string' ? shop.image : null);
-                      return uri ? (
-                        <Image source={{ uri }} style={styles.shopImageThumb} />
-                      ) : (
-                        <Ionicons name="storefront" size={40} color="#FF8C00" />
-                      );
-                    })()}
-                  </View>
-                  <Text style={styles.shopCardName} numberOfLines={1}>
-                    {shop.businessName || shop.shopName || shop.contactName || 'Shop'}
-                  </Text>
-                  <Text style={styles.shopCardCategory}>
-                    {shop.businessCategory}
-                  </Text>
-                  <View style={styles.shopCardDistance}>
-                    <Ionicons name="location" size={14} color="#FF8C00" />
-                    <Text style={styles.distanceText}>
-                      {formatDistance(
-                        typeof shop.distance === 'number' ? shop.distance : null
-                      )}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View> */}
+          {/* MERCHANT SHOP LIST CAROUSEL */}
+          {nearbyShops.length > 0 && (
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Merchant Shops</Text>
+              </View>
+
+              <ScrollView
+                ref={nearbyScrollRef}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                decelerationRate="fast"
+                contentContainerStyle={{ paddingHorizontal: 16, gap: 14 }}
+                onScrollBeginDrag={stopNearbyAutoScroll}
+                onScrollEndDrag={() => startNearbyAutoScroll()}
+              >
+                {nearbyShops.map((shop, index) => {
+                  const urls = extractImageUrls(shop.image ?? shop.s3ImageUrl);
+                  const imageUri = urls[0] ?? (typeof shop.image === 'string' ? shop.image : null);
+                  const shopName = shop.businessName || shop.shopName || shop.contactName || 'Shop';
+                  const category = shop.businessCategory || 'General';
+                  const offerText = shop.offer || '';
+
+                  return (
+                    <TouchableOpacity
+                      key={`merchant-${shop.id}-${index}`}
+                      style={styles.merchantCard}
+                      activeOpacity={0.9}
+                      onPress={() =>
+                        router.push({
+                          pathname: '/member-shop-details',
+                          params: {
+                            shopId: String(shop.id),
+                            categoryId: '',
+                            source: 'user',
+                            shopData: JSON.stringify(shop),
+                          },
+                        })
+                      }
+                    >
+                      <View style={styles.merchantImageWrapper}>
+                        {imageUri ? (
+                          <Image source={{ uri: imageUri }} style={styles.merchantImage} resizeMode="cover" />
+                        ) : (
+                          <View style={styles.merchantImagePlaceholder}>
+                            <Ionicons name="storefront" size={36} color="#FF8A00" />
+                          </View>
+                        )}
+                        <View style={styles.merchantCategoryBadge}>
+                          <Text style={styles.merchantCategoryText}>{category}</Text>
+                        </View>
+                      </View>
+                      <View style={styles.merchantCardContent}>
+                        <Text style={styles.merchantName} numberOfLines={1}>{shopName}</Text>
+                        {shop.contactName && shop.contactName !== shopName && (
+                          <Text style={styles.merchantContact} numberOfLines={1}>{shop.contactName}</Text>
+                        )}
+                        {shop.address ? (
+                          <View style={styles.merchantInfoRow}>
+                            <Ionicons name="location-outline" size={13} color="#888" />
+                            <Text style={styles.merchantInfoText} numberOfLines={1}>{shop.address}</Text>
+                          </View>
+                        ) : null}
+                        {offerText ? (
+                          <View style={styles.merchantOfferBadge}>
+                            <Ionicons name="pricetag" size={12} color="#4CAF50" />
+                            <Text style={styles.merchantOfferText} numberOfLines={1}>{offerText}</Text>
+                          </View>
+                        ) : null}
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          )}
 
           {/* Footer */}
           <Footer dashboardType="user" />
@@ -2226,6 +2268,91 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666666',
     marginLeft: 4,
+  },
+
+  // Merchant Carousel Card Styles
+  merchantCard: {
+    width: 220,
+    backgroundColor: '#FFF',
+    borderRadius: 14,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  merchantImageWrapper: {
+    width: '100%',
+    height: 130,
+    position: 'relative',
+  },
+  merchantImage: {
+    width: '100%',
+    height: '100%',
+  },
+  merchantImagePlaceholder: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#FFF3E0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  merchantCategoryBadge: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    backgroundColor: 'rgba(255,138,0,0.9)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  merchantCategoryText: {
+    color: '#FFF',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  merchantCardContent: {
+    padding: 10,
+  },
+  merchantName: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1A1A1A',
+    marginBottom: 2,
+  },
+  merchantContact: {
+    fontSize: 12,
+    color: '#888',
+    marginBottom: 4,
+  },
+  merchantInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 4,
+  },
+  merchantInfoText: {
+    fontSize: 11,
+    color: '#888',
+    flex: 1,
+  },
+  merchantOfferBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#E8F5E9',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+    marginTop: 2,
+  },
+  merchantOfferText: {
+    fontSize: 11,
+    color: '#4CAF50',
+    fontWeight: '600',
+    flex: 1,
   },
   offerCard: {
     marginHorizontal: 16,
