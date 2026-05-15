@@ -236,18 +236,6 @@ export default function RegisterMerchant() {
     }
   };
   const [agreedToTerms, setAgreedToTerms] = useState(false);
-
-  // Check if all mandatory fields are filled
-  const isFormValid =
-    businessName.trim().length > 0 &&
-    contactName.trim().length > 0 &&
-    selectedCategoryId !== null &&
-    description.trim().length > 0 &&
-    yearsInBusiness.trim().length > 0 &&
-    branches.trim().length > 0 &&
-    pincode.trim().length > 0 &&
-    location !== null && location.latitude !== undefined && location.longitude !== undefined &&
-    agreedToTerms;
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<any>({});
 
@@ -271,6 +259,18 @@ export default function RegisterMerchant() {
   const [customProductsCsv, setCustomProductsCsv] = useState('');
   const [customProducts, setCustomProducts] =
     useState<{ id: number; name: string }[]>([]);
+
+  // Check if all mandatory fields are filled
+  const isFormValid =
+    businessName.trim().length > 0 &&
+    contactName.trim().length > 0 &&
+    selectedCategoryId !== null &&
+    description.trim().length > 0 &&
+    yearsInBusiness.trim().length > 0 &&
+    branches.trim().length > 0 &&
+    pincode.trim().length > 0 &&
+    location !== null && location.latitude !== undefined && location.longitude !== undefined &&
+    agreedToTerms;
 
   /* ================= AUTO-POPULATE PHONE NUMBER ================= */
 
