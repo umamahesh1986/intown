@@ -971,8 +971,47 @@ export default function RegisterMerchant() {
             </TouchableOpacity>
           )}
 
+          {/* SELECT / EDIT PRODUCTS BUTTON */}
+          {selectedCategoryId && products.length > 0 && (
+            <TouchableOpacity
+              style={styles.selectProductsBtn}
+              onPress={() => setShowProductModal(true)}
+            >
+              <Ionicons name="pricetags-outline" size={18} color="#FF8A00" />
+              <Text style={styles.selectProductsBtnText}>
+                {selectedProductIds.length > 0 ? 'Edit Products' : 'Select Products'}
+              </Text>
+              {selectedProductIds.length > 0 && (
+                <View style={styles.productCountBadge}>
+                  <Text style={styles.productCountText}>{selectedProductIds.length}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          )}
 
-
+          {/* SELECTED PRODUCTS LIST */}
+          {selectedProductIds.length > 0 && (
+            <View style={styles.selectedProductsContainer}>
+              <Text style={styles.selectedProductsTitle}>Selected Products</Text>
+              <View style={styles.selectedProductsList}>
+                {selectedProductIds.map(pid => {
+                  const product = products.find(p => p.id === pid) || customProducts.find(p => p.id === pid);
+                  if (!product) return null;
+                  return (
+                    <View key={pid} style={styles.selectedProductChip}>
+                      <Text style={styles.selectedProductChipText}>{product.name}</Text>
+                      <TouchableOpacity
+                        onPress={() => setSelectedProductIds(prev => prev.filter(id => id !== pid))}
+                        style={styles.removeProductBtn}
+                      >
+                        <Ionicons name="close-circle" size={18} color="#FF5252" />
+                      </TouchableOpacity>
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
+          )}
 
           {/* DESCRIPTION */}
           <View style={styles.formGroup}>
@@ -1582,6 +1621,75 @@ const styles = StyleSheet.create({
   },
   submitBtnDisabled: {
     backgroundColor: '#CCCCCC',
+  },
+
+  selectProductsBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    marginTop: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#FF8A00',
+    backgroundColor: '#FFF8F0',
+  },
+  selectProductsBtnText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#FF8A00',
+  },
+  productCountBadge: {
+    backgroundColor: '#FF8A00',
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 6,
+  },
+  productCountText: {
+    color: '#FFF',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  selectedProductsContainer: {
+    marginTop: 12,
+    padding: 12,
+    backgroundColor: '#FFF',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#EEE',
+  },
+  selectedProductsTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#333',
+    marginBottom: 8,
+  },
+  selectedProductsList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  selectedProductChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF3E0',
+    borderRadius: 16,
+    paddingVertical: 6,
+    paddingLeft: 12,
+    paddingRight: 6,
+    gap: 4,
+  },
+  selectedProductChipText: {
+    fontSize: 13,
+    color: '#333',
+    fontWeight: '500',
+  },
+  removeProductBtn: {
+    padding: 2,
   },
   submitText: { color: '#FFF', fontWeight: '600' },
   helperText: {
