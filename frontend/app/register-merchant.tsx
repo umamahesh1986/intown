@@ -236,6 +236,18 @@ export default function RegisterMerchant() {
     }
   };
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+
+  // Check if all mandatory fields are filled
+  const isFormValid =
+    businessName.trim().length > 0 &&
+    contactName.trim().length > 0 &&
+    selectedCategoryId !== null &&
+    description.trim().length > 0 &&
+    yearsInBusiness.trim().length > 0 &&
+    branches.trim().length > 0 &&
+    pincode.trim().length > 0 &&
+    location !== null && location.latitude !== undefined && location.longitude !== undefined &&
+    agreedToTerms;
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<any>({});
 
@@ -1286,9 +1298,9 @@ export default function RegisterMerchant() {
 
           {/* SUBMIT BUTTON */}
           <TouchableOpacity
-            style={styles.submitBtn}
+            style={[styles.submitBtn, (!isFormValid || isLoading) && styles.submitBtnDisabled]}
             onPress={handleRegister}
-            disabled={isLoading}
+            disabled={!isFormValid || isLoading}
           >
             {isLoading ? (
               <ActivityIndicator color="#FFF" />
@@ -1567,6 +1579,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginTop: 24,
     alignItems: 'center',
+  },
+  submitBtnDisabled: {
+    backgroundColor: '#CCCCCC',
   },
   submitText: { color: '#FFF', fontWeight: '600' },
   helperText: {
