@@ -1193,7 +1193,7 @@ export default function MemberDashboard() {
           {nearbyShops.length > 0 && (
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Merchant Shops</Text>
+                <Text style={styles.sectionTitle}>INtown Previlage Nearby Shops</Text>
               </View>
 
               <ScrollView
@@ -1201,7 +1201,7 @@ export default function MemberDashboard() {
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 decelerationRate="fast"
-                contentContainerStyle={{ paddingHorizontal: 16, gap: 14 }}
+                contentContainerStyle={{ paddingRight: 16, gap: 14 }}
                 onScrollBeginDrag={stopNearbyAutoScroll}
                 onScrollEndDrag={() => startNearbyAutoScroll()}
               >
