@@ -217,16 +217,24 @@ export default function UserDashboard() {
   }, [carouselImages]);
 
   const stopCategoriesAutoScroll = () => { };
-  // Merchant carousel auto-scroll (right-to-left)
+  // Merchant carousel infinite auto-scroll (right-to-left)
   const nearbyAutoScrollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const nearbyScrollPos = useRef(0);
+  const MERCHANT_CARD_WIDTH = 234; // 220 card + 14 gap
 
   const startNearbyAutoScroll = () => {
     if (nearbyAutoScrollRef.current) clearInterval(nearbyAutoScrollRef.current);
     nearbyAutoScrollRef.current = setInterval(() => {
       if (!nearbyScrollRef.current || nearbyShops.length === 0) return;
       nearbyScrollPos.current += 1;
-      nearbyScrollRef.current.scrollTo({ x: nearbyScrollPos.current, animated: false });
+      // Reset to start when scrolled past original list (seamless loop)
+      const totalWidth = nearbyShops.length * MERCHANT_CARD_WIDTH;
+      if (nearbyScrollPos.current >= totalWidth) {
+        nearbyScrollPos.current = 0;
+        nearbyScrollRef.current.scrollTo({ x: 0, animated: false });
+      } else {
+        nearbyScrollRef.current.scrollTo({ x: nearbyScrollPos.current, animated: false });
+      }
     }, 30);
   };
 
@@ -1002,10 +1010,22 @@ export default function UserDashboard() {
                 showsHorizontalScrollIndicator={false}
                 decelerationRate="fast"
                 contentContainerStyle={{ paddingRight: 16, gap: 14 }}
-                onScrollBeginDrag={stopNearbyAutoScroll}
-                onScrollEndDrag={() => startNearbyAutoScroll()}
+                onScrollBeginDrag={() => {
+                  stopNearbyAutoScroll();
+                }}
+                onScroll={(e) => {
+                  nearbyScrollPos.current = e.nativeEvent.contentOffset.x;
+                }}
+                scrollEventThrottle={16}
+                onScrollEndDrag={() => {
+                  setTimeout(() => startNearbyAutoScroll(), 2000);
+                }}
+                onMomentumScrollEnd={(e) => {
+                  nearbyScrollPos.current = e.nativeEvent.contentOffset.x;
+                }}
               >
-                {nearbyShops.map((shop, index) => {
+                {/* Render shops 3x for seamless infinite loop */}
+                {[...nearbyShops, ...nearbyShops, ...nearbyShops].map((shop, index) => {
                   const urls = extractImageUrls(shop.image ?? shop.s3ImageUrl);
                   const imageUri = urls[0] ?? (typeof shop.image === 'string' ? shop.image : null);
                   const shopName = shop.businessName || shop.shopName || shop.contactName || 'Shop';
