@@ -1010,9 +1010,19 @@ export default function UserDashboard() {
                 showsHorizontalScrollIndicator={false}
                 decelerationRate="fast"
                 contentContainerStyle={{ paddingRight: 16, gap: 14 }}
-                onScrollBeginDrag={stopNearbyAutoScroll}
-                onScrollEndDrag={() => startNearbyAutoScroll()}
-                onMomentumScrollEnd={(e) => { nearbyScrollPos.current = e.nativeEvent.contentOffset.x; }}
+                onScrollBeginDrag={() => {
+                  stopNearbyAutoScroll();
+                }}
+                onScroll={(e) => {
+                  nearbyScrollPos.current = e.nativeEvent.contentOffset.x;
+                }}
+                scrollEventThrottle={16}
+                onScrollEndDrag={() => {
+                  setTimeout(() => startNearbyAutoScroll(), 2000);
+                }}
+                onMomentumScrollEnd={(e) => {
+                  nearbyScrollPos.current = e.nativeEvent.contentOffset.x;
+                }}
               >
                 {/* Render shops 3x for seamless infinite loop */}
                 {[...nearbyShops, ...nearbyShops, ...nearbyShops].map((shop, index) => {
