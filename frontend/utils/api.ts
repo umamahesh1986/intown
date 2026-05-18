@@ -818,6 +818,24 @@ export const getNearbyShops = async (
     return [];
   }
 };
+export const getNearbyShopsNoCategoryID = async (
+  latitude: number,
+  longitude: number
+) => {
+  let url = `${INTOWN_API_BASE}/search/by-product-names?customerLatitude=${latitude}&customerLongitude=${longitude}`;
+
+  try {
+    const res = await fetch(url);
+    if (!res.ok) {
+      console.warn('[API] getNearbyShops failed:', res.status, 'for coords:', latitude, longitude);
+      return [];
+    }
+    return res.json();
+  } catch (e) {
+    console.warn('[API] getNearbyShops error:', e);
+    return [];
+  }
+};
 
 
 // ================= Member-dashboard CATEGORY → NEARBY SHOPS API =================

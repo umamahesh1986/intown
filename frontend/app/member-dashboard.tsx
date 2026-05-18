@@ -33,7 +33,7 @@ import { useAuthStore } from '../store/authStore';
 import { useLocationStore } from '../store/locationStore';
 import {
   getCategories,
-  getNearbyShops,
+  getNearbyShopsNoCategoryID,
   getNearbyShopsByCategory,
 } from '../utils/api';
 import { getCustomerProfile, getMerchantImageByShopId, extractImageUrls, INTOWN_API_BASE } from '../utils/api';
@@ -626,10 +626,9 @@ export default function MemberDashboard() {
     try {
       setIsNearbyLoading(true);
 
-      const response = await getNearbyShops(
+      const response = await getNearbyShopsNoCategoryID(
         location.latitude,
-        location.longitude,
-        100001
+        location.longitude
       );
 
 
@@ -1193,7 +1192,7 @@ export default function MemberDashboard() {
           {nearbyShops.length > 0 && (
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>INtown Previlage Nearby Shops</Text>
+                <Text style={styles.sectionTitle}>INtown Privilage Nearby Shops</Text>
               </View>
 
               <ScrollView

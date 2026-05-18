@@ -1004,7 +1004,7 @@ export default function RegisterMerchant() {
                         onPress={() => setSelectedProductIds(prev => prev.filter(id => id !== pid))}
                         style={styles.removeProductBtn}
                       >
-                        <Ionicons name="close-circle" size={18} color="#FF5252" />
+                        <Ionicons name="close-circle" size={18} color="#FF8A00" />
                       </TouchableOpacity>
                     </View>
                   );
@@ -1655,7 +1655,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   selectedProductsContainer: {
-    marginTop: 12,
+    marginVertical: 12,
     padding: 12,
     backgroundColor: '#FFF',
     borderRadius: 10,
