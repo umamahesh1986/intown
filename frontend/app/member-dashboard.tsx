@@ -33,7 +33,7 @@ import { useAuthStore } from '../store/authStore';
 import { useLocationStore } from '../store/locationStore';
 import {
   getCategories,
-  getNearbyShops,
+  getNearbyShopsNoCategoryID,
   getNearbyShopsByCategory,
 } from '../utils/api';
 import { getCustomerProfile, getMerchantImageByShopId, extractImageUrls, INTOWN_API_BASE } from '../utils/api';
@@ -319,7 +319,7 @@ export default function MemberDashboard() {
     nearbyAutoScrollRef.current = setInterval(() => {
       if (!nearbyScrollRef.current || nearbyShops.length === 0) return;
       nearbyScrollPos.current += 1;
-      // Reset to start when we've scrolled past the original list (seamless loop)
+      // Reset to start when scrolled past original list (seamless loop)
       const totalWidth = nearbyShops.length * MERCHANT_CARD_WIDTH;
       if (nearbyScrollPos.current >= totalWidth) {
         nearbyScrollPos.current = 0;
@@ -634,10 +634,9 @@ export default function MemberDashboard() {
     try {
       setIsNearbyLoading(true);
 
-      const response = await getNearbyShops(
+      const response = await getNearbyShopsNoCategoryID(
         location.latitude,
-        location.longitude,
-        100001
+        location.longitude
       );
 
 
@@ -1201,7 +1200,7 @@ export default function MemberDashboard() {
           {nearbyShops.length > 0 && (
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Merchant Shops</Text>
+                <Text style={styles.sectionTitle}>INtown Privilage Nearby Shops</Text>
               </View>
 
               <ScrollView
@@ -1209,19 +1208,13 @@ export default function MemberDashboard() {
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 decelerationRate="fast"
-                contentContainerStyle={{ paddingHorizontal: 16, gap: 14 }}
-                onScrollBeginDrag={() => {
-                  stopNearbyAutoScroll();
-                  // Sync scroll position on drag
-                  nearbyScrollRef.current?.scrollTo && undefined;
-                }}
+                contentContainerStyle={{ paddingRight: 16, gap: 14 }}
+                onScrollBeginDrag={stopNearbyAutoScroll}
                 onScrollEndDrag={() => startNearbyAutoScroll()}
-                onMomentumScrollEnd={(e) => {
-                  nearbyScrollPos.current = e.nativeEvent.contentOffset.x;
-                }}
+                onMomentumScrollEnd={(e) => { nearbyScrollPos.current = e.nativeEvent.contentOffset.x; }}
               >
-                {/* Render shops twice for seamless infinite loop */}
-                {[...nearbyShops, ...nearbyShops].map((shop, index) => {
+                {/* Render shops 3x for seamless infinite loop */}
+                {[...nearbyShops, ...nearbyShops, ...nearbyShops].map((shop, index) => {
                   const urls = extractImageUrls(shop.image ?? shop.s3ImageUrl);
                   const imageUri = urls[0] ?? (typeof shop.image === 'string' ? shop.image : null);
                   const shopName = shop.businessName || shop.shopName || shop.contactName || 'Shop';

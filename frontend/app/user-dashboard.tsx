@@ -227,6 +227,7 @@ export default function UserDashboard() {
     nearbyAutoScrollRef.current = setInterval(() => {
       if (!nearbyScrollRef.current || nearbyShops.length === 0) return;
       nearbyScrollPos.current += 1;
+      // Reset to start when scrolled past original list (seamless loop)
       const totalWidth = nearbyShops.length * MERCHANT_CARD_WIDTH;
       if (nearbyScrollPos.current >= totalWidth) {
         nearbyScrollPos.current = 0;
@@ -1000,7 +1001,7 @@ export default function UserDashboard() {
           {nearbyShops.length > 0 && (
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Merchant Shops</Text>
+                <Text style={styles.sectionTitle}>INtown Previlage Nearby Shops</Text>
               </View>
 
               <ScrollView
@@ -1008,15 +1009,13 @@ export default function UserDashboard() {
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 decelerationRate="fast"
-                contentContainerStyle={{ paddingHorizontal: 16, gap: 14 }}
-                onScrollBeginDrag={() => stopNearbyAutoScroll()}
+                contentContainerStyle={{ paddingRight: 16, gap: 14 }}
+                onScrollBeginDrag={stopNearbyAutoScroll}
                 onScrollEndDrag={() => startNearbyAutoScroll()}
-                onMomentumScrollEnd={(e) => {
-                  nearbyScrollPos.current = e.nativeEvent.contentOffset.x;
-                }}
+                onMomentumScrollEnd={(e) => { nearbyScrollPos.current = e.nativeEvent.contentOffset.x; }}
               >
-                {/* Render shops twice for seamless infinite loop */}
-                {[...nearbyShops, ...nearbyShops].map((shop, index) => {
+                {/* Render shops 3x for seamless infinite loop */}
+                {[...nearbyShops, ...nearbyShops, ...nearbyShops].map((shop, index) => {
                   const urls = extractImageUrls(shop.image ?? shop.s3ImageUrl);
                   const imageUri = urls[0] ?? (typeof shop.image === 'string' ? shop.image : null);
                   const shopName = shop.businessName || shop.shopName || shop.contactName || 'Shop';
