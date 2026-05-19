@@ -66,10 +66,7 @@ export default function RegisterMerchant() {
   const [location, setLocation] = useState<{
     latitude: number;
     longitude: number;
-  }>({
-    latitude: 17.385044,   // Hyderabad default
-    longitude: 78.486671,
-  });
+  } | null>(null);
 
   const [address, setAddress] = useState('');
   const [introducedBy, setIntroducedBy] = useState('');
