@@ -1,10 +1,10 @@
 import axios from "axios";
 import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-const BASE_URL = 'https://api.intownlocal.com';
+const BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://api.intownlocal.com';
 export const INTOWN_API_BASE = `${BASE_URL}/IN`;
 
-const OTP_API_BASE = 'https://devapi.intownlocal.com/IN';
+const OTP_API_BASE = process.env.EXPO_PUBLIC_OTP_API_BASE_URL || 'https://devapi.intownlocal.com/IN';
 
 /* ===============================
    CUSTOM OTP APIs (No Firebase)
