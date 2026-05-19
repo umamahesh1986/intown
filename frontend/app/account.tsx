@@ -72,63 +72,88 @@ export default function Account() {
 
   const loadProfileData = async () => {
     try {
-      const [storedImage, storedUserType, storedMerchantId] = await Promise.all([
+      const [storedImage, storedUserType, storedMerchantId, storedUserRole, storedUserData, searchResp] = await Promise.all([
         AsyncStorage.getItem('user_profile_image'),
         AsyncStorage.getItem('user_type'),
         AsyncStorage.getItem('merchant_id'),
+        AsyncStorage.getItem('user_role'),
+        AsyncStorage.getItem('user_data'),
+        AsyncStorage.getItem('user_search_response'),
       ]);
 
       if (storedImage) setProfileImage(storedImage);
       if (storedUserType) setUserType(storedUserType);
       if (storedMerchantId) setMerchantId(storedMerchantId);
 
+      // Detect merchant from ALL available signals
       const lowerType = (storedUserType ?? '').toLowerCase();
-      const merchantUser = lowerType.includes('merchant') || lowerType === 'dual';
-      setIsMerchant(merchantUser);
+      const lowerRole = (storedUserRole ?? '').toLowerCase();
+      let hasMerchantData = false;
+      let parsedSearch: any = null;
 
-      // Load merchant data from search response
-      const searchResp = await AsyncStorage.getItem('user_search_response');
       if (searchResp) {
         try {
-          const data = JSON.parse(searchResp);
-          if (merchantUser && data.merchant) {
-            const m = data.merchant;
-            setName(m.shopName || m.businessName || m.contactName || '');
-            setContactName(m.contactName || '');
-            setEmail(m.email || '');
-            setBusinessCategory(m.businessCategory || '');
-            setDescription(m.description || '');
-            setBranches(m.branchesOfBusiness || '');
-            setFromYears(m.fromYears || '');
-            setOpenAt(m.openAt || '');
-            setCloseAt(m.closeAt || '');
-            setBreakStartAt(m.breakStartAt || '');
-            setBreakEndAt(m.breakEndAt || '');
-            setWeekOff(m.weekOff || '');
-            setOffer(m.offer || '');
-            setShopLat(m.latitude ?? null);
-            setShopLng(m.longitude ?? null);
-
-            // Load products for category
-            if (m.businessCategory) {
-              const cat = categories.find(c => c.name === m.businessCategory);
-              if (cat) loadProductsForCategory(cat.id);
-            }
-          } else if (data.customer) {
-            setName(data.customer.contactName || data.customer.name || '');
-            setEmail(data.customer.email || '');
-          }
+          parsedSearch = JSON.parse(searchResp);
+          hasMerchantData = !!(parsedSearch?.merchant?.id);
         } catch {}
       }
 
-      // Fallback name from stored keys
-      const storedUserData = await AsyncStorage.getItem('user_data');
-      if (storedUserData && !name) {
-        try {
-          const ud = JSON.parse(storedUserData);
-          if (ud.name) setName(ud.name);
-          if (ud.email) setEmail(ud.email);
-        } catch {}
+      let parsedUserData: any = null;
+      if (storedUserData) {
+        try { parsedUserData = JSON.parse(storedUserData); } catch {}
+      }
+
+      const merchantUser =
+        lowerType.includes('merchant') ||
+        lowerType === 'dual' ||
+        lowerType === 'in_merchant' ||
+        lowerRole.includes('merchant') ||
+        lowerRole === 'dual' ||
+        !!storedMerchantId ||
+        hasMerchantData ||
+        (parsedUserData?.userType === 'merchant');
+
+      setIsMerchant(merchantUser);
+
+      // If no merchantId stored but found in search response, save it
+      if (!storedMerchantId && parsedSearch?.merchant?.id) {
+        const mid = String(parsedSearch.merchant.id);
+        setMerchantId(mid);
+        await AsyncStorage.setItem('merchant_id', mid);
+      }
+
+      // Load merchant fields from search response
+      if (merchantUser && parsedSearch?.merchant) {
+        const m = parsedSearch.merchant;
+        setName(m.shopName || m.businessName || m.contactName || '');
+        setContactName(m.contactName || '');
+        setEmail(m.email || '');
+        setBusinessCategory(m.businessCategory || '');
+        setDescription(m.description || '');
+        setBranches(m.branchesOfBusiness || '');
+        setFromYears(m.fromYears || '');
+        setOpenAt(m.openAt || '');
+        setCloseAt(m.closeAt || '');
+        setBreakStartAt(m.breakStartAt || '');
+        setBreakEndAt(m.breakEndAt || '');
+        setWeekOff(m.weekOff || '');
+        setOffer(m.offer || '');
+        setShopLat(m.latitude ?? null);
+        setShopLng(m.longitude ?? null);
+
+        if (m.businessCategory) {
+          const cat = categories.find(c => c.name === m.businessCategory);
+          if (cat) loadProductsForCategory(cat.id);
+        }
+      } else if (parsedSearch?.customer) {
+        setName(parsedSearch.customer.contactName || parsedSearch.customer.name || '');
+        setEmail(parsedSearch.customer.email || '');
+      }
+
+      // Fallback name from user_data
+      if (parsedUserData && !name) {
+        if (parsedUserData.name) setName(parsedUserData.name);
+        if (parsedUserData.email) setEmail(parsedUserData.email);
       }
     } catch (e) {
       console.error('Error loading profile:', e);
