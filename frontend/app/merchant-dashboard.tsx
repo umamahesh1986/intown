@@ -94,6 +94,13 @@ interface MerchantDetails {
     isPrimary: boolean;
     s3ImageUrl: string;
   }>;
+  openAt?: string;
+  closeAt?: string;
+  breakStartAt?: string;
+  breakEndAt?: string;
+  weekOff?: string;
+  offer?: string;
+  productNames?: string[];
 }
 
 const formatTransactionDate = (value: string) => {
@@ -523,6 +530,39 @@ export default function MerchantDashboard() {
         }
         if (data.contactName) {
           setMerchantContactName(data.contactName);
+        }
+
+        // Save ALL merchant details to AsyncStorage for Account page
+        try {
+          const searchResp = await AsyncStorage.getItem('user_search_response');
+          let parsed: any = {};
+          if (searchResp) { try { parsed = JSON.parse(searchResp); } catch {} }
+          parsed.merchant = {
+            ...parsed.merchant,
+            id: data.id ?? merchantId,
+            contactName: data.contactName ?? '',
+            email: data.email ?? '',
+            businessName: data.businessName ?? '',
+            shopName: data.businessName ?? '',
+            businessCategory: data.businessCategory ?? '',
+            description: data.description ?? '',
+            fromYears: data.fromYears ?? '',
+            branchesOfBusiness: data.branchesOfBusiness ?? '',
+            latitude: data.latitude,
+            longitude: data.longitude,
+            openAt: data.openAt ?? '',
+            closeAt: data.closeAt ?? '',
+            breakStartAt: data.breakStartAt ?? '',
+            breakEndAt: data.breakEndAt ?? '',
+            weekOff: data.weekOff ?? '',
+            offer: data.offer ?? '',
+            productNames: data.productNames ?? [],
+            s3ImageUrl: data.s3ImageUrl ?? [],
+          };
+          await AsyncStorage.setItem('user_search_response', JSON.stringify(parsed));
+          await AsyncStorage.setItem('merchant_id', String(data.id ?? merchantId));
+        } catch (e) {
+          console.warn('[MerchantDash] Failed to save merchant details to storage:', e);
         }
 
         // Extract and set images from API response

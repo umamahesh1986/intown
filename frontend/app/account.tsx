@@ -57,6 +57,8 @@ export default function Account() {
   const [products, setProducts] = useState<any[]>([]);
   const [selectedProductIds, setSelectedProductIds] = useState<number[]>([]);
   const [showProductModal, setShowProductModal] = useState(false);
+  const [customProductsList, setCustomProductsList] = useState<string[]>([]);
+  const [newProductInput, setNewProductInput] = useState('');
 
   useEffect(() => {
     loadProfileData();
@@ -72,63 +74,92 @@ export default function Account() {
 
   const loadProfileData = async () => {
     try {
-      const [storedImage, storedUserType, storedMerchantId] = await Promise.all([
+      const [storedImage, storedUserType, storedMerchantId, storedUserRole, storedUserData, searchResp] = await Promise.all([
         AsyncStorage.getItem('user_profile_image'),
         AsyncStorage.getItem('user_type'),
         AsyncStorage.getItem('merchant_id'),
+        AsyncStorage.getItem('user_role'),
+        AsyncStorage.getItem('user_data'),
+        AsyncStorage.getItem('user_search_response'),
       ]);
 
       if (storedImage) setProfileImage(storedImage);
       if (storedUserType) setUserType(storedUserType);
       if (storedMerchantId) setMerchantId(storedMerchantId);
 
+      // Detect merchant from ALL available signals
       const lowerType = (storedUserType ?? '').toLowerCase();
-      const merchantUser = lowerType.includes('merchant') || lowerType === 'dual';
-      setIsMerchant(merchantUser);
+      const lowerRole = (storedUserRole ?? '').toLowerCase();
+      let hasMerchantData = false;
+      let parsedSearch: any = null;
 
-      // Load merchant data from search response
-      const searchResp = await AsyncStorage.getItem('user_search_response');
       if (searchResp) {
         try {
-          const data = JSON.parse(searchResp);
-          if (merchantUser && data.merchant) {
-            const m = data.merchant;
-            setName(m.shopName || m.businessName || m.contactName || '');
-            setContactName(m.contactName || '');
-            setEmail(m.email || '');
-            setBusinessCategory(m.businessCategory || '');
-            setDescription(m.description || '');
-            setBranches(m.branchesOfBusiness || '');
-            setFromYears(m.fromYears || '');
-            setOpenAt(m.openAt || '');
-            setCloseAt(m.closeAt || '');
-            setBreakStartAt(m.breakStartAt || '');
-            setBreakEndAt(m.breakEndAt || '');
-            setWeekOff(m.weekOff || '');
-            setOffer(m.offer || '');
-            setShopLat(m.latitude ?? null);
-            setShopLng(m.longitude ?? null);
-
-            // Load products for category
-            if (m.businessCategory) {
-              const cat = categories.find(c => c.name === m.businessCategory);
-              if (cat) loadProductsForCategory(cat.id);
-            }
-          } else if (data.customer) {
-            setName(data.customer.contactName || data.customer.name || '');
-            setEmail(data.customer.email || '');
-          }
+          parsedSearch = JSON.parse(searchResp);
+          hasMerchantData = !!(parsedSearch?.merchant?.id);
         } catch {}
       }
 
-      // Fallback name from stored keys
-      const storedUserData = await AsyncStorage.getItem('user_data');
-      if (storedUserData && !name) {
-        try {
-          const ud = JSON.parse(storedUserData);
-          if (ud.name) setName(ud.name);
-          if (ud.email) setEmail(ud.email);
-        } catch {}
+      let parsedUserData: any = null;
+      if (storedUserData) {
+        try { parsedUserData = JSON.parse(storedUserData); } catch {}
+      }
+
+      const merchantUser =
+        lowerType.includes('merchant') ||
+        lowerType === 'dual' ||
+        lowerType === 'in_merchant' ||
+        lowerRole.includes('merchant') ||
+        lowerRole === 'dual' ||
+        !!storedMerchantId ||
+        hasMerchantData ||
+        (parsedUserData?.userType === 'merchant');
+
+      setIsMerchant(merchantUser);
+
+      // If no merchantId stored but found in search response, save it
+      if (!storedMerchantId && parsedSearch?.merchant?.id) {
+        const mid = String(parsedSearch.merchant.id);
+        setMerchantId(mid);
+        await AsyncStorage.setItem('merchant_id', mid);
+      }
+
+      // Load merchant fields from search response
+      if (merchantUser && parsedSearch?.merchant) {
+        const m = parsedSearch.merchant;
+        setName(m.shopName || m.businessName || m.contactName || '');
+        setContactName(m.contactName || '');
+        setEmail(m.email || '');
+        setBusinessCategory(m.businessCategory || '');
+        setDescription(m.description || '');
+        setBranches(m.branchesOfBusiness || '');
+        setFromYears(m.fromYears || '');
+        setOpenAt(m.openAt || '');
+        setCloseAt(m.closeAt || '');
+        setBreakStartAt(m.breakStartAt || '');
+        setBreakEndAt(m.breakEndAt || '');
+        setWeekOff(m.weekOff || '');
+        setOffer(m.offer || '');
+        setShopLat(m.latitude ?? null);
+        setShopLng(m.longitude ?? null);
+
+        if (m.businessCategory) {
+          const cat = categories.find(c => c.name === m.businessCategory);
+          if (cat) loadProductsForCategory(cat.id);
+        }
+        // Load existing product names from API
+        if (m.productNames && Array.isArray(m.productNames)) {
+          setCustomProductsList(m.productNames);
+        }
+      } else if (parsedSearch?.customer) {
+        setName(parsedSearch.customer.contactName || parsedSearch.customer.name || '');
+        setEmail(parsedSearch.customer.email || '');
+      }
+
+      // Fallback name from user_data
+      if (parsedUserData && !name) {
+        if (parsedUserData.name) setName(parsedUserData.name);
+        if (parsedUserData.email) setEmail(parsedUserData.email);
       }
     } catch (e) {
       console.error('Error loading profile:', e);
@@ -170,6 +201,7 @@ export default function Account() {
           breakEndAt,
           weekOff,
           offer,
+          productNames: customProductsList.filter(p => p.trim()),
         };
         if (shopLat && shopLng) {
           payload.latitude = shopLat;
@@ -429,36 +461,68 @@ export default function Account() {
               </View>
 
               {/* Products */}
-              {businessCategory && products.length > 0 && (
-                <View style={styles.fieldGroup}>
-                  <Text style={styles.label}>Products</Text>
-                  {editing && (
-                    <TouchableOpacity style={styles.selectBtn} onPress={() => setShowProductModal(true)}>
-                      <Text style={styles.selectBtnText}>
-                        {selectedProductIds.length > 0 ? `${selectedProductIds.length} selected` : 'Select Products'}
-                      </Text>
-                      <Ionicons name="chevron-down" size={18} color="#666" />
+              <View style={styles.fieldGroup}>
+                <Text style={styles.label}>Products</Text>
+
+                {/* Existing products list */}
+                {customProductsList.length > 0 && (
+                  <View style={styles.chipList}>
+                    {customProductsList.map((pName, idx) => (
+                      <View key={`custom-${idx}`} style={styles.chip}>
+                        <Text style={styles.chipText}>{pName}</Text>
+                        {editing && (
+                          <TouchableOpacity onPress={() => setCustomProductsList(prev => prev.filter((_, i) => i !== idx))}>
+                            <Ionicons name="close-circle" size={16} color="#FF5252" />
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                    ))}
+                  </View>
+                )}
+
+                {/* Category products selector */}
+                {editing && businessCategory && products.length > 0 && (
+                  <TouchableOpacity style={[styles.selectBtn, { marginTop: 8 }]} onPress={() => setShowProductModal(true)}>
+                    <Text style={styles.selectBtnText}>Select from Category Products</Text>
+                    <Ionicons name="chevron-down" size={18} color="#666" />
+                  </TouchableOpacity>
+                )}
+
+                {/* Add new product input */}
+                {editing && (
+                  <View style={styles.addProductRow}>
+                    <TextInput
+                      style={styles.addProductInput}
+                      placeholder="Add new product..."
+                      placeholderTextColor="#999"
+                      value={newProductInput}
+                      onChangeText={setNewProductInput}
+                      onSubmitEditing={() => {
+                        if (newProductInput.trim()) {
+                          setCustomProductsList(prev => [...prev, newProductInput.trim()]);
+                          setNewProductInput('');
+                        }
+                      }}
+                    />
+                    <TouchableOpacity
+                      style={[styles.addProductBtn, !newProductInput.trim() && styles.addProductBtnDisabled]}
+                      disabled={!newProductInput.trim()}
+                      onPress={() => {
+                        if (newProductInput.trim()) {
+                          setCustomProductsList(prev => [...prev, newProductInput.trim()]);
+                          setNewProductInput('');
+                        }
+                      }}
+                    >
+                      <Ionicons name="add" size={22} color={newProductInput.trim() ? '#FFF' : '#CCC'} />
                     </TouchableOpacity>
-                  )}
-                  {selectedProductIds.length > 0 && (
-                    <View style={styles.chipList}>
-                      {selectedProductIds.map(pid => {
-                        const p = products.find(pr => pr.id === pid);
-                        return p ? (
-                          <View key={pid} style={styles.chip}>
-                            <Text style={styles.chipText}>{p.name}</Text>
-                            {editing && (
-                              <TouchableOpacity onPress={() => setSelectedProductIds(prev => prev.filter(id => id !== pid))}>
-                                <Ionicons name="close-circle" size={16} color="#FF5252" />
-                              </TouchableOpacity>
-                            )}
-                          </View>
-                        ) : null;
-                      })}
-                    </View>
-                  )}
-                </View>
-              )}
+                  </View>
+                )}
+
+                {!editing && customProductsList.length === 0 && (
+                  <Text style={styles.value}>No products added</Text>
+                )}
+              </View>
 
               {renderField('Description', description, setDescription, { multiline: true })}
               {renderField('Years in Business', fromYears, setFromYears, { keyboardType: 'numeric' })}
@@ -616,9 +680,15 @@ export default function Account() {
                     key={p.id}
                     style={[styles.modalItem, selected && styles.modalItemSelected]}
                     onPress={() => {
-                      setSelectedProductIds(prev =>
-                        selected ? prev.filter(id => id !== p.id) : [...prev, p.id]
-                      );
+                      if (selected) {
+                        setSelectedProductIds(prev => prev.filter(id => id !== p.id));
+                        setCustomProductsList(prev => prev.filter(n => n !== p.name));
+                      } else {
+                        setSelectedProductIds(prev => [...prev, p.id]);
+                        if (!customProductsList.includes(p.name)) {
+                          setCustomProductsList(prev => [...prev, p.name]);
+                        }
+                      }
                     }}
                   >
                     <Text style={[styles.modalItemText, selected && styles.modalItemTextSelected]}>{p.name}</Text>
@@ -750,6 +820,32 @@ const styles = StyleSheet.create({
   chipList: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 },
   chip: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF3E0', borderRadius: 16, paddingVertical: 4, paddingLeft: 10, paddingRight: 6, gap: 4 },
   chipText: { fontSize: 12, color: '#333', fontWeight: '500' },
+  addProductRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 10,
+  },
+  addProductInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#DDD',
+    borderRadius: 8,
+    padding: 10,
+    fontSize: 14,
+    color: '#1A1A1A',
+  },
+  addProductBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    backgroundColor: '#FF8A00',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addProductBtnDisabled: {
+    backgroundColor: '#E0E0E0',
+  },
   locationDisplay: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   locationText: { fontSize: 15, fontWeight: '600', color: '#1A1A1A' },
   mapBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 10, paddingVertical: 10, borderRadius: 8, borderWidth: 1, borderColor: '#FF8A00', backgroundColor: '#FFF8F0' },
