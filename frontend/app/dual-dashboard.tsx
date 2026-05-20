@@ -461,7 +461,7 @@ export default function DualDashboard() {
 
   const loadCategories = async () => {
     try {
-      const data = await getCategories();
+      const data = await getCategories(false);
       setCategories(Array.isArray(data) && data.length > 0 ? data : DUMMY_CATEGORIES);
     } catch (error) {
       console.error('Error loading categories:', error);

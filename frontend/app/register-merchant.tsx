@@ -357,7 +357,7 @@ export default function RegisterMerchant() {
 
   const fetchCategories = async () => {
     try {
-      const data = await getCategories();
+      const data = await getCategories(true);
 
 
       let finalCategories: { id: number; name: string }[] = [];

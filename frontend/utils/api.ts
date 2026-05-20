@@ -563,15 +563,15 @@ export const searchByProductNames = async (
    MERCHANT CATEGORY  API
 ================================ */
 
-export const getCategories = async () => {
+export const getCategories = async (forRegistration: boolean = false) => {
   try {
-    const response = await fetch(`${INTOWN_API_BASE}/categories/`);
+    const response = await fetch(`${INTOWN_API_BASE}/categories/?forRegistration=${forRegistration}`);
     if (!response.ok) {
       console.warn('getCategories: API returned status', response.status);
       return [];
     }
     const data = await response.json();
-    console.log('getCategories: loaded', Array.isArray(data) ? data.length : 0, 'categories');
+    console.log('getCategories: loaded', Array.isArray(data) ? data.length : 0, 'categories (forRegistration=' + forRegistration + ')');
     return data;
   } catch (error: any) {
     console.warn('getCategories failed:', error.message);

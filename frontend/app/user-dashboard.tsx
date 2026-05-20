@@ -408,7 +408,7 @@ export default function UserDashboard() {
 
   const loadData = async () => {
     try {
-      const [plansData, categoriesData] = await Promise.all([getPlans(), getCategories()]);
+      const [plansData, categoriesData] = await Promise.all([getPlans(), getCategories(false)]);
       setPlans(Array.isArray(plansData) ? plansData : []);
       setCategories(
         Array.isArray(categoriesData) && categoriesData.length > 0

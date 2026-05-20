@@ -67,7 +67,7 @@ export default function Account() {
 
   const loadCategories = async () => {
     try {
-      const cats = await getCategories();
+      const cats = await getCategories(true);
       setCategories(cats || []);
     } catch (e) {}
   };
