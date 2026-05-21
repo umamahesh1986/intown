@@ -288,14 +288,16 @@ export default function UserDashboard() {
   ];
 
   const placeholderItems = [
-    'Grocery',
-    'Salon',
-    'Fashion',
-    'Vegetables',
-    'Fruits',
-    'Restaurant',
-    'Pharmacy',
-    'Electronics',
+    'Tomato',
+    'Tea',
+    'Cricket Bat',
+    'Apple',
+    'Paracetamol',
+    'Milk',
+    'Bread',
+    'Rice',
+    'Cough Syrup',
+    'Hair Cut',
   ];
   const placeholderOpacity = placeholderAnim.interpolate({
     inputRange: [0, 0.2, 0.8, 1],
