@@ -619,7 +619,7 @@ export default function MemberDashboard() {
   };
   const loadCategories = async () => {
     try {
-      const data = await getCategories();
+      const data = await getCategories(false);
       setCategories(data);
     } catch (error) {
       console.error('Error loading categories:', error);

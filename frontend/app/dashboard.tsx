@@ -48,7 +48,7 @@ export default function DashboardScreen() {
     try {
       const [plansData, categoriesData] = await Promise.all([
         getPlans(),
-        getCategories(),
+        getCategories(false),
       ]);
       setPlans(plansData);
       setCategories(categoriesData);

@@ -1,10 +1,10 @@
 import axios from "axios";
 import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-const BASE_URL = 'https://api.intownlocal.com';
+const BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://api.intownlocal.com';
 export const INTOWN_API_BASE = `${BASE_URL}/IN`;
 
-const OTP_API_BASE = 'https://api.intownlocal.com/IN';
+const OTP_API_BASE = process.env.EXPO_PUBLIC_OTP_API_BASE_URL || 'https://devapi.intownlocal.com/IN';
 
 /* ===============================
    CUSTOM OTP APIs (No Firebase)
@@ -563,15 +563,15 @@ export const searchByProductNames = async (
    MERCHANT CATEGORY  API
 ================================ */
 
-export const getCategories = async () => {
+export const getCategories = async (forRegistration: boolean = false) => {
   try {
-    const response = await fetch(`${INTOWN_API_BASE}/categories/`);
+    const response = await fetch(`${INTOWN_API_BASE}/categories/?forRegistration=${forRegistration}`);
     if (!response.ok) {
       console.warn('getCategories: API returned status', response.status);
       return [];
     }
     const data = await response.json();
-    console.log('getCategories: loaded', Array.isArray(data) ? data.length : 0, 'categories');
+    console.log('getCategories: loaded', Array.isArray(data) ? data.length : 0, 'categories (forRegistration=' + forRegistration + ')');
     return data;
   } catch (error: any) {
     console.warn('getCategories failed:', error.message);
@@ -805,24 +805,6 @@ export const getNearbyShops = async (
   categoryId?: number | string
 ) => {
   let url = `${INTOWN_API_BASE}/search/by-product-names?categoryId=${categoryId}&customerLatitude=${latitude}&customerLongitude=${longitude}`;
-
-  try {
-    const res = await fetch(url);
-    if (!res.ok) {
-      console.warn('[API] getNearbyShops failed:', res.status, 'for coords:', latitude, longitude);
-      return [];
-    }
-    return res.json();
-  } catch (e) {
-    console.warn('[API] getNearbyShops error:', e);
-    return [];
-  }
-};
-export const getNearbyShopsNoCategoryID = async (
-  latitude: number,
-  longitude: number
-) => {
-  let url = `${INTOWN_API_BASE}/search/by-product-names?customerLatitude=${latitude}&customerLongitude=${longitude}`;
 
   try {
     const res = await fetch(url);
