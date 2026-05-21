@@ -84,7 +84,16 @@
 - **Fix**: Restored `OTP_API_BASE` to `https://devapi.intownlocal.com/IN` in `utils/api.ts` line 7
 - Verified: OTP sends successfully for phone 8639071519
 
+### Session 8 (Feb 2026) - Dual Dashboard Feature Parity
+- **Customer Tab**: Added "INtown Privilage Nearby Shops" auto-scrolling, manually swipeable carousel (matches `member-dashboard.tsx` design — 220px hero-image cards with category badge, contact, location, offer pill)
+- Carousel: infinite right-to-left auto-scroll (30ms interval, seamless 3x loop), pauses on user drag, resumes 2s after release
+- Auto-scroll properly stops when user switches to Merchant tab (CPU-friendly)
+- **Merchant Tab**: Added "Edit Profile" CTA button on Merchant Shop Card — navigates to `/account` where all merchant fields display read-only with an `Edit` toggle to enable editing (Business Category, Products, Description, Years, Branches, Shop Location, Business Timings, Week Off, Offer)
+- Files modified: `/app/frontend/app/dual-dashboard.tsx`
+
 ## Backlog
 - P1: Test full end-to-end login with real OTP on mobile device
+- P2: Extract shared carousel + merchant card UI from `dual-dashboard.tsx`, `user-dashboard.tsx`, `member-dashboard.tsx` into reusable components
 - P2: Real payment gateway integration
 - P3: Push notifications, App Store/Play Store deployment
+- Known external bug: Backend `/IN/search/by-product-names` returns HTTP 500 for out-of-service-area coordinates (gracefully handled on frontend)

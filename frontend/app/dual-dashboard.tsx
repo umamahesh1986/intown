@@ -306,10 +306,44 @@ export default function DualDashboard() {
   const dropdownAnim = useRef(new Animated.Value(0)).current;
   const contentScrollRef = useRef<ScrollView | null>(null);
   const nearbyScrollRef = useRef<ScrollView | null>(null);
+  const nearbyAutoScrollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const nearbyScrollPos = useRef(0);
+  const MERCHANT_CARD_WIDTH = 234; // 220 card + 14 gap
   const [showSupportModal, setShowSupportModal] = useState(false);
   const [showOffersModal, setShowOffersModal] = useState(false);
   const [showAllTransactions, setShowAllTransactions] = useState(false);
   const CARD_WIDTH = 172;
+
+  const startNearbyAutoScroll = () => {
+    if (nearbyAutoScrollRef.current) clearInterval(nearbyAutoScrollRef.current);
+    nearbyAutoScrollRef.current = setInterval(() => {
+      if (!nearbyScrollRef.current || nearbyShops.length === 0) return;
+      nearbyScrollPos.current += 1;
+      const totalWidth = nearbyShops.length * MERCHANT_CARD_WIDTH;
+      if (nearbyScrollPos.current >= totalWidth) {
+        nearbyScrollPos.current = 0;
+        nearbyScrollRef.current.scrollTo({ x: 0, animated: false });
+      } else {
+        nearbyScrollRef.current.scrollTo({ x: nearbyScrollPos.current, animated: false });
+      }
+    }, 30);
+  };
+
+  const stopNearbyAutoScroll = () => {
+    if (nearbyAutoScrollRef.current) {
+      clearInterval(nearbyAutoScrollRef.current);
+      nearbyAutoScrollRef.current = null;
+    }
+  };
+
+  useEffect(() => {
+    if (nearbyShops.length > 0 && activeTab === 'customer') {
+      startNearbyAutoScroll();
+    } else {
+      stopNearbyAutoScroll();
+    }
+    return () => stopNearbyAutoScroll();
+  }, [nearbyShops.length, activeTab]);
 
   const categoryColumns = [];
   for (let i = 0; i < categories.length; i += 2) {
@@ -1092,6 +1126,18 @@ export default function DualDashboard() {
                   </Text>
                 </View>
               )}
+
+              {/* Edit Profile Button */}
+              <TouchableOpacity
+                style={styles.editProfileBtn}
+                onPress={() => router.push({ pathname: '/account' as any })}
+                activeOpacity={0.85}
+                data-testid="dual-dashboard-edit-profile-btn"
+                testID="dual-dashboard-edit-profile-btn"
+              >
+                <Ionicons name="create-outline" size={18} color="#FFFFFF" />
+                <Text style={styles.editProfileBtnText}>Edit Profile</Text>
+              </TouchableOpacity>
             </View>
           </View>
         )}
@@ -1316,82 +1362,94 @@ export default function DualDashboard() {
             )}
           </View>
         </View> */}
-        {/* Nearby Shops (Customer Only) */}
-        {/* {activeTab === 'customer' && (
-          <View style={styles.nearbyShopsSection}>
-            <Text style={styles.sectionTitle}>Nearby Shops</Text>
-            {isNearbyLoading ? (
-              <View style={styles.emptyState}>
-                <ActivityIndicator size="small" color="#FF8A00" />
-              </View>
-            ) : nearbyShops.length > 0 ? (
-              <ScrollView
-                ref={nearbyScrollRef}
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                snapToInterval={CARD_WIDTH}
-                decelerationRate="fast"
-                contentContainerStyle={styles.nearbyCarouselContent}
-              >
-                {nearbyShops.map((shop, index) => (
+        {/* INtown Privilege Nearby Shops (Customer Only) */}
+        {activeTab === 'customer' && nearbyShops.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>INtown Privilage Nearby Shops</Text>
+            </View>
+
+            <ScrollView
+              ref={nearbyScrollRef}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              decelerationRate="fast"
+              contentContainerStyle={{ paddingRight: 16, gap: 14 }}
+              onScrollBeginDrag={() => {
+                stopNearbyAutoScroll();
+              }}
+              onScroll={(e) => {
+                nearbyScrollPos.current = e.nativeEvent.contentOffset.x;
+              }}
+              scrollEventThrottle={16}
+              onScrollEndDrag={() => {
+                setTimeout(() => startNearbyAutoScroll(), 2000);
+              }}
+              onMomentumScrollEnd={(e) => {
+                nearbyScrollPos.current = e.nativeEvent.contentOffset.x;
+              }}
+            >
+              {/* Render shops 3x for seamless infinite loop */}
+              {[...nearbyShops, ...nearbyShops, ...nearbyShops].map((shop, index) => {
+                const urls = extractImageUrls(shop.image ?? shop.s3ImageUrl);
+                const imageUri = urls[0] ?? (typeof shop.image === 'string' ? shop.image : null);
+                const shopName = shop.businessName || shop.shopName || shop.contactName || 'Shop';
+                const category = shop.businessCategory || 'General';
+                const offerText = shop.offer || '';
+
+                return (
                   <TouchableOpacity
-                    key={`${shop.id}-${index}`}
-                    style={styles.nearbyCard}
+                    key={`merchant-${shop.id}-${index}`}
+                    style={styles.nbMerchantCard}
+                    activeOpacity={0.9}
                     onPress={() =>
                       router.push({
                         pathname: '/member-shop-details',
                         params: {
-                          shopId: shop.id,
-                          shop: JSON.stringify(shop),
+                          shopId: String(shop.id),
+                          categoryId: '',
                           source: 'dual',
+                          shopData: JSON.stringify(shop),
                         },
                       })
                     }
                   >
-                    <View style={styles.nearbyImagePlaceholder}>
-                      {(() => {
-                        const urls = extractImageUrls(shop.image ?? shop.s3ImageUrl);
-                        const uri = urls[0] ?? (typeof shop.image === 'string' ? shop.image : null);
-                        return uri ? (
-                          <Image source={{ uri }} style={styles.nearbyImage} />
-                        ) : (
+                    <View style={styles.nbMerchantImageWrapper}>
+                      {imageUri ? (
+                        <Image source={{ uri: imageUri }} style={styles.nbMerchantImage} resizeMode="cover" />
+                      ) : (
+                        <View style={styles.nbMerchantImagePlaceholder}>
                           <Ionicons name="storefront" size={36} color="#FF8A00" />
-                        );
-                      })()}
-                    </View>
-                    <Text style={styles.nearbyName} numberOfLines={1}>
-                      {shop.businessName || shop.shopName || shop.merchantName || shop.contactName || 'Shop'}
-                    </Text>
-                    <Text style={styles.nearbyMeta}>
-                      {shop.businessCategory || 'General'}
-                    </Text>
-                    <View style={styles.nearbyFooter}>
-                      {/* <View style={styles.nearbyRating}>
-                        <Ionicons name="star" size={12} color="#FFA500" />
-                        <Text style={styles.nearbyRatingText}>
-                          {shop.rating ?? '4.0'}
-                        </Text>
-                      </View> */}
-        {/* <View style={styles.nearbyDistance}>
-                        <Ionicons name="location" size={12} color="#FF8A00" />
-                        <Text style={styles.nearbyDistanceText}>
-                          {formatDistance(
-                            typeof shop.distance === 'number' ? shop.distance : null
-                          )}
-                        </Text>
+                        </View>
+                      )}
+                      <View style={styles.nbMerchantCategoryBadge}>
+                        <Text style={styles.nbMerchantCategoryText}>{category}</Text>
                       </View>
                     </View>
+                    <View style={styles.nbMerchantCardContent}>
+                      <Text style={styles.nbMerchantName} numberOfLines={1}>{shopName}</Text>
+                      {shop.contactName && shop.contactName !== shopName && (
+                        <Text style={styles.nbMerchantContact} numberOfLines={1}>{shop.contactName}</Text>
+                      )}
+                      {shop.address ? (
+                        <View style={styles.nbMerchantInfoRow}>
+                          <Ionicons name="location-outline" size={13} color="#888" />
+                          <Text style={styles.nbMerchantInfoText} numberOfLines={1}>{shop.address}</Text>
+                        </View>
+                      ) : null}
+                      {offerText ? (
+                        <View style={styles.nbMerchantOfferBadge}>
+                          <Ionicons name="pricetag" size={12} color="#4CAF50" />
+                          <Text style={styles.nbMerchantOfferText} numberOfLines={1}>{offerText}</Text>
+                        </View>
+                      ) : null}
+                    </View>
                   </TouchableOpacity>
-                ))}
-              </ScrollView>
-            ) : (
-              <View style={styles.emptyState}>
-                <Ionicons name="storefront-outline" size={48} color="#CCCCCC" />
-                <Text style={styles.emptyText}>No nearby shops yet</Text>
-              </View>
-            )}
+                );
+              })}
+            </ScrollView>
           </View>
-        )} */}
+        )}
         <Footer dashboardType={activeTab === 'customer' ? 'member' : 'merchant'} />
       </ScrollView>
 
@@ -2409,6 +2467,108 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     lineHeight: 20,
+  },
+
+  // Edit Profile Button (Merchant Tab)
+  editProfileBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FF8A00',
+    paddingVertical: 12,
+    borderRadius: 10,
+    marginTop: 16,
+    gap: 8,
+  },
+  editProfileBtnText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+
+  // Nearby (INtown Privilege) Merchant Carousel Cards
+  nbMerchantCard: {
+    width: 220,
+    backgroundColor: '#FFF',
+    borderRadius: 14,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  nbMerchantImageWrapper: {
+    width: '100%',
+    height: 130,
+    position: 'relative',
+  },
+  nbMerchantImage: {
+    width: '100%',
+    height: '100%',
+  },
+  nbMerchantImagePlaceholder: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#FFF3E0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  nbMerchantCategoryBadge: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    backgroundColor: 'rgba(255,138,0,0.9)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  nbMerchantCategoryText: {
+    color: '#FFF',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  nbMerchantCardContent: {
+    padding: 10,
+  },
+  nbMerchantName: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1A1A1A',
+    marginBottom: 2,
+  },
+  nbMerchantContact: {
+    fontSize: 12,
+    color: '#888',
+    marginBottom: 4,
+  },
+  nbMerchantInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 4,
+  },
+  nbMerchantInfoText: {
+    fontSize: 11,
+    color: '#888',
+    flex: 1,
+  },
+  nbMerchantOfferBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#E8F5E9',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+    marginTop: 2,
+  },
+  nbMerchantOfferText: {
+    fontSize: 11,
+    color: '#4CAF50',
+    fontWeight: '600',
+    flex: 1,
   },
 
 });
