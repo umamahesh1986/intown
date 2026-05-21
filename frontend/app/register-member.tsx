@@ -598,7 +598,7 @@ export default function RegisterMember() {
               style={styles.input}
               value={referredBy}
               onChangeText={setReferredBy}
-              placeholder="Enter referrer's name or code (optional)"
+              placeholder="Enter referrer's name"
               placeholderTextColor="#999"
               testID="register-member-referred-by-input"
             />
