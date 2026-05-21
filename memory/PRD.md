@@ -1,73 +1,3 @@
-<<<<<<< HEAD
-# InTown - Product Requirements Document
-
-## Original Problem Statement
-Build, run, and fix critical issues in the Expo (React Native) mobile app "InTown" for Android, with preparation for iOS release. Integrate Razorpay Subscription & Payment flow.
-
-## Architecture
-- **Framework**: Expo (React Native)
-- **Project Root**: `/app/frontend`
-- **Routing**: expo-router (file-based)
-- **State Management**: Zustand
-- **Auth**: Firebase Phone Auth
-- **External API**: `https://api.intownlocal.com` (single source in `utils/api.ts`)
-- **Payments**: Razorpay (`react-native-razorpay` v2.3.1)
-
-## What's Been Implemented
-
-### Completed
-- [x] Merchant crash fix: `.toFixed()` null guards on all dashboards
-- [x] Firebase Auth diagnosis: SHA-1/SHA-256 fingerprints guidance
-- [x] API endpoint fix: corrected GET request in merchant-dashboard
-- [x] iOS setup: `GoogleService-Info.plist` created
-- [x] UPI flow: AppState-based redirect
-- [x] UI fix: layout gap at bottom of payment modal
-- [x] Payment method chooser: UPI and Cash options
-- [x] UPI fix: Open UPI app generically
-- [x] OTP crash fix v2: Comprehensive fix for new user crash
-- [x] Hide bottom menu on user-dashboard
-- [x] Mirror Merchant layout to Customer tab
-- [x] **Razorpay Subscription Integration** (checkout.tsx, plans routing, _layout registration)
-- [x] **URL Consolidation Refactor** — All hardcoded URLs consolidated to single `INTOWN_API_BASE` constant
-- [x] **Payment History Screen** — New screen showing transaction history, savings, subscription info, with filters
-
-### Razorpay Subscription Flow
-`/plans` → select plan → `/checkout` → Create Order API → Razorpay Native Checkout → Verify Payment → Dashboard redirect
-
-### Payment History Screen (Feb 2026)
-- New screen at `/app/frontend/app/payment-history.tsx`
-- Features: transaction list with date/time, amount, savings badges, summary cards (count/paid/saved), subscription info card, filter tabs (All/This Month/This Year), pull-to-refresh, empty state
-- Accessible from Account page via Quick Links menu
-- Uses `GET /IN/transactions/customers/{customerId}` API
-- Account page enhanced with Quick Links section (Payment History, Subscription Plans, My Savings) and made scrollable
-
-### URL Consolidation (Feb 2026)
-- Single source of truth: `BASE_URL` in `utils/api.ts` line 4
-- Derived constant: `INTOWN_API_BASE` (exported)
-- 12+ files updated to import from single source
-
-## Pending User Verification
-- Razorpay checkout (requires APK rebuild + real device)
-- Payment History screen (requires APK rebuild + real device)
-- OTP crash fix for new users
-- Firebase Auth fix (SHA keys from Play Console)
-
-## Backlog
-- P1: iOS deployment (Apple Developer account)
-- P2: Refactor `user-dashboard.tsx` (>2500 lines) into sub-components
-- P2: Consolidate TypeScript interfaces into central `types` directory
-
-## Key Files
-- `/app/frontend/utils/api.ts` — Single source for all API URLs + exports `INTOWN_API_BASE`
-- `/app/frontend/app/payment-history.tsx` — Payment History screen (NEW)
-- `/app/frontend/app/checkout.tsx` — Razorpay checkout page
-- `/app/frontend/app/plans.tsx` — Subscription plans page
-- `/app/frontend/app/account.tsx` — Account page with Quick Links menu
-- `/app/frontend/app/_layout.tsx` — Root layout with navigation
-- `/app/frontend/app/otp.tsx` — OTP verification
-- `/app/frontend/store/authStore.ts` — Zustand auth store
-- `/app/frontend/components/PaymentModal.tsx` — Payment flow
-=======
 # IntownLocal - PRD & Progress
 
 ## Original Problem Statement
@@ -154,8 +84,16 @@ Build, run, and fix critical issues in the Expo (React Native) mobile app "InTow
 - **Fix**: Restored `OTP_API_BASE` to `https://devapi.intownlocal.com/IN` in `utils/api.ts` line 7
 - Verified: OTP sends successfully for phone 8639071519
 
+### Session 8 (Feb 2026) - Dual Dashboard Feature Parity
+- **Customer Tab**: Added "INtown Privilage Nearby Shops" auto-scrolling, manually swipeable carousel (matches `member-dashboard.tsx` design — 220px hero-image cards with category badge, contact, location, offer pill)
+- Carousel: infinite right-to-left auto-scroll (30ms interval, seamless 3x loop), pauses on user drag, resumes 2s after release
+- Auto-scroll properly stops when user switches to Merchant tab (CPU-friendly)
+- **Merchant Tab**: Added "Edit Profile" CTA button on Merchant Shop Card — navigates to `/account` where all merchant fields display read-only with an `Edit` toggle to enable editing (Business Category, Products, Description, Years, Branches, Shop Location, Business Timings, Week Off, Offer)
+- Files modified: `/app/frontend/app/dual-dashboard.tsx`
+
 ## Backlog
 - P1: Test full end-to-end login with real OTP on mobile device
+- P2: Extract shared carousel + merchant card UI from `dual-dashboard.tsx`, `user-dashboard.tsx`, `member-dashboard.tsx` into reusable components
 - P2: Real payment gateway integration
 - P3: Push notifications, App Store/Play Store deployment
->>>>>>> conflict_110426_1021
+- Known external bug: Backend `/IN/search/by-product-names` returns HTTP 500 for out-of-service-area coordinates (gracefully handled on frontend)
