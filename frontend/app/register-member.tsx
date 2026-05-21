@@ -36,6 +36,7 @@ export default function RegisterMember() {
   const [pincode, setPincode] = useState('');
   const [address, setAddress] = useState('');
   const [images, setImages] = useState<string[]>([]);
+  const [referredBy, setReferredBy] = useState('');
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [successCustomerId, setSuccessCustomerId] = useState<string | number | null>(null);
@@ -331,6 +332,7 @@ export default function RegisterMember() {
         pincode,
         address,
         images,
+        referredBy,
         agreedToTerms,
       };
 
@@ -587,6 +589,19 @@ export default function RegisterMember() {
             {images.length > 0 && (
               <Text style={styles.imageCountText}>{images.length} image(s) selected</Text>
             )}
+          </View>
+
+          {/* Referred By */}
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>Referred By</Text>
+            <TextInput
+              style={styles.input}
+              value={referredBy}
+              onChangeText={setReferredBy}
+              placeholder="Enter referrer's name or code (optional)"
+              placeholderTextColor="#999"
+              testID="register-member-referred-by-input"
+            />
           </View>
 
           {/* Terms and Conditions */}

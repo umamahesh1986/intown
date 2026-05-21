@@ -207,6 +207,7 @@ export const registerMember = async (memberData: any) => {
       latitude: memberData.location?.latitude,
       longitude: memberData.location?.longitude,
       images: memberData.images || [],
+      referredBy: memberData.referredBy || '',
       isPrivileged: true,
       userType: "IN_CUSTOMER",
     };
