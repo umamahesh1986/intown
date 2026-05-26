@@ -277,7 +277,7 @@ export const registerMerchant = async (merchantData: any) => {
       latitude: merchantData.location?.latitude ?? merchantData.latitude ?? null,
       longitude: merchantData.location?.longitude ?? merchantData.longitude ?? null,
       address: merchantData.address,
-      introducedBy: merchantData.introducedBy,
+      referredBy: merchantData.introducedBy,
       images: merchantData.images || [],
       agreedToTerms: merchantData.agreedToTerms,
       categoryList: merchantData.categoryList || [],
