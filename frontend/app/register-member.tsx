@@ -616,7 +616,9 @@ export default function RegisterMember() {
 
           {/* Referred By */}
           <View style={styles.formGroup}>
-            <Text style={styles.label}>Referred By</Text>
+            <Text style={styles.label}>Referred By
+            <Text style={styles.slug}> (Phone number only)</Text>
+            </Text>
             <TextInput
               style={[styles.input, errors.referredBy && styles.inputError]}
               value={referredBy}
@@ -743,6 +745,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#1A1A1A',
     marginBottom: 8,
+  },
+  slug:{
+    fontSize: 12,
+    color: '#666',
   },
   input: {
     backgroundColor: '#FFFFFF',

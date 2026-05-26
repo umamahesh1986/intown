@@ -1219,7 +1219,9 @@ export default function RegisterMerchant() {
 
           {/* INTRODUCED BY */}
           <View style={styles.formGroup}>
-            <Text style={styles.label}>Introduced By</Text>
+            <Text style={styles.label}>Introduced By
+              <Text style={styles.slug}> (Phone number only)</Text>
+            </Text>
             <TextInput
               style={[styles.input, errors.introducedBy && styles.inputError]}
               value={introducedBy}
@@ -1611,6 +1613,10 @@ const styles = StyleSheet.create({
   content: { padding: 16 },
   formGroup: { marginBottom: 16 },
   label: { fontSize: 14, fontWeight: '600', marginBottom: 6 },
+  slug:{
+    fontSize: 12,
+    color: '#666',
+  },
   input: {
     backgroundColor: '#FFF',
     borderWidth: 1,
