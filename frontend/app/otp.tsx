@@ -82,6 +82,22 @@ export default function OTPScreen() {
   const popupTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasProcessedAuth = useRef(false);
   const isMountedRef = useRef(true);
+  const verifyWithCodeRef = useRef<(code: string) => void>(() => {});
+  const smsListenerActive = useRef(false);
+  const appHashRef = useRef<string | null>(null);
+
+  // Robust OTP extractor — prefers OTP-keyword patterns, falls back to last 4-digit group
+  const extractOtpFromMessage = (message: string): string | null => {
+    if (!message || typeof message !== 'string') return null;
+    // Pattern 1: explicit OTP keywords
+    const keywordRegex = /(?:OTP|code|verification|verify|is|:)\D{0,10}(\d{4})\b/i;
+    const m1 = message.match(keywordRegex);
+    if (m1 && m1[1]) return m1[1];
+    // Pattern 2: first standalone 4-digit number that is NOT part of a longer number
+    const m2 = message.match(/(?<!\d)(\d{4})(?!\d)/);
+    if (m2 && m2[1]) return m2[1];
+    return null;
+  };
 
   const showOtpSentPopup = (message: string) => {
     setOtpPopupMessage(message);
@@ -105,55 +121,69 @@ export default function OTPScreen() {
   /* ===============================
      SMS AUTO-READ (Android only)
   ================================ */
-  useEffect(() => {
+  const stopOtpListener = () => {
+    if (!OtpVerify) return;
+    try {
+      if (OtpVerify.removeListener) OtpVerify.removeListener();
+    } catch (e) {
+      console.warn('[OTP] removeListener error:', e);
+    }
+    smsListenerActive.current = false;
+  };
+
+  const startOtpListener = async () => {
     if (Platform.OS !== 'android' || !OtpVerify) return;
+    if (smsListenerActive.current) return; // already listening
 
-    let isCancelled = false;
+    try {
+      // App hash — give this to backend so they can append it to OTP SMS template
+      const hash = await OtpVerify.getHash();
+      appHashRef.current = Array.isArray(hash) ? hash[0] : (typeof hash === 'string' ? hash : null);
+      console.log('[OTP][SMS Retriever] App hash (give to backend SMS template):', appHashRef.current);
 
-    const startListening = async () => {
-      try {
-        // Get hash for SMS Retriever API
-        const hash = await OtpVerify.getHash();
-        console.log('[OTP] SMS Retriever hash:', hash);
+      OtpVerify.startOtpListener((message: string) => {
+        if (!message) return;
+        console.log('[OTP][SMS Retriever] Message received:', message);
 
-        // Start listening for OTP SMS
-        OtpVerify.startOtpListener((message: string) => {
-          if (isCancelled || !message) return;
-          console.log('[OTP] SMS received:', message);
-
-          // Extract 4-digit OTP from SMS
-          const otpMatch = message.match(/(\d{4})/);
-          if (otpMatch && otpMatch[1]) {
-            const receivedOtp = otpMatch[1];
-            console.log('[OTP] Auto-read OTP:', receivedOtp);
-
-            // Auto-fill OTP boxes
-            const digits = receivedOtp.split('');
-            setOtp(digits);
-
-            // Auto-submit
-            setTimeout(() => {
-              if (!isCancelled && !hasProcessedAuth.current) {
-                verifyWithCode(receivedOtp);
-              }
-            }, 500);
-          }
-        });
-      } catch (e) {
-        console.warn('[OTP] SMS listener setup failed:', e);
-      }
-    };
-
-    startListening();
-
-    return () => {
-      isCancelled = true;
-      try {
-        if (OtpVerify?.removeListener) {
-          OtpVerify.removeListener();
+        // SMS Retriever sends "Timeout Error." after ~5 mins of no SMS
+        if (typeof message === 'string' && message.toLowerCase().includes('timeout')) {
+          console.log('[OTP][SMS Retriever] Listener timed out');
+          smsListenerActive.current = false;
+          return;
         }
-      } catch (e) {}
+
+        const receivedOtp = extractOtpFromMessage(message);
+        if (!receivedOtp) {
+          console.warn('[OTP][SMS Retriever] No 4-digit OTP found in message');
+          return;
+        }
+
+        console.log('[OTP][SMS Retriever] Auto-detected OTP:', receivedOtp);
+
+        // Auto-fill OTP boxes
+        setOtp(receivedOtp.split(''));
+
+        // Auto-submit (always call latest verifyWithCode via ref)
+        setTimeout(() => {
+          if (!hasProcessedAuth.current && isMountedRef.current) {
+            verifyWithCodeRef.current(receivedOtp);
+          }
+        }, 400);
+      });
+
+      smsListenerActive.current = true;
+    } catch (e) {
+      console.warn('[OTP][SMS Retriever] Setup failed:', e);
+      smsListenerActive.current = false;
+    }
+  };
+
+  useEffect(() => {
+    startOtpListener();
+    return () => {
+      stopOtpListener();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   /* ===============================
@@ -287,6 +317,10 @@ export default function OTPScreen() {
       setOtpSent(true);
       setStatusMessage("");
       showOtpSentPopup("OTP sent successfully");
+
+      // Restart SMS Retriever listener for the fresh OTP
+      stopOtpListener();
+      await startOtpListener();
     } catch (err: any) {
       setStatusMessage("");
       Alert.alert("Error", err.message || "Failed to resend OTP. Please try again.");
@@ -348,6 +382,11 @@ export default function OTPScreen() {
   const handleVerifyOTP = () => {
     verifyWithCode(otp.join(""));
   };
+
+  // Keep ref always pointing to latest verifyWithCode (so SMS listener closure stays fresh)
+  useEffect(() => {
+    verifyWithCodeRef.current = verifyWithCode;
+  });
 
   /* ===============================
      OTP INPUT HANDLERS
