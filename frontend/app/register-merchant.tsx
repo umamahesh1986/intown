@@ -258,6 +258,10 @@ export default function RegisterMerchant() {
     useState<{ id: number; name: string }[]>([]);
 
   // Check if all mandatory fields are filled
+  const introducedByValid =
+    !introducedBy ||
+    introducedBy.trim().length === 0 ||
+    /^\d{10}$/.test(introducedBy.trim());
   const isFormValid =
     businessName.trim().length > 0 &&
     contactName.trim().length > 0 &&
@@ -267,6 +271,7 @@ export default function RegisterMerchant() {
     branches.trim().length > 0 &&
     pincode.trim().length > 0 &&
     location !== null && location.latitude !== undefined && location.longitude !== undefined &&
+    introducedByValid &&
     agreedToTerms;
 
   /* ================= AUTO-POPULATE PHONE NUMBER ================= */
@@ -719,6 +724,13 @@ export default function RegisterMerchant() {
     }
 
 
+
+    // INTRODUCED BY (optional, but if entered must be a 10-digit phone)
+    if (introducedBy && introducedBy.trim().length > 0) {
+      if (!/^\d{10}$/.test(introducedBy.trim())) {
+        newErrors.introducedBy = 'Introduced By must be a valid 10-digit mobile number';
+      }
+    }
 
     // TERMS
     if (!agreedToTerms) newErrors.terms = 'Accept terms';
@@ -1209,10 +1221,20 @@ export default function RegisterMerchant() {
           <View style={styles.formGroup}>
             <Text style={styles.label}>Introduced By</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, errors.introducedBy && styles.inputError]}
               value={introducedBy}
-              onChangeText={setIntroducedBy}
+              onChangeText={(text) => {
+                // Allow only digits, max 10
+                const digitsOnly = text.replace(/\D/g, '').slice(0, 10);
+                setIntroducedBy(digitsOnly);
+              }}
+              placeholder="Enter introducer's 10-digit mobile number"
+              placeholderTextColor="#999"
+              keyboardType="number-pad"
+              maxLength={10}
+              testID="register-merchant-introduced-by-input"
             />
+            {errors.introducedBy && <Text style={styles.errorText}>{errors.introducedBy}</Text>}
           </View>
 
           {/* ================= BUSINESS TIMINGS ================= */}
