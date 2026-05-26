@@ -211,6 +211,19 @@ export default function RegisterMember() {
     return Object.keys(newErrors).length === 0;
   };
 
+  // Computed flag: enables the Register button only when all required fields pass + terms accepted
+  const emailRegexFlag = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const phoneRegexFlag = /^\d{10}$/;
+  const pincodeRegexFlag = /^\d{6}$/;
+  const isFormValid = (
+    !!contactName && contactName.trim().length >= 2 &&
+    !!location &&
+    !!email && emailRegexFlag.test(email) &&
+    !!phoneNumber && phoneRegexFlag.test(phoneNumber) &&
+    !!pincode && pincodeRegexFlag.test(pincode) &&
+    agreedToTerms
+  );
+
   useEffect(() => {
     if (params.latitude && params.longitude) {
       const lat = Number(params.latitude);
@@ -636,9 +649,10 @@ export default function RegisterMember() {
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.registerButton, isLoading && styles.buttonDisabled]}
+              style={[styles.registerButton, (!isFormValid || isLoading) && styles.buttonDisabled]}
               onPress={handleRegister}
-              disabled={isLoading}
+              disabled={!isFormValid || isLoading}
+              testID="register-customer-submit-btn"
             >
               {isLoading ? (
                 <ActivityIndicator size="small" color="#FFFFFF" />
@@ -890,7 +904,8 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   buttonDisabled: {
-    opacity: 0.6,
+    backgroundColor: '#CCCCCC',
+    opacity: 1,
   },
   bottomSpacer: {
     height: 32,
