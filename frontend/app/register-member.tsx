@@ -207,6 +207,14 @@ export default function RegisterMember() {
       newErrors.terms = 'You must agree to the terms and conditions';
     }
 
+    // Referred By validation (optional, but if entered must be 10-digit phone)
+    if (referredBy && referredBy.trim().length > 0) {
+      const refPhoneRegex = /^\d{10}$/;
+      if (!refPhoneRegex.test(referredBy.trim())) {
+        newErrors.referredBy = 'Referred By must be a valid 10-digit mobile number';
+      }
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -215,12 +223,14 @@ export default function RegisterMember() {
   const emailRegexFlag = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   const phoneRegexFlag = /^\d{10}$/;
   const pincodeRegexFlag = /^\d{6}$/;
+  const referredByValid = !referredBy || referredBy.trim().length === 0 || phoneRegexFlag.test(referredBy.trim());
   const isFormValid = (
     !!contactName && contactName.trim().length >= 2 &&
     !!location &&
     !!email && emailRegexFlag.test(email) &&
     !!phoneNumber && phoneRegexFlag.test(phoneNumber) &&
     !!pincode && pincodeRegexFlag.test(pincode) &&
+    referredByValid &&
     agreedToTerms
   );
 
@@ -608,13 +618,20 @@ export default function RegisterMember() {
           <View style={styles.formGroup}>
             <Text style={styles.label}>Referred By</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, errors.referredBy && styles.inputError]}
               value={referredBy}
-              onChangeText={setReferredBy}
-              placeholder="Enter referrer's name or code (optional)"
+              onChangeText={(text) => {
+                // Allow only digits, max 10
+                const digitsOnly = text.replace(/\D/g, '').slice(0, 10);
+                setReferredBy(digitsOnly);
+              }}
+              placeholder="Enter referrer's 10-digit mobile number"
               placeholderTextColor="#999"
+              keyboardType="number-pad"
+              maxLength={10}
               testID="register-member-referred-by-input"
             />
+            {errors.referredBy && <Text style={styles.errorText}>{errors.referredBy}</Text>}
           </View>
 
           {/* Terms and Conditions */}
