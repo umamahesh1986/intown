@@ -42,7 +42,8 @@ import { getCustomerProfile, getMerchantImageByShopId, extractImageUrls, INTOWN_
 import {
   getUserLocationWithDetails,
   searchLocations,
-  setManualLocation
+  setManualLocation,
+  isPlusCode,
 } from '../utils/location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Footer from '../components/Footer'
@@ -576,8 +577,8 @@ export default function MemberDashboard() {
   // Get display location text
   const getLocationDisplayText = () => {
     if (isLocationLoading) return 'Getting location...';
-    if (location?.area) return location.area;
-    if (location?.city) return location.city;
+    if (location?.area && !isPlusCode(location.area)) return location.area;
+    if (location?.city && !isPlusCode(location.city)) return location.city;
     return 'Set Location';
   };
 

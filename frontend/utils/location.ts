@@ -109,10 +109,11 @@ export const getCurrentCoordinates = async (): Promise<{ latitude: number; longi
       console.log('getLastKnownPositionAsync not available, using getCurrentPositionAsync');
     }
 
-    // Fall back to getCurrentPositionAsync with timeout
+    // Fall back to getCurrentPositionAsync with timeout - use Balanced accuracy
+    // for better street/area resolution while staying fast enough on mobile
     const position = await withTimeout(
       Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Low,
+        accuracy: Location.Accuracy.Balanced,
       }),
       15000,
       null as any
@@ -134,6 +135,30 @@ export const getCurrentCoordinates = async (): Promise<{ latitude: number; longi
 };
 
 /**
+ * Detect Google Plus Code / Open Location Code strings such as
+ * "G99X+4VF", "7JVW96FF+QQ" — these are NOT human-readable and must
+ * never be shown to the user as their area / city.
+ */
+export const isPlusCode = (value: string | null | undefined): boolean => {
+  if (!value || typeof value !== 'string') return false;
+  const trimmed = value.trim();
+  // Compact / short Plus Codes contain a "+" and only Plus-Code alphabet chars
+  if (!trimmed.includes('+')) return false;
+  return /^[23456789CFGHJMPQRVWX]{2,8}\+[23456789CFGHJMPQRVWX]{2,8}$/i.test(trimmed);
+};
+
+/** Returns the first non-empty, non-plus-code value from a list */
+const pickHumanReadable = (...candidates: Array<string | null | undefined>): string => {
+  for (const c of candidates) {
+    if (typeof c === 'string') {
+      const t = c.trim();
+      if (t.length > 0 && !isPlusCode(t)) return t;
+    }
+  }
+  return '';
+};
+
+/**
  * Reverse geocode using Nominatim API (works on all platforms)
  */
 const reverseGeocodeWithNominatim = async (
@@ -143,7 +168,7 @@ const reverseGeocodeWithNominatim = async (
   try {
     const response = await withTimeout(
       fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&addressdetails=1`,
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&addressdetails=1&zoom=18`,
         {
           headers: {
             'User-Agent': 'InTownApp/1.0',
@@ -158,11 +183,29 @@ const reverseGeocodeWithNominatim = async (
       const data = await response.json();
       const address = data.address || {};
       
+      const area = pickHumanReadable(
+        address.suburb,
+        address.neighbourhood,
+        address.hamlet,
+        address.village,
+        address.town,
+        address.city_district,
+        address.residential,
+        address.quarter,
+      );
+      const city = pickHumanReadable(
+        address.city,
+        address.town,
+        address.village,
+        address.municipality,
+        address.county,
+      );
+
       return {
         latitude,
         longitude,
-        area: address.suburb || address.neighbourhood || address.village || address.town || address.city_district || '',
-        city: address.city || address.town || address.village || address.county || '',
+        area,
+        city,
         state: address.state || '',
         country: address.country || 'India',
         pincode: address.postcode || '',
@@ -194,7 +237,8 @@ export const reverseGeocode = async (
       };
     }
     
-    // Mobile: Try expo-location reverse geocoding first
+    // Mobile: Try expo-location reverse geocoding first — but only use it
+    // if it returns a HUMAN-READABLE name (not a Plus Code).
     try {
       const addresses = await withTimeout(
         Location.reverseGeocodeAsync({ latitude, longitude }),
@@ -204,20 +248,26 @@ export const reverseGeocode = async (
       
       if (addresses && addresses.length > 0) {
         const addr = addresses[0];
-        const area = addr.subregion || addr.district || addr.name || '';
-        const city = addr.city || addr.region || '';
-        
+        const area = pickHumanReadable(
+          addr.subregion,
+          addr.district,
+          (addr as any).subLocality,
+          addr.street,
+          addr.name,
+        );
+        const city = pickHumanReadable(addr.city, addr.region);
+
         if (area || city) {
           return {
             latitude,
             longitude,
-            area: area,
-            city: city,
+            area,
+            city,
             state: addr.region || '',
             country: addr.country || 'India',
             pincode: addr.postalCode || '',
             fullAddress: [addr.name, addr.street, area, city, addr.region, addr.postalCode, addr.country]
-              .filter(Boolean)
+              .filter((p) => !!p && !isPlusCode(String(p)))
               .join(', '),
           };
         }
@@ -226,7 +276,7 @@ export const reverseGeocode = async (
       console.warn('expo-location reverseGeocode failed, trying Nominatim:', e);
     }
 
-    // Fallback: Use Nominatim API on mobile too
+    // Fallback: Use Nominatim API on mobile too (much better for Indian addresses)
     const nominatimResult = await reverseGeocodeWithNominatim(latitude, longitude);
     if (nominatimResult) return nominatimResult;
     

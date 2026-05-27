@@ -40,7 +40,8 @@ import {
   getUserLocationWithDetails,
   searchLocations,
   setManualLocation,
-  DEFAULT_LOCATION
+  DEFAULT_LOCATION,
+  isPlusCode,
 } from '../utils/location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -541,8 +542,8 @@ export default function UserDashboard() {
   // Get display location text
   const getLocationDisplayText = () => {
     if (isLocationLoading) return 'Getting location...';
-    if (location?.area) return location.area;
-    if (location?.city) return location.city;
+    if (location?.area && !isPlusCode(location.area)) return location.area;
+    if (location?.city && !isPlusCode(location.city)) return location.city;
     return 'Set Location';
   };
 
