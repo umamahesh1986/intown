@@ -32,6 +32,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { useAuthStore } from '../store/authStore';
 import { useLocationStore, LocationDetails } from '../store/locationStore';
 import { getPlans, getCategories, getAllNearbyShops, getMerchantImageByShopId, extractImageUrls } from '../utils/api';
@@ -200,6 +201,35 @@ export default function UserDashboard() {
     loadProfileImage().catch(e => console.warn('loadProfileImage failed:', e));
     requestLocationOnMount().catch(e => console.warn('requestLocation failed:', e));
   }, []);
+
+  // Apply map-picked location when returning from /location-picker
+  useFocusEffect(
+    useCallback(() => {
+      let isActive = true;
+      const applyPickedMapLocation = async () => {
+        try {
+          const stored = await AsyncStorage.getItem('location_picker_dashboard');
+          if (!stored) return;
+          const parsed = JSON.parse(stored);
+          if (
+            isActive &&
+            parsed &&
+            Number.isFinite(parsed.latitude) &&
+            Number.isFinite(parsed.longitude)
+          ) {
+            await setManualLocation(parsed.latitude, parsed.longitude);
+          }
+          await AsyncStorage.removeItem('location_picker_dashboard');
+        } catch (error) {
+          console.error('Failed to apply picked map location:', error);
+        }
+      };
+      applyPickedMapLocation();
+      return () => {
+        isActive = false;
+      };
+    }, [])
+  );
   useEffect(() => {
     if (carouselImages.length === 0) return;
 
@@ -1327,18 +1357,18 @@ export default function UserDashboard() {
                   {isLocationLoading && <ActivityIndicator size="small" color="#FF8C00" style={{ marginLeft: 8 }} />}
                 </TouchableOpacity>
 
-                {/* Current Location Display */}
-                {location && (
-                  <View style={styles.currentLocationDisplay}>
-                    <Ionicons name="location" size={18} color="#4CAF50" />
-                    <View style={{ marginLeft: 10, flex: 1 }}>
-                      <Text style={styles.currentLocationArea}>{location.area || location.city}</Text>
-                      <Text style={styles.currentLocationFull} numberOfLines={2}>
-                        {location.fullAddress}
-                      </Text>
-                    </View>
-                  </View>
-                )}
+                {/* Choose on Map */}
+                <TouchableOpacity
+                  style={styles.chooseOnMapBtn}
+                  onPress={() => {
+                    setShowLocationModal(false);
+                    router.push({ pathname: '/location-picker', params: { returnTo: '/user-dashboard' } });
+                  }}
+                  testID="user-dashboard-choose-on-map-btn"
+                >
+                  <Ionicons name="map" size={20} color="#FFFFFF" />
+                  <Text style={styles.chooseOnMapBtnText}>Choose on Map</Text>
+                </TouchableOpacity>
               </>
             )}
           </View>
@@ -2222,6 +2252,21 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#FF8C00',
     marginLeft: 12,
+  },
+  chooseOnMapBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FF8C00',
+    padding: 14,
+    borderRadius: 12,
+    marginBottom: 8,
+    gap: 8,
+  },
+  chooseOnMapBtnText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
   currentLocationDisplay: {
     flexDirection: 'row',

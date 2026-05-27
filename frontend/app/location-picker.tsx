@@ -40,6 +40,17 @@ export default function LocationPickerScreen() {
     if (returnTo === '/register-member') {
       return 'location_picker_register_member';
     }
+    if (returnTo === '/account') {
+      return 'location_picker_account';
+    }
+    if (
+      returnTo === '/user-dashboard' ||
+      returnTo === '/member-dashboard' ||
+      returnTo === '/dual-dashboard' ||
+      returnTo === '/dashboard'
+    ) {
+      return 'location_picker_dashboard';
+    }
     return 'location_picker_default';
   };
   const [selectedLocation, setSelectedLocation] = useState({

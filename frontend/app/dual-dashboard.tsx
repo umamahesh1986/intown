@@ -375,7 +375,26 @@ export default function DualDashboard() {
           console.error('Error refreshing profile image:', error);
         }
       };
+      const applyPickedMapLocation = async () => {
+        try {
+          const stored = await AsyncStorage.getItem('location_picker_dashboard');
+          if (!stored) return;
+          const parsed = JSON.parse(stored);
+          if (
+            isActive &&
+            parsed &&
+            Number.isFinite(parsed.latitude) &&
+            Number.isFinite(parsed.longitude)
+          ) {
+            await setManualLocation(parsed.latitude, parsed.longitude);
+          }
+          await AsyncStorage.removeItem('location_picker_dashboard');
+        } catch (error) {
+          console.error('Failed to apply picked map location:', error);
+        }
+      };
       refreshProfileImage();
+      applyPickedMapLocation();
       return () => {
         isActive = false;
       };
@@ -1589,17 +1608,18 @@ export default function DualDashboard() {
               {isLocationLoading && <ActivityIndicator size="small" color="#FF8A00" style={{ marginLeft: 8 }} />}
             </TouchableOpacity>
 
-            {location && (
-              <View style={styles.currentLocationDisplay}>
-                <Ionicons name="location" size={18} color="#4CAF50" />
-                <View style={{ marginLeft: 10, flex: 1 }}>
-                  <Text style={styles.currentLocationArea}>{location.area || location.city}</Text>
-                  <Text style={styles.currentLocationFull} numberOfLines={2}>
-                    {location.fullAddress}
-                  </Text>
-                </View>
-              </View>
-            )}
+            {/* Choose on Map */}
+            <TouchableOpacity
+              style={styles.chooseOnMapBtn}
+              onPress={() => {
+                setShowLocationModal(false);
+                router.push({ pathname: '/location-picker', params: { returnTo: '/dual-dashboard' } });
+              }}
+              testID="dual-dashboard-choose-on-map-btn"
+            >
+              <Ionicons name="map" size={20} color="#FFFFFF" />
+              <Text style={styles.chooseOnMapBtnText}>Choose on Map</Text>
+            </TouchableOpacity>
 
             {isSearchingLocation && (
               <ActivityIndicator size="small" color="#FF8A00" style={{ marginTop: 16 }} />
@@ -2272,6 +2292,21 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#FF8A00',
     marginLeft: 12,
+  },
+  chooseOnMapBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FF8A00',
+    padding: 14,
+    borderRadius: 12,
+    marginBottom: 8,
+    gap: 8,
+  },
+  chooseOnMapBtnText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
   currentLocationDisplay: {
     flexDirection: 'row',
