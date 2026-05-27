@@ -27,7 +27,7 @@ import { useLocationStore } from '../store/locationStore';
 import { useFocusEffect } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import Footer from '../components/Footer';
-import { getNearbyShops, getCategories, getMerchantImageByShopId, extractImageUrls, INTOWN_API_BASE } from '../utils/api';
+import { getAllNearbyShops, getCategories, getMerchantImageByShopId, extractImageUrls, INTOWN_API_BASE } from '../utils/api';
 import {
   CATEGORY_IMAGE_LIST,
   FALLBACK_CATEGORY_IMAGE,
@@ -469,10 +469,9 @@ export default function DualDashboard() {
 
     try {
       setIsNearbyLoading(true);
-      const response = await getNearbyShops(
+      const response = await getAllNearbyShops(
         location.latitude,
         location.longitude,
-        100001
       );
       const list = Array.isArray(response) ? response : [];
       const enriched = await Promise.all(

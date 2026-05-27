@@ -34,7 +34,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
 import { useLocationStore, LocationDetails } from '../store/locationStore';
-import { getPlans, getCategories, getNearbyShops, getMerchantImageByShopId, extractImageUrls } from '../utils/api';
+import { getPlans, getCategories, getAllNearbyShops, getMerchantImageByShopId, extractImageUrls } from '../utils/api';
 
 import {
   getUserLocationWithDetails,
@@ -429,10 +429,9 @@ export default function UserDashboard() {
       // location already comes from store
       if (!location?.latitude || !location?.longitude) return;
 
-      const response = await getNearbyShops(
+      const response = await getAllNearbyShops(
         location.latitude,
         location.longitude,
-        100001
       );
 
       // backend returns ARRAY, not { data: [] }

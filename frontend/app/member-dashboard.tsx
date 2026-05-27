@@ -33,7 +33,7 @@ import { useAuthStore } from '../store/authStore';
 import { useLocationStore } from '../store/locationStore';
 import {
   getCategories,
-  getNearbyShops,
+  getAllNearbyShops,
   getNearbyShopsByCategory,
 } from '../utils/api';
 import { getCustomerProfile, getMerchantImageByShopId, extractImageUrls, INTOWN_API_BASE } from '../utils/api';
@@ -634,10 +634,9 @@ export default function MemberDashboard() {
     try {
       setIsNearbyLoading(true);
 
-      const response = await getNearbyShops(
+      const response = await getAllNearbyShops(
         location.latitude,
-        location.longitude,
-        100001
+        location.longitude
       );
 
 
