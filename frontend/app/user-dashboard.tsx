@@ -576,9 +576,14 @@ export default function UserDashboard() {
               <View>
                 <Text style={styles.locationLabel}>YOUR LOCATION</Text>
 
-                <Text style={styles.locationText}>
+                <Text style={styles.locationText} numberOfLines={1}>
                   {getLocationDisplayText()}
                 </Text>
+                {location?.city && !isPlusCode(location.city) && location.city !== getLocationDisplayText() && (
+                  <Text style={styles.locationCityText} numberOfLines={1}>
+                    {location.city}
+                  </Text>
+                )}
               </View>
             </TouchableOpacity>
 
@@ -1394,6 +1399,13 @@ const styles = StyleSheet.create({
     whiteSpace: "nowrap",
     textOverflow: "ellipsis",
     overflow: "hidden"
+  },
+  locationCityText: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: '#64748B',
+    marginTop: 1,
+    maxWidth: 200,
   },
   profileButton: {
     flexDirection: 'row',

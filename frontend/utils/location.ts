@@ -109,13 +109,14 @@ export const getCurrentCoordinates = async (): Promise<{ latitude: number; longi
       console.log('getLastKnownPositionAsync not available, using getCurrentPositionAsync');
     }
 
-    // Fall back to getCurrentPositionAsync with timeout - use Balanced accuracy
-    // for better street/area resolution while staying fast enough on mobile
+    // Fall back to getCurrentPositionAsync with timeout - use High accuracy
+    // so we get an exact lat/lng that yields a proper area name (not a coarse
+    // Plus Code) on reverse geocoding.
     const position = await withTimeout(
       Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
+        accuracy: Location.Accuracy.High,
       }),
-      15000,
+      20000,
       null as any
     );
     
@@ -369,7 +370,19 @@ export const setManualLocation = async (
 };
 
 /**
- * Search for locations by query (for manual location selection)
+ * Search for locations by query (for manual location selection).
+ *
+ * Robust multi-strategy search that works for:
+ *  - Area names (Madhapur, Kukatpally)
+ *  - Streets (MG Road)
+ *  - Landmarks (Charminar, Tank Bund)
+ *  - Cities (Hyderabad)
+ *  - 6-digit Indian pincodes (500081)
+ *
+ * Uses Nominatim free/forward search + a fallback structured pincode
+ * query when the input is a 6-digit number. Results are deduped by
+ * coordinate so the same place appearing in multiple searches is
+ * shown only once.
  */
 export const searchLocations = async (query: string): Promise<Array<{
   name: string;
@@ -378,28 +391,103 @@ export const searchLocations = async (query: string): Promise<Array<{
   longitude: number;
 }>> => {
   try {
-    if (!query || query.length < 3) return [];
-    
-    const response = await fetch(
-      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=in&limit=5`,
-      {
-        headers: {
-          'User-Agent': 'InTownApp/1.0',
-        },
-      }
-    );
-    
-    if (response.ok) {
-      const data = await response.json();
-      return data.map((item: any) => ({
-        name: item.display_name.split(',')[0],
-        fullAddress: item.display_name,
-        latitude: parseFloat(item.lat),
-        longitude: parseFloat(item.lon),
-      }));
+    const q = (query || '').trim();
+    if (!q || q.length < 3) return [];
+
+    const isPincode = /^\d{6}$/.test(q);
+
+    const baseHeaders: Record<string, string> = {
+      'User-Agent': 'InTownApp/1.0',
+      'Accept-Language': 'en-IN,en;q=0.9',
+    };
+
+    const buildResults = (data: any[]): Array<{
+      name: string;
+      fullAddress: string;
+      latitude: number;
+      longitude: number;
+    }> => {
+      if (!Array.isArray(data)) return [];
+      return data
+        .map((item: any) => {
+          const address = item.address || {};
+          const friendlyName = pickHumanReadable(
+            address.suburb,
+            address.neighbourhood,
+            address.hamlet,
+            address.village,
+            address.town,
+            address.city_district,
+            address.residential,
+            address.quarter,
+            address.road,
+            address.city,
+            (item.display_name as string)?.split(',')[0],
+          );
+          return {
+            name: friendlyName || ((item.display_name as string)?.split(',')[0] ?? q),
+            fullAddress: item.display_name || '',
+            latitude: parseFloat(item.lat),
+            longitude: parseFloat(item.lon),
+          };
+        })
+        .filter((r) => Number.isFinite(r.latitude) && Number.isFinite(r.longitude));
+    };
+
+    const fetchWithTimeout = (url: string) =>
+      withTimeout(fetch(url, { headers: baseHeaders }), 8000, null as any);
+
+    // Strategy 1: free-text query (primary)
+    const queries: string[] = [
+      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&countrycodes=in&addressdetails=1&limit=10`,
+    ];
+
+    // Strategy 2: structured pincode query if input is a 6-digit number
+    if (isPincode) {
+      queries.push(
+        `https://nominatim.openstreetmap.org/search?format=json&postalcode=${encodeURIComponent(q)}&country=India&addressdetails=1&limit=10`,
+      );
+    } else {
+      // Strategy 3: suggest within India explicitly (helps short queries)
+      queries.push(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q + ', India')}&countrycodes=in&addressdetails=1&limit=10`,
+      );
     }
-    
-    return [];
+
+    const responses = await Promise.all(queries.map(fetchWithTimeout));
+    const merged: Array<{
+      name: string;
+      fullAddress: string;
+      latitude: number;
+      longitude: number;
+    }> = [];
+
+    for (const res of responses) {
+      if (!res || !(res as Response).ok) continue;
+      try {
+        const data = await (res as Response).json();
+        merged.push(...buildResults(data));
+      } catch {
+        // ignore parse errors per strategy
+      }
+    }
+
+    // Dedupe by ~3-decimal coord (~110m precision)
+    const seen = new Set<string>();
+    const out: Array<{
+      name: string;
+      fullAddress: string;
+      latitude: number;
+      longitude: number;
+    }> = [];
+    for (const r of merged) {
+      const key = `${r.latitude.toFixed(3)}_${r.longitude.toFixed(3)}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(r);
+      if (out.length >= 10) break;
+    }
+    return out;
   } catch (error) {
     console.error('Error searching locations:', error);
     return [];

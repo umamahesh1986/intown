@@ -829,9 +829,14 @@ export default function DualDashboard() {
 
           <View style={styles.locationTextContainer}>
             <Text style={styles.welcomeText}>YOUR LOCATION</Text>
-            <Text style={styles.locationText}>
+            <Text style={styles.locationText} numberOfLines={1}>
               {getLocationDisplayText()}
             </Text>
+            {location?.city && !isPlusCode(location.city) && location.city !== getLocationDisplayText() && (
+              <Text style={styles.locationCityText} numberOfLines={1}>
+                {location.city}
+              </Text>
+            )}
           </View>
         </TouchableOpacity>
 
@@ -1663,6 +1668,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#0F172A',
     flex: 1,
+  },
+  locationCityText: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: '#64748B',
+    marginTop: 1,
   },
   welcomeText: {
     fontSize: 10,

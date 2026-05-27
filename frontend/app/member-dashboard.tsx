@@ -883,9 +883,14 @@ export default function MemberDashboard() {
 
               <View>
                 <Text style={styles.locationLabel}>YOUR LOCATION</Text>
-                <Text style={styles.locationName}>
+                <Text style={styles.locationName} numberOfLines={1}>
                   {getLocationDisplayText()}
                 </Text>
+                {location?.city && !isPlusCode(location.city) && location.city !== getLocationDisplayText() && (
+                  <Text style={styles.locationCityText} numberOfLines={1}>
+                    {location.city}
+                  </Text>
+                )}
               </View>
             </TouchableOpacity>
 
@@ -2457,6 +2462,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "700",
     color: "#0F172A",
+    maxWidth: 200,
+  },
+  locationCityText: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: '#64748B',
+    marginTop: 1,
     maxWidth: 200,
   },
 
