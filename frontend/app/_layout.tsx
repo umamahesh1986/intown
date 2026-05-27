@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { View, Text, TextInput, Platform } from 'react-native';
 import { useAuthStore } from '../store/authStore';
 import CommonBottomTabs from '../components/CommonBottomTabs';
+import ForceUpdateModal from '../components/ForceUpdateModal';
 import { Fonts } from '../utils/fonts';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -157,6 +158,9 @@ export default function RootLayout() {
      {showTabs && (
   <CommonBottomTabs tabs={tabs} />
 )}
+
+      {/* Force Update Modal — checks Play Store / App Store version on mount */}
+      <ForceUpdateModal />
     </View>
   );
 }
