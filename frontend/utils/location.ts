@@ -372,123 +372,196 @@ export const setManualLocation = async (
 /**
  * Search for locations by query (for manual location selection).
  *
- * Robust multi-strategy search that works for:
+ * Robust autocomplete-style search:
  *  - Area names (Madhapur, Kukatpally)
  *  - Streets (MG Road)
  *  - Landmarks (Charminar, Tank Bund)
  *  - Cities (Hyderabad)
  *  - 6-digit Indian pincodes (500081)
  *
- * Uses Nominatim free/forward search + a fallback structured pincode
- * query when the input is a 6-digit number. Results are deduped by
- * coordinate so the same place appearing in multiple searches is
- * shown only once.
+ * Strategy (rate-limit friendly):
+ *  1. Photon (Komoot) — autocomplete-grade, no public rate limit.
+ *  2. Nominatim — fallback ONLY when Photon yields nothing. One request,
+ *     long User-Agent (per OSM policy), result reused across calls via cache.
+ *
+ *  Results are cached per-query for the session and deduped by coordinate.
+ *  Caller-side debouncing is still required (see dashboards).
  */
-export const searchLocations = async (query: string): Promise<Array<{
+
+interface SearchResultItem {
   name: string;
   fullAddress: string;
   latitude: number;
   longitude: number;
-}>> => {
+}
+
+const searchCache = new Map<string, SearchResultItem[]>();
+let inFlightSearch: Promise<SearchResultItem[]> | null = null;
+let inFlightSearchQuery: string | null = null;
+
+const buildDisplayAddress = (props: Record<string, any>): string => {
+  const segments = [
+    props.name,
+    props.street,
+    props.suburb,
+    props.locality,
+    props.district,
+    props.city,
+    props.county,
+    props.state,
+    props.postcode,
+    props.country,
+  ];
+  return segments
+    .filter((s) => typeof s === 'string' && s.trim().length > 0)
+    .join(', ');
+};
+
+const searchWithPhoton = async (q: string): Promise<SearchResultItem[]> => {
   try {
-    const q = (query || '').trim();
+    const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&lang=en&limit=10&osm_tag=:!boundary`;
+    const res = await withTimeout(
+      fetch(url, { headers: { Accept: 'application/json' } }),
+      6000,
+      null as any,
+    );
+    if (!res || !(res as Response).ok) return [];
+    const data = await (res as Response).json();
+    const features: any[] = Array.isArray(data?.features) ? data.features : [];
+    const items = features
+      .map((f) => {
+        const p = f.properties || {};
+        const c = f.geometry?.coordinates;
+        if (!Array.isArray(c) || c.length < 2) return null;
+        // Photon returns [lon, lat]
+        const longitude = parseFloat(c[0]);
+        const latitude = parseFloat(c[1]);
+        const friendlyName = pickHumanReadable(
+          p.name,
+          p.suburb,
+          p.locality,
+          p.district,
+          p.city,
+          p.street,
+        );
+        return {
+          name: friendlyName || p.name || q,
+          fullAddress: buildDisplayAddress(p),
+          latitude,
+          longitude,
+        };
+      })
+      .filter(
+        (r): r is SearchResultItem =>
+          !!r && Number.isFinite(r.latitude) && Number.isFinite(r.longitude),
+      );
+    // Prefer Indian results first (country filter not exposed by Photon)
+    items.sort((a, b) => {
+      const aIn = /india/i.test(a.fullAddress) ? 0 : 1;
+      const bIn = /india/i.test(b.fullAddress) ? 0 : 1;
+      return aIn - bIn;
+    });
+    return items;
+  } catch (e) {
+    console.warn('[searchLocations] Photon failed:', e);
+    return [];
+  }
+};
+
+const searchWithNominatim = async (q: string): Promise<SearchResultItem[]> => {
+  try {
+    const isPincode = /^\d{6}$/.test(q);
+    const url = isPincode
+      ? `https://nominatim.openstreetmap.org/search?format=json&postalcode=${encodeURIComponent(q)}&country=India&addressdetails=1&limit=10`
+      : `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&countrycodes=in&addressdetails=1&limit=10`;
+    const res = await withTimeout(
+      fetch(url, {
+        headers: {
+          // Nominatim requires a real identifying User-Agent / Referer
+          'User-Agent': 'InTownLocal/1.0 (support@intownlocal.com)',
+          'Accept-Language': 'en-IN,en;q=0.9',
+        },
+      }),
+      8000,
+      null as any,
+    );
+    if (!res || !(res as Response).ok) return [];
+    const data = await (res as Response).json();
+    if (!Array.isArray(data)) return [];
+    return data
+      .map((item: any) => {
+        const address = item.address || {};
+        const friendlyName = pickHumanReadable(
+          address.suburb,
+          address.neighbourhood,
+          address.hamlet,
+          address.village,
+          address.town,
+          address.city_district,
+          address.residential,
+          address.quarter,
+          address.road,
+          address.city,
+          (item.display_name as string)?.split(',')[0],
+        );
+        return {
+          name: friendlyName || ((item.display_name as string)?.split(',')[0] ?? q),
+          fullAddress: item.display_name || '',
+          latitude: parseFloat(item.lat),
+          longitude: parseFloat(item.lon),
+        };
+      })
+      .filter((r) => Number.isFinite(r.latitude) && Number.isFinite(r.longitude));
+  } catch (e) {
+    console.warn('[searchLocations] Nominatim failed:', e);
+    return [];
+  }
+};
+
+export const searchLocations = async (query: string): Promise<SearchResultItem[]> => {
+  try {
+    const q = (query || '').trim().toLowerCase();
     if (!q || q.length < 3) return [];
 
-    const isPincode = /^\d{6}$/.test(q);
+    // Session cache
+    const cached = searchCache.get(q);
+    if (cached) return cached;
 
-    const baseHeaders: Record<string, string> = {
-      'User-Agent': 'InTownApp/1.0',
-      'Accept-Language': 'en-IN,en;q=0.9',
-    };
-
-    const buildResults = (data: any[]): Array<{
-      name: string;
-      fullAddress: string;
-      latitude: number;
-      longitude: number;
-    }> => {
-      if (!Array.isArray(data)) return [];
-      return data
-        .map((item: any) => {
-          const address = item.address || {};
-          const friendlyName = pickHumanReadable(
-            address.suburb,
-            address.neighbourhood,
-            address.hamlet,
-            address.village,
-            address.town,
-            address.city_district,
-            address.residential,
-            address.quarter,
-            address.road,
-            address.city,
-            (item.display_name as string)?.split(',')[0],
-          );
-          return {
-            name: friendlyName || ((item.display_name as string)?.split(',')[0] ?? q),
-            fullAddress: item.display_name || '',
-            latitude: parseFloat(item.lat),
-            longitude: parseFloat(item.lon),
-          };
-        })
-        .filter((r) => Number.isFinite(r.latitude) && Number.isFinite(r.longitude));
-    };
-
-    const fetchWithTimeout = (url: string) =>
-      withTimeout(fetch(url, { headers: baseHeaders }), 8000, null as any);
-
-    // Strategy 1: free-text query (primary)
-    const queries: string[] = [
-      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&countrycodes=in&addressdetails=1&limit=10`,
-    ];
-
-    // Strategy 2: structured pincode query if input is a 6-digit number
-    if (isPincode) {
-      queries.push(
-        `https://nominatim.openstreetmap.org/search?format=json&postalcode=${encodeURIComponent(q)}&country=India&addressdetails=1&limit=10`,
-      );
-    } else {
-      // Strategy 3: suggest within India explicitly (helps short queries)
-      queries.push(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q + ', India')}&countrycodes=in&addressdetails=1&limit=10`,
-      );
+    // Coalesce concurrent calls for the same query
+    if (inFlightSearch && inFlightSearchQuery === q) {
+      return inFlightSearch;
     }
 
-    const responses = await Promise.all(queries.map(fetchWithTimeout));
-    const merged: Array<{
-      name: string;
-      fullAddress: string;
-      latitude: number;
-      longitude: number;
-    }> = [];
+    inFlightSearchQuery = q;
+    inFlightSearch = (async () => {
+      let merged = await searchWithPhoton(q);
 
-    for (const res of responses) {
-      if (!res || !(res as Response).ok) continue;
-      try {
-        const data = await (res as Response).json();
-        merged.push(...buildResults(data));
-      } catch {
-        // ignore parse errors per strategy
+      // If Photon returns nothing useful, fall back to Nominatim (one request)
+      if (merged.length === 0) {
+        merged = await searchWithNominatim(q);
       }
-    }
 
-    // Dedupe by ~3-decimal coord (~110m precision)
-    const seen = new Set<string>();
-    const out: Array<{
-      name: string;
-      fullAddress: string;
-      latitude: number;
-      longitude: number;
-    }> = [];
-    for (const r of merged) {
-      const key = `${r.latitude.toFixed(3)}_${r.longitude.toFixed(3)}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      out.push(r);
-      if (out.length >= 10) break;
-    }
-    return out;
+      // Dedupe by ~110m coord precision, cap to 10
+      const seen = new Set<string>();
+      const out: SearchResultItem[] = [];
+      for (const r of merged) {
+        const key = `${r.latitude.toFixed(3)}_${r.longitude.toFixed(3)}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        out.push(r);
+        if (out.length >= 10) break;
+      }
+      searchCache.set(q, out);
+      return out;
+    })();
+
+    const result = await inFlightSearch;
+    inFlightSearch = null;
+    inFlightSearchQuery = null;
+    return result;
   } catch (error) {
+    inFlightSearch = null;
+    inFlightSearchQuery = null;
     console.error('Error searching locations:', error);
     return [];
   }
