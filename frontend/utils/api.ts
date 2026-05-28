@@ -821,47 +821,22 @@ export const getNearbyShops = async (
 };
 
 /**
- * Fetch nearby shops across ALL active categories and merge/dedupe.
- * The backend `/search/by-product-names` endpoint requires a categoryId
- * (returns 500 without it), so we fan-out in parallel for every category
- * returned by `/categories` and combine the results.
+ * Fetch ALL nearby shops in a SINGLE request (no categoryId filter).
+ * Endpoint: GET /IN/search/by-product-names?customerLatitude=&customerLongitude=
  */
 export const getAllNearbyShops = async (
   latitude: number,
   longitude: number,
 ) => {
+  const url = `${INTOWN_API_BASE}/search/by-product-names?customerLatitude=${latitude}&customerLongitude=${longitude}`;
   try {
-    const cats = await getCategories(false);
-    const categoryIds: Array<string | number> = Array.isArray(cats)
-      ? cats
-          .map((c: any) => c?.id)
-          .filter((id: any) => id !== null && id !== undefined)
-      : [];
-
-    if (categoryIds.length === 0) {
-      console.warn('[API] getAllNearbyShops: no categories available');
+    const res = await fetch(url);
+    if (!res.ok) {
+      console.warn('[API] getAllNearbyShops failed:', res.status, 'for coords:', latitude, longitude);
       return [];
     }
-
-    const results = await Promise.all(
-      categoryIds.map((id) => getNearbyShops(latitude, longitude, id)),
-    );
-
-    // Flatten + dedupe by shop id (fallback to merchantId / phone)
-    const seen = new Set<string>();
-    const merged: any[] = [];
-    for (const arr of results) {
-      if (!Array.isArray(arr)) continue;
-      for (const shop of arr) {
-        const key = String(
-          shop?.id ?? shop?.merchantId ?? shop?.merchant_id ?? shop?.phoneNumber ?? Math.random(),
-        );
-        if (seen.has(key)) continue;
-        seen.add(key);
-        merged.push(shop);
-      }
-    }
-    return merged;
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
   } catch (e) {
     console.warn('[API] getAllNearbyShops error:', e);
     return [];
