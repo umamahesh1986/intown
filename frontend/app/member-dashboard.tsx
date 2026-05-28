@@ -352,14 +352,17 @@ export default function MemberDashboard() {
   }
 
   const placeholderItems = [
-    'Grocery',
-    'Salon',
-    'Fashion',
-    'Vegetables',
-    'Fruits',
-    'Restaurant',
-    'Pharmacy',
-    'Electronics',];
+    'Tomato',
+    'Tea',
+    'Cricket Bat',
+    'Apple',
+    'Paracetamol',
+    'Milk',
+    'Bread',
+    'Rice',
+    'Cough Syrup',
+    'Hair Cut',
+  ];
   const placeholderOpacity = placeholderAnim.interpolate({
     inputRange: [0, 0.2, 0.8, 1],
     outputRange: [0, 1, 1, 0],
