@@ -456,16 +456,27 @@ export default function DualDashboard() {
   };
 
   // Location handlers
-  const handleLocationSearch = async (text: string) => {
+  const locationSearchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const handleLocationSearch = (text: string) => {
     setLocationSearchQuery(text);
-    if (text.length >= 3) {
-      setIsSearchingLocation(true);
-      const results = await searchLocations(text);
-      setLocationSearchResults(results);
-      setIsSearchingLocation(false);
-    } else {
-      setLocationSearchResults([]);
+    if (locationSearchTimerRef.current) {
+      clearTimeout(locationSearchTimerRef.current);
+      locationSearchTimerRef.current = null;
     }
+    if (text.length < 3) {
+      setLocationSearchResults([]);
+      setIsSearchingLocation(false);
+      return;
+    }
+    setIsSearchingLocation(true);
+    locationSearchTimerRef.current = setTimeout(async () => {
+      try {
+        const results = await searchLocations(text);
+        setLocationSearchResults(results);
+      } finally {
+        setIsSearchingLocation(false);
+      }
+    }, 500);
   };
 
   const handleSelectLocation = async (item: { latitude: number; longitude: number }) => {
