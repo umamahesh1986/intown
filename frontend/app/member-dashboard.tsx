@@ -33,7 +33,7 @@ import { useAuthStore } from '../store/authStore';
 import { useLocationStore } from '../store/locationStore';
 import {
   getCategories,
-  getNearbyShops,
+  getAllNearbyShops,
   getNearbyShopsByCategory,
 } from '../utils/api';
 import { getCustomerProfile, getMerchantImageByShopId, extractImageUrls, INTOWN_API_BASE } from '../utils/api';
@@ -42,7 +42,8 @@ import { getCustomerProfile, getMerchantImageByShopId, extractImageUrls, INTOWN_
 import {
   getUserLocationWithDetails,
   searchLocations,
-  setManualLocation
+  setManualLocation,
+  isPlusCode,
 } from '../utils/location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Footer from '../components/Footer'
@@ -467,7 +468,26 @@ export default function MemberDashboard() {
           console.error('Error refreshing profile image:', error);
         }
       };
+      const applyPickedMapLocation = async () => {
+        try {
+          const stored = await AsyncStorage.getItem('location_picker_dashboard');
+          if (!stored) return;
+          const parsed = JSON.parse(stored);
+          if (
+            isActive &&
+            parsed &&
+            Number.isFinite(parsed.latitude) &&
+            Number.isFinite(parsed.longitude)
+          ) {
+            await setManualLocation(parsed.latitude, parsed.longitude);
+          }
+          await AsyncStorage.removeItem('location_picker_dashboard');
+        } catch (error) {
+          console.error('Failed to apply picked map location:', error);
+        }
+      };
       refreshProfileImage();
+      applyPickedMapLocation();
       return () => {
         isActive = false;
       };
@@ -576,8 +596,8 @@ export default function MemberDashboard() {
   // Get display location text
   const getLocationDisplayText = () => {
     if (isLocationLoading) return 'Getting location...';
-    if (location?.area) return location.area;
-    if (location?.city) return location.city;
+    if (location?.area && !isPlusCode(location.area)) return location.area;
+    if (location?.city && !isPlusCode(location.city)) return location.city;
     return 'Set Location';
   };
 
@@ -634,10 +654,9 @@ export default function MemberDashboard() {
     try {
       setIsNearbyLoading(true);
 
-      const response = await getNearbyShops(
+      const response = await getAllNearbyShops(
         location.latitude,
-        location.longitude,
-        100001
+        location.longitude
       );
 
 
@@ -883,9 +902,14 @@ export default function MemberDashboard() {
 
               <View>
                 <Text style={styles.locationLabel}>YOUR LOCATION</Text>
-                <Text style={styles.locationName}>
+                <Text style={styles.locationName} numberOfLines={1}>
                   {getLocationDisplayText()}
                 </Text>
+                {location?.city && !isPlusCode(location.city) && location.city !== getLocationDisplayText() && (
+                  <Text style={styles.locationCityText} numberOfLines={1}>
+                    {location.city}
+                  </Text>
+                )}
               </View>
             </TouchableOpacity>
 
@@ -1532,17 +1556,18 @@ export default function MemberDashboard() {
                   {isLocationLoading && <ActivityIndicator size="small" color="#FF8C00" style={{ marginLeft: 8 }} />}
                 </TouchableOpacity>
 
-                {location && (
-                  <View style={styles.currentLocationDisplay}>
-                    <Ionicons name="location" size={18} color="#4CAF50" />
-                    <View style={{ marginLeft: 10, flex: 1 }}>
-                      <Text style={styles.currentLocationArea}>{location.area || location.city}</Text>
-                      <Text style={styles.currentLocationFull} numberOfLines={2}>
-                        {location.fullAddress}
-                      </Text>
-                    </View>
-                  </View>
-                )}
+                {/* Choose on Map */}
+                <TouchableOpacity
+                  style={styles.chooseOnMapBtn}
+                  onPress={() => {
+                    setShowLocationModal(false);
+                    router.push({ pathname: '/location-picker', params: { returnTo: '/member-dashboard' } });
+                  }}
+                  testID="member-dashboard-choose-on-map-btn"
+                >
+                  <Ionicons name="map" size={20} color="#FFFFFF" />
+                  <Text style={styles.chooseOnMapBtnText}>Choose on Map</Text>
+                </TouchableOpacity>
               </>
             )}
           </View>
@@ -2319,6 +2344,21 @@ const styles = StyleSheet.create({
     color: '#FF8C00',
     marginLeft: 12,
   },
+  chooseOnMapBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FF8C00',
+    padding: 14,
+    borderRadius: 12,
+    marginBottom: 8,
+    gap: 8,
+  },
+  chooseOnMapBtnText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
   currentLocationDisplay: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -2457,6 +2497,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "700",
     color: "#0F172A",
+    maxWidth: 200,
+  },
+  locationCityText: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: '#64748B',
+    marginTop: 1,
     maxWidth: 200,
   },
 

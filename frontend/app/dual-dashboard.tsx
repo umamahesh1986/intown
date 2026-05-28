@@ -27,7 +27,7 @@ import { useLocationStore } from '../store/locationStore';
 import { useFocusEffect } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import Footer from '../components/Footer';
-import { getNearbyShops, getCategories, getMerchantImageByShopId, extractImageUrls, INTOWN_API_BASE } from '../utils/api';
+import { getAllNearbyShops, getCategories, getMerchantImageByShopId, extractImageUrls, INTOWN_API_BASE } from '../utils/api';
 import {
   CATEGORY_IMAGE_LIST,
   FALLBACK_CATEGORY_IMAGE,
@@ -35,7 +35,8 @@ import {
 import {
   getUserLocationWithDetails,
   searchLocations,
-  setManualLocation
+  setManualLocation,
+  isPlusCode,
 } from '../utils/location';
 import { formatDistance } from '../utils/formatDistance';
 import CommonBottomTabs from "../components/CommonBottomTabs";
@@ -374,7 +375,26 @@ export default function DualDashboard() {
           console.error('Error refreshing profile image:', error);
         }
       };
+      const applyPickedMapLocation = async () => {
+        try {
+          const stored = await AsyncStorage.getItem('location_picker_dashboard');
+          if (!stored) return;
+          const parsed = JSON.parse(stored);
+          if (
+            isActive &&
+            parsed &&
+            Number.isFinite(parsed.latitude) &&
+            Number.isFinite(parsed.longitude)
+          ) {
+            await setManualLocation(parsed.latitude, parsed.longitude);
+          }
+          await AsyncStorage.removeItem('location_picker_dashboard');
+        } catch (error) {
+          console.error('Failed to apply picked map location:', error);
+        }
+      };
       refreshProfileImage();
+      applyPickedMapLocation();
       return () => {
         isActive = false;
       };
@@ -469,10 +489,9 @@ export default function DualDashboard() {
 
     try {
       setIsNearbyLoading(true);
-      const response = await getNearbyShops(
+      const response = await getAllNearbyShops(
         location.latitude,
         location.longitude,
-        100001
       );
       const list = Array.isArray(response) ? response : [];
       const enriched = await Promise.all(
@@ -506,8 +525,8 @@ export default function DualDashboard() {
 
   const getLocationDisplayText = () => {
     if (isLocationLoading) return 'Getting location...';
-    if (location?.area) return location.area;
-    if (location?.city) return location.city;
+    if (location?.area && !isPlusCode(location.area)) return location.area;
+    if (location?.city && !isPlusCode(location.city)) return location.city;
     return 'Set Location';
   };
 
@@ -829,9 +848,14 @@ export default function DualDashboard() {
 
           <View style={styles.locationTextContainer}>
             <Text style={styles.welcomeText}>YOUR LOCATION</Text>
-            <Text style={styles.locationText}>
+            <Text style={styles.locationText} numberOfLines={1}>
               {getLocationDisplayText()}
             </Text>
+            {location?.city && !isPlusCode(location.city) && location.city !== getLocationDisplayText() && (
+              <Text style={styles.locationCityText} numberOfLines={1}>
+                {location.city}
+              </Text>
+            )}
           </View>
         </TouchableOpacity>
 
@@ -1584,17 +1608,18 @@ export default function DualDashboard() {
               {isLocationLoading && <ActivityIndicator size="small" color="#FF8A00" style={{ marginLeft: 8 }} />}
             </TouchableOpacity>
 
-            {location && (
-              <View style={styles.currentLocationDisplay}>
-                <Ionicons name="location" size={18} color="#4CAF50" />
-                <View style={{ marginLeft: 10, flex: 1 }}>
-                  <Text style={styles.currentLocationArea}>{location.area || location.city}</Text>
-                  <Text style={styles.currentLocationFull} numberOfLines={2}>
-                    {location.fullAddress}
-                  </Text>
-                </View>
-              </View>
-            )}
+            {/* Choose on Map */}
+            <TouchableOpacity
+              style={styles.chooseOnMapBtn}
+              onPress={() => {
+                setShowLocationModal(false);
+                router.push({ pathname: '/location-picker', params: { returnTo: '/dual-dashboard' } });
+              }}
+              testID="dual-dashboard-choose-on-map-btn"
+            >
+              <Ionicons name="map" size={20} color="#FFFFFF" />
+              <Text style={styles.chooseOnMapBtnText}>Choose on Map</Text>
+            </TouchableOpacity>
 
             {isSearchingLocation && (
               <ActivityIndicator size="small" color="#FF8A00" style={{ marginTop: 16 }} />
@@ -1663,6 +1688,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#0F172A',
     flex: 1,
+  },
+  locationCityText: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: '#64748B',
+    marginTop: 1,
   },
   welcomeText: {
     fontSize: 10,
@@ -2261,6 +2292,21 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#FF8A00',
     marginLeft: 12,
+  },
+  chooseOnMapBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FF8A00',
+    padding: 14,
+    borderRadius: 12,
+    marginBottom: 8,
+    gap: 8,
+  },
+  chooseOnMapBtnText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
   currentLocationDisplay: {
     flexDirection: 'row',

@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { WebView } from 'react-native-webview';
+import ShareModal from './ShareModal';
 
 
 // --- LINKS ---
@@ -231,6 +232,7 @@ export default function Footer({ dashboardType }: FooterProps) {
   const [modalVisible, setModalVisible] = useState(false);
   const [currentHtml, setCurrentHtml] = useState('');
   const [modalTitle, setModalTitle] = useState('');
+  const [showShareModal, setShowShareModal] = useState(false);
 
   const openInApp = (htmlContent: string, title: string) => {
     setCurrentHtml(htmlContent);
@@ -273,7 +275,11 @@ Local Stores. Real Savings.
   <Ionicons name="globe-outline" size={26} color="#556575" />
 </TouchableOpacity>
 
-          <TouchableOpacity style={styles.iconButton}>
+          <TouchableOpacity
+            style={styles.iconButton}
+            onPress={() => setShowShareModal(true)}
+            testID="footer-share-btn"
+          >
             <Ionicons name="share-social-outline" size={26} color="#556575" />
           </TouchableOpacity>
 
@@ -379,6 +385,12 @@ Local Stores. Real Savings.
           </Pressable>
         </Pressable>
       </Modal>
+
+      {/* Share Modal */}
+      <ShareModal
+        visible={showShareModal}
+        onClose={() => setShowShareModal(false)}
+      />
     </View>
   );
 }
