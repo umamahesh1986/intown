@@ -288,43 +288,98 @@ export default function Account() {
       const isMerch = lowerUserType.includes('merchant');
       const userTypeParam = isMerch ? 'IN_MERCHANT' : 'IN_CUSTOMER';
       const inTownId = isMerch
-        ? await AsyncStorage.getItem('merchant_id')
+        ? (merchantId || await AsyncStorage.getItem('merchant_id'))
         : await AsyncStorage.getItem('customer_id');
 
-      if (inTownId && /^\d+$/.test(inTownId)) {
-        try {
-          const uploadUrl = `${INTOWN_API_BASE}/s3/upload?userType=${userTypeParam}&inTownId=${inTownId}`;
-          const fileName = `${isMerch ? 'merchant' : 'customer'}_${inTownId}_${Date.now()}.jpg`;
-          const formData = new FormData();
-          if (Platform.OS === 'web') {
-            const response = await fetch(pendingImageUri);
-            const blob = await response.blob();
-            formData.append('file', blob, fileName);
-          } else {
-            formData.append('file', { uri: pendingImageUri, name: fileName, type: 'image/jpeg' } as any);
-          }
-          const res = await fetch(uploadUrl, { method: 'POST', headers: { Accept: 'application/json' }, body: formData });
-          if (res.ok) {
-            const raw = await res.text();
-            try {
-              const parsed = JSON.parse(raw);
-              const url = Array.isArray(parsed) ? parsed[parsed.length - 1]?.url : parsed?.url;
-              if (url) {
-                await AsyncStorage.setItem('user_profile_image', url);
-                setProfileImage(url);
-                setPendingImageUri(null);
-                Alert.alert('Success', 'Profile image updated.');
-                return;
-              }
-            } catch {}
-          }
-        } catch {}
+      // No backend id available — store locally so the UI still updates
+      if (!inTownId || !/^\d+$/.test(inTownId)) {
+        await AsyncStorage.setItem('user_profile_image', pendingImageUri);
+        setProfileImage(pendingImageUri);
+        setPendingImageUri(null);
+        Alert.alert('Saved locally', 'Image saved locally. It will sync when your account is fully set up.');
+        return;
       }
-      await AsyncStorage.setItem('user_profile_image', pendingImageUri);
-      setProfileImage(pendingImageUri);
+
+      // 1) Upload via the same S3 endpoint used during registration
+      const uploadUrl = `${INTOWN_API_BASE}/s3/upload?userType=${userTypeParam}&inTownId=${inTownId}`;
+      const fileName = `${isMerch ? 'merchant' : 'customer'}_${inTownId}_${Date.now()}.jpg`;
+      const formData = new FormData();
+      if (Platform.OS === 'web') {
+        const r = await fetch(pendingImageUri);
+        const blob = await r.blob();
+        formData.append('file', blob, fileName);
+      } else {
+        formData.append('file', { uri: pendingImageUri, name: fileName, type: 'image/jpeg' } as any);
+      }
+
+      const uploadRes = await fetch(uploadUrl, {
+        method: 'POST',
+        headers: { Accept: 'application/json' },
+        body: formData,
+      });
+
+      if (!uploadRes.ok) {
+        const txt = await uploadRes.text();
+        console.warn('[Account] s3 upload failed', uploadRes.status, txt);
+        Alert.alert('Upload Failed', 'Could not upload the image. Please try again.');
+        return;
+      }
+
+      // 2) Pull the authoritative image list back from the server so we get the
+      // canonical S3 URL (the upload endpoint response shape varies; using
+      // /s3?merchantId= matches the registration flow at line 149 of
+      // register-merchant.tsx).
+      let canonicalUrl: string | null = null;
+      try {
+        const listUrl = isMerch
+          ? `${INTOWN_API_BASE}/s3?merchantId=${inTownId}`
+          : `${INTOWN_API_BASE}/s3?customerId=${inTownId}`;
+        const listRes = await fetch(listUrl);
+        if (listRes.ok) {
+          const listData = await listRes.json();
+          const imgs: any = listData?.s3ImageUrl;
+          if (Array.isArray(imgs) && imgs.length > 0) {
+            // Latest upload is typically last in the list
+            canonicalUrl = String(imgs[imgs.length - 1]);
+            // Save full list under the merchant-image AsyncStorage convention
+            await AsyncStorage.setItem('merchant_shop_images', JSON.stringify(imgs));
+          }
+        }
+      } catch (e) {
+        console.warn('[Account] /s3 list fetch failed:', e);
+      }
+
+      // Fallback: try to parse the upload response itself
+      if (!canonicalUrl) {
+        try {
+          const raw = await uploadRes.clone().text();
+          const parsed = raw ? JSON.parse(raw) : null;
+          if (parsed) {
+            if (Array.isArray(parsed?.s3ImageUrl) && parsed.s3ImageUrl.length > 0) {
+              canonicalUrl = String(parsed.s3ImageUrl[parsed.s3ImageUrl.length - 1]);
+            } else if (typeof parsed?.url === 'string') {
+              canonicalUrl = parsed.url;
+            } else if (Array.isArray(parsed) && parsed.length > 0) {
+              const last = parsed[parsed.length - 1];
+              canonicalUrl = last?.url || last?.s3ImageUrl || null;
+            }
+          }
+        } catch {
+          // ignore JSON parse failure
+        }
+      }
+
+      // Persist + reflect everywhere
+      const finalUrl = canonicalUrl || pendingImageUri;
+      await AsyncStorage.setItem('user_profile_image', finalUrl);
+      if (isMerch) {
+        await AsyncStorage.setItem('merchant_profile_image', finalUrl);
+      }
+      setProfileImage(finalUrl);
       setPendingImageUri(null);
-      Alert.alert('Success', 'Profile image saved locally.');
+      Alert.alert('Success', 'Profile image updated.');
     } catch (e) {
+      console.error('[Account] handleUpdateProfileImage error:', e);
       Alert.alert('Error', 'Failed to update image.');
     } finally {
       setIsSavingImage(false);
