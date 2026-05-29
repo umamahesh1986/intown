@@ -1132,7 +1132,7 @@ export default function MemberDashboard() {
                 <ActivityIndicator size="small" color="#FF8C00" />
               </View>
             ) : transactions.length > 0 ? (
-              transactions.slice(0, 6).map((transaction) => (
+              transactions.slice(0, 3).map((transaction) => (
                 <TransactionRow
                   key={transaction.transactionId}
                   transaction={transaction}
