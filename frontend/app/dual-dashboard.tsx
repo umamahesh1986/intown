@@ -1246,7 +1246,7 @@ export default function DualDashboard() {
               <ActivityIndicator size="small" color="#FF8A00" />
             </View>
           ) : currentTransactions.length > 0 ? (
-            currentTransactions.slice(0, 6).map((transaction) => (
+            currentTransactions.slice(0, 3).map((transaction) => (
               <TransactionCard key={transaction.id} transaction={transaction} />
             ))
           ) : (
