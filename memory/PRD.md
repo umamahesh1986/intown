@@ -85,7 +85,7 @@
 - Verified: OTP sends successfully for phone 8639071519
 
 ### Session 8 (Feb 2026) - Dual Dashboard Feature Parity
-- **Customer Tab**: Added "INtown Privilage Nearby Shops" auto-scrolling, manually swipeable carousel (matches `member-dashboard.tsx` design — 220px hero-image cards with category badge, contact, location, offer pill)
+- **Customer Tab**: Added "INtown Privilege Nearby Shops" auto-scrolling, manually swipeable carousel (matches `member-dashboard.tsx` design — 220px hero-image cards with category badge, contact, location, offer pill)
 - Carousel: infinite right-to-left auto-scroll (30ms interval, seamless 3x loop), pauses on user drag, resumes 2s after release
 - Auto-scroll properly stops when user switches to Merchant tab (CPU-friendly)
 - **Merchant Tab**: Added "Edit Profile" CTA button on Merchant Shop Card — navigates to `/account` where all merchant fields display read-only with an `Edit` toggle to enable editing (Business Category, Products, Description, Years, Branches, Shop Location, Business Timings, Week Off, Offer)

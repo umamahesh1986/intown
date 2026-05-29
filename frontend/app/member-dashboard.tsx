@@ -1239,7 +1239,7 @@ export default function MemberDashboard() {
           {nearbyShops.length > 0 && (
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>INtown Privilage Nearby Shops</Text>
+                <Text style={styles.sectionTitle}>INtown Privilege Nearby Shops</Text>
               </View>
 
               <ScrollView
