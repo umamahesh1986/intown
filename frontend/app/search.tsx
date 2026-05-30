@@ -49,8 +49,9 @@ const POPULAR_PRODUCTS = [
 
 export default function Search() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ source?: string }>();
+  const params = useLocalSearchParams<{ source?: string; voice?: string }>();
   const source = params.source ?? 'member';
+  const shouldAutoStartVoice = params.voice === '1';
 
   const [searchText, setSearchText] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -201,6 +202,16 @@ export default function Search() {
       try { ExpoSpeechRecognitionModule.stop(); } catch {}
     };
   }, []);
+
+  // Auto-start voice when navigated with ?voice=1 (e.g. from dashboard mic icons)
+  useEffect(() => {
+    if (!shouldAutoStartVoice) return;
+    const t = setTimeout(() => {
+      handleVoicePress();
+    }, 350);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shouldAutoStartVoice]);
 
   return (
     <Pressable style={{ flex: 1 }} onPress={() => setShowSuggestions(false)}>

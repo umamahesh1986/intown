@@ -1004,7 +1004,7 @@ export default function DualDashboard() {
                 onSubmitEditing={handleSearch}
               />
               <TouchableOpacity
-                onPress={() => router.push({ pathname: '/search', params: { source: 'dual' } })}
+                onPress={() => router.push({ pathname: '/search', params: { source: 'dual', voice: '1' } })}
                 testID="dual-dashboard-mic-btn"
               >
                 <Ionicons name="mic" size={20} color="#FF8A00" />

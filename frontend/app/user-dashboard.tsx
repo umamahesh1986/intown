@@ -677,7 +677,7 @@ export default function UserDashboard() {
             {/* MIC / Voice search → opens dedicated search page */}
             <TouchableOpacity
               style={styles.filterButton}
-              onPress={() => router.push({ pathname: '/search', params: { source: 'user' } })}
+              onPress={() => router.push({ pathname: '/search', params: { source: 'user', voice: '1' } })}
               testID="user-dashboard-mic-btn"
             >
               <Ionicons name="mic" size={20} color="#FF7A00" />
