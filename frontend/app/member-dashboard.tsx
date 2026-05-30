@@ -999,9 +999,13 @@ export default function MemberDashboard() {
                   onSubmitEditing={handleSearch}
                   placeholderTextColor="#999"
                 />
-                {/* FILTER BUTTON */}
-                <TouchableOpacity style={styles.filterButton}>
-                  <Ionicons name="options-outline" size={22} color="#FF8C00" />
+                {/* MIC / Voice search → opens dedicated search page */}
+                <TouchableOpacity
+                  style={styles.filterButton}
+                  onPress={() => router.push({ pathname: '/search', params: { source: 'member' } })}
+                  testID="member-dashboard-mic-btn"
+                >
+                  <Ionicons name="mic" size={22} color="#FF8C00" />
                 </TouchableOpacity>
                 {searchQuery.length === 0 && (
                   <View pointerEvents="none" style={styles.animatedPlaceholder}>

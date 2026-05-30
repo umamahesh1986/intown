@@ -1003,8 +1003,11 @@ export default function DualDashboard() {
                 }}
                 onSubmitEditing={handleSearch}
               />
-              <TouchableOpacity>
-                <Ionicons name="options-outline" size={20} color="#FF8A00" />
+              <TouchableOpacity
+                onPress={() => router.push({ pathname: '/search', params: { source: 'dual' } })}
+                testID="dual-dashboard-mic-btn"
+              >
+                <Ionicons name="mic" size={20} color="#FF8A00" />
               </TouchableOpacity>
               {searchQuery.length === 0 && (
                 <View pointerEvents="none" style={styles.animatedPlaceholder}>
