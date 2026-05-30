@@ -7,10 +7,16 @@ import {
   Pressable,
   ActivityIndicator,
   Platform,
+  Alert,
+  Modal,
 } from 'react-native';
 import { useState, useRef, useEffect } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import {
+  ExpoSpeechRecognitionModule,
+  useSpeechRecognitionEvent,
+} from 'expo-speech-recognition';
 import { searchProducts } from '../utils/api';
 import { useLocationStore } from '../store/locationStore';
 
@@ -93,6 +99,109 @@ export default function Search() {
     fetchSearchResults(value);
   };
 
+  /* ===============================
+     VOICE SEARCH (native on-device)
+  ================================ */
+  const [isListening, setIsListening] = useState(false);
+  const [voiceError, setVoiceError] = useState<string | null>(null);
+  const [showLangPicker, setShowLangPicker] = useState(false);
+  const [voiceLang, setVoiceLang] = useState<string>('en-IN');
+  const partialDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const SUPPORTED_LANGS: Array<{ code: string; label: string }> = [
+    { code: 'en-IN', label: 'English (India)' },
+    { code: 'en-US', label: 'English (US)' },
+    { code: 'hi-IN', label: 'हिन्दी (Hindi)' },
+    { code: 'te-IN', label: 'తెలుగు (Telugu)' },
+    { code: 'ta-IN', label: 'தமிழ் (Tamil)' },
+    { code: 'kn-IN', label: 'ಕನ್ನಡ (Kannada)' },
+    { code: 'ml-IN', label: 'മലയാളം (Malayalam)' },
+    { code: 'mr-IN', label: 'मराठी (Marathi)' },
+    { code: 'gu-IN', label: 'ગુજરાતી (Gujarati)' },
+    { code: 'bn-IN', label: 'বাংলা (Bengali)' },
+  ];
+
+  useSpeechRecognitionEvent('start', () => {
+    setIsListening(true);
+    setVoiceError(null);
+  });
+  useSpeechRecognitionEvent('end', () => setIsListening(false));
+  useSpeechRecognitionEvent('error', (event: any) => {
+    setIsListening(false);
+    const code = event?.error ?? 'unknown';
+    if (code === 'no-speech') {
+      setVoiceError("Didn't catch that. Tap the mic and try again.");
+    } else if (code === 'not-allowed' || code === 'service-not-allowed') {
+      setVoiceError('Microphone permission denied.');
+    } else {
+      setVoiceError('Voice recognition failed. Please try again.');
+    }
+  });
+  useSpeechRecognitionEvent('result', (event: any) => {
+    const transcript: string | undefined = event?.results?.[0]?.transcript;
+    if (!transcript) return;
+    setSearchText(transcript);
+    setShowSuggestions(true);
+    // Debounce so partial results don't overload the API
+    if (partialDebounceRef.current) clearTimeout(partialDebounceRef.current);
+    partialDebounceRef.current = setTimeout(() => {
+      fetchSearchResults(transcript);
+    }, 400);
+
+    // Final result: navigate to results immediately
+    if (event?.isFinal) {
+      const finalText = transcript.trim();
+      if (finalText.length > 0) {
+        setTimeout(() => {
+          const loc = useLocationStore.getState().location;
+          router.push({
+            pathname: '/member-shop-list',
+            params: {
+              query: finalText,
+              source,
+              lat: loc?.latitude ? String(loc.latitude) : '',
+              lng: loc?.longitude ? String(loc.longitude) : '',
+            },
+          });
+        }, 250);
+      }
+    }
+  });
+
+  const handleVoicePress = async () => {
+    if (isListening) {
+      try { ExpoSpeechRecognitionModule.stop(); } catch {}
+      return;
+    }
+    setVoiceError(null);
+    try {
+      const perm = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
+      if (!perm.granted) {
+        Alert.alert(
+          'Microphone permission required',
+          'Please enable microphone access in your phone settings to use voice search.',
+        );
+        return;
+      }
+      ExpoSpeechRecognitionModule.start({
+        lang: voiceLang,
+        interimResults: true,
+        maxAlternatives: 1,
+        continuous: false,
+        requiresOnDeviceRecognition: false,
+        addsPunctuation: false,
+      });
+    } catch (e: any) {
+      setVoiceError(e?.message || 'Voice search unavailable on this device.');
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      try { ExpoSpeechRecognitionModule.stop(); } catch {}
+    };
+  }, []);
+
   return (
     <Pressable style={{ flex: 1 }} onPress={() => setShowSuggestions(false)}>
       <View style={styles.container}>
@@ -151,7 +260,53 @@ export default function Search() {
                 });
               }}
             />
+            {/* Language quick-switcher */}
+            <TouchableOpacity
+              onPress={() => setShowLangPicker(true)}
+              style={styles.langPill}
+              testID="search-voice-lang-btn"
+            >
+              <Text style={styles.langPillText}>
+                {voiceLang.split('-')[0].toUpperCase()}
+              </Text>
+            </TouchableOpacity>
+            {/* Voice / Mic button */}
+            <TouchableOpacity
+              onPress={handleVoicePress}
+              style={[styles.micBtn, isListening && styles.micBtnActive]}
+              testID="search-voice-mic-btn"
+              accessibilityLabel={isListening ? 'Stop listening' : 'Search by voice'}
+            >
+              {isListening ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <Ionicons name="mic" size={20} color="#FFFFFF" />
+              )}
+            </TouchableOpacity>
           </View>
+
+          {isListening && (
+            <View style={styles.listeningRow}>
+              <View style={styles.listeningDot} />
+              <Text style={styles.listeningText}>
+                Listening{voiceLang ? ` · ${voiceLang}` : ''}…
+              </Text>
+              <TouchableOpacity onPress={handleVoicePress} hitSlop={10}>
+                <Text style={styles.listeningStopText}>Stop</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+          {!isListening && voiceError && (
+            <View style={styles.voiceErrorRow}>
+              <Ionicons name="alert-circle" size={14} color="#D32F2F" />
+              <Text style={styles.voiceErrorText} numberOfLines={2}>
+                {voiceError}
+              </Text>
+              <TouchableOpacity onPress={handleVoicePress} hitSlop={10}>
+                <Text style={styles.voiceRetryText}>Retry</Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
           {/* PRODUCT SUGGESTIONS */}
           {showSuggestions && results.length > 0 && (
@@ -213,6 +368,49 @@ export default function Search() {
         )}
 
       </View>
+
+      {/* LANGUAGE PICKER MODAL */}
+      <Modal
+        visible={showLangPicker}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowLangPicker(false)}
+      >
+        <Pressable
+          style={styles.langModalOverlay}
+          onPress={() => setShowLangPicker(false)}
+        >
+          <Pressable
+            style={styles.langModalCard}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View style={styles.langModalHeader}>
+              <Text style={styles.langModalTitle}>Choose voice language</Text>
+              <TouchableOpacity
+                onPress={() => setShowLangPicker(false)}
+                hitSlop={10}
+              >
+                <Ionicons name="close" size={22} color="#333" />
+              </TouchableOpacity>
+            </View>
+            {SUPPORTED_LANGS.map((l) => (
+              <TouchableOpacity
+                key={l.code}
+                style={styles.langOption}
+                onPress={() => {
+                  setVoiceLang(l.code);
+                  setShowLangPicker(false);
+                }}
+              >
+                <Text style={styles.langOptionText}>{l.label}</Text>
+                {voiceLang === l.code && (
+                  <Ionicons name="checkmark" size={18} color="#FF8A00" />
+                )}
+              </TouchableOpacity>
+            ))}
+          </Pressable>
+        </Pressable>
+      </Modal>
     </Pressable>
   );
 }
@@ -298,5 +496,117 @@ const styles = StyleSheet.create({
   suggestionText: {
     marginLeft: 8,
     fontSize: 14,
+  },
+
+  // Voice search
+  langPill: {
+    backgroundColor: '#FFF3E0',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
+    marginRight: 6,
+  },
+  langPillText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#FF8A00',
+    letterSpacing: 0.4,
+  },
+  micBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#FF8A00',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  micBtnActive: {
+    backgroundColor: '#D32F2F',
+  },
+  listeningRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#FFF3E0',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginTop: 10,
+  },
+  listeningDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#D32F2F',
+  },
+  listeningText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#444',
+    fontWeight: '600',
+  },
+  listeningStopText: {
+    color: '#D32F2F',
+    fontWeight: '700',
+    fontSize: 13,
+  },
+  voiceErrorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#FFEBEE',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginTop: 10,
+  },
+  voiceErrorText: {
+    flex: 1,
+    fontSize: 12,
+    color: '#D32F2F',
+  },
+  voiceRetryText: {
+    color: '#D32F2F',
+    fontWeight: '700',
+    fontSize: 13,
+  },
+  langModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
+  langModalCard: {
+    width: '100%',
+    maxWidth: 380,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    maxHeight: '80%',
+  },
+  langModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  langModalTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1A1A1A',
+  },
+  langOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  langOptionText: {
+    fontSize: 15,
+    color: '#1A1A1A',
   },
 });
