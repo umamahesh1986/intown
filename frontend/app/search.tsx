@@ -9,16 +9,21 @@ import {
   Platform,
   Alert,
   Modal,
+  Animated,
+  Easing,
 } from 'react-native';
 import { useState, useRef, useEffect } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   ExpoSpeechRecognitionModule,
   useSpeechRecognitionEvent,
 } from 'expo-speech-recognition';
 import { searchProducts } from '../utils/api';
 import { useLocationStore } from '../store/locationStore';
+
+const VOICE_LANG_STORAGE_KEY = 'voice_search_lang';
 
 
 type SearchResult = {
@@ -49,8 +54,9 @@ const POPULAR_PRODUCTS = [
 
 export default function Search() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ source?: string }>();
+  const params = useLocalSearchParams<{ source?: string; voice?: string }>();
   const source = params.source ?? 'member';
+  const shouldAutoStartVoice = params.voice === '1';
 
   const [searchText, setSearchText] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -107,6 +113,28 @@ export default function Search() {
   const [showLangPicker, setShowLangPicker] = useState(false);
   const [voiceLang, setVoiceLang] = useState<string>('en-IN');
   const partialDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Ripple animations around the mic while listening
+  const ripple1 = useRef(new Animated.Value(0)).current;
+  const ripple2 = useRef(new Animated.Value(0)).current;
+  const rippleLoopRef = useRef<Animated.CompositeAnimation | null>(null);
+
+  // Load persisted language on mount
+  useEffect(() => {
+    AsyncStorage.getItem(VOICE_LANG_STORAGE_KEY)
+      .then((stored) => {
+        if (stored && typeof stored === 'string') {
+          setVoiceLang(stored);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  // Persist + update language together
+  const updateVoiceLang = (code: string) => {
+    setVoiceLang(code);
+    AsyncStorage.setItem(VOICE_LANG_STORAGE_KEY, code).catch(() => {});
+  };
 
   const SUPPORTED_LANGS: Array<{ code: string; label: string }> = [
     { code: 'en-IN', label: 'English (India)' },
@@ -202,6 +230,50 @@ export default function Search() {
     };
   }, []);
 
+  // Ripple animation — pulses 2 staggered circles around the mic while listening
+  useEffect(() => {
+    if (!isListening) {
+      if (rippleLoopRef.current) {
+        rippleLoopRef.current.stop();
+        rippleLoopRef.current = null;
+      }
+      ripple1.setValue(0);
+      ripple2.setValue(0);
+      return;
+    }
+    const makePulse = (val: Animated.Value, delay: number) =>
+      Animated.loop(
+        Animated.sequence([
+          Animated.delay(delay),
+          Animated.timing(val, {
+            toValue: 1,
+            duration: 1200,
+            easing: Easing.out(Easing.ease),
+            useNativeDriver: true,
+          }),
+        ]),
+      );
+    const loop = Animated.parallel([
+      makePulse(ripple1, 0),
+      makePulse(ripple2, 600),
+    ]);
+    rippleLoopRef.current = loop;
+    loop.start();
+    return () => {
+      loop.stop();
+    };
+  }, [isListening, ripple1, ripple2]);
+
+  // Auto-start voice when navigated with ?voice=1 (e.g. from dashboard mic icons)
+  useEffect(() => {
+    if (!shouldAutoStartVoice) return;
+    const t = setTimeout(() => {
+      handleVoicePress();
+    }, 350);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shouldAutoStartVoice]);
+
   return (
     <Pressable style={{ flex: 1 }} onPress={() => setShowSuggestions(false)}>
       <View style={styles.container}>
@@ -270,19 +342,65 @@ export default function Search() {
                 {voiceLang.split('-')[0].toUpperCase()}
               </Text>
             </TouchableOpacity>
-            {/* Voice / Mic button */}
-            <TouchableOpacity
-              onPress={handleVoicePress}
-              style={[styles.micBtn, isListening && styles.micBtnActive]}
-              testID="search-voice-mic-btn"
-              accessibilityLabel={isListening ? 'Stop listening' : 'Search by voice'}
-            >
-              {isListening ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
-              ) : (
-                <Ionicons name="mic" size={20} color="#FFFFFF" />
+            {/* Voice / Mic button (with ripple while listening) */}
+            <View style={styles.micWrapper}>
+              {isListening && (
+                <>
+                  <Animated.View
+                    pointerEvents="none"
+                    style={[
+                      styles.micRipple,
+                      {
+                        opacity: ripple1.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0.45, 0],
+                        }),
+                        transform: [
+                          {
+                            scale: ripple1.interpolate({
+                              inputRange: [0, 1],
+                              outputRange: [1, 2.2],
+                            }),
+                          },
+                        ],
+                      },
+                    ]}
+                  />
+                  <Animated.View
+                    pointerEvents="none"
+                    style={[
+                      styles.micRipple,
+                      {
+                        opacity: ripple2.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0.35, 0],
+                        }),
+                        transform: [
+                          {
+                            scale: ripple2.interpolate({
+                              inputRange: [0, 1],
+                              outputRange: [1, 2.6],
+                            }),
+                          },
+                        ],
+                      },
+                    ]}
+                  />
+                </>
               )}
-            </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleVoicePress}
+                style={[styles.micBtn, isListening && styles.micBtnActive]}
+                testID="search-voice-mic-btn"
+                accessibilityLabel={isListening ? 'Stop listening' : 'Search by voice'}
+              >
+                {isListening ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Ionicons name="mic" size={20} color="#FFFFFF" />
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
 
           {isListening && (
@@ -398,7 +516,7 @@ export default function Search() {
                 key={l.code}
                 style={styles.langOption}
                 onPress={() => {
-                  setVoiceLang(l.code);
+                  updateVoiceLang(l.code);
                   setShowLangPicker(false);
                 }}
               >
@@ -521,6 +639,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   micBtnActive: {
+    backgroundColor: '#D32F2F',
+  },
+  micWrapper: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  micRipple: {
+    position: 'absolute',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: '#D32F2F',
   },
   listeningRow: {

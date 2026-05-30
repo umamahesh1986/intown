@@ -676,9 +676,13 @@ export default function UserDashboard() {
               placeholderTextColor="#999999"
             />
 
-            {/* Filter Icon */}
-            <TouchableOpacity style={styles.filterButton}>
-              <Ionicons name="options-outline" size={20} color="#FF7A00" />
+            {/* MIC / Voice search → opens dedicated search page */}
+            <TouchableOpacity
+              style={styles.filterButton}
+              onPress={() => router.push({ pathname: '/search', params: { source: 'user', voice: '1' } })}
+              testID="user-dashboard-mic-btn"
+            >
+              <Ionicons name="mic" size={20} color="#FF7A00" />
             </TouchableOpacity>
 
             {searchQuery.length === 0 && (
