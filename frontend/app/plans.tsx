@@ -645,8 +645,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   blockHeaderTitle: {
-    fontSize: 17,
-    fontWeight: '800',
+    fontSize: 16,
+    fontWeight: '700',
     color: '#0F172A',
   },
   compactRow: {
@@ -747,8 +747,8 @@ const styles = StyleSheet.create({
   },
   planCardWrap: { marginBottom: 8 },
   planTagline: {
-    fontSize: 13,
-    fontWeight: '700',
+    fontSize: 12,
+    fontWeight: '600',
     color: '#B45309',
     marginTop: 4,
     marginBottom: 8,
@@ -781,7 +781,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
   },
   popularBadgeText: { color: '#FFF', fontSize: 11, fontWeight: '800', letterSpacing: 0.5 },
-  planName: { fontSize: 22, fontWeight: '800', color: '#0F172A', marginTop: 6 },
+  planName: { fontSize: 20, fontWeight: '700', color: '#0F172A', marginTop: 6 },
   planSubhead: {
     fontSize: 14,
     fontWeight: '700',
