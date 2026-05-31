@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, RefreshControl, LayoutAnimation, Platform, UIManager } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, RefreshControl, LayoutAnimation, Platform, UIManager, Linking } from 'react-native';
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -31,6 +31,9 @@ interface Plan {
   id: number;
   name: string;
   description: string;
+  tagline?: string;     // headline above the card (e.g. "Your Neighborhood Has Better Deals...")
+  subhead?: string;     // sub-headline inside the card (e.g. "Explore Local Like Never Before")
+  cta?: string;         // button label override (e.g. "Get GO")
   price: number;
   duration: string;
   savings: number;
@@ -98,45 +101,54 @@ export default function Plans() {
       id: 2,
       name: 'INtown Go',
       description: 'Introductory Offer',
+      tagline: 'Your Neighborhood Has Better Deals Than You Think.',
+      subhead: 'Explore Local Like Never Before',
+      cta: 'Get GO',
       price: 399,
-      duration: ' 3 Months',
+      duration: '3 Months',
       savings: 500,
       features: [
-        'Member-only prices at partner stores',
+        'Exclusive prices at partner stores',
         'Discover Hidden Gem Offers nearby',
         'Reserve products before visiting stores',
         'Save time, money, and effort on every purchase',
         'Access a growing network of trusted local businesses',
       ],
-      isPopular: true,
+      isPopular: false,
     },
     {
       id: 3,
       name: 'INtown Plus',
       description: 'Best value for families',
+      tagline: 'Together We Save More.',
+      subhead: 'Unlock the Power of Local Connections',
+      cta: 'Get PLUS',
       price: 599,
-      duration: ' 6 Months',
+      duration: '6 Months',
       savings: 1500,
       features: [
-        'Everything in INtown Go',
+        'Everything in GO',
         'Join INtown Circles™ and unlock group savings',
         'Access premium merchant offers',
         'Faster savings across multiple categories',
         'Early access to special campaigns and events',
       ],
-      isPopular: false,
+      isPopular: true,
     },
     {
       id: 4,
       name: 'INtown Max',
       description: 'Ultimate savings experience',
+      tagline: 'The Best of Your City. In One Plan.',
+      subhead: "The VIP Pass to Your City's Best Kept Secrets",
+      cta: 'Get Max',
       price: 999,
-      duration: ' Year',
+      duration: '12 Months',
       savings: 3000,
       features: [
-        'Everything in INtown Plus',
+        'Everything in Plus',
         'Unlimited access to Hidden Gems™ offers',
-        'Smart Slots™ for salon and service bookings',
+        'Smart Slots™ for service bookings',
         'Quick Reserve™ for hassle-free product pickup',
         'Priority access to new merchants and exclusive campaigns',
         'Maximum annual savings potential',
@@ -222,26 +234,6 @@ export default function Plans() {
             avoiding the hidden costs of modern retail.
           </Text>
 
-          <Text style={styles.whySubHeader}>What You Get</Text>
-          {[
-            { title: 'Instant Discounts at Local Stores', desc: 'Flat member-only prices on every visit, automatically applied at checkout.' },
-            { title: 'Order Now, Pick Up Later', desc: 'Reserve your products and skip the wait when you arrive at the store.' },
-            { title: 'Book Salon & Service Slots in Advance', desc: 'Smart Slots™ guarantee your time, no walk-in queues.' },
-            { title: 'Discover the Best Local Deals Near You', desc: 'Hidden Gems™ surface offers from trusted neighbourhood stores.' },
-            { title: 'Shop with Friends through Circles & Save More', desc: 'Combine purchases via INtown Circles™ for bigger group savings.' },
-            { title: 'One Membership, Benefits Across Multiple Categories', desc: 'Grocery, pharmacy, salon, services — one card, year-round savings.' },
-          ].map((item) => (
-            <View key={item.title} style={styles.whyCard}>
-              <View style={[styles.whyIconBox, { backgroundColor: '#E8F5E9' }]}>
-                <Ionicons name="checkmark-circle" size={26} color="#0C8A4A" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.whyCardTitle}>{item.title}</Text>
-                <Text style={styles.whyCardDesc}>{item.desc}</Text>
-              </View>
-            </View>
-          ))}
-
           <Text style={styles.whySubHeader}>What You Save</Text>
           {[
             { title: 'No Delivery Charges', desc: 'Skip third-party delivery fees — pick up directly from the store.' },
@@ -264,11 +256,41 @@ export default function Plans() {
             </View>
           ))}
 
+          <Text style={styles.whySubHeader}>What You Get</Text>
+          {[
+            { title: 'Instant Discounts at Local Stores', desc: 'Flat member-only prices on every visit, automatically applied at checkout.' },
+            { title: 'Order Now, Pick Up Later', desc: 'Reserve your products and skip the wait when you arrive at the store.' },
+            { title: 'Book service slots in advance to avoid waiting', desc: 'Smart Slots™ guarantee your time, no walk-in queues.' },
+            { title: 'Discover the Best Local Deals Near You', desc: 'Hidden Gems™ surface offers from trusted neighbourhood stores.' },
+            { title: 'Shop with Friends through Circles & Save More', desc: 'Combine purchases via INtown Circles™ for bigger group savings.' },
+            { title: 'One Plan, Benefits Across Multiple Categories', desc: 'Grocery, pharmacy, salon, services — one card, year-round savings.' },
+          ].map((item) => (
+            <View key={item.title} style={styles.whyCard}>
+              <View style={[styles.whyIconBox, { backgroundColor: '#E8F5E9' }]}>
+                <Ionicons name="checkmark-circle" size={26} color="#0C8A4A" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.whyCardTitle}>{item.title}</Text>
+                <Text style={styles.whyCardDesc}>{item.desc}</Text>
+              </View>
+            </View>
+          ))}
+
+          {/* Why It Matters callout */}
+          <View style={styles.whyMattersBox}>
+            <Ionicons name="sparkles" size={18} color="#B45309" />
+            <Text style={styles.whyMattersText}>
+              <Text style={styles.whyBoldOrange}>Why It Matters: </Text>
+              <Text style={styles.whyBoldOrange}>INtown</Text>
+              {' '}→ Instant savings, faster shopping, better local experiences
+            </Text>
+          </View>
+
+          <Text style={styles.whySubHeader}>The INtown Promise</Text>
           <View style={styles.promiseBox}>
             <Ionicons name="shield-checkmark" size={22} color="#FF8A00" />
             <Text style={styles.promiseText}>
-              <Text style={styles.whyBoldOrange}>The INtown Promise:</Text> Save more than
-              your membership fee — <Text style={styles.whyBoldOrange}>GUARANTEED.</Text>
+              <Text style={styles.whyBoldOrange}>Save More Than Your Subscription Fee — GUARANTEED.</Text>
               {' '}If not, we'll refund your subscription fee.
             </Text>
           </View>
@@ -278,7 +300,22 @@ export default function Plans() {
             year-round savings and convenience at the stores you already trust.
           </Text>
 
-          <Text style={styles.whySlogan}>You Deserve More. Pay Less. Shop Local.</Text>
+          <Text style={styles.whySlogan}>"You Deserve More. Pay Less. Shop Local."</Text>
+        </View>
+
+        {/* Zero Transaction Fees card */}
+        <View style={styles.zeroFeeCard}>
+          <View style={styles.zeroFeeIconWrap}>
+            <Ionicons name="people" size={26} color="#FFFFFF" />
+          </View>
+          <Text style={styles.zeroFeeTitle}>Zero Transaction Fees. Maximum Customer Value.</Text>
+          <Text style={styles.zeroFeeText}>
+            INtown does not charge merchants any transaction commissions or per-order fees.
+            Instead, we encourage our merchant partners to pass those savings directly to
+            customers through better prices, exclusive offers, rewards, and cashback. This
+            creates a win-win ecosystem where businesses grow, customers save more, and
+            local commerce thrives.
+          </Text>
         </View>
 
         {/* Plans Grid */}
@@ -286,74 +323,84 @@ export default function Plans() {
           {plans.map((plan) => {
             const showPopular = isRegularUser ? false : plan.isPopular;
             return (
-            <TouchableOpacity
-              key={plan.id}
-              style={[
-                styles.planCard,
-                selectedPlan === plan.id && styles.planCardSelected,
-                showPopular && styles.planCardPopular,
-              ]}
-              onPress={() => handleSelectPlan(plan.id)}
-              activeOpacity={0.8}
-            >
-              {showPopular && (
-                <View style={styles.popularBadge}>
-                  <Text style={styles.popularBadgeText}>Current Plan</Text>
-                </View>
+            <View key={plan.id} style={styles.planCardWrap}>
+              {/* Tagline above the card */}
+              {plan.tagline && (
+                <Text style={styles.planTagline}>{plan.tagline}</Text>
               )}
-
-              <Text style={styles.planName}>{plan.name}</Text>
-              {/* <Text style={styles.planDescription}>{plan.description}</Text> */}
-
-              <View style={styles.priceContainer}>
-                {plan.price === 0 ? (
-                  <Text style={styles.planPrice}>Free</Text>
-                ) : (
-                  <>
-                    <Text style={styles.planCurrency}>₹</Text>
-                    <Text style={styles.planPrice}>{plan.price}</Text>
-                    <Text style={styles.planDuration}>/{plan.duration}</Text>
-                  </>
-                )}
-              </View>
-
-              {/* <View style={styles.savingsContainer}>
-                <Ionicons name="trending-up" size={16} color="#4CAF50" />
-                <Text style={styles.savingsText}>
-                  Est. Savings: ₹{plan.savings}/month
-                </Text>
-              </View> */}
-
-              <View style={styles.featuresContainer}>
-                {plan.features.map((feature, index) => (
-                  <View key={index} style={styles.featureRow}>
-                    <Ionicons name="checkmark-circle" size={18} color="#4CAF50" />
-                    <Text style={styles.featureText}>{feature}</Text>
-                  </View>
-                ))}
-              </View>
 
               <TouchableOpacity
                 style={[
-                  styles.subscribeButton,
-                  plan.price === 0 && styles.subscribeButtonFree,
-                  showPopular && styles.subscribeButtonPopular,
+                  styles.planCard,
+                  selectedPlan === plan.id && styles.planCardSelected,
+                  showPopular && styles.planCardPopular,
                 ]}
-                onPress={() => handleSubscribe(plan)}
-                disabled={showPopular}
+                onPress={() => handleSelectPlan(plan.id)}
+                activeOpacity={0.85}
               >
-                <Text
+                {showPopular && (
+                  <View style={styles.popularBadge}>
+                    <Text style={styles.popularBadgeText}>MOST POPULAR • BEST VALUE</Text>
+                  </View>
+                )}
+
+                <Text style={styles.planName}>{plan.name}</Text>
+                {plan.subhead && (
+                  <Text style={styles.planSubhead}>{plan.subhead}</Text>
+                )}
+                {plan.description && (
+                  <Text style={styles.planDescription}>{plan.description}</Text>
+                )}
+
+                <View style={styles.priceContainer}>
+                  {plan.price === 0 ? (
+                    <Text style={styles.planPrice}>Free</Text>
+                  ) : (
+                    <>
+                      <Text style={styles.planCurrency}>₹</Text>
+                      <Text style={styles.planPrice}>{plan.price}</Text>
+                      <Text style={styles.planGst}> + GST</Text>
+                      <Text style={styles.planDuration}>  | {plan.duration}</Text>
+                    </>
+                  )}
+                </View>
+
+                <View style={styles.featuresContainer}>
+                  {plan.features.map((feature, index) => (
+                    <View key={index} style={styles.featureRow}>
+                      <Ionicons name="checkmark-circle" size={18} color="#0C8A4A" />
+                      <Text style={styles.featureText}>{feature}</Text>
+                    </View>
+                  ))}
+                </View>
+
+                <TouchableOpacity
                   style={[
-                    styles.subscribeButtonText,
-                    showPopular && styles.subscribeButtonTextFree,
+                    styles.subscribeButton,
+                    plan.price === 0 && styles.subscribeButtonFree,
+                    showPopular && styles.subscribeButtonPopular,
                   ]}
+                  onPress={() => handleSubscribe(plan)}
                 >
-                  {showPopular ? 'Subscribed Plan' : 'Subscribe Now'}
-                </Text>
+                  <Text style={styles.subscribeButtonText}>
+                    {plan.cta || 'Subscribe Now'}
+                  </Text>
+                </TouchableOpacity>
               </TouchableOpacity>
-            </TouchableOpacity>
+            </View>
             );
           })}
+        </View>
+
+        {/* Safe & Secure */}
+        <View style={styles.safeCard}>
+          <Ionicons name="lock-closed" size={22} color="#0C8A4A" />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.safeTitle}>Safe & Secure</Text>
+            <Text style={styles.safeText}>
+              All transactions are encrypted with bank-grade security protocols.
+            </Text>
+          </View>
         </View>
 
         {/* FAQ Section */}
@@ -383,6 +430,26 @@ export default function Plans() {
               </View>
             );
           })}
+        </View>
+
+        {/* Still have questions? */}
+        <View style={styles.contactCard}>
+          <Text style={styles.contactTitle}>Still have questions?</Text>
+          <Text style={styles.contactText}>
+            Our dedicated community success team is here to help you choose the right
+            path for your business.
+          </Text>
+          <TouchableOpacity
+            style={styles.contactBtn}
+            onPress={() => {
+              Linking.openURL('mailto:support@intownlocal.com?subject=INtown%20Support%20Request').catch(() => {});
+            }}
+            activeOpacity={0.85}
+            testID="plans-contact-support-btn"
+          >
+            <Ionicons name="chatbubble-ellipses-outline" size={18} color="#FFFFFF" />
+            <Text style={styles.contactBtnText}>Contact Support</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -491,6 +558,24 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#B45309',
   },
+  whyMattersBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#FFF7E6',
+    borderWidth: 1,
+    borderColor: '#FCD9A0',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginTop: 12,
+  },
+  whyMattersText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#1A1A1A',
+    lineHeight: 19,
+  },
   promiseBox: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -523,12 +608,20 @@ const styles = StyleSheet.create({
     marginTop: 16,
     marginBottom: 4,
   },
+  planCardWrap: { marginBottom: 8 },
+  planTagline: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#B45309',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
   planCard: {
     backgroundColor: '#FFF',
     borderRadius: 16,
     padding: 20,
     borderWidth: 2,
-    borderColor: 'transparent',
+    borderColor: '#F0F0F0',
   },
   planCardSelected: { borderColor: '#FF8A00' },
   planCardPopular: {
@@ -538,23 +631,31 @@ const styles = StyleSheet.create({
   popularBadge: {
     position: 'absolute',
     top: -12,
-    right: 20,
+    alignSelf: 'center',
     backgroundColor: '#FF8A00',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 5,
+    borderRadius: 14,
   },
-  popularBadgeText: { color: '#FFF', fontSize: 12, fontWeight: '600' },
-  planName: { fontSize: 20, fontWeight: 'bold', color: '#1A1A1A' },
-  planDescription: { fontSize: 14, color: '#666', marginTop: 4 },
+  popularBadgeText: { color: '#FFF', fontSize: 11, fontWeight: '800', letterSpacing: 0.5 },
+  planName: { fontSize: 22, fontWeight: '800', color: '#0F172A', marginTop: 6 },
+  planSubhead: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#475569',
+    marginTop: 4,
+  },
+  planDescription: { fontSize: 13, color: '#64748B', marginTop: 4 },
   priceContainer: {
     flexDirection: 'row',
     alignItems: 'baseline',
-    marginTop: 16,
+    flexWrap: 'wrap',
+    marginTop: 14,
   },
-  planCurrency: { fontSize: 18, fontWeight: '600', color: '#FF8A00' },
-  planPrice: { fontSize: 36, fontWeight: 'bold', color: '#FF8A00' },
-  planDuration: { fontSize: 14, color: '#999', marginLeft: 4 },
+  planCurrency: { fontSize: 18, fontWeight: '700', color: '#FF8A00' },
+  planPrice: { fontSize: 36, fontWeight: '800', color: '#FF8A00' },
+  planGst: { fontSize: 14, fontWeight: '700', color: '#FF8A00', marginLeft: 4 },
+  planDuration: { fontSize: 13, color: '#94A3B8', fontWeight: '600' },
   savingsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -644,5 +745,105 @@ const styles = StyleSheet.create({
     color: '#555',
     marginTop: 10,
     lineHeight: 21,
+  },
+
+  // Zero Transaction Fees card
+  zeroFeeCard: {
+    backgroundColor: '#FFF',
+    marginHorizontal: 16,
+    marginTop: 18,
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#F5E5C8',
+    alignItems: 'center',
+  },
+  zeroFeeIconWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#FF8A00',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  zeroFeeTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#0F172A',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  zeroFeeText: {
+    fontSize: 13,
+    color: '#475569',
+    lineHeight: 21,
+    textAlign: 'center',
+  },
+
+  // Safe & Secure card
+  safeCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 16,
+    marginTop: 18,
+    borderRadius: 14,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  safeTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 2,
+  },
+  safeText: {
+    fontSize: 12,
+    color: '#64748B',
+    lineHeight: 18,
+  },
+
+  // Still have questions / Contact Support
+  contactCard: {
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 16,
+    marginTop: 18,
+    marginBottom: 24,
+    borderRadius: 16,
+    padding: 22,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
+    alignItems: 'center',
+  },
+  contactTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  contactText: {
+    fontSize: 13,
+    color: '#475569',
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 14,
+  },
+  contactBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#FF8A00',
+    paddingHorizontal: 22,
+    paddingVertical: 12,
+    borderRadius: 10,
+  },
+  contactBtnText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
   },
 });
