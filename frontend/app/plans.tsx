@@ -225,7 +225,7 @@ export default function Plans() {
           </Text>
         </View>
 
-        {/* Why Subscribe Section (moved to top) */}
+        {/* Why Subscribe Section (intro only — body broken into separate blocks below) */}
         <View style={styles.whySection}>
           <Text style={styles.whyMainTitle}>Why Subscribe to INtown?</Text>
           <Text style={styles.whyTagline}>Why pay extra for shopping?</Text>
@@ -233,73 +233,84 @@ export default function Plans() {
             With INtown, you enjoy exclusive discounts at trusted local stores while
             avoiding the hidden costs of modern retail.
           </Text>
+        </View>
 
-          <Text style={styles.whySubHeader}>What You Save</Text>
+        {/* What You Save — compact list block */}
+        <View style={styles.blockCard}>
+          <View style={styles.blockHeader}>
+            <View style={[styles.blockHeaderIcon, { backgroundColor: '#FDECEA' }]}>
+              <Ionicons name="cash-outline" size={20} color="#D32F2F" />
+            </View>
+            <Text style={styles.blockHeaderTitle}>What You Save</Text>
+          </View>
           {[
-            { title: 'No Delivery Charges', desc: 'Skip third-party delivery fees — pick up directly from the store.' },
-            { title: 'No Convenience Fees', desc: 'No platform / handling surcharge baked into your bill.' },
-            { title: 'No Packaging Charges', desc: 'Store-side packaging stays free for INtown members.' },
-            { title: 'No Small Order Fees', desc: 'Buy what you need — no minimum cart penalty.' },
-            { title: 'No Peak-Time Charges', desc: 'Fixed pricing even during peak hours and heavy rain.' },
-            { title: 'No Parking Costs', desc: 'Partner stores include free parking validation for members.' },
-            { title: 'No Long Billing Queues', desc: 'Express checkout lanes for INtown members at partner stores.' },
-            { title: 'No Waiting for Deliveries', desc: 'Grab your reserved order the moment you walk in.' },
+            'No Delivery Charges',
+            'No Convenience Fees',
+            'No Packaging Charges',
+            'No Small Order Fees',
+            'No Peak-Time Charges',
+            'No Parking Costs',
+            'No Long Billing Queues',
+            'No Waiting for Deliveries',
           ].map((item) => (
-            <View key={item.title} style={styles.whyCard}>
-              <View style={[styles.whyIconBox, { backgroundColor: '#FDECEA' }]}>
-                <Ionicons name="close-circle-outline" size={26} color="#D32F2F" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.whyCardTitle}>{item.title}</Text>
-                <Text style={styles.whyCardDesc}>{item.desc}</Text>
-              </View>
+            <View key={item} style={styles.compactRow}>
+              <Ionicons name="close-circle-outline" size={20} color="#D32F2F" />
+              <Text style={styles.compactRowText}>{item}</Text>
             </View>
           ))}
+        </View>
 
-          <Text style={styles.whySubHeader}>What You Get</Text>
+        {/* What You Get — compact list block */}
+        <View style={styles.blockCard}>
+          <View style={styles.blockHeader}>
+            <View style={[styles.blockHeaderIcon, { backgroundColor: '#E8F5E9' }]}>
+              <Ionicons name="gift-outline" size={20} color="#0C8A4A" />
+            </View>
+            <Text style={styles.blockHeaderTitle}>What You Get</Text>
+          </View>
           {[
-            { title: 'Instant Discounts at Local Stores', desc: 'Flat member-only prices on every visit, automatically applied at checkout.' },
-            { title: 'Order Now, Pick Up Later', desc: 'Reserve your products and skip the wait when you arrive at the store.' },
-            { title: 'Book service slots in advance to avoid waiting', desc: 'Smart Slots™ guarantee your time, no walk-in queues.' },
-            { title: 'Discover the Best Local Deals Near You', desc: 'Hidden Gems™ surface offers from trusted neighbourhood stores.' },
-            { title: 'Shop with Friends through Circles & Save More', desc: 'Combine purchases via INtown Circles™ for bigger group savings.' },
-            { title: 'One Plan, Benefits Across Multiple Categories', desc: 'Grocery, pharmacy, salon, services — one card, year-round savings.' },
+            'Instant Discounts at Local Stores',
+            'Order Now, Pick Up Later',
+            'Book service slots in advance to avoid waiting',
+            'Discover the Best Local Deals Near You',
+            'Shop with Friends through Circles & Save More',
+            'One Plan, Benefits Across Multiple Categories',
           ].map((item) => (
-            <View key={item.title} style={styles.whyCard}>
-              <View style={[styles.whyIconBox, { backgroundColor: '#E8F5E9' }]}>
-                <Ionicons name="checkmark-circle" size={26} color="#0C8A4A" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.whyCardTitle}>{item.title}</Text>
-                <Text style={styles.whyCardDesc}>{item.desc}</Text>
-              </View>
+            <View key={item} style={styles.compactRow}>
+              <Ionicons name="checkmark-circle" size={20} color="#0C8A4A" />
+              <Text style={styles.compactRowText}>{item}</Text>
             </View>
           ))}
+        </View>
 
-          {/* Why It Matters callout */}
-          <View style={styles.whyMattersBox}>
-            <Ionicons name="sparkles" size={18} color="#B45309" />
-            <Text style={styles.whyMattersText}>
-              <Text style={styles.whyBoldOrange}>Why It Matters: </Text>
-              <Text style={styles.whyBoldOrange}>INtown</Text>
-              {' '}→ Instant savings, faster shopping, better local experiences
-            </Text>
+        {/* Why It Matters — standalone card */}
+        <View style={styles.matterCard}>
+          <View style={styles.matterIconWrap}>
+            <Ionicons name="sparkles" size={26} color="#FFFFFF" />
           </View>
+          <Text style={styles.matterTitle}>Why It Matters</Text>
+          <Text style={styles.matterText}>
+            <Text style={styles.whyBoldOrange}>INtown</Text> → Instant savings, faster
+            shopping, better local experiences
+          </Text>
+        </View>
 
-          <Text style={styles.whySubHeader}>The INtown Promise</Text>
-          <View style={styles.promiseBox}>
-            <Ionicons name="shield-checkmark" size={22} color="#FF8A00" />
-            <Text style={styles.promiseText}>
-              <Text style={styles.whyBoldOrange}>Save More Than Your Subscription Fee — GUARANTEED.</Text>
-              {' '}If not, we'll refund your subscription fee.
-            </Text>
+        {/* The INtown Promise — standalone card */}
+        <View style={styles.promiseCard}>
+          <View style={styles.promiseIconWrap}>
+            <Ionicons name="shield-checkmark" size={26} color="#FFFFFF" />
           </View>
-
-          <Text style={styles.whyClosing}>
+          <Text style={styles.promiseCardTitle}>The INtown Promise</Text>
+          <Text style={styles.promiseCardHighlight}>
+            Save More Than Your Subscription Fee — GUARANTEED.
+          </Text>
+          <Text style={styles.promiseCardText}>
+            If not, we'll refund your subscription fee.
+          </Text>
+          <Text style={styles.promiseCardFooter}>
             For less than the cost of a few deliveries each month, INtown helps you unlock
             year-round savings and convenience at the stores you already trust.
           </Text>
-
           <Text style={styles.whySlogan}>"You Deserve More. Pay Less. Shop Local."</Text>
         </View>
 
@@ -324,11 +335,6 @@ export default function Plans() {
             const showPopular = isRegularUser ? false : plan.isPopular;
             return (
             <View key={plan.id} style={styles.planCardWrap}>
-              {/* Tagline above the card */}
-              {plan.tagline && (
-                <Text style={styles.planTagline}>{plan.tagline}</Text>
-              )}
-
               <TouchableOpacity
                 style={[
                   styles.planCard,
@@ -342,6 +348,11 @@ export default function Plans() {
                   <View style={styles.popularBadge}>
                     <Text style={styles.popularBadgeText}>MOST POPULAR • BEST VALUE</Text>
                   </View>
+                )}
+
+                {/* Tagline inside the card (top) */}
+                {plan.tagline && (
+                  <Text style={styles.planTagline}>{plan.tagline}</Text>
                 )}
 
                 <Text style={styles.planName}>{plan.name}</Text>
@@ -608,13 +619,145 @@ const styles = StyleSheet.create({
     marginTop: 16,
     marginBottom: 4,
   },
+
+  // Generic block card used by "What You Save" / "What You Get"
+  blockCard: {
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 16,
+    marginTop: 14,
+    borderRadius: 16,
+    paddingVertical: 18,
+    paddingHorizontal: 18,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
+  },
+  blockHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 12,
+  },
+  blockHeaderIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  blockHeaderTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  compactRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F5F5F5',
+  },
+  compactRowText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#1A1A1A',
+    fontWeight: '500',
+  },
+
+  // Why It Matters card
+  matterCard: {
+    backgroundColor: '#FFF7E6',
+    marginHorizontal: 16,
+    marginTop: 14,
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#FCD9A0',
+    alignItems: 'center',
+  },
+  matterIconWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#FF8A00',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  matterTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 8,
+  },
+  matterText: {
+    fontSize: 14,
+    color: '#1A1A1A',
+    textAlign: 'center',
+    lineHeight: 21,
+  },
+
+  // The INtown Promise card
+  promiseCard: {
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 16,
+    marginTop: 14,
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#FCD9A0',
+    alignItems: 'center',
+  },
+  promiseIconWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#0C8A4A',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  promiseCardTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  promiseCardHighlight: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#B45309',
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  promiseCardText: {
+    fontSize: 13,
+    color: '#475569',
+    textAlign: 'center',
+    marginTop: 6,
+    lineHeight: 20,
+  },
+  promiseCardFooter: {
+    fontSize: 13,
+    color: '#475569',
+    textAlign: 'center',
+    marginTop: 14,
+    lineHeight: 20,
+  },
   planCardWrap: { marginBottom: 8 },
   planTagline: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
     color: '#B45309',
+    marginTop: 4,
     marginBottom: 8,
     textAlign: 'center',
+    backgroundColor: '#FFF6E5',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    overflow: 'hidden',
   },
   planCard: {
     backgroundColor: '#FFF',
