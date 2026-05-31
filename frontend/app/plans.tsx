@@ -187,6 +187,77 @@ export default function Plans() {
           </Text>
         </View>
 
+        {/* Why Subscribe Section (moved to top) */}
+        <View style={styles.whySection}>
+          <Text style={styles.whyMainTitle}>Why Subscribe to INtown?</Text>
+          <Text style={styles.whyTagline}>Why pay extra for shopping?</Text>
+          <Text style={styles.whyIntro}>
+            With INtown, you enjoy exclusive discounts at trusted local stores while
+            avoiding the hidden costs of modern retail.
+          </Text>
+
+          <Text style={styles.whySubHeader}>What You Save</Text>
+          <View style={styles.whyList}>
+            {[
+              'No Delivery Charges',
+              'No Convenience Fees',
+              'No Packaging Charges',
+              'No Small Order Fees',
+              'No Peak-Time Charges',
+              'No Parking Costs',
+              'No Long Billing Queues',
+              'No Waiting for Deliveries',
+            ].map((item) => (
+              <View key={item} style={styles.whyRow}>
+                <Ionicons name="close-circle" size={18} color="#E53935" />
+                <Text style={styles.whyText}>{item}</Text>
+              </View>
+            ))}
+          </View>
+
+          <Text style={styles.whySubHeader}>What You Get</Text>
+          <View style={styles.whyList}>
+            {[
+              'Instant Discounts at Local Stores',
+              'Order Now, Pick Up Later',
+              'Book Salon & Service Slots in Advance',
+              'Discover the Best Local Deals Near You',
+              'Shop with Friends through Circles & Save More',
+              'One Membership, Benefits Across Multiple Categories',
+            ].map((item) => (
+              <View key={item} style={styles.whyRow}>
+                <Ionicons name="checkmark-circle" size={18} color="#4CAF50" />
+                <Text style={styles.whyText}>{item}</Text>
+              </View>
+            ))}
+          </View>
+
+          <Text style={styles.whySubHeader}>Why It Matters</Text>
+          <View style={styles.whyMattersBox}>
+            <Text style={styles.whyMattersEmoji}>🏪</Text>
+            <Text style={styles.whyMattersText}>
+              <Text style={styles.whyBoldOrange}>INtown</Text> → Instant savings, faster
+              shopping, better local experiences
+            </Text>
+          </View>
+
+          <Text style={styles.whySubHeader}>The INtown Promise</Text>
+          <View style={styles.promiseBox}>
+            <Ionicons name="shield-checkmark" size={22} color="#FF8A00" />
+            <Text style={styles.promiseText}>
+              <Text style={styles.whyBoldOrange}>Save More Than Your Membership Fee — GUARANTEED.</Text>
+              {' '}If not, we'll refund your subscription fee.
+            </Text>
+          </View>
+
+          <Text style={styles.whyClosing}>
+            For less than the cost of a few deliveries each month, INtown helps you unlock
+            year-round savings and convenience at the stores you already trust.
+          </Text>
+
+          <Text style={styles.whySlogan}>You Deserve More. Pay Less. Shop Local.</Text>
+        </View>
+
         {/* Plans Grid */}
         <View style={styles.plansContainer}>
           {plans.map((plan) => {
@@ -262,60 +333,6 @@ export default function Plans() {
           })}
         </View>
 
-        {/* Benefits Section */}
-        <View style={styles.benefitsSection}>
-          <Text style={styles.benefitsTitle}>Why Subscribe?</Text>
-          <View style={styles.benefitsList}>
-            <View style={styles.benefitItem}>
-              <View style={styles.benefitIcon}>
-                <Ionicons name="cash" size={24} color="#FF8A00" />
-              </View>
-              <View style={styles.benefitInfo}>
-                <Text style={styles.benefitTitle}>Extra Savings</Text>
-                <Text style={styles.benefitText}>
-                  Get additional discounts on top of regular savings
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.benefitItem}>
-              <View style={styles.benefitIcon}>
-                <Ionicons name="people" size={24} color="#FF8A00" />
-              </View>
-              <View style={styles.benefitInfo}>
-                <Text style={styles.benefitTitle}>Family Sharing</Text>
-                <Text style={styles.benefitText}>
-                  Share benefits with your family members
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.benefitItem}>
-              <View style={styles.benefitIcon}>
-                <Ionicons name="star" size={24} color="#FF8A00" />
-              </View>
-              <View style={styles.benefitInfo}>
-                <Text style={styles.benefitTitle}>Exclusive Deals</Text>
-                <Text style={styles.benefitText}>
-                  Access members-only offers and promotions
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.benefitItem}>
-              <View style={styles.benefitIcon}>
-                <Ionicons name="headset" size={24} color="#FF8A00" />
-              </View>
-              <View style={styles.benefitInfo}>
-                <Text style={styles.benefitTitle}>Priority Support</Text>
-                <Text style={styles.benefitText}>
-                  Get faster responses from our support team
-                </Text>
-              </View>
-            </View>
-          </View>
-        </View>
-
         {/* FAQ Section */}
         <View style={styles.faqSection}>
           <Text style={styles.faqTitle}>Frequently Asked Questions</Text>
@@ -384,6 +401,107 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   plansContainer: { padding: 16, gap: 16 },
+
+  // Why Subscribe section (top of page)
+  whySection: {
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 16,
+    marginTop: 16,
+    borderRadius: 14,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
+  },
+  whyMainTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#1A1A1A',
+    marginBottom: 4,
+  },
+  whyTagline: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#FF8A00',
+    marginBottom: 6,
+  },
+  whyIntro: {
+    fontSize: 13,
+    color: '#555',
+    lineHeight: 20,
+    marginBottom: 14,
+  },
+  whySubHeader: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#1A1A1A',
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  whyList: {
+    gap: 6,
+  },
+  whyRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+  },
+  whyText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#333',
+    lineHeight: 19,
+  },
+  whyMattersBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: '#FFF6E5',
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 4,
+  },
+  whyMattersEmoji: {
+    fontSize: 22,
+  },
+  whyMattersText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#1A1A1A',
+    lineHeight: 19,
+  },
+  whyBoldOrange: {
+    fontWeight: '800',
+    color: '#FF8A00',
+  },
+  promiseBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    backgroundColor: '#E8F5E9',
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 6,
+  },
+  promiseText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#1A1A1A',
+    lineHeight: 19,
+  },
+  whyClosing: {
+    fontSize: 13,
+    color: '#555',
+    lineHeight: 20,
+    marginTop: 8,
+  },
+  whySlogan: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#FF8A00',
+    textAlign: 'center',
+    marginTop: 14,
+    marginBottom: 4,
+  },
   planCard: {
     backgroundColor: '#FFF',
     borderRadius: 16,
