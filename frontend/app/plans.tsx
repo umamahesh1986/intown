@@ -222,56 +222,53 @@ export default function Plans() {
             avoiding the hidden costs of modern retail.
           </Text>
 
-          <Text style={styles.whySubHeader}>What You Save</Text>
-          <View style={styles.whyList}>
-            {[
-              'No Delivery Charges',
-              'No Convenience Fees',
-              'No Packaging Charges',
-              'No Small Order Fees',
-              'No Peak-Time Charges',
-              'No Parking Costs',
-              'No Long Billing Queues',
-              'No Waiting for Deliveries',
-            ].map((item) => (
-              <View key={item} style={styles.whyRow}>
-                <Ionicons name="close-circle" size={18} color="#E53935" />
-                <Text style={styles.whyText}>{item}</Text>
-              </View>
-            ))}
-          </View>
-
           <Text style={styles.whySubHeader}>What You Get</Text>
-          <View style={styles.whyList}>
-            {[
-              'Instant Discounts at Local Stores',
-              'Order Now, Pick Up Later',
-              'Book Salon & Service Slots in Advance',
-              'Discover the Best Local Deals Near You',
-              'Shop with Friends through Circles & Save More',
-              'One Membership, Benefits Across Multiple Categories',
-            ].map((item) => (
-              <View key={item} style={styles.whyRow}>
-                <Ionicons name="checkmark-circle" size={18} color="#4CAF50" />
-                <Text style={styles.whyText}>{item}</Text>
+          {[
+            { title: 'Instant Discounts at Local Stores', desc: 'Flat member-only prices on every visit, automatically applied at checkout.' },
+            { title: 'Order Now, Pick Up Later', desc: 'Reserve your products and skip the wait when you arrive at the store.' },
+            { title: 'Book Salon & Service Slots in Advance', desc: 'Smart Slots™ guarantee your time, no walk-in queues.' },
+            { title: 'Discover the Best Local Deals Near You', desc: 'Hidden Gems™ surface offers from trusted neighbourhood stores.' },
+            { title: 'Shop with Friends through Circles & Save More', desc: 'Combine purchases via INtown Circles™ for bigger group savings.' },
+            { title: 'One Membership, Benefits Across Multiple Categories', desc: 'Grocery, pharmacy, salon, services — one card, year-round savings.' },
+          ].map((item) => (
+            <View key={item.title} style={styles.whyCard}>
+              <View style={[styles.whyIconBox, { backgroundColor: '#E8F5E9' }]}>
+                <Ionicons name="checkmark" size={20} color="#0C8A4A" />
               </View>
-            ))}
-          </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.whyCardTitle}>{item.title}</Text>
+                <Text style={styles.whyCardDesc}>{item.desc}</Text>
+              </View>
+            </View>
+          ))}
 
-          <Text style={styles.whySubHeader}>Why It Matters</Text>
-          <View style={styles.whyMattersBox}>
-            <Text style={styles.whyMattersEmoji}>🏪</Text>
-            <Text style={styles.whyMattersText}>
-              <Text style={styles.whyBoldOrange}>INtown</Text> → Instant savings, faster
-              shopping, better local experiences
-            </Text>
-          </View>
+          <Text style={styles.whySubHeader}>What You Save</Text>
+          {[
+            { title: 'No Delivery Charges', desc: 'Skip third-party delivery fees — pick up directly from the store.' },
+            { title: 'No Convenience Fees', desc: 'No platform / handling surcharge baked into your bill.' },
+            { title: 'No Packaging Charges', desc: 'Store-side packaging stays free for INtown members.' },
+            { title: 'No Small Order Fees', desc: 'Buy what you need — no minimum cart penalty.' },
+            { title: 'No Peak-Time Charges', desc: 'Fixed pricing even during peak hours and heavy rain.' },
+            { title: 'No Parking Costs', desc: 'Partner stores include free parking validation for members.' },
+            { title: 'No Long Billing Queues', desc: 'Express checkout lanes for INtown members at partner stores.' },
+            { title: 'No Waiting for Deliveries', desc: 'Grab your reserved order the moment you walk in.' },
+          ].map((item) => (
+            <View key={item.title} style={styles.whyCard}>
+              <View style={[styles.whyIconBox, { backgroundColor: '#FDECEA' }]}>
+                <Ionicons name="close" size={20} color="#D32F2F" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.whyCardTitle}>{item.title}</Text>
+                <Text style={styles.whyCardDesc}>{item.desc}</Text>
+              </View>
+            </View>
+          ))}
 
-          <Text style={styles.whySubHeader}>The INtown Promise</Text>
           <View style={styles.promiseBox}>
             <Ionicons name="shield-checkmark" size={22} color="#FF8A00" />
             <Text style={styles.promiseText}>
-              <Text style={styles.whyBoldOrange}>Save More Than Your Membership Fee — GUARANTEED.</Text>
+              <Text style={styles.whyBoldOrange}>The INtown Promise:</Text> Save more than
+              your membership fee — <Text style={styles.whyBoldOrange}>GUARANTEED.</Text>
               {' '}If not, we'll refund your subscription fee.
             </Text>
           </View>
@@ -428,99 +425,102 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     marginHorizontal: 16,
     marginTop: 16,
-    borderRadius: 14,
-    padding: 18,
+    borderRadius: 16,
+    padding: 22,
     borderWidth: 1,
     borderColor: '#F0F0F0',
   },
   whyMainTitle: {
-    fontSize: 20,
+    fontSize: 26,
     fontWeight: '800',
-    color: '#1A1A1A',
-    marginBottom: 4,
+    color: '#0F172A',
+    marginBottom: 6,
+    lineHeight: 32,
   },
   whyTagline: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '700',
-    color: '#FF8A00',
-    marginBottom: 6,
+    color: '#B45309',
+    marginBottom: 10,
   },
   whyIntro: {
-    fontSize: 13,
-    color: '#555',
-    lineHeight: 20,
-    marginBottom: 14,
+    fontSize: 14,
+    color: '#475569',
+    lineHeight: 22,
+    marginBottom: 18,
   },
   whySubHeader: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#1A1A1A',
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#0F172A',
     marginTop: 12,
-    marginBottom: 8,
+    marginBottom: 12,
   },
-  whyList: {
-    gap: 6,
-  },
-  whyRow: {
+  // Card-style row (matches screenshot 2)
+  whyCard: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 8,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#F5E5C8',
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    marginBottom: 10,
+    gap: 12,
   },
-  whyText: {
-    flex: 1,
-    fontSize: 13,
-    color: '#333',
-    lineHeight: 19,
-  },
-  whyMattersBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    backgroundColor: '#FFF6E5',
+  whyIconBox: {
+    width: 38,
+    height: 38,
     borderRadius: 10,
-    padding: 12,
-    marginBottom: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  whyMattersEmoji: {
-    fontSize: 22,
+  whyCardTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 3,
   },
-  whyMattersText: {
-    flex: 1,
+  whyCardDesc: {
     fontSize: 13,
-    color: '#1A1A1A',
+    color: '#64748B',
     lineHeight: 19,
   },
   whyBoldOrange: {
     fontWeight: '800',
-    color: '#FF8A00',
+    color: '#B45309',
   },
   promiseBox: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 10,
-    backgroundColor: '#E8F5E9',
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 6,
+    backgroundColor: '#FFF7E6',
+    borderWidth: 1,
+    borderColor: '#FCD9A0',
+    borderRadius: 12,
+    padding: 14,
+    marginTop: 12,
+    marginBottom: 8,
   },
   promiseText: {
     flex: 1,
     fontSize: 13,
     color: '#1A1A1A',
-    lineHeight: 19,
+    lineHeight: 20,
   },
   whyClosing: {
     fontSize: 13,
-    color: '#555',
-    lineHeight: 20,
-    marginTop: 8,
+    color: '#475569',
+    lineHeight: 21,
+    marginTop: 12,
   },
   whySlogan: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '800',
-    color: '#FF8A00',
+    color: '#B45309',
     textAlign: 'center',
-    marginTop: 14,
+    marginTop: 16,
     marginBottom: 4,
   },
   planCard: {
