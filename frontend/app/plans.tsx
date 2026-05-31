@@ -233,7 +233,7 @@ export default function Plans() {
           ].map((item) => (
             <View key={item.title} style={styles.whyCard}>
               <View style={[styles.whyIconBox, { backgroundColor: '#E8F5E9' }]}>
-                <Ionicons name="checkmark" size={20} color="#0C8A4A" />
+                <Ionicons name="checkmark-circle" size={26} color="#0C8A4A" />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.whyCardTitle}>{item.title}</Text>
@@ -255,7 +255,7 @@ export default function Plans() {
           ].map((item) => (
             <View key={item.title} style={styles.whyCard}>
               <View style={[styles.whyIconBox, { backgroundColor: '#FDECEA' }]}>
-                <Ionicons name="close" size={20} color="#D32F2F" />
+                <Ionicons name="close-circle-outline" size={26} color="#D32F2F" />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.whyCardTitle}>{item.title}</Text>
