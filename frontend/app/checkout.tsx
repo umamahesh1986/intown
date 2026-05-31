@@ -82,6 +82,10 @@ export default function Checkout() {
 
     setIsProcessing(true);
 
+    // GST + Charges = 18% of plan price, total payable = plan + GST
+    const gstAmount = Math.round(selectedPlan.price * 0.18);
+    const totalPayable = selectedPlan.price + gstAmount;
+
     try {
       // Step 1: Create Order
       console.log('=== CREATING ORDER ===');
@@ -90,13 +94,16 @@ export default function Checkout() {
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
         body: JSON.stringify({
           customerId: Number(customerId),
-          amount: selectedPlan.price,
+          amount: totalPayable,
           description: `INtown ${selectedPlan.name} Plan - ${selectedPlan.duration}`,
           subscriptionPlan: selectedPlan.code,
           notes: {
             planName: selectedPlan.name,
             duration: selectedPlan.duration,
             savings: selectedPlan.savings,
+            planAmount: selectedPlan.price,
+            gstAmount,
+            totalPayable,
           },
         }),
       });
@@ -249,22 +256,30 @@ export default function Checkout() {
         ))}
 
         {/* Order Summary */}
-        <View style={styles.summaryCard}>
-          <Text style={styles.summaryTitle}>Order Summary</Text>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>{selectedPlan.name} Plan ({selectedPlan.duration})</Text>
-            <Text style={styles.summaryValue}>&#8377;{selectedPlan.price}</Text>
-          </View>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Instant Savings Rate</Text>
-            <Text style={[styles.summaryValue, { color: '#4CAF50' }]}>{selectedPlan.savings}</Text>
-          </View>
-          <View style={styles.divider} />
-          <View style={styles.summaryRow}>
-            <Text style={styles.totalLabel}>Total</Text>
-            <Text style={styles.totalValue}>&#8377;{selectedPlan.price}</Text>
-          </View>
-        </View>
+        {(() => {
+          const gstAmount = Math.round(selectedPlan.price * 0.18);
+          const totalPayable = selectedPlan.price + gstAmount;
+          return (
+            <View style={styles.summaryCard}>
+              <Text style={styles.summaryTitle}>Order Summary</Text>
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>{selectedPlan.name} Plan ({selectedPlan.duration})</Text>
+                <Text style={styles.summaryValue}>&#8377;{selectedPlan.price}</Text>
+              </View>
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>GST + Charges{'\n'}
+                  <Text style={styles.summarySubLabel}>(includes all applicable charges)</Text>
+                </Text>
+                <Text style={styles.summaryValue}>&#8377;{gstAmount}</Text>
+              </View>
+              <View style={styles.divider} />
+              <View style={styles.summaryRow}>
+                <Text style={styles.totalLabel}>Total</Text>
+                <Text style={styles.totalValue}>&#8377;{totalPayable}</Text>
+              </View>
+            </View>
+          );
+        })()}
 
         <View style={{ height: 100 }} />
       </ScrollView>
@@ -272,7 +287,7 @@ export default function Checkout() {
       {/* Checkout Button */}
       <View style={styles.bottomBar}>
         <View style={styles.bottomPriceInfo}>
-          <Text style={styles.bottomTotal}>&#8377;{selectedPlan.price}</Text>
+          <Text style={styles.bottomTotal}>&#8377;{selectedPlan.price + Math.round(selectedPlan.price * 0.18)}</Text>
           <Text style={styles.bottomPlanName}>{selectedPlan.name} Plan</Text>
         </View>
         <TouchableOpacity
@@ -349,6 +364,7 @@ const styles = StyleSheet.create({
   summaryTitle: { fontSize: 16, fontWeight: '700', color: '#1A1A1A', marginBottom: 14 },
   summaryRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
   summaryLabel: { fontSize: 14, color: '#666' },
+  summarySubLabel: { fontSize: 11, color: '#999', fontWeight: '400' },
   summaryValue: { fontSize: 14, fontWeight: '600', color: '#1A1A1A' },
   divider: { height: 1, backgroundColor: '#E5E5E5', marginVertical: 10 },
   totalLabel: { fontSize: 16, fontWeight: '700', color: '#1A1A1A' },
