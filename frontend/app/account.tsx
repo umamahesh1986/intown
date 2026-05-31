@@ -675,8 +675,8 @@ export default function Account() {
           <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/plans')}>
             <View style={[styles.menuIconWrap, { backgroundColor: '#E8F5E9' }]}><Ionicons name="diamond-outline" size={20} color="#4CAF50" /></View>
             <View style={styles.menuTextWrap}>
-              <Text style={styles.menuTitle}>Subscription Plans</Text>
-              <Text style={styles.menuSubtitle}>Manage or upgrade your plan</Text>
+              <Text style={styles.menuTitle}>Subscription Privilege</Text>
+              <Text style={styles.menuSubtitle}>Manage or upgrade your Privilege</Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color="#CCC" />
           </TouchableOpacity>

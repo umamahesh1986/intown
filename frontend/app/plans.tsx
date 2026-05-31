@@ -194,7 +194,7 @@ export default function Plans() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#1A1A1A" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Subscription Plans</Text>
+        <Text style={styles.headerTitle}>Subscription Privilege</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -298,7 +298,7 @@ export default function Plans() {
             >
               {showPopular && (
                 <View style={styles.popularBadge}>
-                  <Text style={styles.popularBadgeText}>Current Plan</Text>
+                  <Text style={styles.popularBadgeText}>Current Privilege</Text>
                 </View>
               )}
 

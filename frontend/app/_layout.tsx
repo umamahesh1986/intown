@@ -118,7 +118,7 @@ export default function RootLayout() {
   const allTabs = [
     { name: 'Home', icon: 'home', link: '/user-dashboard' },
     { name: 'Savings', icon: 'wallet', link: '/savings' },
-    { name: 'Plans', icon: 'pricetag', link: '/plans' },
+    { name: 'Privilege', icon: 'pricetag', link: '/plans' },
     { name: 'Profile', icon: 'person', link: '/account' },
   ];
 
