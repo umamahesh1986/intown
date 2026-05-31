@@ -217,13 +217,13 @@ export default function Plans() {
         }
       >
         {/* Hero Section */}
-        <View style={styles.heroSection}>
+        {/* <View style={styles.heroSection}>
           <Ionicons name="diamond" size={48} color="#FF8A00" />
           <Text style={styles.heroTitle}>Unlock More Savings</Text>
           <Text style={styles.heroSubtitle}>
             Choose a plan that fits your needs and start saving more on every purchase
           </Text>
-        </View>
+        </View> */}
 
         {/* Why Subscribe Section (intro only — body broken into separate blocks below) */}
         <View style={styles.whySection}>
@@ -415,7 +415,7 @@ export default function Plans() {
         </View>
 
         {/* FAQ Section */}
-        <View style={styles.faqSection}>
+        {/* <View style={styles.faqSection}>
           <Text style={styles.faqTitle}>Frequently Asked Questions</Text>
 
           {FAQS.map((item, index) => {
@@ -441,7 +441,7 @@ export default function Plans() {
               </View>
             );
           })}
-        </View>
+        </View> */}
 
         {/* Still have questions? */}
         <View style={styles.contactCard}>
@@ -509,15 +509,15 @@ const styles = StyleSheet.create({
     borderColor: '#F0F0F0',
   },
   whyMainTitle: {
-    fontSize: 26,
-    fontWeight: '800',
+    fontSize: 20,
+    fontWeight: '600',
     color: '#0F172A',
     marginBottom: 6,
     lineHeight: 32,
   },
   whyTagline: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 14,
+    fontWeight: '600',
     color: '#B45309',
     marginBottom: 10,
   },
@@ -725,14 +725,14 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   promiseCardHighlight: {
-    fontSize: 15,
-    fontWeight: '800',
+    fontSize: 14,
+    fontWeight: '600',
     color: '#B45309',
     textAlign: 'center',
     lineHeight: 22,
   },
   promiseCardText: {
-    fontSize: 13,
+    fontSize: 14,
     color: '#475569',
     textAlign: 'center',
     marginTop: 6,
@@ -825,7 +825,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#FF8A00',
   },
-  subscribeButtonPopular: { backgroundColor: '#F7EFE6' },
+  subscribeButtonPopular: { backgroundColor: '#FF8A00' },
   subscribeButtonText: { color: '#FFF', fontSize: 16, fontWeight: '600' },
   subscribeButtonTextFree: { color: '#FF8A00' },
   benefitsSection: {
@@ -931,7 +931,7 @@ const styles = StyleSheet.create({
     gap: 14,
     backgroundColor: '#FFFFFF',
     marginHorizontal: 16,
-    marginTop: 18,
+    marginTop: 0,
     borderRadius: 14,
     padding: 16,
     borderWidth: 1,

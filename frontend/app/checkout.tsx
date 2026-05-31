@@ -252,7 +252,7 @@ export default function Checkout() {
         </View>
 
         {/* Other Plans */}
-        <Text style={styles.otherPlansTitle}>Other Plans</Text>
+        {/* <Text style={styles.otherPlansTitle}>Other Plans</Text>
         {PLANS.filter(p => p.id !== selectedPlan.id).map(plan => (
           <TouchableOpacity
             key={plan.id}
@@ -272,7 +272,7 @@ export default function Checkout() {
             </View>
             <Text style={styles.switchText}>Tap to switch to this plan</Text>
           </TouchableOpacity>
-        ))}
+        ))} */}
 
         {/* Order Summary */}
         {(() => {
