@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, RefreshControl, LayoutAnimation, Platform, UIManager } from 'react-native';
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -6,6 +6,26 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
 import { getPlans } from '../utils/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// Enable LayoutAnimation on Android
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
+const FAQS: Array<{ q: string; a: string }> = [
+  {
+    q: 'How do I upgrade my plan?',
+    a: 'You can upgrade your plan anytime from this page. The difference will be prorated for the remaining period.',
+  },
+  {
+    q: 'Can I cancel anytime?',
+    a: 'Yes, you can cancel your subscription at any time. Your benefits will continue until the end of the billing period.',
+  },
+  {
+    q: "What counts as an 'Eligible Order'?",
+    a: "An Eligible Order is any purchase made at an INtown partner store using your active membership at the point of sale. Member-only discounts, Hidden Gems™ offers, and Circles™ group savings all qualify.",
+  },
+];
 
 interface Plan {
   id: number;
@@ -26,6 +46,12 @@ export default function Plans() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [selectedPlan, setSelectedPlan] = useState<number | null>(null);
   const [isRegularUser, setIsRegularUser] = useState(false);
+  const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
+
+  const toggleFaq = (index: number) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setOpenFaqIndex((prev) => (prev === index ? null : index));
+  };
 
   useEffect(() => {
     const checkUserType = async () => {
@@ -337,34 +363,29 @@ export default function Plans() {
         <View style={styles.faqSection}>
           <Text style={styles.faqTitle}>Frequently Asked Questions</Text>
 
-          <View style={styles.faqItem}>
-            <Text style={styles.faqQuestion}>Why do I upgrade my plan?</Text>
-            <Text style={styles.faqAnswer}>
-              You get a privilage access at your local stores in entire year.
-            </Text>
-          </View>
-          <View style={styles.faqItem}>
-            <Text style={styles.faqQuestion}>How do I upgrade my plan?</Text>
-            <Text style={styles.faqAnswer}>
-              You can upgrade your plan anytime from this page. The difference will be
-              prorated for the remaining period.
-            </Text>
-          </View>
-          <View style={styles.faqItem}>
-            <Text style={styles.faqQuestion}>Can I cancel anytime?</Text>
-            <Text style={styles.faqAnswer}>
-              Yes, you can cancel your subscription at any time. Your benefits will
-              continue until the end of the billing period.
-            </Text>
-          </View>
-
-          {/* <View style={styles.faqItem}>
-            <Text style={styles.faqQuestion}>Is my payment secure?</Text>
-            <Text style={styles.faqAnswer}>
-              Yes, all payments are processed through secure payment gateways with
-              end-to-end encryption.
-            </Text>
-          </View> */}
+          {FAQS.map((item, index) => {
+            const open = openFaqIndex === index;
+            return (
+              <View key={item.q} style={styles.faqItem}>
+                <TouchableOpacity
+                  style={styles.faqHeader}
+                  activeOpacity={0.7}
+                  onPress={() => toggleFaq(index)}
+                  testID={`faq-toggle-${index}`}
+                >
+                  <Text style={styles.faqQuestion}>{item.q}</Text>
+                  <Ionicons
+                    name={open ? 'chevron-up' : 'chevron-down'}
+                    size={20}
+                    color="#666"
+                  />
+                </TouchableOpacity>
+                {open && (
+                  <Text style={styles.faqAnswer}>{item.a}</Text>
+                )}
+              </View>
+            );
+          })}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -591,13 +612,37 @@ const styles = StyleSheet.create({
     padding: 20,
     marginBottom: 32,
   },
-  faqTitle: { fontSize: 18, fontWeight: '600', color: '#1A1A1A', marginBottom: 16 },
-  faqItem: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#EEE',
-    paddingBottom: 16,
+  faqTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1A1A1A',
     marginBottom: 16,
+    textAlign: 'center',
   },
-  faqQuestion: { fontSize: 15, fontWeight: '600', color: '#1A1A1A' },
-  faqAnswer: { fontSize: 14, color: '#666', marginTop: 8, lineHeight: 22 },
+  faqItem: {
+    backgroundColor: '#F2F4F7',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    marginBottom: 12,
+  },
+  faqHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  faqQuestion: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1A1A1A',
+    lineHeight: 21,
+  },
+  faqAnswer: {
+    fontSize: 14,
+    color: '#555',
+    marginTop: 10,
+    lineHeight: 21,
+  },
 });
