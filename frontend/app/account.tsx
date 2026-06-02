@@ -20,6 +20,7 @@ export default function Account() {
   const [userType, setUserType] = useState<string | null>(null);
   const [merchantId, setMerchantId] = useState<string | null>(null);
   const [isMerchant, setIsMerchant] = useState(false);
+  const [isDualUser, setIsDualUser] = useState(false);
 
   // Basic fields
   const [name, setName] = useState(user?.name ?? '');
@@ -93,6 +94,7 @@ export default function Account() {
       const lowerType = (storedUserType ?? '').toLowerCase();
       const lowerRole = (storedUserRole ?? '').toLowerCase();
       const fromParam = String(params?.from ?? '').toLowerCase();
+      const storedCustomerId = await AsyncStorage.getItem('customer_id');
       let hasMerchantData = false;
       let parsedSearch: any = null;
 
@@ -107,6 +109,15 @@ export default function Account() {
       if (storedUserData) {
         try { parsedUserData = JSON.parse(storedUserData); } catch {}
       }
+
+      // A user is "dual" if they have BOTH a merchant_id and a customer_id,
+      // OR user_type was stored as 'dual', OR `from` param indicates dual context.
+      const dualUser =
+        lowerType === 'dual' ||
+        fromParam.startsWith('dual-') ||
+        (!!storedMerchantId && !!storedCustomerId) ||
+        (hasMerchantData && !!parsedSearch?.customer?.id);
+      setIsDualUser(dualUser);
 
       // `from` route param wins — let the dashboard explicitly choose which profile to load.
       // Falls back to inferred user-type / role / data signals if no param given.
@@ -508,6 +519,31 @@ export default function Account() {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Dual-user context pill */}
+        {isDualUser && (
+          <View
+            style={[
+              styles.contextPillWrap,
+              { backgroundColor: isMerchant ? '#FFF3E0' : '#E8F5E9' },
+            ]}
+            testID="account-context-pill"
+          >
+            <Ionicons
+              name={isMerchant ? 'storefront' : 'person'}
+              size={14}
+              color={isMerchant ? '#B45309' : '#0C8A4A'}
+            />
+            <Text
+              style={[
+                styles.contextPillText,
+                { color: isMerchant ? '#B45309' : '#0C8A4A' },
+              ]}
+            >
+              You're editing: {isMerchant ? 'Merchant profile' : 'Customer profile'}
+            </Text>
+          </View>
+        )}
+
         {/* PROFILE IMAGE */}
         <View style={styles.profileCard}>
           <View style={styles.profileImageWrapper}>
@@ -912,6 +948,20 @@ export default function Account() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 16, backgroundColor: '#F5F5F5' },
+  contextPillWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+    marginBottom: 10,
+  },
+  contextPillText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
   header: { flexDirection: 'row', alignItems: 'center', marginBottom: 16, marginTop: 32 },
   backButton: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
   title: { flex: 1, fontSize: 22, fontWeight: '700', marginLeft: 8 },
