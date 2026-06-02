@@ -930,7 +930,7 @@ export default function MerchantDashboard() {
             style={styles.userPanelItem}
             onPress={() => {
               closeDropdown();
-              router.push('/account');
+              router.push({ pathname: '/account' as any, params: { from: 'merchant' } });
             }}
           >
             <Ionicons name="person-outline" size={22} color="#FF8A00" />

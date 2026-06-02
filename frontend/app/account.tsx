@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, Alert, Platform, ScrollView, ActivityIndicator, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState, useEffect } from 'react';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -12,6 +12,7 @@ import axios from 'axios';
 
 export default function Account() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ from?: string }>();
   const { user, updateProfile } = useAuthStore();
 
   const [editing, setEditing] = useState(false);
@@ -19,6 +20,7 @@ export default function Account() {
   const [userType, setUserType] = useState<string | null>(null);
   const [merchantId, setMerchantId] = useState<string | null>(null);
   const [isMerchant, setIsMerchant] = useState(false);
+  const [isDualUser, setIsDualUser] = useState(false);
 
   // Basic fields
   const [name, setName] = useState(user?.name ?? '');
@@ -74,8 +76,10 @@ export default function Account() {
 
   const loadProfileData = async () => {
     try {
-      const [storedImage, storedUserType, storedMerchantId, storedUserRole, storedUserData, searchResp] = await Promise.all([
+      const [storedImage, storedMerchantImage, storedCustomerImage, storedUserType, storedMerchantId, storedUserRole, storedUserData, searchResp] = await Promise.all([
         AsyncStorage.getItem('user_profile_image'),
+        AsyncStorage.getItem('merchant_profile_image'),
+        AsyncStorage.getItem('customer_profile_image'),
         AsyncStorage.getItem('user_type'),
         AsyncStorage.getItem('merchant_id'),
         AsyncStorage.getItem('user_role'),
@@ -83,13 +87,14 @@ export default function Account() {
         AsyncStorage.getItem('user_search_response'),
       ]);
 
-      if (storedImage) setProfileImage(storedImage);
       if (storedUserType) setUserType(storedUserType);
       if (storedMerchantId) setMerchantId(storedMerchantId);
 
       // Detect merchant from ALL available signals
       const lowerType = (storedUserType ?? '').toLowerCase();
       const lowerRole = (storedUserRole ?? '').toLowerCase();
+      const fromParam = String(params?.from ?? '').toLowerCase();
+      const storedCustomerId = await AsyncStorage.getItem('customer_id');
       let hasMerchantData = false;
       let parsedSearch: any = null;
 
@@ -105,17 +110,41 @@ export default function Account() {
         try { parsedUserData = JSON.parse(storedUserData); } catch {}
       }
 
-      const merchantUser =
-        lowerType.includes('merchant') ||
+      // A user is "dual" if they have BOTH a merchant_id and a customer_id,
+      // OR user_type was stored as 'dual', OR `from` param indicates dual context.
+      const dualUser =
         lowerType === 'dual' ||
-        lowerType === 'in_merchant' ||
-        lowerRole.includes('merchant') ||
-        lowerRole === 'dual' ||
-        !!storedMerchantId ||
-        hasMerchantData ||
-        (parsedUserData?.userType === 'merchant');
+        fromParam.startsWith('dual-') ||
+        (!!storedMerchantId && !!storedCustomerId) ||
+        (hasMerchantData && !!parsedSearch?.customer?.id);
+      setIsDualUser(dualUser);
+
+      // `from` route param wins — let the dashboard explicitly choose which profile to load.
+      // Falls back to inferred user-type / role / data signals if no param given.
+      let merchantUser: boolean;
+      if (fromParam === 'dual-merchant' || fromParam === 'merchant') {
+        merchantUser = true;
+      } else if (fromParam === 'dual-customer' || fromParam === 'member' || fromParam === 'user') {
+        merchantUser = false;
+      } else {
+        merchantUser =
+          lowerType.includes('merchant') ||
+          lowerType === 'dual' ||
+          lowerType === 'in_merchant' ||
+          lowerRole.includes('merchant') ||
+          lowerRole === 'dual' ||
+          !!storedMerchantId ||
+          hasMerchantData ||
+          (parsedUserData?.userType === 'merchant');
+      }
 
       setIsMerchant(merchantUser);
+
+      // Profile image — pick context-specific cache so dual users don't see
+      // the other side's image. Falls back to the generic `user_profile_image`.
+      const contextualImage = merchantUser ? storedMerchantImage : storedCustomerImage;
+      const effectiveImage = contextualImage || storedImage || null;
+      if (effectiveImage) setProfileImage(effectiveImage);
 
       // If no merchantId stored but found in search response, save it
       if (!storedMerchantId && parsedSearch?.merchant?.id) {
@@ -284,12 +313,52 @@ export default function Account() {
     if (!pendingImageUri) return;
     setIsSavingImage(true);
     try {
+      // Resolve effective userType using THREE signals (priority order):
+      //   1. `from` route param (e.g. `dual-merchant`, `dual-customer`, `user`, `member`, `merchant`)
+      //   2. Stored `user_type` value ('in_Merchant' / 'in_Customer' / 'dual' / 'new_user')
+      //   3. Local `isMerchant` flag (derived from search response / merchant_id)
+      // NOTE: Backend currently only supports IN_CUSTOMER and IN_MERCHANT — User dashboard
+      // uploads are mirrored to IN_CUSTOMER until backend adds an IN_USER endpoint.
+      const fromParam = String(params?.from ?? '').toLowerCase();
       const lowerUserType = (userType ?? '').toLowerCase();
-      const isMerch = lowerUserType.includes('merchant');
-      const userTypeParam = isMerch ? 'IN_MERCHANT' : 'IN_CUSTOMER';
-      const inTownId = isMerch
-        ? (merchantId || await AsyncStorage.getItem('merchant_id'))
-        : await AsyncStorage.getItem('customer_id');
+
+      let userTypeParam: 'IN_CUSTOMER' | 'IN_MERCHANT';
+      let idKey: 'merchant_id' | 'customer_id';
+
+      if (fromParam === 'dual-merchant' || fromParam === 'merchant') {
+        userTypeParam = 'IN_MERCHANT';
+        idKey = 'merchant_id';
+      } else if (
+        fromParam === 'dual-customer' ||
+        fromParam === 'member' ||
+        fromParam === 'user'   // User dashboard → backend treats as IN_CUSTOMER
+      ) {
+        userTypeParam = 'IN_CUSTOMER';
+        idKey = 'customer_id';
+      } else if (lowerUserType === 'in_merchant' || lowerUserType.includes('merchant')) {
+        userTypeParam = 'IN_MERCHANT';
+        idKey = 'merchant_id';
+      } else if (
+        lowerUserType === 'in_customer' ||
+        lowerUserType.includes('customer') ||
+        lowerUserType === 'new_user' ||
+        lowerUserType === 'user'
+      ) {
+        userTypeParam = 'IN_CUSTOMER';
+        idKey = 'customer_id';
+      } else if (lowerUserType === 'dual') {
+        // No explicit `from` param on dual dashboard → fall back to whichever side has data
+        userTypeParam = isMerchant ? 'IN_MERCHANT' : 'IN_CUSTOMER';
+        idKey = isMerchant ? 'merchant_id' : 'customer_id';
+      } else {
+        userTypeParam = isMerchant ? 'IN_MERCHANT' : 'IN_CUSTOMER';
+        idKey = isMerchant ? 'merchant_id' : 'customer_id';
+      }
+
+      const inTownId =
+        (userTypeParam === 'IN_MERCHANT'
+          ? (merchantId || await AsyncStorage.getItem('merchant_id'))
+          : await AsyncStorage.getItem(idKey));
 
       // No backend id available — store locally so the UI still updates
       if (!inTownId || !/^\d+$/.test(inTownId)) {
@@ -302,7 +371,7 @@ export default function Account() {
 
       // 1) Upload via the same S3 endpoint used during registration
       const uploadUrl = `${INTOWN_API_BASE}/s3/upload?userType=${userTypeParam}&inTownId=${inTownId}`;
-      const fileName = `${isMerch ? 'merchant' : 'customer'}_${inTownId}_${Date.now()}.jpg`;
+      const fileName = `${userTypeParam.toLowerCase()}_${inTownId}_${Date.now()}.jpg`;
       const formData = new FormData();
       if (Platform.OS === 'web') {
         const r = await fetch(pendingImageUri);
@@ -331,9 +400,10 @@ export default function Account() {
       // register-merchant.tsx).
       let canonicalUrl: string | null = null;
       try {
-        const listUrl = isMerch
-          ? `${INTOWN_API_BASE}/s3?merchantId=${inTownId}`
-          : `${INTOWN_API_BASE}/s3?customerId=${inTownId}`;
+        const listUrl =
+          userTypeParam === 'IN_MERCHANT'
+            ? `${INTOWN_API_BASE}/s3?merchantId=${inTownId}`
+            : `${INTOWN_API_BASE}/s3?customerId=${inTownId}`;
         const listRes = await fetch(listUrl);
         if (listRes.ok) {
           const listData = await listRes.json();
@@ -342,7 +412,9 @@ export default function Account() {
             // Latest upload is typically last in the list
             canonicalUrl = String(imgs[imgs.length - 1]);
             // Save full list under the merchant-image AsyncStorage convention
-            await AsyncStorage.setItem('merchant_shop_images', JSON.stringify(imgs));
+            if (userTypeParam === 'IN_MERCHANT') {
+              await AsyncStorage.setItem('merchant_shop_images', JSON.stringify(imgs));
+            }
           }
         }
       } catch (e) {
@@ -372,8 +444,10 @@ export default function Account() {
       // Persist + reflect everywhere
       const finalUrl = canonicalUrl || pendingImageUri;
       await AsyncStorage.setItem('user_profile_image', finalUrl);
-      if (isMerch) {
+      if (userTypeParam === 'IN_MERCHANT') {
         await AsyncStorage.setItem('merchant_profile_image', finalUrl);
+      } else {
+        await AsyncStorage.setItem('customer_profile_image', finalUrl);
       }
       setProfileImage(finalUrl);
       setPendingImageUri(null);
@@ -445,6 +519,31 @@ export default function Account() {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Dual-user context pill */}
+        {isDualUser && (
+          <View
+            style={[
+              styles.contextPillWrap,
+              { backgroundColor: isMerchant ? '#FFF3E0' : '#E8F5E9' },
+            ]}
+            testID="account-context-pill"
+          >
+            <Ionicons
+              name={isMerchant ? 'storefront' : 'person'}
+              size={14}
+              color={isMerchant ? '#B45309' : '#0C8A4A'}
+            />
+            <Text
+              style={[
+                styles.contextPillText,
+                { color: isMerchant ? '#B45309' : '#0C8A4A' },
+              ]}
+            >
+              You're editing: {isMerchant ? 'Merchant profile' : 'Customer profile'}
+            </Text>
+          </View>
+        )}
+
         {/* PROFILE IMAGE */}
         <View style={styles.profileCard}>
           <View style={styles.profileImageWrapper}>
@@ -849,6 +948,20 @@ export default function Account() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 16, backgroundColor: '#F5F5F5' },
+  contextPillWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+    marginBottom: 10,
+  },
+  contextPillText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
   header: { flexDirection: 'row', alignItems: 'center', marginBottom: 16, marginTop: 32 },
   backButton: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
   title: { flex: 1, fontSize: 22, fontWeight: '700', marginLeft: 8 },
