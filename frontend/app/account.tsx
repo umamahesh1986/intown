@@ -75,8 +75,10 @@ export default function Account() {
 
   const loadProfileData = async () => {
     try {
-      const [storedImage, storedUserType, storedMerchantId, storedUserRole, storedUserData, searchResp] = await Promise.all([
+      const [storedImage, storedMerchantImage, storedCustomerImage, storedUserType, storedMerchantId, storedUserRole, storedUserData, searchResp] = await Promise.all([
         AsyncStorage.getItem('user_profile_image'),
+        AsyncStorage.getItem('merchant_profile_image'),
+        AsyncStorage.getItem('customer_profile_image'),
         AsyncStorage.getItem('user_type'),
         AsyncStorage.getItem('merchant_id'),
         AsyncStorage.getItem('user_role'),
@@ -84,13 +86,13 @@ export default function Account() {
         AsyncStorage.getItem('user_search_response'),
       ]);
 
-      if (storedImage) setProfileImage(storedImage);
       if (storedUserType) setUserType(storedUserType);
       if (storedMerchantId) setMerchantId(storedMerchantId);
 
       // Detect merchant from ALL available signals
       const lowerType = (storedUserType ?? '').toLowerCase();
       const lowerRole = (storedUserRole ?? '').toLowerCase();
+      const fromParam = String(params?.from ?? '').toLowerCase();
       let hasMerchantData = false;
       let parsedSearch: any = null;
 
@@ -106,17 +108,32 @@ export default function Account() {
         try { parsedUserData = JSON.parse(storedUserData); } catch {}
       }
 
-      const merchantUser =
-        lowerType.includes('merchant') ||
-        lowerType === 'dual' ||
-        lowerType === 'in_merchant' ||
-        lowerRole.includes('merchant') ||
-        lowerRole === 'dual' ||
-        !!storedMerchantId ||
-        hasMerchantData ||
-        (parsedUserData?.userType === 'merchant');
+      // `from` route param wins — let the dashboard explicitly choose which profile to load.
+      // Falls back to inferred user-type / role / data signals if no param given.
+      let merchantUser: boolean;
+      if (fromParam === 'dual-merchant' || fromParam === 'merchant') {
+        merchantUser = true;
+      } else if (fromParam === 'dual-customer' || fromParam === 'member' || fromParam === 'user') {
+        merchantUser = false;
+      } else {
+        merchantUser =
+          lowerType.includes('merchant') ||
+          lowerType === 'dual' ||
+          lowerType === 'in_merchant' ||
+          lowerRole.includes('merchant') ||
+          lowerRole === 'dual' ||
+          !!storedMerchantId ||
+          hasMerchantData ||
+          (parsedUserData?.userType === 'merchant');
+      }
 
       setIsMerchant(merchantUser);
+
+      // Profile image — pick context-specific cache so dual users don't see
+      // the other side's image. Falls back to the generic `user_profile_image`.
+      const contextualImage = merchantUser ? storedMerchantImage : storedCustomerImage;
+      const effectiveImage = contextualImage || storedImage || null;
+      if (effectiveImage) setProfileImage(effectiveImage);
 
       // If no merchantId stored but found in search response, save it
       if (!storedMerchantId && parsedSearch?.merchant?.id) {
@@ -341,8 +358,6 @@ export default function Account() {
         return;
       }
 
-      const isMerch = userTypeParam === 'IN_MERCHANT';
-
       // 1) Upload via the same S3 endpoint used during registration
       const uploadUrl = `${INTOWN_API_BASE}/s3/upload?userType=${userTypeParam}&inTownId=${inTownId}`;
       const fileName = `${userTypeParam.toLowerCase()}_${inTownId}_${Date.now()}.jpg`;
@@ -418,8 +433,10 @@ export default function Account() {
       // Persist + reflect everywhere
       const finalUrl = canonicalUrl || pendingImageUri;
       await AsyncStorage.setItem('user_profile_image', finalUrl);
-      if (isMerch) {
+      if (userTypeParam === 'IN_MERCHANT') {
         await AsyncStorage.setItem('merchant_profile_image', finalUrl);
+      } else {
+        await AsyncStorage.setItem('customer_profile_image', finalUrl);
       }
       setProfileImage(finalUrl);
       setPendingImageUri(null);
