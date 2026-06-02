@@ -289,30 +289,35 @@ export default function Account() {
       //   1. `from` route param (e.g. `dual-merchant`, `dual-customer`, `user`, `member`, `merchant`)
       //   2. Stored `user_type` value ('in_Merchant' / 'in_Customer' / 'dual' / 'new_user')
       //   3. Local `isMerchant` flag (derived from search response / merchant_id)
+      // NOTE: Backend currently only supports IN_CUSTOMER and IN_MERCHANT — User dashboard
+      // uploads are mirrored to IN_CUSTOMER until backend adds an IN_USER endpoint.
       const fromParam = String(params?.from ?? '').toLowerCase();
       const lowerUserType = (userType ?? '').toLowerCase();
 
-      let userTypeParam: 'IN_USER' | 'IN_CUSTOMER' | 'IN_MERCHANT';
-      let idKey: 'merchant_id' | 'customer_id' | 'user_id';
+      let userTypeParam: 'IN_CUSTOMER' | 'IN_MERCHANT';
+      let idKey: 'merchant_id' | 'customer_id';
 
       if (fromParam === 'dual-merchant' || fromParam === 'merchant') {
         userTypeParam = 'IN_MERCHANT';
         idKey = 'merchant_id';
-      } else if (fromParam === 'dual-customer' || fromParam === 'member') {
+      } else if (
+        fromParam === 'dual-customer' ||
+        fromParam === 'member' ||
+        fromParam === 'user'   // User dashboard → backend treats as IN_CUSTOMER
+      ) {
         userTypeParam = 'IN_CUSTOMER';
         idKey = 'customer_id';
-      } else if (fromParam === 'user') {
-        userTypeParam = 'IN_USER';
-        idKey = 'user_id';
       } else if (lowerUserType === 'in_merchant' || lowerUserType.includes('merchant')) {
         userTypeParam = 'IN_MERCHANT';
         idKey = 'merchant_id';
-      } else if (lowerUserType === 'in_customer' || lowerUserType.includes('customer')) {
+      } else if (
+        lowerUserType === 'in_customer' ||
+        lowerUserType.includes('customer') ||
+        lowerUserType === 'new_user' ||
+        lowerUserType === 'user'
+      ) {
         userTypeParam = 'IN_CUSTOMER';
         idKey = 'customer_id';
-      } else if (lowerUserType === 'new_user' || lowerUserType === 'user') {
-        userTypeParam = 'IN_USER';
-        idKey = 'user_id';
       } else if (lowerUserType === 'dual') {
         // No explicit `from` param on dual dashboard → fall back to whichever side has data
         userTypeParam = isMerchant ? 'IN_MERCHANT' : 'IN_CUSTOMER';
@@ -372,9 +377,7 @@ export default function Account() {
         const listUrl =
           userTypeParam === 'IN_MERCHANT'
             ? `${INTOWN_API_BASE}/s3?merchantId=${inTownId}`
-            : userTypeParam === 'IN_USER'
-              ? `${INTOWN_API_BASE}/s3?userId=${inTownId}`
-              : `${INTOWN_API_BASE}/s3?customerId=${inTownId}`;
+            : `${INTOWN_API_BASE}/s3?customerId=${inTownId}`;
         const listRes = await fetch(listUrl);
         if (listRes.ok) {
           const listData = await listRes.json();
