@@ -800,6 +800,7 @@ export default function Account() {
         )}
 
         {/* QUICK LINKS */}
+        {!isMerchant && (
         <View style={styles.menuCard}>
           <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/payment-history')}>
             <View style={styles.menuIconWrap}><Ionicons name="receipt-outline" size={20} color="#FF8A00" /></View>
@@ -828,6 +829,7 @@ export default function Account() {
             <Ionicons name="chevron-forward" size={18} color="#CCC" />
           </TouchableOpacity>
         </View>
+        )}
 
         <View style={{ height: 40 }} />
       </ScrollView>

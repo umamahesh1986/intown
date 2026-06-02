@@ -123,7 +123,7 @@ export default function RootLayout() {
   ];
 
   const tabs = isMerchant 
-    ? allTabs.filter(tab => tab.name !== 'Savings' && tab.name !== 'Plans')
+    ? allTabs.filter(tab => tab.name !== 'Savings' && tab.name !== 'Privilege')
     : allTabs;
 
   return (
