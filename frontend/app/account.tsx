@@ -43,6 +43,9 @@ export default function Account() {
 
   // Profile image
   const [profileImage, setProfileImage] = useState<string | null>(null);
+  // Cached contextual images (so dual-user tab switch is instant)
+  const [merchantImageCache, setMerchantImageCache] = useState<string | null>(null);
+  const [customerImageCache, setCustomerImageCache] = useState<string | null>(null);
   const [pendingImageUri, setPendingImageUri] = useState<string | null>(null);
   const [pendingImageBase64, setPendingImageBase64] = useState<string | null>(null);
   const [isSavingImage, setIsSavingImage] = useState(false);
@@ -142,6 +145,8 @@ export default function Account() {
 
       // Profile image — pick context-specific cache so dual users don't see
       // the other side's image. Falls back to the generic `user_profile_image`.
+      setMerchantImageCache(storedMerchantImage || null);
+      setCustomerImageCache(storedCustomerImage || null);
       const contextualImage = merchantUser ? storedMerchantImage : storedCustomerImage;
       const effectiveImage = contextualImage || storedImage || null;
       if (effectiveImage) setProfileImage(effectiveImage);
@@ -309,6 +314,17 @@ export default function Account() {
     } catch (e) { Alert.alert('Error', 'Unable to open gallery.'); }
   };
 
+  // Tab switch (only for dual users)
+  const handleSwitchTab = (toMerchant: boolean) => {
+    if (toMerchant === isMerchant) return;
+    setIsMerchant(toMerchant);
+    setEditing(false);
+    setPendingImageUri(null);
+    setPendingImageBase64(null);
+    // Swap image cache instantly
+    setProfileImage(toMerchant ? merchantImageCache : customerImageCache);
+  };
+
   const handleUpdateProfileImage = async () => {
     if (!pendingImageUri) return;
     setIsSavingImage(true);
@@ -446,8 +462,10 @@ export default function Account() {
       await AsyncStorage.setItem('user_profile_image', finalUrl);
       if (userTypeParam === 'IN_MERCHANT') {
         await AsyncStorage.setItem('merchant_profile_image', finalUrl);
+        setMerchantImageCache(finalUrl);
       } else {
         await AsyncStorage.setItem('customer_profile_image', finalUrl);
+        setCustomerImageCache(finalUrl);
       }
       setProfileImage(finalUrl);
       setPendingImageUri(null);
@@ -519,28 +537,49 @@ export default function Account() {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Dual-user context pill */}
+        {/* Dual-user context tabs */}
         {isDualUser && (
-          <View
-            style={[
-              styles.contextPillWrap,
-              { backgroundColor: isMerchant ? '#FFF3E0' : '#E8F5E9' },
-            ]}
-            testID="account-context-pill"
-          >
-            <Ionicons
-              name={isMerchant ? 'storefront' : 'person'}
-              size={14}
-              color={isMerchant ? '#B45309' : '#0C8A4A'}
-            />
-            <Text
-              style={[
-                styles.contextPillText,
-                { color: isMerchant ? '#B45309' : '#0C8A4A' },
-              ]}
+          <View style={styles.dualTabs} testID="account-dual-tabs">
+            <TouchableOpacity
+              style={[styles.dualTab, !isMerchant && styles.dualTabActiveCustomer]}
+              onPress={() => handleSwitchTab(false)}
+              activeOpacity={0.85}
+              testID="account-tab-customer"
             >
-              You're editing: {isMerchant ? 'Merchant profile' : 'Customer profile'}
-            </Text>
+              <Ionicons
+                name="person"
+                size={16}
+                color={!isMerchant ? '#0C8A4A' : '#94A3B8'}
+              />
+              <Text
+                style={[
+                  styles.dualTabText,
+                  { color: !isMerchant ? '#0C8A4A' : '#64748B' },
+                ]}
+              >
+                Customer
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.dualTab, isMerchant && styles.dualTabActiveMerchant]}
+              onPress={() => handleSwitchTab(true)}
+              activeOpacity={0.85}
+              testID="account-tab-merchant"
+            >
+              <Ionicons
+                name="storefront"
+                size={16}
+                color={isMerchant ? '#B45309' : '#94A3B8'}
+              />
+              <Text
+                style={[
+                  styles.dualTabText,
+                  { color: isMerchant ? '#B45309' : '#64748B' },
+                ]}
+              >
+                Merchant
+              </Text>
+            </TouchableOpacity>
           </View>
         )}
 
@@ -948,18 +987,32 @@ export default function Account() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 16, backgroundColor: '#F5F5F5' },
-  contextPillWrap: {
+  dualTabs: {
+    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 4,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  dualTab: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    alignSelf: 'flex-start',
+    justifyContent: 'center',
     gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 999,
-    marginBottom: 10,
+    paddingVertical: 10,
+    borderRadius: 9,
   },
-  contextPillText: {
-    fontSize: 12,
+  dualTabActiveCustomer: {
+    backgroundColor: '#E8F5E9',
+  },
+  dualTabActiveMerchant: {
+    backgroundColor: '#FFF3E0',
+  },
+  dualTabText: {
+    fontSize: 14,
     fontWeight: '700',
   },
   header: { flexDirection: 'row', alignItems: 'center', marginBottom: 16, marginTop: 32 },
