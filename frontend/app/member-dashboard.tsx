@@ -1443,7 +1443,7 @@ export default function MemberDashboard() {
               style={styles.userPanelItem}
               onPress={() => {
                 closeDropdown();
-                router.push({ pathname: '/account' as any });
+                router.push({ pathname: '/account' as any, params: { from: 'member' } });
 
               }}
             >

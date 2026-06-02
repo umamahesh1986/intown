@@ -1206,7 +1206,7 @@ export default function UserDashboard() {
               style={styles.userPanelItem}
               onPress={() => {
                 toggleDropdown();
-                router.push('/account');
+                router.push({ pathname: '/account' as any, params: { from: 'user' } });
               }}
             >
               <Ionicons name="person-outline" size={20} color="#FF8C00" />

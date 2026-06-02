@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, Alert, Platform, ScrollView, ActivityIndicator, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState, useEffect } from 'react';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -12,6 +12,7 @@ import axios from 'axios';
 
 export default function Account() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ from?: string }>();
   const { user, updateProfile } = useAuthStore();
 
   const [editing, setEditing] = useState(false);
@@ -284,12 +285,47 @@ export default function Account() {
     if (!pendingImageUri) return;
     setIsSavingImage(true);
     try {
+      // Resolve effective userType using THREE signals (priority order):
+      //   1. `from` route param (e.g. `dual-merchant`, `dual-customer`, `user`, `member`, `merchant`)
+      //   2. Stored `user_type` value ('in_Merchant' / 'in_Customer' / 'dual' / 'new_user')
+      //   3. Local `isMerchant` flag (derived from search response / merchant_id)
+      const fromParam = String(params?.from ?? '').toLowerCase();
       const lowerUserType = (userType ?? '').toLowerCase();
-      const isMerch = lowerUserType.includes('merchant');
-      const userTypeParam = isMerch ? 'IN_MERCHANT' : 'IN_CUSTOMER';
-      const inTownId = isMerch
-        ? (merchantId || await AsyncStorage.getItem('merchant_id'))
-        : await AsyncStorage.getItem('customer_id');
+
+      let userTypeParam: 'IN_USER' | 'IN_CUSTOMER' | 'IN_MERCHANT';
+      let idKey: 'merchant_id' | 'customer_id' | 'user_id';
+
+      if (fromParam === 'dual-merchant' || fromParam === 'merchant') {
+        userTypeParam = 'IN_MERCHANT';
+        idKey = 'merchant_id';
+      } else if (fromParam === 'dual-customer' || fromParam === 'member') {
+        userTypeParam = 'IN_CUSTOMER';
+        idKey = 'customer_id';
+      } else if (fromParam === 'user') {
+        userTypeParam = 'IN_USER';
+        idKey = 'user_id';
+      } else if (lowerUserType === 'in_merchant' || lowerUserType.includes('merchant')) {
+        userTypeParam = 'IN_MERCHANT';
+        idKey = 'merchant_id';
+      } else if (lowerUserType === 'in_customer' || lowerUserType.includes('customer')) {
+        userTypeParam = 'IN_CUSTOMER';
+        idKey = 'customer_id';
+      } else if (lowerUserType === 'new_user' || lowerUserType === 'user') {
+        userTypeParam = 'IN_USER';
+        idKey = 'user_id';
+      } else if (lowerUserType === 'dual') {
+        // No explicit `from` param on dual dashboard → fall back to whichever side has data
+        userTypeParam = isMerchant ? 'IN_MERCHANT' : 'IN_CUSTOMER';
+        idKey = isMerchant ? 'merchant_id' : 'customer_id';
+      } else {
+        userTypeParam = isMerchant ? 'IN_MERCHANT' : 'IN_CUSTOMER';
+        idKey = isMerchant ? 'merchant_id' : 'customer_id';
+      }
+
+      const inTownId =
+        (userTypeParam === 'IN_MERCHANT'
+          ? (merchantId || await AsyncStorage.getItem('merchant_id'))
+          : await AsyncStorage.getItem(idKey));
 
       // No backend id available — store locally so the UI still updates
       if (!inTownId || !/^\d+$/.test(inTownId)) {
@@ -300,9 +336,11 @@ export default function Account() {
         return;
       }
 
+      const isMerch = userTypeParam === 'IN_MERCHANT';
+
       // 1) Upload via the same S3 endpoint used during registration
       const uploadUrl = `${INTOWN_API_BASE}/s3/upload?userType=${userTypeParam}&inTownId=${inTownId}`;
-      const fileName = `${isMerch ? 'merchant' : 'customer'}_${inTownId}_${Date.now()}.jpg`;
+      const fileName = `${userTypeParam.toLowerCase()}_${inTownId}_${Date.now()}.jpg`;
       const formData = new FormData();
       if (Platform.OS === 'web') {
         const r = await fetch(pendingImageUri);
@@ -331,9 +369,12 @@ export default function Account() {
       // register-merchant.tsx).
       let canonicalUrl: string | null = null;
       try {
-        const listUrl = isMerch
-          ? `${INTOWN_API_BASE}/s3?merchantId=${inTownId}`
-          : `${INTOWN_API_BASE}/s3?customerId=${inTownId}`;
+        const listUrl =
+          userTypeParam === 'IN_MERCHANT'
+            ? `${INTOWN_API_BASE}/s3?merchantId=${inTownId}`
+            : userTypeParam === 'IN_USER'
+              ? `${INTOWN_API_BASE}/s3?userId=${inTownId}`
+              : `${INTOWN_API_BASE}/s3?customerId=${inTownId}`;
         const listRes = await fetch(listUrl);
         if (listRes.ok) {
           const listData = await listRes.json();
@@ -342,7 +383,9 @@ export default function Account() {
             // Latest upload is typically last in the list
             canonicalUrl = String(imgs[imgs.length - 1]);
             // Save full list under the merchant-image AsyncStorage convention
-            await AsyncStorage.setItem('merchant_shop_images', JSON.stringify(imgs));
+            if (userTypeParam === 'IN_MERCHANT') {
+              await AsyncStorage.setItem('merchant_shop_images', JSON.stringify(imgs));
+            }
           }
         }
       } catch (e) {

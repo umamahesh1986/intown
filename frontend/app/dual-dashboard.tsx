@@ -938,7 +938,10 @@ export default function DualDashboard() {
               style={styles.userPanelItem}
               onPress={() => {
                 closeDropdown();
-                router.push({ pathname: '/account' as any });
+                router.push({
+                  pathname: '/account' as any,
+                  params: { from: activeTab === 'merchant' ? 'dual-merchant' : 'dual-customer' },
+                });
               }}
             >
               <Ionicons name="person-outline" size={22} color="#FF8A00" />
@@ -1165,10 +1168,10 @@ export default function DualDashboard() {
                 </View>
               )}
 
-              {/* Edit Profile Button */}
+              {/* Edit Profile Button (Merchant tab → IN_MERCHANT) */}
               <TouchableOpacity
                 style={styles.editProfileBtn}
-                onPress={() => router.push({ pathname: '/account' as any })}
+                onPress={() => router.push({ pathname: '/account' as any, params: { from: 'dual-merchant' } })}
                 activeOpacity={0.85}
                 data-testid="dual-dashboard-edit-profile-btn"
                 testID="dual-dashboard-edit-profile-btn"
