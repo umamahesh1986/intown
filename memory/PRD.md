@@ -91,6 +91,13 @@
 - **Merchant Tab**: Added "Edit Profile" CTA button on Merchant Shop Card — navigates to `/account` where all merchant fields display read-only with an `Edit` toggle to enable editing (Business Category, Products, Description, Years, Branches, Shop Location, Business Timings, Week Off, Offer)
 - Files modified: `/app/frontend/app/dual-dashboard.tsx`
 
+
+### Session 9 (Feb 2026) - Profile Image Sync Fix + Merchant Shop Images Upload
+- **Bug fix (account.tsx)**: "Saved Locally" toast was appearing after every profile-image upload because of an overly strict `^\d+$` numeric regex on the resolved `inTownId`. Replaced with non-empty string check + fallback to AsyncStorage + diagnostic warn log. Merchant/customer image uploads now sync to S3 immediately.
+- **New feature (account.tsx, Merchant section)**: Added a "Shop Images" card visible inside the merchant profile. Merchants can now Take Photo / Choose Images (multi-pick), see thumbnails of existing (server-synced) and pending images, remove either, and tap "Upload Shop Images" to push them to `POST /IN/s3/upload?userType=IN_MERCHANT`. After upload, the canonical list is fetched from `GET /IN/s3?merchantId=` and persisted to AsyncStorage key `merchant_shop_images`.
+- The `merchant-dashboard.tsx` hero carousel already reads `merchant_shop_images` on focus, so newly uploaded images appear in the dashboard carousel automatically.
+- Files modified: `/app/frontend/app/account.tsx`
+
 ## Backlog
 - P1: Test full end-to-end login with real OTP on mobile device
 - P2: Extract shared carousel + merchant card UI from `dual-dashboard.tsx`, `user-dashboard.tsx`, `member-dashboard.tsx` into reusable components
