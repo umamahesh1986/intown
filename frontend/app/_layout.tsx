@@ -2,6 +2,8 @@ import { Stack, usePathname } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { View, Text, TextInput, Platform } from 'react-native';
 import { useAuthStore } from '../store/authStore';
+import { useLocationStore } from '../store/locationStore';
+import { getUserLocationWithDetails } from '../utils/location';
 import CommonBottomTabs from '../components/CommonBottomTabs';
 import ForceUpdateModal from '../components/ForceUpdateModal';
 import { Fonts } from '../utils/fonts';
@@ -9,14 +11,36 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const LAST_DASHBOARD_KEY = 'last_visited_dashboard';
 
+// Module-level flag — ensures location is bootstrapped only ONCE per app session
+let __locationBootstrapped = false;
+
 export default function RootLayout() {
   const loadAuth = useAuthStore((state) => state.loadAuth);
+  const loadLocationFromStorage = useLocationStore((s) => s.loadFromStorage);
   const user = useAuthStore((state) => state.user);
   const pathname = usePathname();
   const [lastDashboard, setLastDashboard] = useState<string | null>(null);
 
   useEffect(() => {
     loadAuth();
+
+    // Bootstrap location ONCE per app session:
+    //  1. Hydrate from AsyncStorage so previous selection appears instantly
+    //  2. Only if nothing was stored, request fresh GPS (first launch)
+    if (!__locationBootstrapped) {
+      __locationBootstrapped = true;
+      (async () => {
+        try {
+          await loadLocationFromStorage();
+          const persisted = useLocationStore.getState().location;
+          if (!persisted) {
+            await getUserLocationWithDetails();
+          }
+        } catch (e) {
+          console.warn('[RootLayout] location bootstrap failed:', e);
+        }
+      })();
+    }
 
     // Inject critical CSS for web to ensure full-height layout
     // This is needed because expo start --web (dev server) may not use +html.tsx

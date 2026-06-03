@@ -143,15 +143,8 @@ export default function MemberShopList() {
         return;
       }
 
-      // Update store with fresh GPS coords for other screens
-      try {
-        useLocationStore.getState().setLocation({
-          latitude: lat, longitude: lng,
-          area: '', city: '', state: '', country: '', pincode: '', fullAddress: ''
-        });
-      } catch (e) {}
-
-      // Fire search with current location
+      // Fire search with current location (do NOT overwrite the user's selected
+      // location in the store — it persists across pages and sessions).
       if (categoryId) {
         await fetchShopsByCategory(lat, lng);
       } else if (query) {
