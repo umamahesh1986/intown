@@ -273,6 +273,11 @@ export default function MerchantDashboard() {
   // Request location permission on mount
   const requestLocationOnMount = async () => {
     await loadLocationFromStorage();
+
+    // Respect persisted location — do not overwrite with fresh GPS
+    const persisted = useLocationStore.getState().location;
+    if (persisted) return;
+
     try {
       await getUserLocationWithDetails();
     } catch (error) {

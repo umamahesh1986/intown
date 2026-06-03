@@ -540,20 +540,22 @@ export default function MemberDashboard() {
   // Request location permission on mount
   const requestLocationOnMount = async () => {
     await loadLocationFromStorage();
+
+    // Respect persisted location — do not overwrite with fresh GPS
+    const persisted = useLocationStore.getState().location;
+    if (persisted) return;
+
     try {
       const locationResult = await getUserLocationWithDetails();
       if (!locationResult) {
-        const storedLocation = useLocationStore.getState().location;
-        if (!storedLocation) {
-          Alert.alert(
-            'Location Access',
-            'Please enable location access to see nearby shops.',
-            [
-              { text: 'Later', style: 'cancel' },
-              { text: 'Set Manually', onPress: () => setShowLocationModal(true) }
-            ]
-          );
-        }
+        Alert.alert(
+          'Location Access',
+          'Please enable location access to see nearby shops.',
+          [
+            { text: 'Later', style: 'cancel' },
+            { text: 'Set Manually', onPress: () => setShowLocationModal(true) }
+          ]
+        );
       }
     } catch (error) {
       console.error('Error getting location:', error);
@@ -607,8 +609,11 @@ export default function MemberDashboard() {
   // Get display location text
   const getLocationDisplayText = () => {
     if (isLocationLoading) return 'Getting location...';
-    if (location?.area && !isPlusCode(location.area)) return location.area;
-    if (location?.city && !isPlusCode(location.city)) return location.city;
+    const area = location?.area && !isPlusCode(location.area) ? location.area : '';
+    const city = location?.city && !isPlusCode(location.city) ? location.city : '';
+    if (area && city && area !== city) return `${area}, ${city}`;
+    if (area) return area;
+    if (city) return city;
     return 'Set Location';
   };
 
