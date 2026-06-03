@@ -369,22 +369,25 @@ export default function UserDashboard() {
     // Load stored location first for instant display
     await loadLocationFromStorage();
 
-    // Always try to get fresh location in background
+    // If we already have a persisted location, DO NOT overwrite it.
+    // The user explicitly picked it — we respect that until they change it.
+    const persisted = useLocationStore.getState().location;
+    if (persisted) {
+      return;
+    }
+
+    // No persisted location → try to acquire fresh GPS once
     try {
       const locationResult = await getUserLocationWithDetails();
       if (!locationResult) {
-        // Only alert if no stored location either
-        const storedLocation = useLocationStore.getState().location;
-        if (!storedLocation) {
-          Alert.alert(
-            'Location Access',
-            'Please enable location access to see nearby shops and get personalized recommendations.',
-            [
-              { text: 'Later', style: 'cancel' },
-              { text: 'Set Manually', onPress: () => setShowLocationModal(true) }
-            ]
-          );
-        }
+        Alert.alert(
+          'Location Access',
+          'Please enable location access to see nearby shops and get personalized recommendations.',
+          [
+            { text: 'Later', style: 'cancel' },
+            { text: 'Set Manually', onPress: () => setShowLocationModal(true) }
+          ]
+        );
       }
     } catch (error) {
       console.error('Error getting location:', error);
@@ -585,8 +588,11 @@ export default function UserDashboard() {
   // Get display location text
   const getLocationDisplayText = () => {
     if (isLocationLoading) return 'Getting location...';
-    if (location?.area && !isPlusCode(location.area)) return location.area;
-    if (location?.city && !isPlusCode(location.city)) return location.city;
+    const area = location?.area && !isPlusCode(location.area) ? location.area : '';
+    const city = location?.city && !isPlusCode(location.city) ? location.city : '';
+    if (area && city && area !== city) return `${area}, ${city}`;
+    if (area) return area;
+    if (city) return city;
     return 'Set Location';
   };
 

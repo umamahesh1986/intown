@@ -448,6 +448,11 @@ export default function DualDashboard() {
   // Request location permission on mount
   const requestLocationOnMount = async () => {
     await loadLocationFromStorage();
+
+    // Respect persisted location — do not overwrite with fresh GPS
+    const persisted = useLocationStore.getState().location;
+    if (persisted) return;
+
     try {
       await getUserLocationWithDetails();
     } catch (error) {
@@ -536,8 +541,11 @@ export default function DualDashboard() {
 
   const getLocationDisplayText = () => {
     if (isLocationLoading) return 'Getting location...';
-    if (location?.area && !isPlusCode(location.area)) return location.area;
-    if (location?.city && !isPlusCode(location.city)) return location.city;
+    const area = location?.area && !isPlusCode(location.area) ? location.area : '';
+    const city = location?.city && !isPlusCode(location.city) ? location.city : '';
+    if (area && city && area !== city) return `${area}, ${city}`;
+    if (area) return area;
+    if (city) return city;
     return 'Set Location';
   };
 
