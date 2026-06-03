@@ -1,7 +1,8 @@
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, Alert, Platform, ScrollView, ActivityIndicator, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState, useEffect } from 'react';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
+import { useCallback } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -50,6 +51,11 @@ export default function Account() {
   const [pendingImageBase64, setPendingImageBase64] = useState<string | null>(null);
   const [isSavingImage, setIsSavingImage] = useState(false);
 
+  // Merchant shop images (multi-image gallery shown on merchant-dashboard carousel)
+  const [shopImages, setShopImages] = useState<string[]>([]);          // already uploaded URLs
+  const [pendingShopImages, setPendingShopImages] = useState<string[]>([]); // newly picked local URIs
+  const [isUploadingShopImages, setIsUploadingShopImages] = useState(false);
+
   // Time picker
   const [showTimePicker, setShowTimePicker] = useState<string | null>(null);
   const DAYS_OF_WEEK = ['None', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -70,6 +76,33 @@ export default function Account() {
     loadCategories();
   }, []);
 
+  // When returning from /location-picker, pick up the freshly chosen shop coords
+  // (location-picker writes them to AsyncStorage key `location_picker_account`).
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      (async () => {
+        try {
+          const raw = await AsyncStorage.getItem('location_picker_account');
+          if (!raw || !active) return;
+          const parsed = JSON.parse(raw);
+          if (
+            typeof parsed?.latitude === 'number' &&
+            typeof parsed?.longitude === 'number'
+          ) {
+            setShopLat(parsed.latitude);
+            setShopLng(parsed.longitude);
+          }
+        } catch (e) {
+          console.warn('[Account] reading location_picker_account failed:', e);
+        }
+      })();
+      return () => {
+        active = false;
+      };
+    }, [])
+  );
+
   const loadCategories = async () => {
     try {
       const cats = await getCategories(true);
@@ -79,7 +112,7 @@ export default function Account() {
 
   const loadProfileData = async () => {
     try {
-      const [storedImage, storedMerchantImage, storedCustomerImage, storedUserType, storedMerchantId, storedUserRole, storedUserData, searchResp] = await Promise.all([
+      const [storedImage, storedMerchantImage, storedCustomerImage, storedUserType, storedMerchantId, storedUserRole, storedUserData, searchResp, storedShopImagesRaw] = await Promise.all([
         AsyncStorage.getItem('user_profile_image'),
         AsyncStorage.getItem('merchant_profile_image'),
         AsyncStorage.getItem('customer_profile_image'),
@@ -88,6 +121,7 @@ export default function Account() {
         AsyncStorage.getItem('user_role'),
         AsyncStorage.getItem('user_data'),
         AsyncStorage.getItem('user_search_response'),
+        AsyncStorage.getItem('merchant_shop_images'),
       ]);
 
       if (storedUserType) setUserType(storedUserType);
@@ -150,6 +184,18 @@ export default function Account() {
       const contextualImage = merchantUser ? storedMerchantImage : storedCustomerImage;
       const effectiveImage = contextualImage || storedImage || null;
       if (effectiveImage) setProfileImage(effectiveImage);
+
+      // Load merchant shop images list (for the carousel on merchant-dashboard)
+      if (storedShopImagesRaw) {
+        try {
+          const parsed = JSON.parse(storedShopImagesRaw);
+          if (Array.isArray(parsed)) {
+            setShopImages(parsed.filter((u: any) => typeof u === 'string' && u.length > 0));
+          }
+        } catch {
+          // ignore parse errors
+        }
+      }
 
       // If no merchantId stored but found in search response, save it
       if (!storedMerchantId && parsedSearch?.merchant?.id) {
@@ -244,7 +290,7 @@ export default function Account() {
 
         // PUT to merchant update API
         try {
-          await axios.put(`${INTOWN_API_BASE}/merchant/${merchantId}`, payload, {
+          await axios.patch(`${INTOWN_API_BASE}/merchant/${merchantId}`, payload, {
             headers: { 'Content-Type': 'application/json' },
             timeout: 15000,
           });
@@ -255,6 +301,9 @@ export default function Account() {
         // Update AsyncStorage
         await AsyncStorage.setItem('merchant_shop_name', name);
         await AsyncStorage.setItem('merchant_contact_name', contactName);
+        // Picker write-through is consumed — clear so a stale pick doesn't
+        // re-apply on the next visit
+        await AsyncStorage.removeItem('location_picker_account');
 
         const searchResp = await AsyncStorage.getItem('user_search_response');
         if (searchResp) {
@@ -314,6 +363,120 @@ export default function Account() {
     } catch (e) { Alert.alert('Error', 'Unable to open gallery.'); }
   };
 
+  // ===== SHOP IMAGES (Merchant only) =====
+  const handlePickShopImages = async () => {
+    try {
+      if (Platform.OS !== 'web') {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') { Alert.alert('Permission required'); return; }
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsMultipleSelection: true,
+        quality: 0.5,
+        base64: false,
+      });
+      if (result.canceled || !result.assets?.length) return;
+      const uris = result.assets.map(a => a.uri).filter(Boolean) as string[];
+      setPendingShopImages(prev => Array.from(new Set([...prev, ...uris])));
+    } catch (e) {
+      console.error('[Account] handlePickShopImages error:', e);
+      Alert.alert('Error', 'Unable to pick images.');
+    }
+  };
+
+  const handleTakeShopPhoto = async () => {
+    try {
+      if (Platform.OS !== 'web') {
+        const { status } = await ImagePicker.requestCameraPermissionsAsync();
+        if (status !== 'granted') { Alert.alert('Permission required'); return; }
+      }
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ['images'],
+        quality: 0.5,
+        allowsEditing: true,
+        base64: false,
+      });
+      if (result.canceled) return;
+      const uri = result.assets?.[0]?.uri;
+      if (uri) setPendingShopImages(prev => Array.from(new Set([...prev, uri])));
+    } catch (e) {
+      Alert.alert('Error', 'Unable to open camera.');
+    }
+  };
+
+  const handleRemovePendingShopImage = (idx: number) => {
+    setPendingShopImages(prev => prev.filter((_, i) => i !== idx));
+  };
+
+  const handleRemoveExistingShopImage = (idx: number) => {
+    // Local-only removal (no backend delete endpoint wired). Updates the cached list
+    // so the merchant-dashboard carousel reflects the change immediately.
+    const next = shopImages.filter((_, i) => i !== idx);
+    setShopImages(next);
+    AsyncStorage.setItem('merchant_shop_images', JSON.stringify(next));
+  };
+
+  const handleUploadShopImages = async () => {
+    if (!pendingShopImages.length) return;
+    const id = (merchantId || (await AsyncStorage.getItem('merchant_id')) || '').trim();
+    if (!id) {
+      Alert.alert('Missing merchant id', 'Cannot upload shop images until your merchant account is fully set up.');
+      return;
+    }
+    setIsUploadingShopImages(true);
+    try {
+      const uploadUrl = `${INTOWN_API_BASE}/s3/upload?userType=IN_MERCHANT&inTownId=${id}`;
+      const formData = new FormData();
+      for (let i = 0; i < pendingShopImages.length; i++) {
+        const uri = pendingShopImages[i];
+        const fileName = `merchant_${id}_${Date.now()}_${i}.jpg`;
+        if (Platform.OS === 'web') {
+          const r = await fetch(uri);
+          const blob = await r.blob();
+          formData.append('file', blob, fileName);
+        } else {
+          formData.append('file', { uri, name: fileName, type: 'image/jpeg' } as any);
+        }
+      }
+      const uploadRes = await fetch(uploadUrl, {
+        method: 'POST',
+        headers: { Accept: 'application/json' },
+        body: formData,
+      });
+      if (!uploadRes.ok) {
+        const txt = await uploadRes.text();
+        console.warn('[Account] shop images upload failed', uploadRes.status, txt);
+        Alert.alert('Upload Failed', 'Could not upload shop images. Please try again.');
+        return;
+      }
+
+      // Refresh canonical list from server
+      try {
+        const listRes = await fetch(`${INTOWN_API_BASE}/s3?merchantId=${id}`);
+        if (listRes.ok) {
+          const listData = await listRes.json();
+          const imgs: any = listData?.s3ImageUrl;
+          if (Array.isArray(imgs) && imgs.length > 0) {
+            const clean = imgs.filter((u: any) => typeof u === 'string' && u.length > 0);
+            setShopImages(clean);
+            await AsyncStorage.setItem('merchant_shop_images', JSON.stringify(clean));
+          }
+        }
+      } catch (e) {
+        console.warn('[Account] /s3 list refresh failed:', e);
+      }
+
+      setPendingShopImages([]);
+      Alert.alert('Success', 'Shop images updated.');
+    } catch (e) {
+      console.error('[Account] handleUploadShopImages error:', e);
+      Alert.alert('Error', 'Failed to upload shop images.');
+    } finally {
+      setIsUploadingShopImages(false);
+    }
+  };
+
   // Tab switch (only for dual users)
   const handleSwitchTab = (toMerchant: boolean) => {
     if (toMerchant === isMerchant) return;
@@ -371,13 +534,24 @@ export default function Account() {
         idKey = isMerchant ? 'merchant_id' : 'customer_id';
       }
 
-      const inTownId =
-        (userTypeParam === 'IN_MERCHANT'
-          ? (merchantId || await AsyncStorage.getItem('merchant_id'))
-          : await AsyncStorage.getItem(idKey));
+      // Resolve inTownId from THREE sources (state, then storage, then by key).
+      const storedMerchantIdRaw = await AsyncStorage.getItem('merchant_id');
+      const storedCustomerIdRaw = await AsyncStorage.getItem('customer_id');
+      const candidate =
+        userTypeParam === 'IN_MERCHANT'
+          ? (merchantId || storedMerchantIdRaw)
+          : storedCustomerIdRaw;
+      const inTownId = candidate ? String(candidate).trim() : '';
 
       // No backend id available — store locally so the UI still updates
-      if (!inTownId || !/^\d+$/.test(inTownId)) {
+      if (!inTownId) {
+        console.warn('[Account] No inTownId resolved for upload', {
+          userTypeParam,
+          idKey,
+          merchantId,
+          storedMerchantIdRaw,
+          storedCustomerIdRaw,
+        });
         await AsyncStorage.setItem('user_profile_image', pendingImageUri);
         setProfileImage(pendingImageUri);
         setPendingImageUri(null);
@@ -430,6 +604,7 @@ export default function Account() {
             // Save full list under the merchant-image AsyncStorage convention
             if (userTypeParam === 'IN_MERCHANT') {
               await AsyncStorage.setItem('merchant_shop_images', JSON.stringify(imgs));
+              setShopImages(imgs.filter((u: any) => typeof u === 'string' && u.length > 0));
             }
           }
         }
@@ -720,6 +895,100 @@ export default function Account() {
               {renderField('Description', description, setDescription, { multiline: true })}
               {renderField('Years in Business', fromYears, setFromYears, { keyboardType: 'numeric' })}
               {renderField('Branches', branches, setBranches, { keyboardType: 'numeric' })}
+            </View>
+
+            {/* SHOP IMAGES */}
+            <View style={styles.card}>
+              <Text style={styles.sectionTitle}>Shop Images</Text>
+
+              {/* Existing uploaded images */}
+              {shopImages.length > 0 && (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  style={styles.shopImagesScroll}
+                  contentContainerStyle={styles.shopImagesScrollContent}
+                >
+                  {shopImages.map((uri, idx) => (
+                    <View key={`shop-${idx}`} style={styles.shopThumbWrap}>
+                      <Image source={{ uri }} style={styles.shopThumb} resizeMode="cover" />
+                      {editing && (
+                        <TouchableOpacity
+                          style={styles.shopThumbRemove}
+                          onPress={() => handleRemoveExistingShopImage(idx)}
+                          testID={`shop-image-remove-${idx}`}
+                        >
+                          <Ionicons name="close-circle" size={22} color="#FF3B30" />
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  ))}
+                </ScrollView>
+              )}
+
+              {/* Editing controls */}
+              {editing && (
+                <>
+                  <View style={styles.shopImageButtonsRow}>
+                    <TouchableOpacity
+                      style={styles.shopImageButton}
+                      onPress={handleTakeShopPhoto}
+                      testID="shop-image-take-photo"
+                    >
+                      <Ionicons name="camera" size={16} color="#FF8A00" />
+                      <Text style={styles.shopImageButtonText}>Take Photo</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.shopImageButton}
+                      onPress={handlePickShopImages}
+                      testID="shop-image-pick"
+                    >
+                      <Ionicons name="images" size={16} color="#FF8A00" />
+                      <Text style={styles.shopImageButtonText}>Choose Images</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Pending (newly picked, not yet uploaded) */}
+                  {pendingShopImages.length > 0 && (
+                    <>
+                      <Text style={styles.pendingHint}>{pendingShopImages.length} image(s) ready to upload</Text>
+                      <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        style={styles.shopImagesScroll}
+                        contentContainerStyle={styles.shopImagesScrollContent}
+                      >
+                        {pendingShopImages.map((uri, idx) => (
+                          <View key={`pending-${idx}`} style={styles.shopThumbWrap}>
+                            <Image source={{ uri }} style={[styles.shopThumb, styles.pendingThumb]} resizeMode="cover" />
+                            <TouchableOpacity
+                              style={styles.shopThumbRemove}
+                              onPress={() => handleRemovePendingShopImage(idx)}
+                              testID={`shop-image-pending-remove-${idx}`}
+                            >
+                              <Ionicons name="close-circle" size={22} color="#FF3B30" />
+                            </TouchableOpacity>
+                          </View>
+                        ))}
+                      </ScrollView>
+                      <TouchableOpacity
+                        style={[styles.uploadShopBtn, isUploadingShopImages && styles.uploadShopBtnDisabled]}
+                        onPress={handleUploadShopImages}
+                        disabled={isUploadingShopImages}
+                        testID="shop-image-upload"
+                      >
+                        {isUploadingShopImages
+                          ? <ActivityIndicator color="#FFF" />
+                          : <Text style={styles.uploadShopBtnText}>Upload Shop Images</Text>}
+                      </TouchableOpacity>
+                    </>
+                  )}
+                </>
+              )}
+
+              {!editing && shopImages.length === 0 && (
+                <Text style={styles.value}>No shop images added</Text>
+              )}
             </View>
 
             {/* SHOP LOCATION */}
@@ -1068,6 +1337,90 @@ const styles = StyleSheet.create({
   },
   addProductBtnDisabled: {
     backgroundColor: '#E0E0E0',
+  },
+  // Shop Images (Merchant)
+  shopImagesScroll: {
+    marginTop: 4,
+    marginBottom: 12,
+  },
+  shopImagesScrollContent: {
+    paddingRight: 12,
+    paddingVertical: 8,
+  },
+  shopThumbWrap: {
+    position: 'relative',
+    marginRight: 12,
+  },
+  shopThumb: {
+    width: 84,
+    height: 84,
+    borderRadius: 8,
+    backgroundColor: '#EEE',
+  },
+  pendingThumb: {
+    opacity: 0.85,
+    borderWidth: 2,
+    borderColor: '#FF8A00',
+  },
+  shopThumbRemove: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOpacity: 0.25,
+    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 1 },
+    zIndex: 10,
+  },
+  shopImageButtonsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 4,
+  },
+  shopImageButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFF3E0',
+    borderRadius: 8,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: '#FFD9B3',
+    gap: 6,
+  },
+  shopImageButtonText: {
+    color: '#FF8A00',
+    fontWeight: '600',
+    fontSize: 13,
+  },
+  pendingHint: {
+    marginTop: 10,
+    fontSize: 12,
+    color: '#FF8A00',
+    fontWeight: '600',
+  },
+  uploadShopBtn: {
+    backgroundColor: '#FF8A00',
+    padding: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  uploadShopBtnDisabled: {
+    backgroundColor: '#F4B183',
+  },
+  uploadShopBtnText: {
+    color: '#FFF',
+    fontWeight: '700',
+    fontSize: 14,
   },
   locationDisplay: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   locationText: { fontSize: 15, fontWeight: '600', color: '#1A1A1A' },
