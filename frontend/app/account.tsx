@@ -1,7 +1,8 @@
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, Alert, Platform, ScrollView, ActivityIndicator, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState, useEffect } from 'react';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
+import { useCallback } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -74,6 +75,33 @@ export default function Account() {
     loadProfileData();
     loadCategories();
   }, []);
+
+  // When returning from /location-picker, pick up the freshly chosen shop coords
+  // (location-picker writes them to AsyncStorage key `location_picker_account`).
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      (async () => {
+        try {
+          const raw = await AsyncStorage.getItem('location_picker_account');
+          if (!raw || !active) return;
+          const parsed = JSON.parse(raw);
+          if (
+            typeof parsed?.latitude === 'number' &&
+            typeof parsed?.longitude === 'number'
+          ) {
+            setShopLat(parsed.latitude);
+            setShopLng(parsed.longitude);
+          }
+        } catch (e) {
+          console.warn('[Account] reading location_picker_account failed:', e);
+        }
+      })();
+      return () => {
+        active = false;
+      };
+    }, [])
+  );
 
   const loadCategories = async () => {
     try {
@@ -273,6 +301,9 @@ export default function Account() {
         // Update AsyncStorage
         await AsyncStorage.setItem('merchant_shop_name', name);
         await AsyncStorage.setItem('merchant_contact_name', contactName);
+        // Picker write-through is consumed — clear so a stale pick doesn't
+        // re-apply on the next visit
+        await AsyncStorage.removeItem('location_picker_account');
 
         const searchResp = await AsyncStorage.getItem('user_search_response');
         if (searchResp) {
