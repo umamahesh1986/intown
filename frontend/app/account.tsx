@@ -262,7 +262,7 @@ export default function Account() {
 
         // PUT to merchant update API
         try {
-          await axios.put(`${INTOWN_API_BASE}/merchant/${merchantId}`, payload, {
+          await axios.patch(`${INTOWN_API_BASE}/merchant/${merchantId}`, payload, {
             headers: { 'Content-Type': 'application/json' },
             timeout: 15000,
           });
