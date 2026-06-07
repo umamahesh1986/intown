@@ -266,9 +266,31 @@ export default function Account() {
         await AsyncStorage.setItem('user_data', JSON.stringify(ud));
       }
 
-      if (isMerchant && merchantId) {
-        // Build update payload
-        const payload: any = {
+      // Resolve merchantId from state OR fallback to AsyncStorage so the PATCH
+      // always fires even when state hasn't been hydrated (dual-user case).
+      const resolvedMerchantId =
+        (merchantId && String(merchantId).trim()) ||
+        ((await AsyncStorage.getItem('merchant_id')) || '').trim();
+
+      if (isMerchant && resolvedMerchantId) {
+        // Start from the cached merchant object (sent back as the WHOLE object)
+        // and overlay all edited fields on top.
+        const searchResp = await AsyncStorage.getItem('user_search_response');
+        let baseMerchant: any = {};
+        if (searchResp) {
+          try {
+            const parsed = JSON.parse(searchResp);
+            if (parsed?.merchant && typeof parsed.merchant === 'object') {
+              baseMerchant = { ...parsed.merchant };
+            }
+          } catch {
+            // ignore parse issues
+          }
+        }
+
+        const edited: any = {
+          shopName: name,
+          businessName: name,
           contactName,
           email,
           businessCategory,
@@ -283,19 +305,39 @@ export default function Account() {
           offer,
           productNames: customProductsList.filter(p => p.trim()),
         };
-        if (shopLat && shopLng) {
-          payload.latitude = shopLat;
-          payload.longitude = shopLng;
+        if (shopLat != null && shopLng != null) {
+          edited.latitude = shopLat;
+          edited.longitude = shopLng;
         }
 
-        // PUT to merchant update API
+        const payload = { ...baseMerchant, ...edited };
+
+        // PATCH merchant update API — surface failures in the Alert rather
+        // than swallowing them silently.
         try {
-          await axios.patch(`${INTOWN_API_BASE}/merchant/${merchantId}`, payload, {
-            headers: { 'Content-Type': 'application/json' },
-            timeout: 15000,
-          });
+          console.log('[Account] PATCH /merchant payload', payload);
+          const patchRes = await axios.patch(
+            `${INTOWN_API_BASE}/merchant/${resolvedMerchantId}`,
+            payload,
+            {
+              headers: { 'Content-Type': 'application/json' },
+              timeout: 15000,
+            }
+          );
+          console.log('[Account] PATCH response', patchRes?.status, patchRes?.data);
         } catch (e: any) {
-          console.warn('[Account] Merchant update API error:', e.message);
+          console.warn(
+            '[Account] Merchant update API error:',
+            e?.response?.status,
+            e?.response?.data || e?.message
+          );
+          Alert.alert(
+            'Update Failed',
+            e?.response?.data?.message ||
+              e?.message ||
+              'Could not update merchant profile. Please try again.'
+          );
+          return;
         }
 
         // Update AsyncStorage
@@ -305,21 +347,17 @@ export default function Account() {
         // re-apply on the next visit
         await AsyncStorage.removeItem('location_picker_account');
 
-        const searchResp = await AsyncStorage.getItem('user_search_response');
+        // Mirror the merged merchant object into the cached search response
         if (searchResp) {
           try {
             const data = JSON.parse(searchResp);
-            if (data.merchant) {
-              Object.assign(data.merchant, {
-                contactName, email, businessCategory, description,
-                fromYears, branchesOfBusiness: branches,
-                openAt, closeAt, breakStartAt, breakEndAt, weekOff, offer,
-                latitude: shopLat, longitude: shopLng,
-              });
-              await AsyncStorage.setItem('user_search_response', JSON.stringify(data));
-            }
+            data.merchant = payload;
+            await AsyncStorage.setItem('user_search_response', JSON.stringify(data));
           } catch {}
         }
+      } else if (isMerchant && !resolvedMerchantId) {
+        Alert.alert('Update Failed', 'Could not resolve merchant id. Please re-login and try again.');
+        return;
       } else {
         await AsyncStorage.setItem('customer_name', name);
       }
