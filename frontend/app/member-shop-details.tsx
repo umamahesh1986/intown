@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Modal, Pressable, Dimensions, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Modal, Dimensions, ActivityIndicator } from 'react-native';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -263,10 +263,6 @@ export default function MemberShopDetails() {
     return badges[key] ?? { bg: '#FFF3E0', color: '#FF8A00', label: category || 'General' };
   };
 
-  const handleUserTap = () => {
-    if (isUserFlow) setShowRegistrationModal(true);
-  };
-
   // Loading state
   if (isLoading) {
     return (
@@ -467,13 +463,7 @@ export default function MemberShopDetails() {
         <View style={{ width: 40 }} />
       </View>
 
-      {isUserFlow ? (
-        <Pressable style={styles.userFlowPressable} onPress={handleUserTap}>
-          <ShopContent />
-        </Pressable>
-      ) : (
-        <ShopContent />
-      )}
+      <ShopContent />
 
       <View style={styles.bottomButtons}>
         <TouchableOpacity
