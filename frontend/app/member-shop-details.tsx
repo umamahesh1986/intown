@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Modal, Dimensions, ActivityIndicator, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Modal, Dimensions, ActivityIndicator } from 'react-native';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -488,21 +488,19 @@ export default function MemberShopDetails() {
           <Ionicons name="navigate" size={20} color="#FFF" />
           <Text style={styles.navigateBtnText}>Navigate</Text>
         </TouchableOpacity>
-        {Platform.OS !== 'ios' && (
-          <TouchableOpacity
-            style={styles.payBtn}
-            onPress={() => {
-              if (isUserFlow) {
-                setShowRegistrationModal(true);
-                return;
-              }
-              setShowPayment(true);
-            }}
-          >
-            <Ionicons name="card" size={20} color="#FFF" />
-            <Text style={styles.payBtnText}>Payment Process</Text>
-          </TouchableOpacity>
-        )}
+        <TouchableOpacity
+          style={styles.payBtn}
+          onPress={() => {
+            if (isUserFlow) {
+              setShowRegistrationModal(true);
+              return;
+            }
+            setShowPayment(true);
+          }}
+        >
+          <Ionicons name="card" size={20} color="#FFF" />
+          <Text style={styles.payBtnText}>Payment Process</Text>
+        </TouchableOpacity>
       </View>
 
       <PaymentModal

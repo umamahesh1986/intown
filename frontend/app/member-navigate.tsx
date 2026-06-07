@@ -410,12 +410,10 @@ export default function MemberNavigate() {
         ) : null}
       </View>
 
-      {Platform.OS !== 'ios' && (
-        <TouchableOpacity style={styles.payButton} onPress={() => setShowPayment(true)}>
-          <Ionicons name="card" size={24} color="#FFF" />
-          <Text style={styles.payButtonText}>Pay at Shop</Text>
-        </TouchableOpacity>
-      )}
+      <TouchableOpacity style={styles.payButton} onPress={() => setShowPayment(true)}>
+        <Ionicons name="card" size={24} color="#FFF" />
+        <Text style={styles.payButtonText}>Pay at Shop</Text>
+      </TouchableOpacity>
 
       <PaymentModal
         visible={showPayment}

@@ -1109,19 +1109,15 @@ export default function Account() {
         {/* QUICK LINKS */}
         {!isMerchant && (
         <View style={styles.menuCard}>
-          {Platform.OS !== 'ios' && (
-            <>
-              <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/payment-history')}>
-                <View style={styles.menuIconWrap}><Ionicons name="receipt-outline" size={20} color="#FF8A00" /></View>
-                <View style={styles.menuTextWrap}>
-                  <Text style={styles.menuTitle}>Payment History</Text>
-                  <Text style={styles.menuSubtitle}>View past transactions and savings</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={18} color="#CCC" />
-              </TouchableOpacity>
-              <View style={styles.menuDivider} />
-            </>
-          )}
+          <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/payment-history')}>
+            <View style={styles.menuIconWrap}><Ionicons name="receipt-outline" size={20} color="#FF8A00" /></View>
+            <View style={styles.menuTextWrap}>
+              <Text style={styles.menuTitle}>Payment History</Text>
+              <Text style={styles.menuSubtitle}>View past transactions and savings</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color="#CCC" />
+          </TouchableOpacity>
+          <View style={styles.menuDivider} />
           <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/plans')}>
             <View style={[styles.menuIconWrap, { backgroundColor: '#E8F5E9' }]}><Ionicons name="diamond-outline" size={20} color="#4CAF50" /></View>
             <View style={styles.menuTextWrap}>
