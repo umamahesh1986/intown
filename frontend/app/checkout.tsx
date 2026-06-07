@@ -94,6 +94,22 @@ export default function Checkout() {
   }, []);
 
   const handleCheckout = async () => {
+    // iOS — Razorpay is not supported. Mark plan as active locally and exit
+    // without any payment.
+    if (Platform.OS === 'ios') {
+      try {
+        await AsyncStorage.setItem('ios_active_plan', JSON.stringify({
+          planId: selectedPlan.id,
+          planName: selectedPlan.name,
+          activatedAt: new Date().toISOString(),
+        }));
+      } catch {}
+      Alert.alert('Activated', `${selectedPlan.name} is active on your account.`, [
+        { text: 'OK', onPress: () => router.replace('/user-dashboard') },
+      ]);
+      return;
+    }
+
     if (!customerId) {
       Alert.alert('Error', 'Customer ID not found. Please login again.');
       return;
@@ -233,9 +249,15 @@ export default function Checkout() {
           </View>
           <Text style={styles.selectedPlanName}>{selectedPlan.name}</Text>
           <View style={styles.priceRow}>
-            <Text style={styles.currency}>&#8377;</Text>
-            <Text style={styles.price}>{selectedPlan.price}</Text>
-            <Text style={styles.duration}>/ {selectedPlan.duration}</Text>
+            {Platform.OS === 'ios' ? (
+              <Text style={styles.price}>Free</Text>
+            ) : (
+              <>
+                <Text style={styles.currency}>&#8377;</Text>
+                <Text style={styles.price}>{selectedPlan.price}</Text>
+                <Text style={styles.duration}>/ {selectedPlan.duration}</Text>
+              </>
+            )}
           </View>
           <View style={styles.savingsBadge}>
             <Ionicons name="trending-up" size={16} color="#4CAF50" />
@@ -276,6 +298,22 @@ export default function Checkout() {
 
         {/* Order Summary */}
         {(() => {
+          if (Platform.OS === 'ios') {
+            return (
+              <View style={styles.summaryCard}>
+                <Text style={styles.summaryTitle}>Order Summary</Text>
+                <View style={styles.summaryRow}>
+                  <Text style={styles.summaryLabel}>{selectedPlan.name} Plan</Text>
+                  <Text style={styles.summaryValue}>Free</Text>
+                </View>
+                <View style={styles.divider} />
+                <View style={styles.summaryRow}>
+                  <Text style={styles.totalLabel}>Total</Text>
+                  <Text style={styles.totalValue}>Free</Text>
+                </View>
+              </View>
+            );
+          }
           const gstAmount = Math.round(selectedPlan.price * 0.18);
           const totalPayable = selectedPlan.price + gstAmount;
           return (
@@ -306,7 +344,11 @@ export default function Checkout() {
       {/* Checkout Button */}
       <View style={styles.bottomBar}>
         <View style={styles.bottomPriceInfo}>
-          <Text style={styles.bottomTotal}>&#8377;{selectedPlan.price + Math.round(selectedPlan.price * 0.18)}</Text>
+          <Text style={styles.bottomTotal}>
+            {Platform.OS === 'ios'
+              ? 'Free'
+              : `\u20B9${selectedPlan.price + Math.round(selectedPlan.price * 0.18)}`}
+          </Text>
           <Text style={styles.bottomPlanName}>{selectedPlan.name} Plan</Text>
         </View>
         <TouchableOpacity
@@ -317,7 +359,9 @@ export default function Checkout() {
           {isProcessing ? (
             <ActivityIndicator size="small" color="#FFF" />
           ) : (
-            <Text style={styles.checkoutButtonText}>Pay Now</Text>
+            <Text style={styles.checkoutButtonText}>
+              {Platform.OS === 'ios' ? 'Activate' : 'Pay Now'}
+            </Text>
           )}
         </TouchableOpacity>
       </View>

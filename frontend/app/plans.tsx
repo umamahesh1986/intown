@@ -71,21 +71,40 @@ export default function Plans() {
   const fetchPlans = async () => {
     try {
       const plansData = await getPlans();
+      let resolved: Plan[];
       if (plansData && Array.isArray(plansData) && plansData.length > 0) {
-        setPlans(plansData);
+        resolved = plansData;
       } else {
         // Fallback plans if API doesn't return data or returns empty
-        setPlans(getDefaultPlans());
+        resolved = getDefaultPlans();
       }
+      // iOS: Razorpay is not supported. Force all plans to Free + CTA "Activate"
+      // so users can register/login/use the app without any payment.
+      if (isIOS) {
+        resolved = resolved.map((p) => ({
+          ...p,
+          price: 0,
+          duration: 'Free',
+          cta: 'Activate',
+        }));
+      }
+      setPlans(resolved);
     } catch (error) {
       console.error('Error fetching plans:', error);
       // Set fallback plans on error
-      setPlans(getDefaultPlans());
+      const fallback = getDefaultPlans();
+      setPlans(
+        isIOS
+          ? fallback.map((p) => ({ ...p, price: 0, duration: 'Free', cta: 'Activate' }))
+          : fallback
+      );
     } finally {
       setIsLoading(false);
       setRefreshing(false);
     }
   };
+
+  const isIOS = Platform.OS === 'ios';
 
   const getDefaultPlans = (): Plan[] => [
     // {
@@ -170,6 +189,21 @@ export default function Plans() {
   };
 
   const handleSubscribe = (plan: Plan) => {
+    // iOS — no Razorpay/checkout. Mark the plan as active locally and go back
+    // to the dashboard so the user can use the app immediately.
+    if (isIOS) {
+      (async () => {
+        try {
+          await AsyncStorage.setItem('ios_active_plan', JSON.stringify({
+            planId: plan.id,
+            planName: plan.name,
+            activatedAt: new Date().toISOString(),
+          }));
+        } catch {}
+        router.back();
+      })();
+      return;
+    }
     router.push({
       pathname: '/checkout',
       params: {
