@@ -78,6 +78,28 @@
         <data android:scheme="exp+intownlocal"/>
       </intent-filter>
     </activity>
+    <!--
+      Razorpay SDK contributes a DeeplinkActivity with `https` intent-filters
+      that bind to the app's package name and to `pg-router.dev.razorpay.in`.
+      These cannot pass Digital Asset Links verification (we don't own those
+      domains), which surfaces as "Domain ownership not verified" warnings on
+      the Google Play Console > Deep Links page.
+
+      We override the activity to keep ONLY the working `razorpay://` custom
+      scheme (used by Razorpay for UPI app return-callbacks) and strip the
+      broken `https` intent-filters.
+    -->
+    <activity android:name="com.razorpay.DeeplinkActivity"
+      android:exported="true"
+      android:theme="@android:style/Theme.Translucent.NoTitleBar"
+      tools:node="replace">
+      <intent-filter>
+        <action android:name="android.intent.action.VIEW"/>
+        <category android:name="android.intent.category.DEFAULT"/>
+        <category android:name="android.intent.category.BROWSABLE"/>
+        <data android:scheme="razorpay"/>
+      </intent-filter>
+    </activity>
     <uses-library android:name="org.apache.http.legacy" android:required="false"/>
   </application>
 </manifest>
