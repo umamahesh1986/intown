@@ -214,10 +214,12 @@ export default function OTPScreen() {
       const roleInfo = determineUserRole(searchResponse);
 
       const lowerUserType = (roleInfo.userType ?? '').toLowerCase();
-      const mappedUserType: 'merchant' | 'member' | 'user' =
-        lowerUserType.includes('merchant')
+      const mappedUserType: 'merchant' | 'member' | 'user' | 'dual' =
+        roleInfo.role === 'dual'
+          ? 'dual'
+          : lowerUserType.includes('merchant')
           ? 'merchant'
-          : lowerUserType.includes('customer') || lowerUserType === 'dual'
+          : lowerUserType.includes('customer')
           ? 'member'
           : 'user';
       const resolvedId =

@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   TouchableWithoutFeedback,
+  Pressable,
   Animated,
   Dimensions,
   RefreshControl,
@@ -317,17 +318,21 @@ export default function DualDashboard() {
 
   const startNearbyAutoScroll = () => {
     if (nearbyAutoScrollRef.current) clearInterval(nearbyAutoScrollRef.current);
+    // Advance one card every 2.5s with a smooth native animation. The previous
+    // implementation ran at 30ms with a 1px step which saturated the JS thread
+    // and caused iOS to terminate child press gestures (View All / Categories /
+    // Nearby Shops were unclickable).
     nearbyAutoScrollRef.current = setInterval(() => {
       if (!nearbyScrollRef.current || nearbyShops.length === 0) return;
-      nearbyScrollPos.current += 1;
       const totalWidth = nearbyShops.length * MERCHANT_CARD_WIDTH;
+      nearbyScrollPos.current += MERCHANT_CARD_WIDTH;
       if (nearbyScrollPos.current >= totalWidth) {
         nearbyScrollPos.current = 0;
         nearbyScrollRef.current.scrollTo({ x: 0, animated: false });
       } else {
-        nearbyScrollRef.current.scrollTo({ x: nearbyScrollPos.current, animated: false });
+        nearbyScrollRef.current.scrollTo({ x: nearbyScrollPos.current, animated: true });
       }
-    }, 30);
+    }, 2500);
   };
 
   const stopNearbyAutoScroll = () => {
@@ -784,11 +789,12 @@ export default function DualDashboard() {
   };
 
   const closeDropdown = () => {
+    setShowDropdown(false);
     Animated.timing(dropdownAnim, {
       toValue: 0,
       duration: 160,
       useNativeDriver: true,
-    }).start(() => setShowDropdown(false));
+    }).start();
   };
 
   const toggleDropdown = () => {
@@ -870,18 +876,18 @@ export default function DualDashboard() {
 
           <View style={styles.locationTextContainer}>
             <Text style={styles.welcomeText}>YOUR LOCATION</Text>
-            <Text style={styles.locationText} numberOfLines={1}>
+            <Text style={styles.locationText} numberOfLines={1} ellipsizeMode="tail">
               {getLocationDisplayText()}
             </Text>
             {location?.city && !isPlusCode(location.city) && location.city !== getLocationDisplayText() && (
-              <Text style={styles.locationCityText} numberOfLines={1}>
+              <Text style={styles.locationCityText} numberOfLines={1} ellipsizeMode="tail">
                 {location.city}
               </Text>
             )}
           </View>
         </TouchableOpacity>
 
-        <View style={{ flexDirection: "row", alignItems: "center" }}>
+        <View style={styles.headerRightIcons}>
 
           {/* Notification */}
           <TouchableOpacity style={styles.notificationCircle}>
@@ -906,86 +912,90 @@ export default function DualDashboard() {
 
       </View>
 
-      {/* Dropdown Panel */}
+      {/* Dropdown Panel — backdrop and panel rendered as two separate conditional blocks
+          (mirrors member-dashboard) so the backdrop only mounts while showDropdown is true
+          and doesn't outlive the close animation, which was hijacking taps on header / View All /
+          categories / nearby shops / profile. */}
       {showDropdown && (
-        <>
-          <TouchableWithoutFeedback onPress={closeDropdown}>
-            <View style={styles.backdrop} />
-          </TouchableWithoutFeedback>
-          <Animated.View
-            style={[
-              styles.userPanel,
-              {
-                opacity: dropdownAnim,
-                transform: [
-                  {
-                    translateY: dropdownAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [-8, 0],
-                    }),
-                  },
-                ],
-              },
-            ]}
-          >
-            <View style={styles.userPanelHeader}>
-              <View style={styles.panelAvatarPlaceholder}>
-                {profileImage ? (
-                  <Image source={{ uri: profileImage }} style={{ width: 40, height: 40, borderRadius: 20 }} />
-                ) : (
-                  <Ionicons name="person" size={22} color="#fff" />
-                )}
-              </View>
-              <View style={{ marginLeft: 10 }}>
-                <Text style={styles.userPanelName}>{user?.name ?? 'User'}</Text>
-                <Text style={styles.userPanelPhone}>
-                  {(user as any)?.phone ?? (user as any)?.email ?? ''}
-                </Text>
-                <Text style={styles.userPanelTag}>Dual Account</Text>
-              </View>
-            </View>
+        <TouchableWithoutFeedback onPress={closeDropdown}>
+          <View style={styles.backdrop} />
+        </TouchableWithoutFeedback>
+      )}
 
-            <TouchableOpacity
-              style={styles.userPanelItem}
-              onPress={() => {
-                closeDropdown();
-                router.push({
-                  pathname: '/account' as any,
-                  params: { from: activeTab === 'merchant' ? 'dual-merchant' : 'dual-customer' },
-                });
-              }}
-            >
-              <Ionicons name="person-outline" size={22} color="#FF8A00" />
-              <Text style={styles.userPanelText}>My Account</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.userPanelItem}
-              onPress={() => {
-                closeDropdown();
-                router.push('/member-card');
-              }}
-            >
-              <Ionicons name="card-outline" size={22} color="#FF8A00" />
-              <Text style={styles.userPanelText}>Member Card</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.userPanelItem}
-              onPress={() => {
-                closeDropdown();
-                setActiveTab('merchant');
-              }}
-            >
-              <Ionicons name="storefront-outline" size={22} color="#FF8A00" />
-              <Text style={styles.userPanelText}>Merchant</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.userPanelItem} onPress={handleLogout}>
-              <Ionicons name="log-out-outline" size={22} color="#FF0000" />
-              <Text style={[styles.userPanelText, { color: '#FF0000' }]}>
-                Logout
+      {showDropdown && (
+        <Animated.View
+          style={[
+            styles.userPanel,
+            {
+              opacity: dropdownAnim,
+              transform: [
+                {
+                  translateY: dropdownAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [-8, 0],
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
+          <View style={styles.userPanelHeader}>
+            <View style={styles.panelAvatarPlaceholder}>
+              {profileImage ? (
+                <Image source={{ uri: profileImage }} style={{ width: 40, height: 40, borderRadius: 20 }} />
+              ) : (
+                <Ionicons name="person" size={22} color="#fff" />
+              )}
+            </View>
+            <View style={{ marginLeft: 10 }}>
+              <Text style={styles.userPanelName}>{user?.name ?? 'User'}</Text>
+              <Text style={styles.userPanelPhone}>
+                {(user as any)?.phone ?? (user as any)?.email ?? ''}
               </Text>
-            </TouchableOpacity>
-          </Animated.View>
-        </>
+              <Text style={styles.userPanelTag}>Dual Account</Text>
+            </View>
+          </View>
+
+          <TouchableOpacity
+            style={styles.userPanelItem}
+            onPress={() => {
+              closeDropdown();
+              router.push({
+                pathname: '/account' as any,
+                params: { from: activeTab === 'merchant' ? 'dual-merchant' : 'dual-customer' },
+              });
+            }}
+          >
+            <Ionicons name="person-outline" size={22} color="#FF8A00" />
+            <Text style={styles.userPanelText}>My Account</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.userPanelItem}
+            onPress={() => {
+              closeDropdown();
+              router.push('/member-card');
+            }}
+          >
+            <Ionicons name="card-outline" size={22} color="#FF8A00" />
+            <Text style={styles.userPanelText}>Member Card</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.userPanelItem}
+            onPress={() => {
+              closeDropdown();
+              setActiveTab('merchant');
+            }}
+          >
+            <Ionicons name="storefront-outline" size={22} color="#FF8A00" />
+            <Text style={styles.userPanelText}>Merchant</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.userPanelItem} onPress={handleLogout}>
+            <Ionicons name="log-out-outline" size={22} color="#FF0000" />
+            <Text style={[styles.userPanelText, { color: '#FF0000' }]}>
+              Logout
+            </Text>
+          </TouchableOpacity>
+        </Animated.View>
       )}
 
       {/* Search Section (Customer Only) */}
@@ -1083,9 +1093,7 @@ export default function DualDashboard() {
         style={styles.content}
         contentContainerStyle={{ paddingBottom: 24 }}
         showsVerticalScrollIndicator={true}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
+        keyboardShouldPersistTaps="handled"
       >
         {/* Role Info Card */}
         {/* <View style={styles.roleCard}>
@@ -1249,7 +1257,11 @@ export default function DualDashboard() {
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Recent Transactions</Text>
             {/* <Text style={styles.normalText}>(Will be calculated on customervisits):</Text> */}
-            <TouchableOpacity onPress={() => setShowAllTransactions(true)}>
+            <TouchableOpacity
+              onPress={() => setShowAllTransactions(true)}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              testID="dual-dashboard-view-all-btn"
+            >
               <Text style={styles.viewAllText}>View All</Text>
             </TouchableOpacity>
           </View>
@@ -1702,10 +1714,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
+    minWidth: 0,
+    paddingRight: 8,
   },
   locationTextContainer: {
-    marginLeft: 8,
     flex: 1,
+    minWidth: 0,
+  },
+  headerRightIcons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexShrink: 0,
   },
   locationRow: {
     flexDirection: 'row',
@@ -1715,7 +1734,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#0F172A',
-    flex: 1,
   },
   locationCityText: {
     fontSize: 11,

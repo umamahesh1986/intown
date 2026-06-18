@@ -2,11 +2,11 @@ import { View, Text, StyleSheet, Image, Platform } from 'react-native';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../store/authStore';
-import { searchUserByPhone } from '../utils/api';
+import { searchUserByPhone, determineUserRole } from '../utils/api';
 
 export default function SplashScreen() {
   const router = useRouter();
-  const { isAuthenticated, user, loadAuth, logout } = useAuthStore();
+  const { isAuthenticated, user, loadAuth, logout, setUserType } = useAuthStore();
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -44,18 +44,35 @@ export default function SplashScreen() {
               return;
             }
             console.log('=== USER VERIFIED ===');
+
+            // Re-derive role from the fresh response so a cached userType that
+            // pre-dates the user gaining merchant access (or vice versa) self-corrects.
+            const freshRole = determineUserRole(response);
+            const freshUserType: 'merchant' | 'member' | 'user' | 'dual' =
+              freshRole.role === 'dual'
+                ? 'dual'
+                : freshRole.role === 'merchant'
+                ? 'merchant'
+                : freshRole.role === 'customer'
+                ? 'member'
+                : 'user';
+            if (user?.userType !== freshUserType) {
+              await setUserType(freshUserType);
+            }
+            router.replace(freshRole.dashboard as any);
+            return;
           } catch (verifyErr) {
-            // Network error — allow cached login (don't block offline users)
+            // Network error — fall through to cached-userType routing below.
             console.log('=== DB verify failed (network?), using cached auth ===', verifyErr);
           }
 
           const userType = user?.userType?.toLowerCase();
-          if (userType === 'member' || userType === 'in_member' || userType === 'customer') {
-            router.replace('/member-dashboard');
+          if (userType === 'dual' || userType === 'in_dual') {
+            router.replace('/dual-dashboard');
           } else if (userType === 'merchant' || userType === 'in_merchant') {
             router.replace('/merchant-dashboard');
-          } else if (userType === 'dual' || userType === 'in_dual') {
-            router.replace('/dual-dashboard');
+          } else if (userType === 'member' || userType === 'in_member' || userType === 'customer') {
+            router.replace('/member-dashboard');
           } else {
             router.replace('/user-dashboard');
           }
