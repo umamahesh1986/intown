@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../store/authStore';
 import { searchUserByPhone, determineUserRole } from '../utils/api';
+import { persistProfileImagesFromSearchResponse } from '../utils/profileImage';
 
 export default function SplashScreen() {
   const router = useRouter();
@@ -59,6 +60,11 @@ export default function SplashScreen() {
             if (user?.userType !== freshUserType) {
               await setUserType(freshUserType);
             }
+
+            // Refresh role-keyed profile images from the latest response so
+            // newly uploaded photos appear without re-login.
+            await persistProfileImagesFromSearchResponse(response);
+
             router.replace(freshRole.dashboard as any);
             return;
           } catch (verifyErr) {

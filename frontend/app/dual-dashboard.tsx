@@ -25,6 +25,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuthStore } from '../store/authStore';
 import { useLocationStore } from '../store/locationStore';
+import { getProfileImage } from '../utils/profileImage';
 import { useFocusEffect } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import Footer from '../components/Footer';
@@ -356,6 +357,18 @@ export default function DualDashboard() {
     categoryColumns.push(categories.slice(i, i + 2));
   }
 
+  // Swap the avatar whenever the user toggles the Customer/Merchant tab so the
+  // header + dropdown always reflect the role currently being viewed.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const role = activeTab === 'merchant' ? 'merchant' : 'customer';
+      const url = await getProfileImage(role);
+      if (!cancelled) setProfileImage(url);
+    })();
+    return () => { cancelled = true; };
+  }, [activeTab]);
+
   /* ===============================
      LOAD USER DATA
   ================================ */
@@ -372,7 +385,8 @@ export default function DualDashboard() {
       let isActive = true;
       const refreshProfileImage = async () => {
         try {
-          const storedProfileImage = await AsyncStorage.getItem('user_profile_image');
+          const role = activeTab === 'merchant' ? 'merchant' : 'customer';
+          const storedProfileImage = await getProfileImage(role);
           if (storedProfileImage && isActive) {
             setProfileImage(storedProfileImage);
           }
@@ -646,7 +660,8 @@ export default function DualDashboard() {
       if (storedShopName) {
         setMerchantShopName(storedShopName);
       }
-      const storedProfileImage = await AsyncStorage.getItem('user_profile_image');
+      const initialRole = activeTab === 'merchant' ? 'merchant' : 'customer';
+      const storedProfileImage = await getProfileImage(initialRole);
       if (storedProfileImage) {
         setProfileImage(storedProfileImage);
       }

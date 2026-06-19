@@ -20,6 +20,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { registerMerchant } from '../utils/api';
+import { setProfileImage } from '../utils/profileImage';
 import { useAuthStore } from '../store/authStore';
 import * as Location from 'expo-location';
 import { useFocusEffect } from '@react-navigation/native';
@@ -153,7 +154,7 @@ export default function RegisterMerchant() {
     const data = await res.json();
     const images = Array.isArray(data?.s3ImageUrl) ? data.s3ImageUrl : [];
     if (!images.length) return;
-    await AsyncStorage.setItem('merchant_profile_image', images[0]);
+    await setProfileImage('merchant', images[0]);
     await AsyncStorage.setItem('merchant_shop_images', JSON.stringify(images));
   };
   const addImages = (newImages: string[]) => {

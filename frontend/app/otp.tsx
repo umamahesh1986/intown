@@ -18,6 +18,7 @@ import { Ionicons } from "@expo/vector-icons";
 
 import { useAuthStore } from "../store/authStore";
 import { searchUserByPhone, determineUserRole, sendOtpApi, verifyOtpApi } from "../utils/api";
+import { persistProfileImagesFromSearchResponse } from "../utils/profileImage";
 
 // SMS auto-read (Android only)
 let OtpVerify: any = null;
@@ -110,8 +111,10 @@ export default function OTPScreen() {
 
   useEffect(() => {
     isMountedRef.current = true;
-    // Show success popup on mount since OTP was sent from login screen
-    showOtpSentPopup("OTP sent successfully");
+    // No popup on mount — the inline "OTP sent successfully" status indicator
+    // (rendered below the phone number while otpSent is true) already conveys
+    // this. The popup is reserved for the Resend OTP action so users get fresh
+    // feedback there.
     return () => {
       isMountedRef.current = false;
       if (popupTimerRef.current) clearTimeout(popupTimerRef.current);
@@ -210,6 +213,10 @@ export default function OTPScreen() {
       if (searchResponse?.merchant?.shopName) {
         await AsyncStorage.setItem("merchant_shop_name", String(searchResponse.merchant.shopName));
       }
+
+      // Save customer + merchant primary images separately so dashboards can
+      // pick the right one based on which role they represent.
+      await persistProfileImagesFromSearchResponse(searchResponse);
 
       const roleInfo = determineUserRole(searchResponse);
 

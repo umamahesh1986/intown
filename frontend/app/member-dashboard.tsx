@@ -31,6 +31,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAuthStore } from '../store/authStore';
 import { useLocationStore } from '../store/locationStore';
+import { getProfileImage } from '../utils/profileImage';
 import {
   getCategories,
   getAllNearbyShops,
@@ -424,7 +425,7 @@ export default function MemberDashboard() {
           await AsyncStorage.setItem('customer_name', name);
         }
 
-        const storedProfileImage = await AsyncStorage.getItem('user_profile_image');
+        const storedProfileImage = await getProfileImage('customer');
         if (storedProfileImage) {
           setProfileImage(storedProfileImage);
         }
@@ -450,7 +451,7 @@ export default function MemberDashboard() {
       let isActive = true;
       const refreshProfileImage = async () => {
         try {
-          const storedProfileImage = await AsyncStorage.getItem('user_profile_image');
+          const storedProfileImage = await getProfileImage('customer');
           if (storedProfileImage && isActive) {
             setProfileImage(storedProfileImage);
           }
