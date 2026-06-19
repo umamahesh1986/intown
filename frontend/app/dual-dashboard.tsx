@@ -689,11 +689,21 @@ export default function DualDashboard() {
         const data = await res.json();
         const apiTransactions: CustomerTransaction[] = data?.transactions ?? [];
         setCustomerTransactions(
-          apiTransactions.map((item) => ({
+          apiTransactions.map((item: any) => ({
             id: String(item.transactionId),
             date: new Date(item.transactionDate).toLocaleDateString(),
             amount: item.payablePrice ?? item.finalPaidAmount ?? item.totalPrice ?? item.totalBillAmount ?? 0,
-            description: item.merchantName,
+            // Backend may send the merchant under businessName, merchantName, or
+            // a nested merchant object. member-dashboard uses the same fallback
+            // chain — keep them in sync.
+            description:
+              item.businessName ??
+              item.merchantName ??
+              item.merchantBusinessName ??
+              item.merchant?.businessName ??
+              item.merchant?.contactName ??
+              item.shopName ??
+              'Unknown',
             type: 'debit',
             status: 'completed',
           }))
@@ -738,11 +748,16 @@ export default function DualDashboard() {
         const data = await res.json();
         const apiSales: MerchantSale[] = data?.sales ?? [];
         setMerchantTransactions(
-          apiSales.map((item) => ({
+          apiSales.map((item: any) => ({
             id: String(item.transactionId),
             date: new Date(item.transactionDate).toLocaleDateString(),
             amount: item.totalAmountReceived ?? item.totalSalesValue ?? 0,
-            description: item.customerName,
+            description:
+              item.customerName ??
+              item.customerContactName ??
+              item.customer?.contactName ??
+              item.customer?.name ??
+              'Unknown',
             type: 'credit',
             status: 'completed',
           }))

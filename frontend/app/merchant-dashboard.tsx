@@ -620,18 +620,22 @@ export default function MerchantDashboard() {
   };
 
   const closeDropdown = () => {
+    setShowDropdown(false);
     Animated.timing(dropdownAnim, {
       toValue: 0,
       duration: 150,
       useNativeDriver: true,
-    }).start(() => setShowDropdown(false));
+    }).start();
   };
 
 
   return (
     <ErrorBoundary fallbackText="Merchant Dashboard Error">
     <SafeAreaView style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
         {/* Header */}
         <View style={styles.header}>
 
