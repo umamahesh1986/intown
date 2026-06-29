@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
-const ModalApp = () => {
+const ModalApps = () => {
   const [showModal, setShowModal] = useState(true);
 
   return (
@@ -162,7 +162,7 @@ const ModalApp = () => {
   );
 };
 
-export default ModalApp;
+export default ModalApps;
 
 const styles = StyleSheet.create({
   container: {

@@ -50,8 +50,7 @@ import { CATEGORY_ICON_MAP } from '../utils/categoryIconMap';
 import { FontStylesWithFallback } from '../utils/fonts';
 import { formatDistance } from '../utils/formatDistance';
 import CommonBottomTabs from "../components/CommonBottomTabs";
-import ModalApp from "../components/ModalApp";
-
+import ModalApps from '@/components/ModalApps';
 
 
 const { width } = Dimensions.get('window');
@@ -861,7 +860,7 @@ export default function MemberDashboard() {
     <SafeAreaView style={styles.container}>
       <View style={{ flex: 1 }}>
         <ScrollView ref={contentScrollRef} showsVerticalScrollIndicator={false}>
-            <ModalApp />
+            <ModalApps />
 
           {/* HEADER */}
           <View style={styles.header}>

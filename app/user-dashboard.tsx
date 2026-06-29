@@ -1,7 +1,7 @@
 // user-dashboard.tsx
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Footer from '../components/Footer';
-import ModalApp from "../components/ModalApp";
+import ModalApps from "../components/ModalApps";
 import {
   CATEGORY_IMAGE_LIST,
   FALLBACK_CATEGORY_IMAGE,
@@ -561,7 +561,7 @@ export default function UserDashboard() {
           {/* Header */}
 
           <View style={styles.headerRow}>
-            <ModalApp />
+            <ModalApps />
             <TouchableOpacity
               style={styles.locationWrapper}
               onPress={() => setShowLocationModal(true)}

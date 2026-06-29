@@ -39,7 +39,8 @@ import {
 } from '../utils/location';
 import { formatDistance } from '../utils/formatDistance';
 import CommonBottomTabs from "../components/CommonBottomTabs";
-import ModalApp from "../components/ModalApp";
+import ModalApps from '@/components/ModalApps';
+
 
 const { width } = Dimensions.get('window');
 
@@ -782,7 +783,7 @@ export default function DualDashboard() {
   ================================ */
   return (
     <SafeAreaView style={styles.container}>
-      <ModalApp />
+          <ModalApps />
       {/* Header */}
       <View style={styles.header}>
 
@@ -1201,6 +1202,7 @@ export default function DualDashboard() {
                     {column.map((category, rowIndex) => {
                       const index = columnIndex * 2 + rowIndex;
                       return (
+                            
                         <TouchableOpacity
                           key={String(category.id)}
                           style={styles.categoryCard}
