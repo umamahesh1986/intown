@@ -2409,7 +2409,7 @@ const styles = StyleSheet.create({
   },
   merchantDescriptionText: {
     fontSize: 14,
-    color: '#666',
+    color: '#999',
     lineHeight: 20,
   },
 

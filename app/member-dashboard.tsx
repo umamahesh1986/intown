@@ -2311,7 +2311,7 @@ const styles = StyleSheet.create({
   currentLocationArea: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: '#302e2e',
   },
   currentLocationFull: {
     fontSize: 12,

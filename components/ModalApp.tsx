@@ -127,7 +127,7 @@ const ModalApp = () => {
 {/* STEP 4 */}
 <View style={styles.step}>
   <View style={styles.stepIcon}>
-    <Ionicons name="logo-whatsapp" size={18} color="#6ae977" />
+    <Ionicons name="logo-whatsapp" size={18} color="#37823e" />
   </View>
   <View style={styles.textBox}>
     <Text style={styles.title}>Send Payment Screenshot</Text>

@@ -1094,7 +1094,7 @@ export default function MerchantDashboard() {
 
                 {location && (
                   <View style={styles.currentLocationDisplay}>
-                    <Ionicons name="location" size={18} color="#4CAF50" />
+                    <Ionicons name="location" size={18} color="#52ae55" />
                     <View style={{ marginLeft: 10, flex: 1 }}>
                       <Text style={styles.currentLocationArea}>{location.area || location.city}</Text>
                       <Text style={styles.currentLocationFull} numberOfLines={2}>

@@ -2633,7 +2633,7 @@ userPanelTag: {
 },
 divider: {
   height: 1,
-  backgroundColor: "#E5E7EB",
+  backgroundColor: "#f6f9fe",
   marginVertical: 12,
 },
 
