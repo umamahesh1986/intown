@@ -50,7 +50,7 @@ import { CATEGORY_ICON_MAP } from '../utils/categoryIconMap';
 import { FontStylesWithFallback } from '../utils/fonts';
 import { formatDistance } from '../utils/formatDistance';
 import CommonBottomTabs from "../components/CommonBottomTabs";
-import ModalApps from '@/components/ModalApps';
+import ModalAppAlert from '@/components/ModalAppAlert';
 
 
 const { width } = Dimensions.get('window');
@@ -860,7 +860,7 @@ export default function MemberDashboard() {
     <SafeAreaView style={styles.container}>
       <View style={{ flex: 1 }}>
         <ScrollView ref={contentScrollRef} showsVerticalScrollIndicator={false}>
-            <ModalApps />
+            <ModalAppAlert />
 
           {/* HEADER */}
           <View style={styles.header}>
@@ -1413,13 +1413,6 @@ export default function MemberDashboard() {
               <Ionicons name="storefront-outline" size={22} color="#FF8C00" />
               <Text style={styles.userPanelText}>Become a Merchant</Text>
             </TouchableOpacity>
-
-
-
-
-
-
-
 
             <TouchableOpacity
               style={styles.userPanelItem}

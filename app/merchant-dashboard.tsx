@@ -32,7 +32,7 @@ import { INTOWN_API_BASE } from '../utils/api';
 import Footer from '../components/Footer'
 import { useFocusEffect } from '@react-navigation/native';
 import { ErrorBoundary } from '../components/ErrorBoundary';
-import ModalApps from "../components/ModalApps";
+import ModalAppAlert from '@/components/ModalAppAlert';
 
 // ===== MERCHANT CAROUSEL CONFIG (SAME AS MEMBER) =====
 const { width } = Dimensions.get('window');
@@ -588,7 +588,7 @@ export default function MerchantDashboard() {
     <ErrorBoundary fallbackText="Merchant Dashboard Error">
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
-        <ModalApps />
+        <ModalAppAlert />
         {/* Header */}
         <View style={styles.header}>
 

@@ -1,7 +1,7 @@
 // user-dashboard.tsx
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Footer from '../components/Footer';
-import ModalApps from "../components/ModalApps";
+
 import {
   CATEGORY_IMAGE_LIST,
   FALLBACK_CATEGORY_IMAGE,
@@ -47,6 +47,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { FontStylesWithFallback } from '../utils/fonts';
 import { formatDistance } from '../utils/formatDistance';
+import ModalAppAlert from '@/components/ModalAppAlert';
 
 interface Plan {
   id: string;
@@ -551,8 +552,6 @@ export default function UserDashboard() {
   };
 
 
-
-
   return (
     
     <SafeAreaView style={styles.container}>
@@ -561,7 +560,7 @@ export default function UserDashboard() {
           {/* Header */}
 
           <View style={styles.headerRow}>
-            <ModalApps />
+            <ModalAppAlert />
             <TouchableOpacity
               style={styles.locationWrapper}
               onPress={() => setShowLocationModal(true)}
@@ -1377,7 +1376,6 @@ const styles = StyleSheet.create({
     flex: 1,
     color: "#0F172A",
     maxWidth: 200,
-    whiteSpace: "nowrap",
     textOverflow: "ellipsis",
     overflow: "hidden"
   },

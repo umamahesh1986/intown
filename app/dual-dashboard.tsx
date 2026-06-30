@@ -39,7 +39,7 @@ import {
 } from '../utils/location';
 import { formatDistance } from '../utils/formatDistance';
 import CommonBottomTabs from "../components/CommonBottomTabs";
-import ModalApps from '@/components/ModalApps';
+import ModalAppAlert from '@/components/ModalAppAlert';
 
 
 const { width } = Dimensions.get('window');
@@ -783,7 +783,7 @@ export default function DualDashboard() {
   ================================ */
   return (
     <SafeAreaView style={styles.container}>
-          <ModalApps />
+          <ModalAppAlert />
       {/* Header */}
       <View style={styles.header}>
 
