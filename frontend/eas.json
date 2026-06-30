@@ -1,0 +1,31 @@
+{
+  "cli": {
+    "version": ">= 16.28.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal"
+    },
+    "preview": {
+      "distribution": "internal",
+      "env": {
+        "EAS_BUILD_DISABLE_NPM_CACHE": "1",
+        "EXPO_PUBLIC_API_BASE_URL": "https://api.intownlocal.com",
+        "EXPO_PUBLIC_OTP_API_BASE_URL": "https://api.intownlocal.com/IN"
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "env": {
+        "EAS_BUILD_DISABLE_NPM_CACHE": "1",
+        "EXPO_PUBLIC_API_BASE_URL": "https://api.intownlocal.com",
+        "EXPO_PUBLIC_OTP_API_BASE_URL": "https://api.intownlocal.com/IN"
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}
