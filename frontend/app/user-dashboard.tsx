@@ -35,6 +35,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAuthStore } from '../store/authStore';
 import { useLocationStore, LocationDetails } from '../store/locationStore';
+import { getProfileImage } from '../utils/profileImage';
 import { getPlans, getCategories, getAllNearbyShops, getMerchantImageByShopId, extractImageUrls } from '../utils/api';
 
 import {
@@ -255,18 +256,20 @@ export default function UserDashboard() {
 
   const startNearbyAutoScroll = () => {
     if (nearbyAutoScrollRef.current) clearInterval(nearbyAutoScrollRef.current);
+    // Advance one card every 2.5s with a smooth native animation. The previous
+    // 30ms / 1px loop saturated the JS thread and made iOS terminate child
+    // press gestures on View All / Categories / Nearby Shops.
     nearbyAutoScrollRef.current = setInterval(() => {
       if (!nearbyScrollRef.current || nearbyShops.length === 0) return;
-      nearbyScrollPos.current += 1;
-      // Reset to start when scrolled past original list (seamless loop)
       const totalWidth = nearbyShops.length * MERCHANT_CARD_WIDTH;
+      nearbyScrollPos.current += MERCHANT_CARD_WIDTH;
       if (nearbyScrollPos.current >= totalWidth) {
         nearbyScrollPos.current = 0;
         nearbyScrollRef.current.scrollTo({ x: 0, animated: false });
       } else {
-        nearbyScrollRef.current.scrollTo({ x: nearbyScrollPos.current, animated: false });
+        nearbyScrollRef.current.scrollTo({ x: nearbyScrollPos.current, animated: true });
       }
-    }, 30);
+    }, 2500);
   };
 
   const stopNearbyAutoScroll = () => {
@@ -412,7 +415,7 @@ export default function UserDashboard() {
 
   const loadProfileImage = async () => {
     try {
-      const storedImage = await AsyncStorage.getItem('user_profile_image');
+      const storedImage = await getProfileImage('customer');
       if (storedImage) {
         setProfileImage(storedImage);
       }
@@ -518,11 +521,12 @@ export default function UserDashboard() {
         useNativeDriver: true,
       }).start();
     } else {
+      setShowDropdown(false);
       Animated.timing(dropdownAnim, {
         toValue: 0,
         duration: 160,
         useNativeDriver: true,
-      }).start(() => setShowDropdown(false));
+      }).start();
     }
   };
 
@@ -609,7 +613,10 @@ export default function UserDashboard() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.container}>
-        <ScrollView showsVerticalScrollIndicator={false}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
           {/* Header */}
 
           <View style={styles.headerRow}>

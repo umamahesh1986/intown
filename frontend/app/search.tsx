@@ -16,12 +16,33 @@ import { useState, useRef, useEffect } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {
-  ExpoSpeechRecognitionModule,
-  useSpeechRecognitionEvent,
-} from 'expo-speech-recognition';
 import { searchProducts } from '../utils/api';
 import { useLocationStore } from '../store/locationStore';
+
+// Lazy-load expo-speech-recognition so iOS builds without the native module
+// linked (i.e. before `npx expo prebuild --platform ios` has been re-run) don't
+// crash the screen at import time. Voice search silently disables itself.
+let ExpoSpeechRecognitionModule: any;
+let useSpeechRecognitionEvent: any;
+let speechRecognitionAvailable = false;
+try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const mod = require('expo-speech-recognition');
+  ExpoSpeechRecognitionModule = mod.ExpoSpeechRecognitionModule;
+  useSpeechRecognitionEvent = mod.useSpeechRecognitionEvent;
+  speechRecognitionAvailable = !!(ExpoSpeechRecognitionModule && useSpeechRecognitionEvent);
+} catch (e) {
+  console.warn('[search] expo-speech-recognition not available — voice search disabled', e);
+}
+if (!speechRecognitionAvailable) {
+  // Stub no-ops so the rest of the screen renders untouched.
+  ExpoSpeechRecognitionModule = {
+    start: () => {},
+    stop: () => {},
+    requestPermissionsAsync: async () => ({ granted: false, status: 'denied' }),
+  };
+  useSpeechRecognitionEvent = (_event: string, _handler: (...args: any[]) => void) => {};
+}
 
 const VOICE_LANG_STORAGE_KEY = 'voice_search_lang';
 
@@ -197,6 +218,13 @@ export default function Search() {
   });
 
   const handleVoicePress = async () => {
+    if (!speechRecognitionAvailable) {
+      Alert.alert(
+        'Voice search unavailable',
+        'Voice search isn\'t available on this build. Please type your query instead.',
+      );
+      return;
+    }
     if (isListening) {
       try { ExpoSpeechRecognitionModule.stop(); } catch {}
       return;

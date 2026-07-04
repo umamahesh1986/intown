@@ -22,6 +22,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
 import { useLocationStore } from '../store/locationStore';
+import { getProfileImage } from '../utils/profileImage';
 import {
   getUserLocationWithDetails,
   searchLocations,
@@ -238,7 +239,7 @@ export default function MerchantDashboard() {
         try {
           const storedProfileImage =
             (await AsyncStorage.getItem('merchant_profile_image')) ??
-            (await AsyncStorage.getItem('user_profile_image'));
+            (await getProfileImage('merchant'));
           if (storedProfileImage && isActive) {
             setProfileImage(storedProfileImage);
           }
@@ -383,7 +384,7 @@ export default function MerchantDashboard() {
         }
         const storedProfileImage =
           (await AsyncStorage.getItem('merchant_profile_image')) ??
-          (await AsyncStorage.getItem('user_profile_image'));
+          (await getProfileImage('merchant'));
         if (storedProfileImage && isMounted) {
           setProfileImage(storedProfileImage);
         }
@@ -423,7 +424,7 @@ export default function MerchantDashboard() {
     try {
       const storedProfileImage =
         (await AsyncStorage.getItem('merchant_profile_image')) ??
-        (await AsyncStorage.getItem('user_profile_image'));
+        (await getProfileImage('merchant'));
       const storedImagesRaw = await AsyncStorage.getItem('merchant_shop_images');
       if (storedImagesRaw) {
         try {
@@ -620,18 +621,22 @@ export default function MerchantDashboard() {
   };
 
   const closeDropdown = () => {
+    setShowDropdown(false);
     Animated.timing(dropdownAnim, {
       toValue: 0,
       duration: 150,
       useNativeDriver: true,
-    }).start(() => setShowDropdown(false));
+    }).start();
   };
 
 
   return (
     <ErrorBoundary fallbackText="Merchant Dashboard Error">
     <SafeAreaView style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
         {/* Header */}
         <View style={styles.header}>
 
@@ -849,7 +854,7 @@ export default function MerchantDashboard() {
               <View key={sale.transactionId} style={styles.transactionRow}>
                 {/* Left: Customer Info */}
                 <View style={{ flex: 1.5 }}>
-                  <Text style={styles.transactionMerchant} numberOfLines={1}>{sale.customerName}</Text>
+                  <Text style={styles.transactionMerchant} numberOfLines={1}>{sale.customerName || (sale as any).customerContactName || (sale as any).customer?.contactName || 'Unknown'}</Text>
                   <Text style={styles.transactionDate}>{sale.customerPhone}</Text>
                   <Text style={[styles.transactionDate, { color: '#bbb' }]}>
                     {formatTransactionDate(sale.transactionDate)}
@@ -1013,7 +1018,7 @@ export default function MerchantDashboard() {
                   <View key={`all-${sale.transactionId}`} style={styles.transactionRow}>
                     <View style={styles.transactionLeft}>
                       <Text style={styles.transactionMerchant} numberOfLines={1}>
-                        {sale.customerName}
+                        {sale.customerName || (sale as any).customerContactName || (sale as any).customer?.contactName || 'Unknown'}
                       </Text>
                       <Text style={styles.transactionDate}>
                         {sale.customerPhone}

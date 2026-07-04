@@ -31,6 +31,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAuthStore } from '../store/authStore';
 import { useLocationStore } from '../store/locationStore';
+import { getProfileImage } from '../utils/profileImage';
 import {
   getCategories,
   getAllNearbyShops,
@@ -317,18 +318,20 @@ export default function MemberDashboard() {
 
   const startNearbyAutoScroll = () => {
     if (nearbyAutoScrollRef.current) clearInterval(nearbyAutoScrollRef.current);
+    // Advance one card every 2.5s with a smooth native animation. The previous
+    // 30ms / 1px loop saturated the JS thread and caused iOS to terminate child
+    // press gestures, making View All / Categories / Nearby Shops unclickable.
     nearbyAutoScrollRef.current = setInterval(() => {
       if (!nearbyScrollRef.current || nearbyShops.length === 0) return;
-      nearbyScrollPos.current += 1;
-      // Reset to start when scrolled past original list (seamless loop)
       const totalWidth = nearbyShops.length * MERCHANT_CARD_WIDTH;
+      nearbyScrollPos.current += MERCHANT_CARD_WIDTH;
       if (nearbyScrollPos.current >= totalWidth) {
         nearbyScrollPos.current = 0;
         nearbyScrollRef.current.scrollTo({ x: 0, animated: false });
       } else {
-        nearbyScrollRef.current.scrollTo({ x: nearbyScrollPos.current, animated: false });
+        nearbyScrollRef.current.scrollTo({ x: nearbyScrollPos.current, animated: true });
       }
-    }, 30);
+    }, 2500);
   };
 
   const stopNearbyAutoScroll = () => {
@@ -422,7 +425,7 @@ export default function MemberDashboard() {
           await AsyncStorage.setItem('customer_name', name);
         }
 
-        const storedProfileImage = await AsyncStorage.getItem('user_profile_image');
+        const storedProfileImage = await getProfileImage('customer');
         if (storedProfileImage) {
           setProfileImage(storedProfileImage);
         }
@@ -448,7 +451,7 @@ export default function MemberDashboard() {
       let isActive = true;
       const refreshProfileImage = async () => {
         try {
-          const storedProfileImage = await AsyncStorage.getItem('user_profile_image');
+          const storedProfileImage = await getProfileImage('customer');
           if (storedProfileImage && isActive) {
             setProfileImage(storedProfileImage);
           }
@@ -765,11 +768,12 @@ export default function MemberDashboard() {
   };
 
   const closeDropdown = () => {
+    setShowDropdown(false);
     Animated.timing(dropdownAnim, {
       toValue: 0,
       duration: 160,
       useNativeDriver: true,
-    }).start(() => setShowDropdown(false));
+    }).start();
   };
 
   const toggleDropdown = () => {
@@ -904,7 +908,11 @@ export default function MemberDashboard() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={{ flex: 1 }}>
-        <ScrollView ref={contentScrollRef} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          ref={contentScrollRef}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
 
 
           {/* HEADER */}
