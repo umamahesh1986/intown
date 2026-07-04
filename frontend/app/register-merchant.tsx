@@ -287,20 +287,16 @@ export default function RegisterMerchant() {
     paymentCompleted &&
     agreedToTerms;
 
-  // Fields required BEFORE the merchant can pay the joining fee
+  // Fields required BEFORE the merchant can pay the joining fee.
+  // Kept lightweight so the button becomes clickable as soon as the
+  // core business identity is filled; deeper validation runs inside
+  // handlePayJoiningFee before actually calling Razorpay.
   const canInitiatePayment =
     !paymentCompleted &&
     !isPaying &&
     businessName.trim().length > 0 &&
     contactName.trim().length > 0 &&
-    selectedCategoryId !== null &&
-    description.trim().length > 0 &&
-    yearsInBusiness.trim().length > 0 &&
-    branches.trim().length > 0 &&
-    /^[6-9]\d{9}$/.test(phoneNumber) &&
-    /^[1-9][0-9]{5}$/.test(pincode) &&
-    location !== null && Number.isFinite(location?.latitude) && Number.isFinite(location?.longitude) &&
-    introducedByValid;
+    selectedCategoryId !== null;
 
   /* ================= AUTO-POPULATE PHONE NUMBER ================= */
 
@@ -806,10 +802,26 @@ export default function RegisterMerchant() {
 
   const handlePayJoiningFee = async () => {
     setPaymentError('');
-    if (!canInitiatePayment) {
+
+    // Validate required fields before opening Razorpay
+    const missing: string[] = [];
+    if (!businessName.trim()) missing.push('Business Name');
+    if (!contactName.trim()) missing.push('Contact Name');
+    if (selectedCategoryId === null) missing.push('Business Category');
+    if (!description.trim()) missing.push('Description');
+    if (!yearsInBusiness.trim()) missing.push('Years in Business');
+    if (!branches.trim()) missing.push('Branches');
+    if (!/^[6-9]\d{9}$/.test(phoneNumber)) missing.push('Valid 10-digit Phone Number');
+    if (!/^[1-9][0-9]{5}$/.test(pincode)) missing.push('Valid 6-digit Pincode');
+    if (!location || !Number.isFinite(location.latitude) || !Number.isFinite(location.longitude)) {
+      missing.push('Shop Location');
+    }
+    if (!introducedByValid) missing.push('Valid Introduced By phone (or leave empty)');
+
+    if (missing.length > 0) {
       Alert.alert(
         'Fill Required Fields',
-        'Please fill all mandatory business details before paying the joining fee.'
+        'Please fill the following before paying the joining fee:\n\n• ' + missing.join('\n• ')
       );
       return;
     }
@@ -1584,9 +1596,9 @@ export default function RegisterMerchant() {
               </View>
             )}
 
-            {!canInitiatePayment && !paymentCompleted && !isPaying && (
+            {!paymentCompleted && !isPaying && (
               <Text style={styles.feeHint}>
-                Fill all mandatory business details above to enable the payment button.
+                Ensure all mandatory business details above are filled — you can pay the joining fee anytime.
               </Text>
             )}
           </View>
