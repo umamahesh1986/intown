@@ -236,6 +236,18 @@ export default function RegisterMerchant() {
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<any>({});
 
+  /* ================= JOINING FEE PAYMENT STATE ================= */
+  const JOINING_FEE_AMOUNT = 499;
+  const RAZORPAY_KEY_ID = 'rzp_live_RrNfvARmKIkZ7C';
+  const [paymentCompleted, setPaymentCompleted] = useState(false);
+  const [isPaying, setIsPaying] = useState(false);
+  const [paymentError, setPaymentError] = useState<string>('');
+  const [paymentDetails, setPaymentDetails] = useState<{
+    razorpayPaymentId?: string;
+    razorpayOrderId?: string;
+    razorpaySignature?: string;
+  } | null>(null);
+
   /* ================= BACKEND CATEGORY FLOW (NEW) ================= */
 
   const [categories, setCategories] = useState<{ id: number; name: string }[]>([]);
@@ -272,7 +284,19 @@ export default function RegisterMerchant() {
     pincode.trim().length > 0 &&
     location !== null && location.latitude !== undefined && location.longitude !== undefined &&
     introducedByValid &&
+    paymentCompleted &&
     agreedToTerms;
+
+  // Fields required BEFORE the merchant can pay the joining fee.
+  // Kept lightweight so the button becomes clickable as soon as the
+  // core business identity is filled; deeper validation runs inside
+  // handlePayJoiningFee before actually calling Razorpay.
+  const canInitiatePayment =
+    !paymentCompleted &&
+    !isPaying &&
+    businessName.trim().length > 0 &&
+    contactName.trim().length > 0 &&
+    selectedCategoryId !== null;
 
   /* ================= AUTO-POPULATE PHONE NUMBER ================= */
 
@@ -740,11 +764,183 @@ export default function RegisterMerchant() {
   };
 
 
+  /* ================= JOINING FEE PAYMENT HANDLER ================= */
+
+  const loadRazorpayWebScript = (): Promise<boolean> => {
+    return new Promise((resolve) => {
+      if (typeof document === 'undefined') return resolve(false);
+      if ((window as any).Razorpay) return resolve(true);
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.async = true;
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
+  const openRazorpayWeb = (options: any): Promise<any> => {
+    return new Promise((resolve, reject) => {
+      const RazorpayCtor = (window as any).Razorpay;
+      if (!RazorpayCtor) {
+        reject(new Error('Razorpay SDK not available'));
+        return;
+      }
+      const rzp = new RazorpayCtor({
+        ...options,
+        handler: (response: any) => resolve(response),
+        modal: {
+          ondismiss: () => reject({ code: 'PAYMENT_CANCELLED', description: 'User cancelled payment' }),
+        },
+      });
+      rzp.on('payment.failed', (resp: any) => {
+        reject(resp?.error || new Error('Payment failed'));
+      });
+      rzp.open();
+    });
+  };
+
+  const handlePayJoiningFee = async () => {
+    setPaymentError('');
+
+    // Validate required fields before opening Razorpay
+    const missing: string[] = [];
+    if (!businessName.trim()) missing.push('Business Name');
+    if (!contactName.trim()) missing.push('Contact Name');
+    if (selectedCategoryId === null) missing.push('Business Category');
+    if (!description.trim()) missing.push('Description');
+    if (!yearsInBusiness.trim()) missing.push('Years in Business');
+    if (!branches.trim()) missing.push('Branches');
+    if (!/^[6-9]\d{9}$/.test(phoneNumber)) missing.push('Valid 10-digit Phone Number');
+    if (!/^[1-9][0-9]{5}$/.test(pincode)) missing.push('Valid 6-digit Pincode');
+    if (!location || !Number.isFinite(location.latitude) || !Number.isFinite(location.longitude)) {
+      missing.push('Shop Location');
+    }
+    if (!introducedByValid) missing.push('Valid Introduced By phone (or leave empty)');
+
+    if (missing.length > 0) {
+      Alert.alert(
+        'Fill Required Fields',
+        'Please fill the following before paying the joining fee:\n\n• ' + missing.join('\n• ')
+      );
+      return;
+    }
+
+    setIsPaying(true);
+    try {
+      // Step 1: Create Order (reuse existing plan payment endpoint)
+      const identifier = phoneNumber ? Number(phoneNumber) : 0;
+      const createOrderRes = await fetch(`${INTOWN_API_BASE}/payment/create-order`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({
+          customerId: identifier,
+          amount: JOINING_FEE_AMOUNT,
+          description: 'INtown Merchant Joining Fee',
+          subscriptionPlan: 'MERCHANT_JOINING',
+          notes: {
+            type: 'MERCHANT_JOINING',
+            phoneNumber,
+            contactName,
+            businessName,
+            businessCategory,
+          },
+        }),
+      });
+
+      if (!createOrderRes.ok) {
+        const errData = await createOrderRes.json().catch(() => ({}));
+        throw new Error(errData.message || `Order creation failed (${createOrderRes.status})`);
+      }
+
+      const orderData = await createOrderRes.json();
+
+      const razorpayOptions: any = {
+        description: 'INtown Merchant Joining Fee',
+        image: 'https://intown-prod.s3.ap-south-1.amazonaws.com/logo/intown-logo.png',
+        currency: orderData.currency || 'INR',
+        key: orderData.keyId || RAZORPAY_KEY_ID,
+        amount: String(orderData.amount ?? JOINING_FEE_AMOUNT * 100),
+        name: 'INtown',
+        order_id: orderData.razorpayOrderId,
+        prefill: {
+          contact: phoneNumber,
+          name: contactName,
+          email: email || '',
+        },
+        theme: { color: '#FF8A00' },
+      };
+
+      // Step 2: Open Razorpay (native or web)
+      let paymentResponse: any;
+      if (Platform.OS === 'web') {
+        const ok = await loadRazorpayWebScript();
+        if (!ok) throw new Error('Unable to load Razorpay. Please check your internet connection.');
+        paymentResponse = await openRazorpayWeb(razorpayOptions);
+      } else {
+        let RazorpayCheckout: any;
+        try {
+          RazorpayCheckout = require('react-native-razorpay').default;
+        } catch (e) {
+          throw new Error('Payment module not available. Please update the app.');
+        }
+        paymentResponse = await RazorpayCheckout.open(razorpayOptions);
+      }
+
+      // Step 3: Verify Payment
+      const verifyRes = await fetch(`${INTOWN_API_BASE}/payment/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({
+          razorpayPaymentId: paymentResponse.razorpay_payment_id,
+          razorpayOrderId: paymentResponse.razorpay_order_id,
+          razorpaySignature: paymentResponse.razorpay_signature,
+          amount: orderData.amount ?? JOINING_FEE_AMOUNT * 100,
+          subscriptionPlan: 'MERCHANT_JOINING',
+          customerId: identifier,
+        }),
+      });
+
+      const verifyData = await verifyRes.json().catch(() => ({}));
+
+      if (!verifyRes.ok || verifyData?.status === 'FAILED') {
+        throw new Error(verifyData?.message || 'Payment verification failed');
+      }
+
+      setPaymentDetails({
+        razorpayPaymentId: paymentResponse.razorpay_payment_id,
+        razorpayOrderId: paymentResponse.razorpay_order_id,
+        razorpaySignature: paymentResponse.razorpay_signature,
+      });
+      setPaymentCompleted(true);
+      setPaymentError('');
+      Alert.alert('Payment received successfully', 'Your ₹499 joining fee has been received. Please accept the terms and complete your registration.');
+    } catch (err: any) {
+      console.error('Joining fee payment error:', err);
+      setPaymentCompleted(false);
+      setPaymentDetails(null);
+      // Ensure terms cannot be checked
+      setAgreedToTerms(false);
+      const cancelled = err?.code === 'PAYMENT_CANCELLED' || String(err?.description || '').toLowerCase().includes('cancel');
+      const msg = cancelled
+        ? 'Payment was cancelled. Please retry to continue registration.'
+        : (err?.message || err?.description || 'Payment failed. Please retry to continue registration.');
+      setPaymentError(msg);
+      Alert.alert(cancelled ? 'Payment Cancelled' : 'Payment Failed', msg);
+    } finally {
+      setIsPaying(false);
+    }
+  };
+
   /* ================= SUBMIT (UNCHANGED) ================= */
 
   const handleRegister = async () => {
     if (!validateForm()) {
       Alert.alert('Error', 'Please fill required fields');
+      return;
+    }
+    if (!paymentCompleted || !paymentDetails?.razorpayPaymentId) {
+      Alert.alert('Payment Required', 'Please pay the ₹499 joining fee before completing registration.');
       return;
     }
 
@@ -784,6 +980,11 @@ export default function RegisterMerchant() {
       breakEndAt,
       weekOff,
       offer,
+      joiningFee: JOINING_FEE_AMOUNT,
+      joiningFeePaid: true,
+      razorpayPaymentId: paymentDetails?.razorpayPaymentId,
+      razorpayOrderId: paymentDetails?.razorpayOrderId,
+      razorpaySignature: paymentDetails?.razorpaySignature,
     };
 
     try {
@@ -1350,17 +1551,82 @@ export default function RegisterMerchant() {
             />
           </View>
 
+          {/* JOINING FEE PAYMENT */}
+          <View style={styles.sectionHeader}>
+            <Ionicons name="card-outline" size={18} color="#FF8A00" />
+            <Text style={styles.sectionTitle}>Joining Fee</Text>
+          </View>
+
+          <View style={styles.feeCard} testID="merchant-joining-fee-card">
+            <View style={styles.feeRow}>
+              <Text style={styles.feeLabel}>One-time Joining Fee</Text>
+              <Text style={styles.feeAmount}>₹{JOINING_FEE_AMOUNT}/-</Text>
+            </View>
+            <Text style={styles.feeSubText}>
+              Every merchant must pay a one-time joining fee to activate the account.
+            </Text>
+
+            {!paymentCompleted ? (
+              <TouchableOpacity
+                style={[styles.payFeeBtn, (!canInitiatePayment || isPaying) && styles.payFeeBtnDisabled]}
+                onPress={handlePayJoiningFee}
+                disabled={!canInitiatePayment || isPaying}
+                testID="pay-joining-fee-btn"
+              >
+                {isPaying ? (
+                  <ActivityIndicator color="#FFF" />
+                ) : (
+                  <>
+                    <Ionicons name="lock-closed-outline" size={18} color="#FFFFFF" />
+                    <Text style={styles.payFeeBtnText}>Pay Joining Fee ₹{JOINING_FEE_AMOUNT}/-</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            ) : (
+              <View style={styles.paymentReceivedBanner} testID="payment-received-banner">
+                <Ionicons name="checkmark-circle" size={20} color="#0C8A4A" />
+                <Text style={styles.paymentReceivedText}>Payment received successfully</Text>
+              </View>
+            )}
+
+            {!!paymentError && !paymentCompleted && (
+              <View style={styles.paymentErrorBanner} testID="payment-error-banner">
+                <Ionicons name="alert-circle" size={18} color="#D32F2F" />
+                <Text style={styles.paymentErrorText}>{paymentError}</Text>
+              </View>
+            )}
+
+            {!paymentCompleted && !isPaying && (
+              <Text style={styles.feeHint}>
+                Ensure all mandatory business details above are filled — you can pay the joining fee anytime.
+              </Text>
+            )}
+          </View>
+
           {/* TERMS */}
           <View style={styles.row}>
-            <Switch value={agreedToTerms} onValueChange={setAgreedToTerms} />
-            <Text style={{ marginLeft: 8 }}>I agree to terms</Text>
+            <Switch
+              value={agreedToTerms}
+              onValueChange={setAgreedToTerms}
+              disabled={!paymentCompleted}
+              testID="agree-terms-switch"
+            />
+            <Text style={{ marginLeft: 8, color: paymentCompleted ? '#1A1A1A' : '#999' }}>
+              I agree to terms
+            </Text>
           </View>
+          {!paymentCompleted && (
+            <Text style={styles.helperText}>
+              Complete the joining fee payment to enable this checkbox.
+            </Text>
+          )}
 
           {/* SUBMIT BUTTON */}
           <TouchableOpacity
             style={[styles.submitBtn, (!isFormValid || isLoading) && styles.submitBtnDisabled]}
             onPress={handleRegister}
             disabled={!isFormValid || isLoading}
+            testID="register-as-merchant-btn"
           >
             {isLoading ? (
               <ActivityIndicator color="#FFF" />
@@ -2174,8 +2440,93 @@ const styles = StyleSheet.create({
     color: '#1A1A1A',
   },
 
-
-
+  // Joining Fee section
+  feeCard: {
+    backgroundColor: '#FFF',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#F0E0C7',
+    marginBottom: 12,
+  },
+  feeRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  feeLabel: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#1A1A1A',
+  },
+  feeAmount: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#FF8A00',
+  },
+  feeSubText: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 12,
+  },
+  feeHint: {
+    fontSize: 12,
+    color: '#888',
+    marginTop: 10,
+    fontStyle: 'italic',
+  },
+  payFeeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#FF8A00',
+    paddingVertical: 14,
+    borderRadius: 10,
+  },
+  payFeeBtnDisabled: {
+    backgroundColor: '#CCCCCC',
+  },
+  payFeeBtnText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  paymentReceivedBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#E8F5E9',
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: '#B7E1BF',
+  },
+  paymentReceivedText: {
+    color: '#0C8A4A',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  paymentErrorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#FDECEA',
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: '#F5C2C0',
+    marginTop: 10,
+  },
+  paymentErrorText: {
+    color: '#D32F2F',
+    fontSize: 13,
+    fontWeight: '600',
+    flex: 1,
+  },
 });
 
 
