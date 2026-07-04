@@ -1,10 +1,10 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Modal, Dimensions, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Modal, Dimensions, ActivityIndicator, Alert, Platform } from 'react-native';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistance } from '../utils/formatDistance';
-import { extractImageUrls, INTOWN_API_BASE } from '../utils/api';
+import { extractImageUrls, INTOWN_API_BASE, getProductsByCategory } from '../utils/api';
 import { useLocationStore } from '../store/locationStore';
 import { useAuthStore } from '../store/authStore';
 import PaymentModal from '../components/PaymentModal';
@@ -62,6 +62,26 @@ export default function MemberShopDetails() {
   const [showPayment, setShowPayment] = useState(false);
   const [customerId, setCustomerId] = useState<string | null>(null);
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
+
+  // ================= ORDER FEATURE STATE =================
+  const SUPPORTED_ORDER_CATEGORIES = [
+    'pharmacy',
+    'dairy products',
+    'meat',
+    'bakery',
+    'stationery',
+    'bags & accessories',
+    'electronics & home appliances',
+    'groceries',
+  ];
+  interface OrderProduct { id: number; name: string }
+  const [showOrderModal, setShowOrderModal] = useState(false);
+  const [orderProducts, setOrderProducts] = useState<OrderProduct[]>([]);
+  const [selectedOrderProductIds, setSelectedOrderProductIds] = useState<number[]>([]);
+  const [orderType, setOrderType] = useState<'PICKUP' | 'DELIVERY'>('PICKUP');
+  const [isLoadingProducts, setIsLoadingProducts] = useState(false);
+  const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
+  const [orderError, setOrderError] = useState<string>('');
 
   // Image carousel state
   const [shopImages, setShopImages] = useState<string[]>([]);
@@ -200,6 +220,118 @@ export default function MemberShopDetails() {
     console.log('Payment successful:', { amount, savings, method });
   };
 
+  // ================= ORDER FEATURE HANDLERS =================
+  const isOrderCategorySupported = (category?: string) => {
+    if (!category) return false;
+    return SUPPORTED_ORDER_CATEGORIES.includes(category.trim().toLowerCase());
+  };
+
+  const openOrderModal = async () => {
+    setOrderError('');
+    setSelectedOrderProductIds([]);
+    setOrderType('PICKUP');
+    setShowOrderModal(true);
+    if (!categoryId) {
+      setOrderProducts([]);
+      setOrderError('Category information missing — please reopen this shop from the category list.');
+      return;
+    }
+    setIsLoadingProducts(true);
+    try {
+      const data = await getProductsByCategory(Number(categoryId));
+      const list: OrderProduct[] = Array.isArray(data)
+        ? data
+        : Array.isArray((data as any)?.data)
+          ? (data as any).data
+          : [];
+      setOrderProducts(list);
+    } catch (err: any) {
+      console.error('Failed to load products for order:', err);
+      setOrderProducts([]);
+      setOrderError('Unable to load products. Please try again.');
+    } finally {
+      setIsLoadingProducts(false);
+    }
+  };
+
+  const toggleOrderProduct = (productId: number) => {
+    setSelectedOrderProductIds((prev) =>
+      prev.includes(productId) ? prev.filter((id) => id !== productId) : [...prev, productId]
+    );
+  };
+
+  const handleSubmitOrder = async () => {
+    setOrderError('');
+    if (!customerId) {
+      Alert.alert('Login Required', 'Please login again to place an order.');
+      return;
+    }
+    if (!shop?.id) {
+      Alert.alert('Error', 'Merchant info missing.');
+      return;
+    }
+    if (selectedOrderProductIds.length === 0) {
+      Alert.alert('Select Products', 'Please select at least one product to order.');
+      return;
+    }
+
+    const selectedProducts = orderProducts
+      .filter((p) => selectedOrderProductIds.includes(p.id))
+      .map((p) => ({ id: p.id, name: p.name }));
+
+    // Customer location: use latest known GPS
+    let customerLatitude: number | null = null;
+    let customerLongitude: number | null = null;
+    try {
+      await loadLocationFromStorage();
+      const stored = useLocationStore.getState().location;
+      customerLatitude = stored?.latitude ?? location?.latitude ?? null;
+      customerLongitude = stored?.longitude ?? location?.longitude ?? null;
+    } catch {
+      customerLatitude = location?.latitude ?? null;
+      customerLongitude = location?.longitude ?? null;
+    }
+
+    const payload = {
+      customerId: Number(customerId),
+      merchantId: Number(shop.id),
+      products: selectedProducts,
+      productIds: selectedOrderProductIds,
+      orderType,
+      orderDateTime: new Date().toISOString(),
+      customerLatitude,
+      customerLongitude,
+      customerName: user?.name || null,
+      customerPhone: userPhone || null,
+      categoryId: categoryId ? Number(categoryId) : null,
+      businessCategory: shop.businessCategory || null,
+    };
+
+    setIsSubmittingOrder(true);
+    try {
+      const res = await fetch(`${INTOWN_API_BASE}/order/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error((data && (data as any).message) || `Order submission failed (${res.status})`);
+      }
+      // Success
+      setShowOrderModal(false);
+      setSelectedOrderProductIds([]);
+      setOrderProducts([]);
+      Alert.alert('Order Submitted', 'Order submitted successfully.');
+    } catch (err: any) {
+      console.error('Order submit error:', err);
+      const msg = err?.message || 'Failed to submit order. Please try again.';
+      setOrderError(msg);
+    } finally {
+      setIsSubmittingOrder(false);
+    }
+  };
+
   const renderShopImageCarousel = () => {
     if (shopImages.length === 0) {
       return <Ionicons name="storefront" size={100} color="#FF8A00" />;
@@ -310,7 +442,7 @@ export default function MemberShopDetails() {
 
   const badge = getCategoryBadge(shop.businessCategory);
   // Get logged-in user's phone number
-  const userPhone = user?.phone || user?.phoneNumber || 'Not available';
+  const userPhone = user?.phone || 'Not available';
 
   const ShopContent = () => (
     <ScrollView
@@ -334,6 +466,24 @@ export default function MemberShopDetails() {
             </Text>
           </View>
         </View>
+
+        {/* Order Button — visible only for supported categories */}
+        {isOrderCategorySupported(shop.businessCategory) && (
+          <TouchableOpacity
+            style={styles.orderBtn}
+            onPress={() => {
+              if (isUserFlow) {
+                setShowRegistrationModal(true);
+                return;
+              }
+              openOrderModal();
+            }}
+            testID="open-order-modal-btn"
+          >
+            <Ionicons name="bag-handle-outline" size={20} color="#FFFFFF" />
+            <Text style={styles.orderBtnText}>Order</Text>
+          </TouchableOpacity>
+        )}
 
         {/* Description Card */}
         <View style={styles.descriptionCard}>
@@ -576,6 +726,123 @@ export default function MemberShopDetails() {
           )}
         </View>
       </Modal>
+
+      {/* ================= ORDER MODAL ================= */}
+      <Modal
+        visible={showOrderModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowOrderModal(false)}
+      >
+        <View style={styles.orderModalOverlay}>
+          <View style={styles.orderModalCard}>
+            <View style={styles.orderModalHeader}>
+              <Text style={styles.orderModalTitle}>Place Order</Text>
+              <TouchableOpacity onPress={() => setShowOrderModal(false)} testID="close-order-modal-btn">
+                <Ionicons name="close" size={24} color="#666" />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.orderModalSubtitle}>{shop.businessName}</Text>
+
+            <Text style={styles.orderSectionLabel}>Select Products</Text>
+            {isLoadingProducts ? (
+              <View style={styles.orderProductsLoading}>
+                <ActivityIndicator color="#FF8A00" />
+                <Text style={styles.orderProductsLoadingText}>Loading products...</Text>
+              </View>
+            ) : orderProducts.length === 0 ? (
+              <View style={styles.orderProductsEmpty}>
+                <Ionicons name="cube-outline" size={28} color="#BBB" />
+                <Text style={styles.orderProductsEmptyText}>
+                  {orderError || 'No products available for this category.'}
+                </Text>
+              </View>
+            ) : (
+              <ScrollView style={styles.orderProductsList} nestedScrollEnabled>
+                {orderProducts.map((product) => {
+                  const checked = selectedOrderProductIds.includes(product.id);
+                  return (
+                    <TouchableOpacity
+                      key={product.id}
+                      style={styles.orderProductRow}
+                      onPress={() => toggleOrderProduct(product.id)}
+                      testID={`order-product-row-${product.id}`}
+                    >
+                      <Ionicons
+                        name={checked ? 'checkbox' : 'square-outline'}
+                        size={22}
+                        color={checked ? '#FF8A00' : '#999'}
+                      />
+                      <Text style={styles.orderProductText}>{product.name}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            )}
+
+            <Text style={styles.orderSectionLabel}>Order Type</Text>
+            <View style={styles.orderTypeRow}>
+              <TouchableOpacity
+                style={[styles.orderTypeChip, orderType === 'PICKUP' && styles.orderTypeChipActive]}
+                onPress={() => setOrderType('PICKUP')}
+                testID="order-type-pickup-btn"
+              >
+                <Ionicons
+                  name="walk-outline"
+                  size={18}
+                  color={orderType === 'PICKUP' ? '#FFF' : '#FF8A00'}
+                />
+                <Text
+                  style={[styles.orderTypeChipText, orderType === 'PICKUP' && styles.orderTypeChipTextActive]}
+                >
+                  Pickup
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.orderTypeChip, orderType === 'DELIVERY' && styles.orderTypeChipActive]}
+                onPress={() => setOrderType('DELIVERY')}
+                testID="order-type-delivery-btn"
+              >
+                <Ionicons
+                  name="bicycle-outline"
+                  size={18}
+                  color={orderType === 'DELIVERY' ? '#FFF' : '#FF8A00'}
+                />
+                <Text
+                  style={[styles.orderTypeChipText, orderType === 'DELIVERY' && styles.orderTypeChipTextActive]}
+                >
+                  Delivery
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {!!orderError && orderProducts.length > 0 && (
+              <View style={styles.orderErrorBanner} testID="order-error-banner">
+                <Ionicons name="alert-circle" size={18} color="#D32F2F" />
+                <Text style={styles.orderErrorText}>{orderError}</Text>
+              </View>
+            )}
+
+            <TouchableOpacity
+              style={[
+                styles.orderSubmitBtn,
+                (isSubmittingOrder || selectedOrderProductIds.length === 0) && styles.orderSubmitBtnDisabled,
+              ]}
+              onPress={handleSubmitOrder}
+              disabled={isSubmittingOrder || selectedOrderProductIds.length === 0}
+              testID="submit-order-btn"
+            >
+              {isSubmittingOrder ? (
+                <ActivityIndicator color="#FFF" />
+              ) : (
+                <Text style={styles.orderSubmitBtnText}>
+                  Submit Order{selectedOrderProductIds.length > 0 ? ` (${selectedOrderProductIds.length})` : ''}
+                </Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -766,5 +1033,169 @@ const styles = StyleSheet.create({
   fullscreenImage: {
     width: '100%',
     height: '80%',
+  },
+
+  // ================= ORDER FEATURE STYLES =================
+  orderBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#FF8A00',
+    borderRadius: 12,
+    paddingVertical: 14,
+    marginBottom: 16,
+    shadowColor: '#FF8A00',
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 3,
+  },
+  orderBtnText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  orderModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'flex-end',
+  },
+  orderModalCard: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 24,
+    maxHeight: '85%',
+  },
+  orderModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  orderModalTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#1A1A1A',
+  },
+  orderModalSubtitle: {
+    fontSize: 13,
+    color: '#666',
+    marginBottom: 16,
+  },
+  orderSectionLabel: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#333',
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  orderProductsList: {
+    maxHeight: 260,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#EEE',
+    borderRadius: 10,
+    paddingHorizontal: 8,
+  },
+  orderProductRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    gap: 10,
+  },
+  orderProductText: {
+    fontSize: 14,
+    color: '#1A1A1A',
+    flex: 1,
+  },
+  orderProductsLoading: {
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  orderProductsLoadingText: {
+    marginTop: 8,
+    color: '#666',
+    fontSize: 13,
+  },
+  orderProductsEmpty: {
+    alignItems: 'center',
+    padding: 20,
+    backgroundColor: '#FAFAFA',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#EEE',
+  },
+  orderProductsEmptyText: {
+    marginTop: 8,
+    color: '#888',
+    fontSize: 13,
+    textAlign: 'center',
+  },
+  orderTypeRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 12,
+  },
+  orderTypeChip: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#FF8A00',
+    backgroundColor: '#FFF8F0',
+  },
+  orderTypeChipActive: {
+    backgroundColor: '#FF8A00',
+    borderColor: '#FF8A00',
+  },
+  orderTypeChipText: {
+    color: '#FF8A00',
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  orderTypeChipTextActive: {
+    color: '#FFFFFF',
+  },
+  orderErrorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#FDECEA',
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: '#F5C2C0',
+    marginTop: 4,
+    marginBottom: 8,
+  },
+  orderErrorText: {
+    color: '#D32F2F',
+    fontSize: 13,
+    fontWeight: '600',
+    flex: 1,
+  },
+  orderSubmitBtn: {
+    backgroundColor: '#FF8A00',
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  orderSubmitBtnDisabled: {
+    backgroundColor: '#CCCCCC',
+  },
+  orderSubmitBtnText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
   },
 });
