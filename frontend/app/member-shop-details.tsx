@@ -359,9 +359,89 @@ export default function MemberShopDetails() {
     }
   });
 
+  // Web Speech Recognition instance (browser-native fallback)
+  const webRecognitionRef = useRef<any>(null);
+
+  const stopWebRecognition = () => {
+    try { webRecognitionRef.current?.stop?.(); } catch {}
+    webRecognitionRef.current = null;
+  };
+
+  const startWebVoice = (field: string) => {
+    if (typeof window === 'undefined') {
+      Alert.alert('Voice unavailable', 'Voice input not supported here.');
+      return;
+    }
+    const SR: any = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) {
+      Alert.alert(
+        'Voice unavailable',
+        'Your browser does not support voice input. Please use Chrome, Edge, or the mobile app.'
+      );
+      return;
+    }
+    // Toggle: if already listening on same field, stop
+    if (isVoiceListening && activeVoiceField === field) {
+      stopWebRecognition();
+      setIsVoiceListening(false);
+      setActiveVoiceField(null);
+      return;
+    }
+    // If listening on a different field, stop first
+    stopWebRecognition();
+
+    try {
+      const rec = new SR();
+      rec.lang = voiceLang;
+      rec.interimResults = true;
+      rec.maxAlternatives = 1;
+      rec.continuous = false;
+      rec.onstart = () => {
+        setIsVoiceListening(true);
+        setActiveVoiceField(field);
+      };
+      rec.onerror = (ev: any) => {
+        setIsVoiceListening(false);
+        setActiveVoiceField(null);
+        const code = ev?.error || 'unknown';
+        if (code === 'not-allowed' || code === 'service-not-allowed') {
+          Alert.alert('Microphone blocked', 'Please allow microphone access in your browser and try again.');
+        } else if (code !== 'aborted' && code !== 'no-speech') {
+          Alert.alert('Voice error', `Voice recognition failed (${code}).`);
+        }
+      };
+      rec.onend = () => {
+        setIsVoiceListening(false);
+        setActiveVoiceField(null);
+      };
+      rec.onresult = (ev: any) => {
+        let transcript = '';
+        for (let i = ev.resultIndex; i < ev.results.length; i += 1) {
+          transcript += ev.results[i][0].transcript;
+        }
+        transcript = transcript.trim();
+        if (!transcript) return;
+        if (field === 'new') {
+          setNewProductQuery(transcript);
+        } else {
+          const [kind, idStr] = field.split(':');
+          const id = Number(idStr);
+          if (kind === 'q') updateSelectedItemField(id, 'quantity', transcript);
+          else if (kind === 'b') updateSelectedItemField(id, 'brand', transcript);
+        }
+      };
+      webRecognitionRef.current = rec;
+      rec.start();
+    } catch (e: any) {
+      setIsVoiceListening(false);
+      setActiveVoiceField(null);
+      Alert.alert('Voice error', e?.message || 'Unable to start voice recognition.');
+    }
+  };
+
   const startVoice = async (field: string) => {
     if (Platform.OS === 'web') {
-      Alert.alert('Voice unavailable', 'Voice input is only supported in the mobile app.');
+      startWebVoice(field);
       return;
     }
     if (isVoiceListening) {
@@ -397,6 +477,7 @@ export default function MemberShopDetails() {
   useEffect(() => {
     return () => {
       try { ExpoSpeechRecognitionModule.stop(); } catch {}
+      stopWebRecognition();
     };
   }, []);
 
