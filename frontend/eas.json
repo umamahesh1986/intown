@@ -12,14 +12,16 @@
       "distribution": "internal",
       "env": {
         "EAS_BUILD_DISABLE_NPM_CACHE": "1",
-        "EXPO_PUBLIC_API_BASE_URL": "https://api.intownlocal.com",
-        "EXPO_PUBLIC_OTP_API_BASE_URL": "https://api.intownlocal.com/IN"
+        "EXPO_PUBLIC_ENV": "dev",
+        "EXPO_PUBLIC_API_BASE_URL": "https://devapi.intownlocal.com",
+        "EXPO_PUBLIC_OTP_API_BASE_URL": "https://devapi.intownlocal.com/IN"
       }
     },
     "production": {
       "autoIncrement": true,
       "env": {
         "EAS_BUILD_DISABLE_NPM_CACHE": "1",
+        "EXPO_PUBLIC_ENV": "production",
         "EXPO_PUBLIC_API_BASE_URL": "https://api.intownlocal.com",
         "EXPO_PUBLIC_OTP_API_BASE_URL": "https://api.intownlocal.com/IN"
       }
