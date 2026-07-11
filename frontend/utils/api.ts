@@ -1,10 +1,48 @@
 import axios from "axios";
 import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-const BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://api.intownlocal.com';
+
+// ==========================================================================
+// API base URL resolution
+// ==========================================================================
+// Priority:
+//   1. Explicit EXPO_PUBLIC_API_BASE_URL (set at build time via eas.json,
+//      or locally via frontend/.env for `npx expo start`)
+//   2. EXPO_PUBLIC_ENV === 'production' → hit production API
+//   3. Fallback for local dev / preview / undefined → dev API
+// This guarantees the production URL is only ever used by an explicit
+// production build; local dev never accidentally hits production.
+// ==========================================================================
+const PROD_BASE = 'https://api.intownlocal.com';
+const DEV_BASE = 'https://devapi.intownlocal.com';
+
+const resolvedBaseUrl = (() => {
+  const explicit = process.env.EXPO_PUBLIC_API_BASE_URL;
+  if (explicit && explicit.trim().length > 0) return explicit.trim();
+  const env = (process.env.EXPO_PUBLIC_ENV || '').toLowerCase();
+  return env === 'production' || env === 'prod' ? PROD_BASE : DEV_BASE;
+})();
+
+const resolvedOtpBase = (() => {
+  const explicit = process.env.EXPO_PUBLIC_OTP_API_BASE_URL;
+  if (explicit && explicit.trim().length > 0) return explicit.trim();
+  const env = (process.env.EXPO_PUBLIC_ENV || '').toLowerCase();
+  return env === 'production' || env === 'prod'
+    ? `${PROD_BASE}/IN`
+    : `${DEV_BASE}/IN`;
+})();
+
+const BASE_URL = resolvedBaseUrl;
 export const INTOWN_API_BASE = `${BASE_URL}/IN`;
 
-const OTP_API_BASE = process.env.EXPO_PUBLIC_OTP_API_BASE_URL || 'https://api.intownlocal.com/IN';
+const OTP_API_BASE = resolvedOtpBase;
+
+// Log which environment we're hitting (helps confirm on-device the right
+// URL is being used). Safe to strip in production if noisy.
+try {
+  // eslint-disable-next-line no-console
+  console.log('[intown-api] Using base URL:', BASE_URL);
+} catch {}
 
 /* ===============================
    CUSTOM OTP APIs (No Firebase)
