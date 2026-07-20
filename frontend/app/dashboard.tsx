@@ -42,11 +42,6 @@ interface Category {
 
 const { width, height } = Dimensions.get("window");
 
-const image = [
-  "https://lh3.googleusercontent.com/aida/AP1WRLtd2s4l09sJGAtd1slDJYcvG2waSfuop138Sgz-ZSUKLB-7cMhYLDMOppuh-ImYnjw9kRF9Gz5xLZRZzT06V974K309cQQ-6TNYJ_ATbrHbC5wcLEuqD8brlRE6umqLyLgZ46AMdHvYXCrOuekbMvTkryoyw4j4IEZeio3NDxw6yxvuVSSuHXJ_sYKmpdjn1tJXFW0uK7fLM-n5Oz9PKhZ9--MdF60ujtdjKVn68nN-NsPPZg2rgzbmwnyzEUHEulnGl7mVGSiy=s1600",
-  "https://lh3.googleusercontent.com/aida/AP1WRLsFjrtOAYSVPmYKr9tFGQKnxMhWMlJlNKyiJCtdZQyQg3FrXzMXvLSKWYtEyOQJmF1XWpS9CDXR2LbH6UcoSvcgdlF8YFjQnG3cpV_YsBf4_ek5QuNDCADUFUKGOzBMC_-ApUJ13LSg4qJKxlTtR5cJsoAfGrlhOfflF71gGW23H08CgUplxbYWvvwbSn3G52zElA6394M60Bk2XGDLj1pXfPQTRKt_JTIQlhnce9OPZ0beUtJBNa8ltLKLWeHUhz-EVkL9vTWl=s1600",
-  "https://lh3.googleusercontent.com/aida/AP1WRLvqyaw0PdeA-cQ776h3yIBfZfar3wf3k_TL5uKsxR5R3Z1I0tHk8p0bk6kGXd3uq7ofM_wx7TgrCrxhVzqpwe5PN64FlSIe_DWWAfN49IWErrFo5XEHcIPhRksT2VNHQbYcxrDKgPsZCPCOoOF5yP4a0S-aG4Kww9MhUP4M8Fm0dz7xjto5ZiMOO4uxJACvAdBdujkuwnf_MUCUZWg7xb8-PoeEytYoLbtO2CX6md03uKLP3ZZIUnpCFjd_gzkdH4ODIVtpVBah=s1600"
-];
 
 
 export default function DashboardScreen() {
@@ -58,27 +53,58 @@ export default function DashboardScreen() {
   const [categories, setCategories] = useState<Category[]>([]);
 
 
-  const [visible, setVisible] = useState(true);
-  const [currentIndex, setCurrentIndex] = useState(0);
+ const [visible, setVisible] = useState(false);
+  const [currentImage, setCurrentImage] = useState(0);
+
+
+
+  const images = [
+    require("../assets/images/intown1.jpeg"),
+    require("../assets/images/intown2.jpeg"),
+    require("../assets/images/intown3.jpeg"),
+  ];
+
+
 
  
   useEffect(() => {
-    if (!visible || image.length === 0) return;
 
-    const timer = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % image.length);
-    }, 2500);
+    setVisible(true);
 
-    return () => clearInterval(timer);
-  }, [visible]);
+  }, []);
+
+
+
 
   
-  const popupHeight =
-    height < 600
-      ? height * 0.28
-      : height < 800
-      ? height * 0.35
-      : height * 0.42;
+  useEffect(() => {
+
+    const timer = setInterval(() => {
+
+      setCurrentImage((prev) => {
+
+        if (prev === images.length - 1) {
+          return 0;
+        }
+
+        return prev + 1;
+
+      });
+
+
+    }, 2000);
+
+
+
+    return () => clearInterval(timer);
+
+
+  }, []);
+
+
+
+
+
 
   useEffect(() => {
     loadData();
@@ -132,53 +158,68 @@ export default function DashboardScreen() {
     
     <SafeAreaView style={styles.container}>
 
-      <View style={styles.screen}>
-      
-     
+     <View style={styles.dashboardWrapper}>
 
-      {/* POPUP CAROUSEL */}
-      <Modal transparent visible={visible} animationType="slide">
-        <View style={styles.overlay}>
+          <Modal
+           visible={visible}
+          transparent
+          animationType="slide">
 
-          <View style={[styles.popup, { height: popupHeight }]}>
 
-            {/* IMAGE */}
-            {visible && image.length > 0 && (
-              <Image
-                source={{ uri: image[currentIndex] }}
-                style={styles.image}
-              />
-            )}
+                <View style={styles.popupOverlay}>
+               <View style={styles.popupModal}>
 
-            {/* CLOSE */}
-            <TouchableOpacity
+           <TouchableOpacity
+
               style={styles.closeBtn}
-              onPress={() => {
-                setVisible(false);
-                setCurrentIndex(0); // reset
-              }}
+
+              onPress={() => setVisible(false)}
+
             >
-              <Text style={styles.closeText}>X</Text>
+
+              <Text style={styles.closeText}>
+                ✖
+              </Text>
+
+
             </TouchableOpacity>
 
-            {/* DOTS */}
-            <View style={styles.dots}>
-              {image.map((_, i) => (
-                <View
-                  key={i}
-                  style={[
-                    styles.dot,
-                    currentIndex === i && styles.activeDot
-                  ]}
-                />
-              ))}
+
+             <Image
+
+              source={images[currentImage]}
+
+              style={styles.popupImage}
+
+              resizeMode="contain"
+
+            />
+
+
+                 <View style={styles.carouselDots}>
+
+
+              {
+                images.map((_, index) => (
+
+                  <View
+
+                    key={index}
+
+                    style={[
+
+                      styles.dot,
+
+                      currentImage === index && styles.activeDot
+
+                    ]}
+                    />
+                    ))
+              }
             </View>
-
           </View>
-
-        </View>
-      </Modal>
-
+            </View>
+        </Modal>
     </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
@@ -447,75 +488,73 @@ const styles = StyleSheet.create({
 
 
 
-   screen: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center"
-  },
+  dashboardWrapper: {
+       flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
+      backgroundColor: "#f2f2f2"
+     },
 
-  overlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.6)",
-    justifyContent: "flex-start",
-    alignItems: "center"
-  },
+    popupOverlay: {
+       flex: 1,
+       backgroundColor: "#000",
+       justifyContent: "flex-start",
+        alignItems: "center"
+          },
 
-  popup: {
-    width: "100%",                 
-    height: height * 0.55,        
-    backgroundColor: "#fff",
-    borderBottomLeftRadius: 25,
-    borderBottomRightRadius: 25,
-    justifyContent: "center",     
-    alignItems: "center",         
-    overflow: "hidden",
-    paddingVertical: 10
-  },
+         popupModal: {
+          width: "100%",
+           height: height * 0.75,
+          maxHeight: 700,
+           backgroundColor: "#fff",
+            borderBottomLeftRadius: 25,
+           borderBottomRightRadius: 25,
+           justifyContent: "center",
+           alignItems: "center",
+           overflow: "hidden"
+             },
 
-  image: {
-    width: "100%",                
-    height: "75%",
-    resizeMode: "contain"         
-  },
+    closeBtn: {
+       position: "absolute",
+      top: 15,
+       right: 20,
+      zIndex: 10
+        },
 
-  closeBtn: {
-    position: "absolute",
-    top: 15,
-    right: 15,
-    backgroundColor: "red",
-    padding: 8,
-    borderRadius: 20,
-    zIndex: 10
-  },
+          closeText: {
+           fontSize: 25,
+          color: "#ff6600",
+          fontWeight: "bold"
+          },
 
-  closeText: {
-    color: "#fff",
-    fontSize: 14,
-    fontWeight: "bold"
-  },
 
-  dots: {
-    position: "absolute",
-    bottom: 10,
-    flexDirection: "row",
-    alignSelf: "center"
-  },
+     popupImage: {
+      width: width * 0.92,
+      height: height * 0.55,
+      alignSelf: "center"
+       },
 
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: "#ccc",
-    margin: 4
-  },
+      carouselDots: {
+           position: "absolute",
+         bottom: 25,
+         flexDirection: "row"
+          },
 
-  activeDot: {
-    backgroundColor: "orange",
-    width: 10,
-    height: 10
-  }
+          dot: {
+           width: 8,
+          height: 8,
+          borderRadius: 10,
+         backgroundColor: "#ccc",
+         marginHorizontal: 5
+           },
+
+        activeDot: {
+           width: 15,
+          backgroundColor: "#ff6600"
+         }
 
 });
+
 
 
 
