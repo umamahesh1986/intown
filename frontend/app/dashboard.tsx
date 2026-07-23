@@ -489,69 +489,98 @@ const styles = StyleSheet.create({
 
 
   dashboardWrapper: {
-       flex: 1,
-      justifyContent: "center",
-      alignItems: "center",
-      backgroundColor: "#f2f2f2"
-     },
+  flex: 1,
+  justifyContent: "center",
+  alignItems: "center",
+  backgroundColor: "#f2f2f2",
+},
 
-    popupOverlay: {
-       flex: 1,
-       backgroundColor: "#000",
-       justifyContent: "flex-start",
-        alignItems: "center"
-          },
+popupOverlay: {
+  flex: 1,
+  backgroundColor: "#00000099",
+  justifyContent: "flex-start",
+  alignItems: "center",
+},
 
-         popupModal: {
-          width: "100%",
-           height: height * 0.75,
-          maxHeight: 700,
-           backgroundColor: "#fff",
-            borderBottomLeftRadius: 25,
-           borderBottomRightRadius: 25,
-           justifyContent: "center",
-           alignItems: "center",
-           overflow: "hidden"
-             },
+popupModal: {
+  width: "100%",
+  height: height * 0.75,
+  maxHeight: 700,
+  backgroundColor: "#fff",
+  borderBottomLeftRadius: 25,
+  borderBottomRightRadius: 25,
+  justifyContent: "center",
+  alignItems: "center",
+  overflow: "hidden",
 
-    closeBtn: {
-       position: "absolute",
-      top: 15,
-       right: 20,
-      zIndex: 10
-        },
-
-          closeText: {
-           fontSize: 25,
-          color: "#ff6600",
-          fontWeight: "bold"
-          },
+  elevation: 10,
+  shadowColor: "#fff",
+  shadowOpacity: 0.25,
+  shadowOffset: { width: 0, height: 5 },
+  shadowRadius: 10,
+},
 
 
-     popupImage: {
-      width: width * 0.92,
-      height: height * 0.55,
-      alignSelf: "center"
-       },
+closeBtn: {
+  position: "absolute",
+  top: 12,
+  right: 16,
+  zIndex: 30,
 
-      carouselDots: {
-           position: "absolute",
-         bottom: 25,
-         flexDirection: "row"
-          },
+  width: 46,
+  height: 46,
+  borderRadius: 30,
 
-          dot: {
-           width: 8,
-          height: 8,
-          borderRadius: 10,
-         backgroundColor: "#ccc",
-         marginHorizontal: 5
-           },
+  justifyContent: "center",
+  alignItems: "center",
 
-        activeDot: {
-           width: 15,
-          backgroundColor: "#ff6600"
-         }
+  backgroundColor: "#ff6600",
+
+  borderWidth: 1.5,
+  borderColor: "#ff6600",
+
+  elevation: 8,
+  shadowColor: "#ff6600",
+  shadowOpacity: 0.3,
+  shadowOffset: { width: 0, height: 4 },
+  shadowRadius: 8,
+},
+
+closeText: {
+  fontSize: 20,
+  color: "#fff",
+  fontWeight: "900",
+},
+
+popupImage: {
+  width: width * 0.92,
+  height: height * 0.55,
+  resizeMode: "contain",
+  alignSelf: "center",
+},
+
+carouselDots: {
+  position: "absolute",
+  bottom: 25,
+  flexDirection: "row",
+  justifyContent: "center",
+  alignItems: "center",
+},
+
+dot: {
+  width: 8,
+  height: 8,
+  borderRadius: 10,
+  backgroundColor: "#ccc",
+  marginHorizontal: 5,
+},
+
+activeDot: {
+  width: 16,
+  height: 8,
+  borderRadius: 10,
+  backgroundColor: "#ff6600",
+}
 
 });
 
