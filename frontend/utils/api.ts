@@ -622,7 +622,72 @@ export const getCategories = async (forRegistration: boolean = false) => {
 /* ===============================
    MERCHANT CATEGORY-PRODUCT  API
 ================================ */
-export const getProductsByCategory = async (categoryId: number) => {
+
+// Normalized product returned by all product APIs.
+// Handles both the flat legacy shape ([{id, name, s3ImageUrl?}]) AND the
+// grouped shape returned by /IN/products/ (keys: LooseByWeight_KG_Grams,
+// LooseByVolume_ML_Liters, Packaged_PiecePack — each with unit_options + products[]).
+export interface NormalizedProduct {
+  id: number;
+  name: string;
+  s3ImageUrl?: string | null;
+  groupType?: string;
+  unitOptions?: string[];
+}
+
+/**
+ * Flattens any product API response into a flat array of NormalizedProduct.
+ * - Grouped dict → walks all top-level groups whose values have `products[]`.
+ * - Flat array → returned as-is (with fields preserved).
+ * - `data`-wrapped payload → unwrapped first.
+ * "custom (...)" unit_options are stripped so the caller only sees fixed units.
+ */
+export const flattenGroupedProducts = (raw: any): NormalizedProduct[] => {
+  if (!raw) return [];
+  const payload = raw?.data && !Array.isArray(raw) && (raw?.data?.products || Array.isArray(raw?.data))
+    ? raw.data
+    : raw;
+
+  // Case 1: flat array
+  if (Array.isArray(payload)) {
+    return payload
+      .filter((p: any) => p && typeof p === 'object' && (p.id !== undefined) && (p.name !== undefined))
+      .map((p: any) => ({
+        id: Number(p.id),
+        name: String(p.name),
+        s3ImageUrl: p.s3ImageUrl ?? null,
+        groupType: p.groupType,
+        unitOptions: Array.isArray(p.unitOptions) ? p.unitOptions : undefined,
+      }));
+  }
+
+  // Case 2: grouped dict
+  if (typeof payload === 'object') {
+    const out: NormalizedProduct[] = [];
+    Object.keys(payload).forEach((key) => {
+      const group = payload[key];
+      if (!group || typeof group !== 'object' || !Array.isArray(group.products)) return;
+      const rawUnits: string[] = Array.isArray(group.unit_options) ? group.unit_options : [];
+      const unitOptions = rawUnits.filter((u) => !/^custom/i.test(String(u).trim()));
+      (group.products as any[]).forEach((p: any) => {
+        if (p && (p.id !== undefined) && (p.name !== undefined)) {
+          out.push({
+            id: Number(p.id),
+            name: String(p.name),
+            s3ImageUrl: p.s3ImageUrl ?? null,
+            groupType: key,
+            unitOptions,
+          });
+        }
+      });
+    });
+    return out;
+  }
+
+  return [];
+};
+
+export const getProductsByCategory = async (categoryId: number): Promise<NormalizedProduct[]> => {
   const response = await fetch(
     `${INTOWN_API_BASE}/products/by-category/${categoryId}`
   );
@@ -631,7 +696,16 @@ export const getProductsByCategory = async (categoryId: number) => {
     throw new Error('Failed to fetch products');
   }
 
-  return response.json();
+  const raw = await response.json();
+  return flattenGroupedProducts(raw);
+};
+
+// Fetch full grouped products (all categories) — used by search and Order modal.
+export const getAllProducts = async (): Promise<NormalizedProduct[]> => {
+  const response = await fetch(`${INTOWN_API_BASE}/products/`);
+  if (!response.ok) throw new Error('Failed to fetch products');
+  const raw = await response.json();
+  return flattenGroupedProducts(raw);
 };
 export const getCustomerProfile = async (customerId: number) => {
   const res = await fetch(
@@ -822,16 +896,14 @@ export const searchProducts = async (text: string) => {
     throw new Error('Products API failed');
   }
 
-  const data = await res.json();
-
-  // 🔍 filter locally for auto-suggestions
-  return Array.isArray(data)
-    ? data.filter((item: any) =>
-        (item.productName || item.name || '')
-          .toLowerCase()
-          .includes(text.toLowerCase())
-      )
-    : [];
+  const raw = await res.json();
+  // Handles both grouped and flat responses (see flattenGroupedProducts)
+  const flat = flattenGroupedProducts(raw);
+  const q = (text || '').toLowerCase();
+  if (!q) return flat;
+  return flat.filter((item) =>
+    (item.name || '').toLowerCase().includes(q)
+  );
 };
 
 /* ===============================

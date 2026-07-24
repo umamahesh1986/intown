@@ -430,13 +430,7 @@ export default function RegisterMerchant() {
     try {
       const prodData = await getProductsByCategory(cat.id);
 
-      if (Array.isArray(prodData)) {
-        setProducts(prodData);
-      } else if (Array.isArray(prodData?.data)) {
-        setProducts(prodData.data);
-      } else {
-        setProducts([]);
-      }
+      setProducts(Array.isArray(prodData) ? prodData : []);
 
       // ✅ OPEN POPUP ONLY AFTER PRODUCTS ARE READY
       setShowProductModal(true);

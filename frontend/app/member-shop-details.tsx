@@ -4,7 +4,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistance } from '../utils/formatDistance';
-import { extractImageUrls, INTOWN_API_BASE, getProductsByCategory } from '../utils/api';
+import { extractImageUrls, INTOWN_API_BASE, getAllProducts } from '../utils/api';
 import { useLocationStore } from '../store/locationStore';
 import { useAuthStore } from '../store/authStore';
 import PaymentModal from '../components/PaymentModal';
@@ -274,32 +274,13 @@ export default function MemberShopDetails() {
     setShowOrderModal(true);
     setIsLoadingProducts(true);
     try {
-      const res = await fetch(`${INTOWN_API_BASE}/products/`, {
-        method: 'GET',
-        headers: { Accept: 'application/json' },
-      });
-      if (!res.ok) throw new Error(`Products API failed (${res.status})`);
-      const data: any = await res.json();
-
-      // Flatten grouped response into a single product list, tagging with groupType + unitOptions.
-      // Also filter out any 'custom (...)' units — we'll only show fixed options in the picker for MVP.
-      const list: OrderProduct[] = [];
-      Object.keys(data || {}).forEach((key) => {
-        const group = data[key];
-        if (!group || typeof group !== 'object' || !Array.isArray(group.products)) return;
-        const rawUnits: string[] = Array.isArray(group.unit_options) ? group.unit_options : [];
-        const unitOptions = rawUnits.filter((u) => !/^custom/i.test(u.trim()));
-        (group.products as any[]).forEach((p) => {
-          if (p && typeof p.id === 'number' && typeof p.name === 'string') {
-            list.push({
-              id: p.id,
-              name: p.name,
-              groupType: key,
-              unitOptions: unitOptions.length > 0 ? unitOptions : ['1 unit'],
-            });
-          }
-        });
-      });
+      const flat = await getAllProducts();
+      const list: OrderProduct[] = flat.map((p) => ({
+        id: p.id,
+        name: p.name,
+        groupType: p.groupType || 'Packaged_PiecePack',
+        unitOptions: p.unitOptions && p.unitOptions.length > 0 ? p.unitOptions : ['1 unit'],
+      }));
       setOrderProducts(list);
     } catch (err: any) {
       console.error('Failed to load products for order:', err);

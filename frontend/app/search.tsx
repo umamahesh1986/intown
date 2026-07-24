@@ -27,8 +27,9 @@ const VOICE_LANG_STORAGE_KEY = 'voice_search_lang';
 
 
 type SearchResult = {
-  id?: string;
+  id?: string | number;
   productName?: string;
+  name?: string;
 };
 
 const POPULAR_PRODUCTS = [
