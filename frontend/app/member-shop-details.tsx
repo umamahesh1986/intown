@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Modal, Dimensions, ActivityIndicator, Alert, Platform, TextInput } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Modal, Dimensions, ActivityIndicator, Alert, Platform } from 'react-native';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -9,10 +9,6 @@ import { useLocationStore } from '../store/locationStore';
 import { useAuthStore } from '../store/authStore';
 import PaymentModal from '../components/PaymentModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {
-  ExpoSpeechRecognitionModule,
-  useSpeechRecognitionEvent,
-} from 'expo-speech-recognition';
 
 interface ShopData {
   id: number;
@@ -78,34 +74,31 @@ export default function MemberShopDetails() {
     'electronics & home appliances',
     'groceries',
   ];
-  interface OrderProduct { id: number; name: string }
-  interface SelectedOrderItem { id: number; name: string; quantity: string; brand: string; custom?: boolean }
+
+  // Product coming from /IN/products/ grouped by unit-type
+  interface OrderProduct {
+    id: number;
+    name: string;
+    groupType: string;          // e.g. LooseByWeight_KG_Grams
+    unitOptions: string[];      // fixed unit list from API (e.g. ['100g','250g','500g','1kg'])
+  }
+  interface SelectedOrderItem {
+    id: number;
+    name: string;
+    groupType: string;
+    unit: string;
+    quantity: number;
+  }
 
   const [showOrderModal, setShowOrderModal] = useState(false);
   const [orderProducts, setOrderProducts] = useState<OrderProduct[]>([]);
-  // Keyed selection map: productId -> {name, quantity, brand}
+  // Keyed by productId → SelectedOrderItem
   const [selectedItems, setSelectedItems] = useState<Record<number, SelectedOrderItem>>({});
-  const [orderType, setOrderType] = useState<'PICKUP' | 'DELIVERY'>('PICKUP');
+  const [orderType, setOrderType] = useState<'PICKUP' | 'DELIVERY' | null>(null);
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
   const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
   const [orderError, setOrderError] = useState<string>('');
-
-  // Add / search new product
-  const [newProductQuery, setNewProductQuery] = useState('');
-
-  // Voice input state — routes transcript to whichever field the mic was pressed on
-  // format: 'q:<id>' quantity, 'b:<id>' brand, 'new' new-product search box
-  const [activeVoiceField, setActiveVoiceField] = useState<string | null>(null);
-  const [isVoiceListening, setIsVoiceListening] = useState(false);
-  const [voiceLang, setVoiceLang] = useState<string>('en-IN');
-  useEffect(() => {
-    (async () => {
-      try {
-        const stored = await AsyncStorage.getItem('voice_search_lang');
-        if (stored) setVoiceLang(stored);
-      } catch {}
-    })();
-  }, []);
+  const [unitPickerFor, setUnitPickerFor] = useState<number | null>(null); // productId whose unit picker is open
 
   // Image carousel state
   const [shopImages, setShopImages] = useState<string[]>([]);
@@ -250,25 +243,63 @@ export default function MemberShopDetails() {
     return SUPPORTED_ORDER_CATEGORIES.includes(category.trim().toLowerCase());
   };
 
+  // Deterministic pastel color per product name (Blinkit-style tile bg)
+  const productTileColor = (name: string) => {
+    const palette = ['#FFF3E0', '#E8F5E9', '#E3F2FD', '#F3E5F5', '#FFF8E1', '#FCE4EC', '#E0F7FA', '#F1F8E9'];
+    let hash = 0;
+    for (let i = 0; i < name.length; i += 1) hash = (hash * 31 + name.charCodeAt(i)) | 0;
+    return palette[Math.abs(hash) % palette.length];
+  };
+  const productAccentColor = (name: string) => {
+    const palette = ['#FF8A00', '#4CAF50', '#2196F3', '#9C27B0', '#FF8F00', '#E91E63', '#00ACC1', '#7CB342'];
+    let hash = 0;
+    for (let i = 0; i < name.length; i += 1) hash = (hash * 31 + name.charCodeAt(i)) | 0;
+    return palette[Math.abs(hash) % palette.length];
+  };
+
+  const productIconForGroup = (groupType: string): keyof typeof Ionicons.glyphMap => {
+    switch (groupType) {
+      case 'LooseByWeight_KG_Grams': return 'scale-outline';
+      case 'LooseByVolume_ML_Liters': return 'water-outline';
+      case 'Packaged_PiecePack': return 'cube-outline';
+      default: return 'pricetag-outline';
+    }
+  };
+
   const openOrderModal = async () => {
     setOrderError('');
     setSelectedItems({});
-    setOrderType('PICKUP');
-    setNewProductQuery('');
+    setOrderType(null);
+    setUnitPickerFor(null);
     setShowOrderModal(true);
-    if (!categoryId) {
-      setOrderProducts([]);
-      setOrderError('Category information missing — please reopen this shop from the category list.');
-      return;
-    }
     setIsLoadingProducts(true);
     try {
-      const data = await getProductsByCategory(Number(categoryId));
-      const list: OrderProduct[] = Array.isArray(data)
-        ? data
-        : Array.isArray((data as any)?.data)
-          ? (data as any).data
-          : [];
+      const res = await fetch(`${INTOWN_API_BASE}/products/`, {
+        method: 'GET',
+        headers: { Accept: 'application/json' },
+      });
+      if (!res.ok) throw new Error(`Products API failed (${res.status})`);
+      const data: any = await res.json();
+
+      // Flatten grouped response into a single product list, tagging with groupType + unitOptions.
+      // Also filter out any 'custom (...)' units — we'll only show fixed options in the picker for MVP.
+      const list: OrderProduct[] = [];
+      Object.keys(data || {}).forEach((key) => {
+        const group = data[key];
+        if (!group || typeof group !== 'object' || !Array.isArray(group.products)) return;
+        const rawUnits: string[] = Array.isArray(group.unit_options) ? group.unit_options : [];
+        const unitOptions = rawUnits.filter((u) => !/^custom/i.test(u.trim()));
+        (group.products as any[]).forEach((p) => {
+          if (p && typeof p.id === 'number' && typeof p.name === 'string') {
+            list.push({
+              id: p.id,
+              name: p.name,
+              groupType: key,
+              unitOptions: unitOptions.length > 0 ? unitOptions : ['1 unit'],
+            });
+          }
+        });
+      });
       setOrderProducts(list);
     } catch (err: any) {
       console.error('Failed to load products for order:', err);
@@ -279,207 +310,48 @@ export default function MemberShopDetails() {
     }
   };
 
-  const toggleOrderProduct = (product: OrderProduct) => {
+  const addOrIncrement = (product: OrderProduct) => {
     setSelectedItems((prev) => {
+      const existing = prev[product.id];
+      if (existing) {
+        return { ...prev, [product.id]: { ...existing, quantity: existing.quantity + 1 } };
+      }
+      return {
+        ...prev,
+        [product.id]: {
+          id: product.id,
+          name: product.name,
+          groupType: product.groupType,
+          unit: product.unitOptions[0] || '1 unit',
+          quantity: 1,
+        },
+      };
+    });
+  };
+
+  const decrement = (productId: number) => {
+    setSelectedItems((prev) => {
+      const existing = prev[productId];
+      if (!existing) return prev;
+      const nextQty = existing.quantity - 1;
       const next = { ...prev };
-      if (next[product.id]) {
-        delete next[product.id];
+      if (nextQty <= 0) {
+        delete next[productId];
       } else {
-        next[product.id] = { id: product.id, name: product.name, quantity: '', brand: '' };
+        next[productId] = { ...existing, quantity: nextQty };
       }
       return next;
     });
   };
 
-  const updateSelectedItemField = (
-    id: number,
-    field: 'quantity' | 'brand',
-    value: string
-  ) => {
+  const setItemUnit = (productId: number, unit: string) => {
     setSelectedItems((prev) => {
-      if (!prev[id]) return prev;
-      return { ...prev, [id]: { ...prev[id], [field]: value } };
+      const existing = prev[productId];
+      if (!existing) return prev;
+      return { ...prev, [productId]: { ...existing, unit } };
     });
+    setUnitPickerFor(null);
   };
-
-  const addCustomProduct = (nameInput?: string) => {
-    const name = (nameInput ?? newProductQuery).trim();
-    if (!name) return;
-    // Look for an existing product (case-insensitive) — reuse instead of duplicating
-    const existing = orderProducts.find((p) => p.name.toLowerCase() === name.toLowerCase());
-    if (existing) {
-      setSelectedItems((prev) => ({
-        ...prev,
-        [existing.id]: prev[existing.id] || {
-          id: existing.id,
-          name: existing.name,
-          quantity: '',
-          brand: '',
-        },
-      }));
-    } else {
-      // Generate a temporary negative id to distinguish custom products from server ones
-      const tempId = -Date.now();
-      const custom: OrderProduct = { id: tempId, name };
-      setOrderProducts((prev) => [custom, ...prev]);
-      setSelectedItems((prev) => ({
-        ...prev,
-        [tempId]: { id: tempId, name, quantity: '', brand: '', custom: true },
-      }));
-    }
-    setNewProductQuery('');
-  };
-
-  // ---------- Voice recognition (reuses expo-speech-recognition, same as search page) ----------
-  useSpeechRecognitionEvent('start', () => setIsVoiceListening(true));
-  useSpeechRecognitionEvent('end', () => setIsVoiceListening(false));
-  useSpeechRecognitionEvent('error', (event: any) => {
-    setIsVoiceListening(false);
-    const code = event?.error ?? 'unknown';
-    if (code === 'no-speech') {
-      Alert.alert('Voice', "Didn't catch that. Tap the mic and try again.");
-    } else if (code === 'not-allowed' || code === 'service-not-allowed') {
-      Alert.alert('Voice', 'Microphone permission denied.');
-    }
-    setActiveVoiceField(null);
-  });
-  useSpeechRecognitionEvent('result', (event: any) => {
-    const transcript: string | undefined = event?.results?.[0]?.transcript;
-    if (!transcript || !activeVoiceField) return;
-    if (activeVoiceField === 'new') {
-      setNewProductQuery(transcript);
-    } else {
-      const [kind, idStr] = activeVoiceField.split(':');
-      const id = Number(idStr);
-      if (kind === 'q') updateSelectedItemField(id, 'quantity', transcript);
-      else if (kind === 'b') updateSelectedItemField(id, 'brand', transcript);
-    }
-    if (event?.isFinal) {
-      setActiveVoiceField(null);
-    }
-  });
-
-  // Web Speech Recognition instance (browser-native fallback)
-  const webRecognitionRef = useRef<any>(null);
-
-  const stopWebRecognition = () => {
-    try { webRecognitionRef.current?.stop?.(); } catch {}
-    webRecognitionRef.current = null;
-  };
-
-  const startWebVoice = (field: string) => {
-    if (typeof window === 'undefined') {
-      Alert.alert('Voice unavailable', 'Voice input not supported here.');
-      return;
-    }
-    const SR: any = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SR) {
-      Alert.alert(
-        'Voice unavailable',
-        'Your browser does not support voice input. Please use Chrome, Edge, or the mobile app.'
-      );
-      return;
-    }
-    // Toggle: if already listening on same field, stop
-    if (isVoiceListening && activeVoiceField === field) {
-      stopWebRecognition();
-      setIsVoiceListening(false);
-      setActiveVoiceField(null);
-      return;
-    }
-    // If listening on a different field, stop first
-    stopWebRecognition();
-
-    try {
-      const rec = new SR();
-      rec.lang = voiceLang;
-      rec.interimResults = true;
-      rec.maxAlternatives = 1;
-      rec.continuous = false;
-      rec.onstart = () => {
-        setIsVoiceListening(true);
-        setActiveVoiceField(field);
-      };
-      rec.onerror = (ev: any) => {
-        setIsVoiceListening(false);
-        setActiveVoiceField(null);
-        const code = ev?.error || 'unknown';
-        if (code === 'not-allowed' || code === 'service-not-allowed') {
-          Alert.alert('Microphone blocked', 'Please allow microphone access in your browser and try again.');
-        } else if (code !== 'aborted' && code !== 'no-speech') {
-          Alert.alert('Voice error', `Voice recognition failed (${code}).`);
-        }
-      };
-      rec.onend = () => {
-        setIsVoiceListening(false);
-        setActiveVoiceField(null);
-      };
-      rec.onresult = (ev: any) => {
-        let transcript = '';
-        for (let i = ev.resultIndex; i < ev.results.length; i += 1) {
-          transcript += ev.results[i][0].transcript;
-        }
-        transcript = transcript.trim();
-        if (!transcript) return;
-        if (field === 'new') {
-          setNewProductQuery(transcript);
-        } else {
-          const [kind, idStr] = field.split(':');
-          const id = Number(idStr);
-          if (kind === 'q') updateSelectedItemField(id, 'quantity', transcript);
-          else if (kind === 'b') updateSelectedItemField(id, 'brand', transcript);
-        }
-      };
-      webRecognitionRef.current = rec;
-      rec.start();
-    } catch (e: any) {
-      setIsVoiceListening(false);
-      setActiveVoiceField(null);
-      Alert.alert('Voice error', e?.message || 'Unable to start voice recognition.');
-    }
-  };
-
-  const startVoice = async (field: string) => {
-    if (Platform.OS === 'web') {
-      startWebVoice(field);
-      return;
-    }
-    if (isVoiceListening) {
-      try { ExpoSpeechRecognitionModule.stop(); } catch {}
-      setActiveVoiceField(null);
-      return;
-    }
-    try {
-      const perm = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
-      if (!perm.granted) {
-        Alert.alert(
-          'Microphone permission required',
-          'Please enable microphone access in your phone settings to use voice input.'
-        );
-        return;
-      }
-      setActiveVoiceField(field);
-      ExpoSpeechRecognitionModule.start({
-        lang: voiceLang,
-        interimResults: true,
-        maxAlternatives: 1,
-        continuous: false,
-        requiresOnDeviceRecognition: false,
-        addsPunctuation: false,
-      });
-    } catch (e: any) {
-      setActiveVoiceField(null);
-      Alert.alert('Voice error', e?.message || 'Voice input unavailable on this device.');
-    }
-  };
-
-  // Cleanup speech recognition on unmount
-  useEffect(() => {
-    return () => {
-      try { ExpoSpeechRecognitionModule.stop(); } catch {}
-      stopWebRecognition();
-    };
-  }, []);
 
   const handleSubmitOrder = async () => {
     setOrderError('');
@@ -493,11 +365,15 @@ export default function MemberShopDetails() {
     }
     const selectedList = Object.values(selectedItems);
     if (selectedList.length === 0) {
-      Alert.alert('Select Products', 'Please select at least one product to order.');
+      Alert.alert('Select Products', 'Please add at least one product to order.');
+      return;
+    }
+    if (!orderType) {
+      Alert.alert('Order Type', 'Please choose Pickup or Delivery.');
       return;
     }
 
-    // Customer location: use latest known GPS
+    // Customer location: latest known GPS
     let customerLatitude: number | null = null;
     let customerLongitude: number | null = null;
     try {
@@ -514,14 +390,13 @@ export default function MemberShopDetails() {
       customerId: Number(customerId),
       merchantId: Number(shop.id),
       products: selectedList.map((item) => ({
-        id: item.custom ? null : item.id,
+        id: item.id,
         name: item.name,
-        quantity: item.quantity || null,
-        brand: item.brand || null,
-        custom: !!item.custom,
+        groupType: item.groupType,
+        unit: item.unit,
+        quantity: item.quantity,
       })),
-      productIds: selectedList.filter((i) => !i.custom).map((i) => i.id),
-      customProductNames: selectedList.filter((i) => i.custom).map((i) => i.name),
+      productIds: selectedList.map((i) => i.id),
       orderType,
       orderDateTime: new Date().toISOString(),
       customerLatitude,
@@ -543,11 +418,9 @@ export default function MemberShopDetails() {
       if (!res.ok) {
         throw new Error((data && (data as any).message) || `Order submission failed (${res.status})`);
       }
-      // Success
       setShowOrderModal(false);
       setSelectedItems({});
       setOrderProducts([]);
-      setNewProductQuery('');
       Alert.alert('Order Submitted', 'Order submitted successfully.');
     } catch (err: any) {
       console.error('Order submit error:', err);
@@ -953,7 +826,7 @@ export default function MemberShopDetails() {
         </View>
       </Modal>
 
-      {/* ================= ORDER MODAL ================= */}
+      {/* ================= ORDER MODAL (Blinkit-style, 90% height) ================= */}
       <Modal
         visible={showOrderModal}
         transparent
@@ -962,229 +835,208 @@ export default function MemberShopDetails() {
       >
         <View style={styles.orderModalOverlay}>
           <View style={styles.orderModalCard}>
+            {/* Fixed Header */}
             <View style={styles.orderModalHeader}>
-              <Text style={styles.orderModalTitle}>Place Order</Text>
-              <TouchableOpacity onPress={() => setShowOrderModal(false)} testID="close-order-modal-btn">
-                <Ionicons name="close" size={24} color="#666" />
-              </TouchableOpacity>
-            </View>
-            <Text style={styles.orderModalSubtitle}>{shop.businessName}</Text>
-
-            {/* Add / Search Product Row */}
-            <Text style={styles.orderSectionLabel}>Add Product</Text>
-            <View style={styles.addProductRow}>
-              <View style={styles.addProductInputWrap}>
-                <Ionicons name="search" size={16} color="#999" />
-                <TextInput
-                  style={styles.addProductInput}
-                  value={newProductQuery}
-                  onChangeText={setNewProductQuery}
-                  placeholder="Search or type a product name…"
-                  placeholderTextColor="#999"
-                  onSubmitEditing={() => addCustomProduct()}
-                  returnKeyType="done"
-                  testID="order-new-product-input"
-                />
-                <TouchableOpacity
-                  onPress={() => startVoice('new')}
-                  style={styles.addProductMicBtn}
-                  testID="order-new-product-mic-btn"
-                >
-                  <Ionicons
-                    name={activeVoiceField === 'new' && isVoiceListening ? 'mic' : 'mic-outline'}
-                    size={18}
-                    color={activeVoiceField === 'new' && isVoiceListening ? '#D32F2F' : '#FF8A00'}
-                  />
-                </TouchableOpacity>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.orderModalTitle} numberOfLines={1}>Place Order</Text>
+                <Text style={styles.orderModalSubtitle} numberOfLines={1}>{shop.businessName}</Text>
               </View>
-              <TouchableOpacity
-                style={[styles.addProductAddBtn, !newProductQuery.trim() && styles.addProductAddBtnDisabled]}
-                onPress={() => addCustomProduct()}
-                disabled={!newProductQuery.trim()}
-                testID="order-new-product-add-btn"
-              >
-                <Ionicons name="add" size={20} color="#FFFFFF" />
-                <Text style={styles.addProductAddBtnText}>Add</Text>
+              <TouchableOpacity onPress={() => setShowOrderModal(false)} style={styles.orderModalCloseBtn} testID="close-order-modal-btn">
+                <Ionicons name="close" size={22} color="#333" />
               </TouchableOpacity>
             </View>
 
-            {/* Type-ahead suggestions from loaded products */}
-            {newProductQuery.trim().length > 0 && (() => {
-              const q = newProductQuery.trim().toLowerCase();
-              const suggestions = orderProducts.filter((p) => p.name.toLowerCase().includes(q)).slice(0, 5);
-              if (suggestions.length === 0) return null;
-              return (
-                <View style={styles.suggestionsBox}>
-                  {suggestions.map((s) => (
-                    <TouchableOpacity
-                      key={`sug-${s.id}`}
-                      style={styles.suggestionRow}
-                      onPress={() => addCustomProduct(s.name)}
-                      testID={`order-suggestion-${s.id}`}
-                    >
-                      <Ionicons name="return-down-forward" size={14} color="#999" />
-                      <Text style={styles.suggestionText}>{s.name}</Text>
-                    </TouchableOpacity>
-                  ))}
+            {/* Scrollable Content */}
+            <ScrollView
+              style={styles.orderModalScroll}
+              contentContainerStyle={styles.orderModalScrollContent}
+              showsVerticalScrollIndicator={false}
+              nestedScrollEnabled
+            >
+              <Text style={styles.orderSectionLabel}>Select Products</Text>
+
+              {isLoadingProducts ? (
+                <View style={styles.orderProductsLoading}>
+                  <ActivityIndicator color="#FF8A00" />
+                  <Text style={styles.orderProductsLoadingText}>Loading products...</Text>
                 </View>
-              );
-            })()}
+              ) : orderProducts.length === 0 ? (
+                <View style={styles.orderProductsEmpty}>
+                  <Ionicons name="cube-outline" size={28} color="#BBB" />
+                  <Text style={styles.orderProductsEmptyText}>
+                    {orderError || 'No products available.'}
+                  </Text>
+                  {!!orderError && (
+                    <TouchableOpacity style={styles.retryBtn} onPress={openOrderModal} testID="retry-load-products-btn">
+                      <Ionicons name="refresh" size={16} color="#FFFFFF" />
+                      <Text style={styles.retryBtnText}>Retry</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              ) : (
+                <View style={styles.productsGrid}>
+                  {orderProducts.map((product) => {
+                    const item = selectedItems[product.id];
+                    const qty = item?.quantity || 0;
+                    const tileBg = productTileColor(product.name);
+                    const accent = productAccentColor(product.name);
+                    const iconName = productIconForGroup(product.groupType);
+                    const currentUnit = item?.unit || product.unitOptions[0] || '1 unit';
+                    return (
+                      <View key={product.id} style={styles.productCard} testID={`product-card-${product.id}`}>
+                        {/* Image placeholder */}
+                        <View style={[styles.productImageWrap, { backgroundColor: tileBg }]}>
+                          <Ionicons name={iconName} size={36} color={accent} />
+                        </View>
 
-            <Text style={styles.orderSectionLabel}>Select Products</Text>
-            {isLoadingProducts ? (
-              <View style={styles.orderProductsLoading}>
-                <ActivityIndicator color="#FF8A00" />
-                <Text style={styles.orderProductsLoadingText}>Loading products...</Text>
-              </View>
-            ) : orderProducts.length === 0 ? (
-              <View style={styles.orderProductsEmpty}>
-                <Ionicons name="cube-outline" size={28} color="#BBB" />
-                <Text style={styles.orderProductsEmptyText}>
-                  {orderError || 'No products available for this category. Use "Add Product" above to add your own.'}
-                </Text>
-              </View>
-            ) : (
-              <ScrollView style={styles.orderProductsList} nestedScrollEnabled>
-                {orderProducts.map((product) => {
-                  const selected = !!selectedItems[product.id];
-                  const item = selectedItems[product.id];
-                  return (
-                    <View key={product.id} style={styles.orderProductBlock}>
-                      <TouchableOpacity
-                        style={styles.orderProductRow}
-                        onPress={() => toggleOrderProduct(product)}
-                        testID={`order-product-row-${product.id}`}
-                      >
-                        <Ionicons
-                          name={selected ? 'checkbox' : 'square-outline'}
-                          size={22}
-                          color={selected ? '#FF8A00' : '#999'}
-                        />
-                        <Text style={styles.orderProductText}>{product.name}</Text>
-                        {item?.custom && (
-                          <View style={styles.customBadge}>
-                            <Text style={styles.customBadgeText}>Custom</Text>
+                        {/* Name */}
+                        <Text style={styles.productCardName} numberOfLines={2}>{product.name}</Text>
+
+                        {/* Unit selector */}
+                        <TouchableOpacity
+                          style={styles.unitChip}
+                          onPress={() => setUnitPickerFor(unitPickerFor === product.id ? null : product.id)}
+                          testID={`unit-picker-${product.id}`}
+                        >
+                          <Text style={styles.unitChipText}>{currentUnit}</Text>
+                          <Ionicons name="chevron-down" size={12} color="#666" />
+                        </TouchableOpacity>
+
+                        {unitPickerFor === product.id && (
+                          <View style={styles.unitDropdown}>
+                            {product.unitOptions.map((u) => {
+                              const selected = u === currentUnit;
+                              return (
+                                <TouchableOpacity
+                                  key={u}
+                                  style={[styles.unitOption, selected && styles.unitOptionSelected]}
+                                  onPress={() => {
+                                    if (item) {
+                                      setItemUnit(product.id, u);
+                                    } else {
+                                      // Not yet added — just remember for future +
+                                      setSelectedItems((prev) => ({
+                                        ...prev,
+                                        [product.id]: {
+                                          id: product.id,
+                                          name: product.name,
+                                          groupType: product.groupType,
+                                          unit: u,
+                                          quantity: 0,
+                                        },
+                                      }));
+                                      setUnitPickerFor(null);
+                                    }
+                                  }}
+                                  testID={`unit-option-${product.id}-${u}`}
+                                >
+                                  <Text style={[styles.unitOptionText, selected && styles.unitOptionTextSelected]}>{u}</Text>
+                                </TouchableOpacity>
+                              );
+                            })}
                           </View>
                         )}
-                      </TouchableOpacity>
 
-                      {selected && (
-                        <View style={styles.qtyBrandCard}>
-                          {/* Quantity */}
-                          <Text style={styles.qtyBrandLabel}>Quantity</Text>
-                          <View style={styles.qtyBrandInputWrap}>
-                            <TextInput
-                              style={styles.qtyBrandInput}
-                              value={item.quantity}
-                              onChangeText={(t) => updateSelectedItemField(product.id, 'quantity', t)}
-                              placeholder="e.g. 2 packs, 500g, 1 dozen"
-                              placeholderTextColor="#B0B0B0"
-                              testID={`order-qty-input-${product.id}`}
-                            />
+                        {/* +Add or -/qty/+ control */}
+                        {qty === 0 ? (
+                          <TouchableOpacity
+                            style={[styles.addBtn, { borderColor: accent }]}
+                            onPress={() => addOrIncrement(product)}
+                            testID={`add-product-${product.id}`}
+                          >
+                            <Ionicons name="add" size={16} color={accent} />
+                            <Text style={[styles.addBtnText, { color: accent }]}>Add</Text>
+                          </TouchableOpacity>
+                        ) : (
+                          <View style={[styles.qtyControl, { backgroundColor: accent }]}>
                             <TouchableOpacity
-                              style={styles.qtyBrandMicBtn}
-                              onPress={() => startVoice(`q:${product.id}`)}
-                              testID={`order-qty-mic-${product.id}`}
+                              style={styles.qtyBtn}
+                              onPress={() => decrement(product.id)}
+                              testID={`decrement-product-${product.id}`}
                             >
-                              <Ionicons
-                                name={activeVoiceField === `q:${product.id}` && isVoiceListening ? 'mic' : 'mic-outline'}
-                                size={16}
-                                color={activeVoiceField === `q:${product.id}` && isVoiceListening ? '#D32F2F' : '#FF8A00'}
-                              />
+                              <Ionicons name="remove" size={16} color="#FFFFFF" />
+                            </TouchableOpacity>
+                            <Text style={styles.qtyValue}>{qty}</Text>
+                            <TouchableOpacity
+                              style={styles.qtyBtn}
+                              onPress={() => addOrIncrement(product)}
+                              testID={`increment-product-${product.id}`}
+                            >
+                              <Ionicons name="add" size={16} color="#FFFFFF" />
                             </TouchableOpacity>
                           </View>
-
-                          {/* Brand */}
-                          <Text style={[styles.qtyBrandLabel, { marginTop: 8 }]}>Brand (optional)</Text>
-                          <View style={styles.qtyBrandInputWrap}>
-                            <TextInput
-                              style={styles.qtyBrandInput}
-                              value={item.brand}
-                              onChangeText={(t) => updateSelectedItemField(product.id, 'brand', t)}
-                              placeholder="e.g. Amul, Nestle, Any brand"
-                              placeholderTextColor="#B0B0B0"
-                              testID={`order-brand-input-${product.id}`}
-                            />
-                            <TouchableOpacity
-                              style={styles.qtyBrandMicBtn}
-                              onPress={() => startVoice(`b:${product.id}`)}
-                              testID={`order-brand-mic-${product.id}`}
-                            >
-                              <Ionicons
-                                name={activeVoiceField === `b:${product.id}` && isVoiceListening ? 'mic' : 'mic-outline'}
-                                size={16}
-                                color={activeVoiceField === `b:${product.id}` && isVoiceListening ? '#D32F2F' : '#FF8A00'}
-                              />
-                            </TouchableOpacity>
-                          </View>
-                        </View>
-                      )}
-                    </View>
-                  );
-                })}
-              </ScrollView>
-            )}
-
-            <Text style={styles.orderSectionLabel}>Order Type</Text>
-            <View style={styles.orderTypeRow}>
-              <TouchableOpacity
-                style={[styles.orderTypeChip, orderType === 'PICKUP' && styles.orderTypeChipActive]}
-                onPress={() => setOrderType('PICKUP')}
-                testID="order-type-pickup-btn"
-              >
-                <Ionicons
-                  name="walk-outline"
-                  size={18}
-                  color={orderType === 'PICKUP' ? '#FFF' : '#FF8A00'}
-                />
-                <Text
-                  style={[styles.orderTypeChipText, orderType === 'PICKUP' && styles.orderTypeChipTextActive]}
-                >
-                  Pickup
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.orderTypeChip, orderType === 'DELIVERY' && styles.orderTypeChipActive]}
-                onPress={() => setOrderType('DELIVERY')}
-                testID="order-type-delivery-btn"
-              >
-                <Ionicons
-                  name="bicycle-outline"
-                  size={18}
-                  color={orderType === 'DELIVERY' ? '#FFF' : '#FF8A00'}
-                />
-                <Text
-                  style={[styles.orderTypeChipText, orderType === 'DELIVERY' && styles.orderTypeChipTextActive]}
-                >
-                  Delivery
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            {!!orderError && orderProducts.length > 0 && (
-              <View style={styles.orderErrorBanner} testID="order-error-banner">
-                <Ionicons name="alert-circle" size={18} color="#D32F2F" />
-                <Text style={styles.orderErrorText}>{orderError}</Text>
-              </View>
-            )}
-
-            <TouchableOpacity
-              style={[
-                styles.orderSubmitBtn,
-                (isSubmittingOrder || Object.keys(selectedItems).length === 0) && styles.orderSubmitBtnDisabled,
-              ]}
-              onPress={handleSubmitOrder}
-              disabled={isSubmittingOrder || Object.keys(selectedItems).length === 0}
-              testID="submit-order-btn"
-            >
-              {isSubmittingOrder ? (
-                <ActivityIndicator color="#FFF" />
-              ) : (
-                <Text style={styles.orderSubmitBtnText}>
-                  Submit Order{Object.keys(selectedItems).length > 0 ? ` (${Object.keys(selectedItems).length})` : ''}
-                </Text>
+                        )}
+                      </View>
+                    );
+                  })}
+                </View>
               )}
-            </TouchableOpacity>
+            </ScrollView>
+
+            {/* Fixed Bottom Section */}
+            <View style={styles.orderModalFooter}>
+              {/* Order Type chips */}
+              <Text style={styles.orderFooterLabel}>Order Type</Text>
+              <View style={styles.orderTypeRow}>
+                <TouchableOpacity
+                  style={[styles.orderTypeChip, orderType === 'PICKUP' && styles.orderTypeChipActive]}
+                  onPress={() => setOrderType('PICKUP')}
+                  testID="order-type-pickup-btn"
+                >
+                  <Ionicons
+                    name="walk-outline"
+                    size={16}
+                    color={orderType === 'PICKUP' ? '#FFF' : '#FF8A00'}
+                  />
+                  <Text style={[styles.orderTypeChipText, orderType === 'PICKUP' && styles.orderTypeChipTextActive]}>Pickup</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.orderTypeChip, orderType === 'DELIVERY' && styles.orderTypeChipActive]}
+                  onPress={() => setOrderType('DELIVERY')}
+                  testID="order-type-delivery-btn"
+                >
+                  <Ionicons
+                    name="bicycle-outline"
+                    size={16}
+                    color={orderType === 'DELIVERY' ? '#FFF' : '#FF8A00'}
+                  />
+                  <Text style={[styles.orderTypeChipText, orderType === 'DELIVERY' && styles.orderTypeChipTextActive]}>Delivery</Text>
+                </TouchableOpacity>
+              </View>
+
+              {!!orderError && orderProducts.length > 0 && (
+                <View style={styles.orderErrorBanner} testID="order-error-banner">
+                  <Ionicons name="alert-circle" size={16} color="#D32F2F" />
+                  <Text style={styles.orderErrorText} numberOfLines={2}>{orderError}</Text>
+                </View>
+              )}
+
+              {(() => {
+                const totalItems = Object.values(selectedItems).reduce((sum, i) => sum + (i.quantity || 0), 0);
+                const canSubmit = totalItems > 0 && !!orderType && !isSubmittingOrder;
+                return (
+                  <TouchableOpacity
+                    style={[styles.orderSubmitBtn, !canSubmit && styles.orderSubmitBtnDisabled]}
+                    onPress={handleSubmitOrder}
+                    disabled={!canSubmit}
+                    testID="submit-order-btn"
+                  >
+                    {isSubmittingOrder ? (
+                      <ActivityIndicator color="#FFF" />
+                    ) : (
+                      <>
+                        <Text style={styles.orderSubmitBtnText}>Submit Order</Text>
+                        {totalItems > 0 && (
+                          <View style={styles.submitBadge}>
+                            <Text style={styles.submitBadgeText}>{totalItems} {totalItems === 1 ? 'item' : 'items'}</Text>
+                          </View>
+                        )}
+                      </>
+                    )}
+                  </TouchableOpacity>
+                );
+              })()}
+            </View>
           </View>
         </View>
       </Modal>
@@ -1380,7 +1232,7 @@ const styles = StyleSheet.create({
     height: '80%',
   },
 
-  // ================= ORDER FEATURE STYLES =================
+  // ================= ORDER FEATURE STYLES (Blinkit-style) =================
   orderBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1403,63 +1255,178 @@ const styles = StyleSheet.create({
   },
   orderModalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.45)',
+    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'flex-end',
   },
   orderModalCard: {
     backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 24,
-    maxHeight: '85%',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    height: '90%',
+    overflow: 'hidden',
   },
   orderModalHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4,
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+    backgroundColor: '#FFFFFF',
   },
   orderModalTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '800',
     color: '#1A1A1A',
   },
   orderModalSubtitle: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#666',
-    marginBottom: 16,
+    marginTop: 2,
+  },
+  orderModalCloseBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: '#F5F5F5',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  orderModalScroll: {
+    flex: 1,
+    backgroundColor: '#FAFAFA',
+  },
+  orderModalScrollContent: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 24,
   },
   orderSectionLabel: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#333',
-    marginTop: 8,
-    marginBottom: 8,
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#1A1A1A',
+    marginBottom: 12,
+    marginTop: 4,
   },
-  orderProductsList: {
-    maxHeight: 260,
-    marginBottom: 8,
+
+  // Grid of product cards
+  productsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  productCard: {
+    width: '48%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 10,
+    marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#EEE',
-    borderRadius: 10,
-    paddingHorizontal: 8,
+    borderColor: '#EDEDED',
   },
-  orderProductRow: {
+  productImageWrap: {
+    width: '100%',
+    aspectRatio: 1,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+  productCardName: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#1A1A1A',
+    marginBottom: 6,
+    minHeight: 34,
+  },
+  unitChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 10,
-    gap: 10,
+    justifyContent: 'space-between',
+    backgroundColor: '#F5F5F5',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#E5E5E5',
   },
-  orderProductText: {
+  unitChipText: {
+    fontSize: 12,
+    color: '#333',
+    fontWeight: '600',
+    marginRight: 6,
+  },
+  unitDropdown: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E5E5E5',
+    marginBottom: 10,
+    marginTop: -6,
+    overflow: 'hidden',
+  },
+  unitOption: {
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F5F5F5',
+  },
+  unitOptionSelected: {
+    backgroundColor: '#FFF3E0',
+  },
+  unitOptionText: {
+    fontSize: 12,
+    color: '#333',
+    fontWeight: '500',
+  },
+  unitOptionTextSelected: {
+    color: '#FF8A00',
+    fontWeight: '700',
+  },
+  addBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    borderWidth: 1.5,
+    borderRadius: 10,
+    paddingVertical: 8,
+    backgroundColor: '#FFFFFF',
+  },
+  addBtnText: {
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  qtyControl: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderRadius: 10,
+    paddingVertical: 6,
+    paddingHorizontal: 6,
+  },
+  qtyBtn: {
+    width: 26,
+    height: 26,
+    borderRadius: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.15)',
+  },
+  qtyValue: {
     fontSize: 14,
-    color: '#1A1A1A',
-    flex: 1,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    minWidth: 22,
+    textAlign: 'center',
   },
+
   orderProductsLoading: {
     alignItems: 'center',
-    paddingVertical: 20,
+    paddingVertical: 40,
   },
   orderProductsLoadingText: {
     marginTop: 8,
@@ -1468,8 +1435,8 @@ const styles = StyleSheet.create({
   },
   orderProductsEmpty: {
     alignItems: 'center',
-    padding: 20,
-    backgroundColor: '#FAFAFA',
+    padding: 24,
+    backgroundColor: '#FFFFFF',
     borderRadius: 10,
     borderWidth: 1,
     borderColor: '#EEE',
@@ -1479,6 +1446,35 @@ const styles = StyleSheet.create({
     color: '#888',
     fontSize: 13,
     textAlign: 'center',
+    marginBottom: 12,
+  },
+  retryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#FF8A00',
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  retryBtnText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 13,
+  },
+
+  // Fixed bottom footer
+  orderModalFooter: {
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#EEE',
+    backgroundColor: '#FFFFFF',
+  },
+  orderFooterLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#666',
+    marginBottom: 8,
   },
   orderTypeRow: {
     flexDirection: 'row',
@@ -1491,7 +1487,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    paddingVertical: 12,
+    paddingVertical: 10,
     borderRadius: 10,
     borderWidth: 1,
     borderColor: '#FF8A00',
@@ -1515,25 +1511,26 @@ const styles = StyleSheet.create({
     gap: 8,
     backgroundColor: '#FDECEA',
     borderRadius: 10,
-    paddingVertical: 10,
+    paddingVertical: 8,
     paddingHorizontal: 12,
     borderWidth: 1,
     borderColor: '#F5C2C0',
-    marginTop: 4,
     marginBottom: 8,
   },
   orderErrorText: {
     color: '#D32F2F',
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
     flex: 1,
   },
   orderSubmitBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
     backgroundColor: '#FF8A00',
     borderRadius: 12,
     paddingVertical: 14,
-    alignItems: 'center',
-    marginTop: 8,
   },
   orderSubmitBtnDisabled: {
     backgroundColor: '#CCCCCC',
@@ -1541,120 +1538,17 @@ const styles = StyleSheet.create({
   orderSubmitBtnText: {
     color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '800',
   },
-
-  // Add Product row + suggestions
-  addProductRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 6,
-  },
-  addProductInputWrap: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#DDD',
-    borderRadius: 10,
+  submitBadge: {
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    borderRadius: 999,
     paddingHorizontal: 10,
-    backgroundColor: '#FFF',
-    gap: 6,
-  },
-  addProductInput: {
-    flex: 1,
-    fontSize: 14,
-    color: '#1A1A1A',
-    paddingVertical: 10,
-  },
-  addProductMicBtn: {
-    padding: 6,
-  },
-  addProductAddBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    backgroundColor: '#FF8A00',
-    borderRadius: 10,
-    paddingHorizontal: 14,
-  },
-  addProductAddBtnDisabled: {
-    backgroundColor: '#CCCCCC',
-  },
-  addProductAddBtnText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  suggestionsBox: {
-    backgroundColor: '#FAFAFA',
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#EEE',
-    marginBottom: 8,
-    paddingHorizontal: 10,
-  },
-  suggestionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-  },
-  suggestionText: {
-    fontSize: 13,
-    color: '#333',
-    flex: 1,
-  },
-  orderProductBlock: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#F5F5F5',
-  },
-  customBadge: {
-    backgroundColor: '#FFF3E0',
-    paddingHorizontal: 8,
     paddingVertical: 2,
-    borderRadius: 10,
   },
-  customBadgeText: {
-    color: '#FF8A00',
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  qtyBrandCard: {
-    backgroundColor: '#FFF8F0',
-    borderRadius: 10,
-    padding: 10,
-    marginBottom: 8,
-    marginTop: 4,
-    marginLeft: 30,
-    borderWidth: 1,
-    borderColor: '#FFE1BF',
-  },
-  qtyBrandLabel: {
+  submitBadgeText: {
+    color: '#FFFFFF',
     fontSize: 12,
     fontWeight: '700',
-    color: '#666',
-    marginBottom: 4,
-  },
-  qtyBrandInputWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#F0DABB',
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    backgroundColor: '#FFF',
-  },
-  qtyBrandInput: {
-    flex: 1,
-    fontSize: 13,
-    color: '#1A1A1A',
-    paddingVertical: 8,
-  },
-  qtyBrandMicBtn: {
-    padding: 4,
   },
 });
