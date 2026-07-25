@@ -702,7 +702,7 @@ export const getProductsByCategory = async (categoryId: number): Promise<Normali
 
 // Fetch full grouped products (all categories) — used by search and Order modal.
 export const getAllProducts = async (): Promise<NormalizedProduct[]> => {
-  const response = await fetch(`${INTOWN_API_BASE}/products/`);
+  const response = await fetch(`${INTOWN_API_BASE}/products/all-products-grouping`);
   if (!response.ok) throw new Error('Failed to fetch products');
   const raw = await response.json();
   return flattenGroupedProducts(raw);
@@ -889,7 +889,7 @@ export const getMerchantImagesByShopId = async (
 
 export const searchProducts = async (text: string) => {
   const res = await fetch(
-    `${INTOWN_API_BASE}/products/`
+    `${INTOWN_API_BASE}/products/all-products-grouping`
   );
 
   if (!res.ok) {

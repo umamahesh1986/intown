@@ -94,12 +94,15 @@ export default function MemberShopDetails() {
   const [orderProducts, setOrderProducts] = useState<OrderProduct[]>([]);
   // Keyed by productId → SelectedOrderItem
   const [selectedItems, setSelectedItems] = useState<Record<number, SelectedOrderItem>>({});
+  // Per-product currently-picked unit (before Add). Persists across increments/decrements.
+  const [chosenUnit, setChosenUnit] = useState<Record<number, string>>({});
   // Delivery is not supported yet — default to PICKUP.
   const [orderType, setOrderType] = useState<'PICKUP' | 'DELIVERY' | null>('PICKUP');
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
   const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
   const [orderError, setOrderError] = useState<string>('');
   const [productSearch, setProductSearch] = useState<string>('');
+  const [unitPickerFor, setUnitPickerFor] = useState<number | null>(null);
 
   // Image carousel state
   const [shopImages, setShopImages] = useState<string[]>([]);
@@ -267,26 +270,11 @@ export default function MemberShopDetails() {
     }
   };
 
-  // Base unit label per product type. Always displays whole-unit counts:
-  //   LooseByWeight_KG_Grams → "1 KG", "2 KGs"
-  //   LooseByVolume_ML_Liters → "1 liter", "2 liters"
-  //   Packaged_PiecePack → "1 packet", "2 packets"
-  const getBaseUnit = (groupType: string, qty: number): string => {
-    switch (groupType) {
-      case 'LooseByWeight_KG_Grams':
-        return `${qty} ${qty > 1 ? 'KGs' : 'KG'}`;
-      case 'LooseByVolume_ML_Liters':
-        return `${qty} ${qty > 1 ? 'liters' : 'liter'}`;
-      case 'Packaged_PiecePack':
-      default:
-        return `${qty} ${qty > 1 ? 'packets' : 'packet'}`;
-    }
-  };
-  const getBaseUnitSingular = (groupType: string): string => getBaseUnit(groupType, 1);
-
   const openOrderModal = async () => {
     setOrderError('');
     setSelectedItems({});
+    setChosenUnit({});
+    setUnitPickerFor(null);
     setOrderType('PICKUP'); // Delivery not supported yet
     setProductSearch('');
     setShowOrderModal(true);
@@ -309,19 +297,39 @@ export default function MemberShopDetails() {
     }
   };
 
+  // Returns the unit label currently chosen for a product (falls back to the
+  // first unit_option from the API when the user hasn't picked one yet).
+  const currentUnitFor = (product: OrderProduct): string => {
+    const item = selectedItems[product.id];
+    if (item?.unit) return item.unit;
+    if (chosenUnit[product.id]) return chosenUnit[product.id];
+    return product.unitOptions[0] || '1 unit';
+  };
+
+  const pickUnitFor = (product: OrderProduct, unit: string) => {
+    setChosenUnit((prev) => ({ ...prev, [product.id]: unit }));
+    // If already added, update the selected item's unit too
+    setSelectedItems((prev) => {
+      if (!prev[product.id]) return prev;
+      return { ...prev, [product.id]: { ...prev[product.id], unit } };
+    });
+    setUnitPickerFor(null);
+  };
+
   const addOrIncrement = (product: OrderProduct) => {
     setSelectedItems((prev) => {
       const existing = prev[product.id];
       if (existing) {
         return { ...prev, [product.id]: { ...existing, quantity: existing.quantity + 1 } };
       }
+      const unit = chosenUnit[product.id] || product.unitOptions[0] || '1 unit';
       return {
         ...prev,
         [product.id]: {
           id: product.id,
           name: product.name,
           groupType: product.groupType,
-          unit: getBaseUnitSingular(product.groupType), // fixed base unit label
+          unit,
           quantity: 1,
         },
       };
@@ -907,7 +915,7 @@ export default function MemberShopDetails() {
                       const tileBg = productTileColor(product.name);
                       const accent = productAccentColor(product.name);
                       const iconName = productIconForGroup(product.groupType);
-                      const unitLabel = getBaseUnit(product.groupType, qty > 0 ? qty : 1);
+                      const currentUnit = currentUnitFor(product);
                       return (
                         <View key={product.id} style={styles.productCard} testID={`product-card-${product.id}`}>
                           {/* Image placeholder */}
@@ -918,8 +926,33 @@ export default function MemberShopDetails() {
                           {/* Name */}
                           <Text style={styles.productCardName} numberOfLines={2}>{product.name}</Text>
 
-                          {/* Base unit label (fixed per product type) */}
-                          <Text style={styles.unitLabel} testID={`unit-label-${product.id}`}>{unitLabel}</Text>
+                          {/* Unit picker — uses unit_options straight from the API */}
+                          <TouchableOpacity
+                            style={styles.unitChip}
+                            onPress={() => setUnitPickerFor(unitPickerFor === product.id ? null : product.id)}
+                            testID={`unit-picker-${product.id}`}
+                          >
+                            <Text style={styles.unitChipText} numberOfLines={1}>{currentUnit}</Text>
+                            <Ionicons name="chevron-down" size={11} color="#666" />
+                          </TouchableOpacity>
+
+                          {unitPickerFor === product.id && (
+                            <View style={styles.unitDropdown}>
+                              {product.unitOptions.map((u) => {
+                                const selected = u === currentUnit;
+                                return (
+                                  <TouchableOpacity
+                                    key={u}
+                                    style={[styles.unitOption, selected && styles.unitOptionSelected]}
+                                    onPress={() => pickUnitFor(product, u)}
+                                    testID={`unit-option-${product.id}-${u}`}
+                                  >
+                                    <Text style={[styles.unitOptionText, selected && styles.unitOptionTextSelected]}>{u}</Text>
+                                  </TouchableOpacity>
+                                );
+                              })}
+                            </View>
+                          )}
 
                           {/* +Add or -/qty/+ control */}
                           {qty === 0 ? (
@@ -1344,11 +1377,51 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     minHeight: 30,
   },
-  unitLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#666',
+  unitChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F5F5F5',
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 4,
     marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#E5E5E5',
+  },
+  unitChipText: {
+    fontSize: 11,
+    color: '#333',
+    fontWeight: '600',
+    flex: 1,
+    marginRight: 4,
+  },
+  unitDropdown: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#E5E5E5',
+    marginBottom: 8,
+    marginTop: -4,
+    overflow: 'hidden',
+  },
+  unitOption: {
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F5F5F5',
+  },
+  unitOptionSelected: {
+    backgroundColor: '#FFF3E0',
+  },
+  unitOptionText: {
+    fontSize: 11,
+    color: '#333',
+    fontWeight: '500',
+  },
+  unitOptionTextSelected: {
+    color: '#FF8A00',
+    fontWeight: '700',
   },
   addBtn: {
     flexDirection: 'row',
