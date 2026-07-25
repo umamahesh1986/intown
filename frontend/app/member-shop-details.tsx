@@ -98,7 +98,6 @@ export default function MemberShopDetails() {
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
   const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
   const [orderError, setOrderError] = useState<string>('');
-  const [unitPickerFor, setUnitPickerFor] = useState<number | null>(null); // productId whose unit picker is open
 
   // Image carousel state
   const [shopImages, setShopImages] = useState<string[]>([]);
@@ -266,11 +265,27 @@ export default function MemberShopDetails() {
     }
   };
 
+  // Base unit label per product type. Always displays whole-unit counts:
+  //   LooseByWeight_KG_Grams → "1 KG", "2 KGs"
+  //   LooseByVolume_ML_Liters → "1 liter", "2 liters"
+  //   Packaged_PiecePack → "1 packet", "2 packets"
+  const getBaseUnit = (groupType: string, qty: number): string => {
+    switch (groupType) {
+      case 'LooseByWeight_KG_Grams':
+        return `${qty} ${qty > 1 ? 'KGs' : 'KG'}`;
+      case 'LooseByVolume_ML_Liters':
+        return `${qty} ${qty > 1 ? 'liters' : 'liter'}`;
+      case 'Packaged_PiecePack':
+      default:
+        return `${qty} ${qty > 1 ? 'packets' : 'packet'}`;
+    }
+  };
+  const getBaseUnitSingular = (groupType: string): string => getBaseUnit(groupType, 1);
+
   const openOrderModal = async () => {
     setOrderError('');
     setSelectedItems({});
     setOrderType(null);
-    setUnitPickerFor(null);
     setShowOrderModal(true);
     setIsLoadingProducts(true);
     try {
@@ -303,7 +318,7 @@ export default function MemberShopDetails() {
           id: product.id,
           name: product.name,
           groupType: product.groupType,
-          unit: product.unitOptions[0] || '1 unit',
+          unit: getBaseUnitSingular(product.groupType), // fixed base unit label
           quantity: 1,
         },
       };
@@ -323,15 +338,6 @@ export default function MemberShopDetails() {
       }
       return next;
     });
-  };
-
-  const setItemUnit = (productId: number, unit: string) => {
-    setSelectedItems((prev) => {
-      const existing = prev[productId];
-      if (!existing) return prev;
-      return { ...prev, [productId]: { ...existing, unit } };
-    });
-    setUnitPickerFor(null);
   };
 
   const handleSubmitOrder = async () => {
@@ -862,61 +868,19 @@ export default function MemberShopDetails() {
                     const tileBg = productTileColor(product.name);
                     const accent = productAccentColor(product.name);
                     const iconName = productIconForGroup(product.groupType);
-                    const currentUnit = item?.unit || product.unitOptions[0] || '1 unit';
+                    const unitLabel = getBaseUnit(product.groupType, qty > 0 ? qty : 1);
                     return (
                       <View key={product.id} style={styles.productCard} testID={`product-card-${product.id}`}>
                         {/* Image placeholder */}
                         <View style={[styles.productImageWrap, { backgroundColor: tileBg }]}>
-                          <Ionicons name={iconName} size={36} color={accent} />
+                          <Ionicons name={iconName} size={28} color={accent} />
                         </View>
 
                         {/* Name */}
                         <Text style={styles.productCardName} numberOfLines={2}>{product.name}</Text>
 
-                        {/* Unit selector */}
-                        <TouchableOpacity
-                          style={styles.unitChip}
-                          onPress={() => setUnitPickerFor(unitPickerFor === product.id ? null : product.id)}
-                          testID={`unit-picker-${product.id}`}
-                        >
-                          <Text style={styles.unitChipText}>{currentUnit}</Text>
-                          <Ionicons name="chevron-down" size={12} color="#666" />
-                        </TouchableOpacity>
-
-                        {unitPickerFor === product.id && (
-                          <View style={styles.unitDropdown}>
-                            {product.unitOptions.map((u) => {
-                              const selected = u === currentUnit;
-                              return (
-                                <TouchableOpacity
-                                  key={u}
-                                  style={[styles.unitOption, selected && styles.unitOptionSelected]}
-                                  onPress={() => {
-                                    if (item) {
-                                      setItemUnit(product.id, u);
-                                    } else {
-                                      // Not yet added — just remember for future +
-                                      setSelectedItems((prev) => ({
-                                        ...prev,
-                                        [product.id]: {
-                                          id: product.id,
-                                          name: product.name,
-                                          groupType: product.groupType,
-                                          unit: u,
-                                          quantity: 0,
-                                        },
-                                      }));
-                                      setUnitPickerFor(null);
-                                    }
-                                  }}
-                                  testID={`unit-option-${product.id}-${u}`}
-                                >
-                                  <Text style={[styles.unitOptionText, selected && styles.unitOptionTextSelected]}>{u}</Text>
-                                </TouchableOpacity>
-                              );
-                            })}
-                          </View>
-                        )}
+                        {/* Base unit label (fixed per product type) */}
+                        <Text style={styles.unitLabel} testID={`unit-label-${product.id}`}>{unitLabel}</Text>
 
                         {/* +Add or -/qty/+ control */}
                         {qty === 0 ? (
@@ -925,7 +889,7 @@ export default function MemberShopDetails() {
                             onPress={() => addOrIncrement(product)}
                             testID={`add-product-${product.id}`}
                           >
-                            <Ionicons name="add" size={16} color={accent} />
+                            <Ionicons name="add" size={14} color={accent} />
                             <Text style={[styles.addBtnText, { color: accent }]}>Add</Text>
                           </TouchableOpacity>
                         ) : (
@@ -935,7 +899,7 @@ export default function MemberShopDetails() {
                               onPress={() => decrement(product.id)}
                               testID={`decrement-product-${product.id}`}
                             >
-                              <Ionicons name="remove" size={16} color="#FFFFFF" />
+                              <Ionicons name="remove" size={14} color="#FFFFFF" />
                             </TouchableOpacity>
                             <Text style={styles.qtyValue}>{qty}</Text>
                             <TouchableOpacity
@@ -943,7 +907,7 @@ export default function MemberShopDetails() {
                               onPress={() => addOrIncrement(product)}
                               testID={`increment-product-${product.id}`}
                             >
-                              <Ionicons name="add" size={16} color="#FFFFFF" />
+                              <Ionicons name="add" size={14} color="#FFFFFF" />
                             </TouchableOpacity>
                           </View>
                         )}
@@ -1296,112 +1260,74 @@ const styles = StyleSheet.create({
   productsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
+    columnGap: 8,
   },
   productCard: {
-    width: '48%',
+    width: '32%',
     backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    padding: 10,
-    marginBottom: 12,
+    borderRadius: 12,
+    padding: 8,
+    marginBottom: 10,
     borderWidth: 1,
     borderColor: '#EDEDED',
   },
   productImageWrap: {
     width: '100%',
     aspectRatio: 1,
-    borderRadius: 12,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 10,
+    marginBottom: 8,
   },
   productCardName: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
     color: '#1A1A1A',
-    marginBottom: 6,
-    minHeight: 34,
+    marginBottom: 4,
+    minHeight: 30,
   },
-  unitChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#F5F5F5',
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: '#E5E5E5',
-  },
-  unitChipText: {
-    fontSize: 12,
-    color: '#333',
+  unitLabel: {
+    fontSize: 11,
     fontWeight: '600',
-    marginRight: 6,
-  },
-  unitDropdown: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#E5E5E5',
-    marginBottom: 10,
-    marginTop: -6,
-    overflow: 'hidden',
-  },
-  unitOption: {
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F5F5F5',
-  },
-  unitOptionSelected: {
-    backgroundColor: '#FFF3E0',
-  },
-  unitOptionText: {
-    fontSize: 12,
-    color: '#333',
-    fontWeight: '500',
-  },
-  unitOptionTextSelected: {
-    color: '#FF8A00',
-    fontWeight: '700',
+    color: '#666',
+    marginBottom: 8,
   },
   addBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
+    gap: 2,
     borderWidth: 1.5,
-    borderRadius: 10,
-    paddingVertical: 8,
+    borderRadius: 8,
+    paddingVertical: 6,
     backgroundColor: '#FFFFFF',
   },
   addBtnText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '800',
   },
   qtyControl: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderRadius: 10,
-    paddingVertical: 6,
-    paddingHorizontal: 6,
+    borderRadius: 8,
+    paddingVertical: 4,
+    paddingHorizontal: 4,
   },
   qtyBtn: {
-    width: 26,
-    height: 26,
-    borderRadius: 6,
+    width: 22,
+    height: 22,
+    borderRadius: 5,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(255,255,255,0.15)',
   },
   qtyValue: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '800',
     color: '#FFFFFF',
-    minWidth: 22,
+    minWidth: 18,
     textAlign: 'center',
   },
 
