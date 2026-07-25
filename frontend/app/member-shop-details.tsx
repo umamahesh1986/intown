@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Modal, Dimensions, ActivityIndicator, Alert, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Modal, Dimensions, ActivityIndicator, Alert, Platform, TextInput } from 'react-native';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -94,10 +94,12 @@ export default function MemberShopDetails() {
   const [orderProducts, setOrderProducts] = useState<OrderProduct[]>([]);
   // Keyed by productId → SelectedOrderItem
   const [selectedItems, setSelectedItems] = useState<Record<number, SelectedOrderItem>>({});
-  const [orderType, setOrderType] = useState<'PICKUP' | 'DELIVERY' | null>(null);
+  // Delivery is not supported yet — default to PICKUP.
+  const [orderType, setOrderType] = useState<'PICKUP' | 'DELIVERY' | null>('PICKUP');
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
   const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
   const [orderError, setOrderError] = useState<string>('');
+  const [productSearch, setProductSearch] = useState<string>('');
 
   // Image carousel state
   const [shopImages, setShopImages] = useState<string[]>([]);
@@ -285,7 +287,8 @@ export default function MemberShopDetails() {
   const openOrderModal = async () => {
     setOrderError('');
     setSelectedItems({});
-    setOrderType(null);
+    setOrderType('PICKUP'); // Delivery not supported yet
+    setProductSearch('');
     setShowOrderModal(true);
     setIsLoadingProducts(true);
     try {
@@ -840,6 +843,26 @@ export default function MemberShopDetails() {
               showsVerticalScrollIndicator={false}
               nestedScrollEnabled
             >
+              {/* Search Products */}
+              <View style={styles.productSearchWrap}>
+                <Ionicons name="search" size={16} color="#999" />
+                <TextInput
+                  style={styles.productSearchInput}
+                  value={productSearch}
+                  onChangeText={setProductSearch}
+                  placeholder="Search products (type 2+ letters)…"
+                  placeholderTextColor="#B0B0B0"
+                  returnKeyType="search"
+                  autoCorrect={false}
+                  testID="product-search-input"
+                />
+                {productSearch.length > 0 && (
+                  <TouchableOpacity onPress={() => setProductSearch('')} testID="product-search-clear-btn">
+                    <Ionicons name="close-circle" size={16} color="#999" />
+                  </TouchableOpacity>
+                )}
+              </View>
+
               <Text style={styles.orderSectionLabel}>Select Products</Text>
 
               {isLoadingProducts ? (
@@ -860,67 +883,88 @@ export default function MemberShopDetails() {
                     </TouchableOpacity>
                   )}
                 </View>
-              ) : (
-                <View style={styles.productsGrid}>
-                  {orderProducts.map((product) => {
-                    const item = selectedItems[product.id];
-                    const qty = item?.quantity || 0;
-                    const tileBg = productTileColor(product.name);
-                    const accent = productAccentColor(product.name);
-                    const iconName = productIconForGroup(product.groupType);
-                    const unitLabel = getBaseUnit(product.groupType, qty > 0 ? qty : 1);
-                    return (
-                      <View key={product.id} style={styles.productCard} testID={`product-card-${product.id}`}>
-                        {/* Image placeholder */}
-                        <View style={[styles.productImageWrap, { backgroundColor: tileBg }]}>
-                          <Ionicons name={iconName} size={28} color={accent} />
-                        </View>
-
-                        {/* Name */}
-                        <Text style={styles.productCardName} numberOfLines={2}>{product.name}</Text>
-
-                        {/* Base unit label (fixed per product type) */}
-                        <Text style={styles.unitLabel} testID={`unit-label-${product.id}`}>{unitLabel}</Text>
-
-                        {/* +Add or -/qty/+ control */}
-                        {qty === 0 ? (
-                          <TouchableOpacity
-                            style={[styles.addBtn, { borderColor: accent }]}
-                            onPress={() => addOrIncrement(product)}
-                            testID={`add-product-${product.id}`}
-                          >
-                            <Ionicons name="add" size={14} color={accent} />
-                            <Text style={[styles.addBtnText, { color: accent }]}>Add</Text>
-                          </TouchableOpacity>
-                        ) : (
-                          <View style={[styles.qtyControl, { backgroundColor: accent }]}>
-                            <TouchableOpacity
-                              style={styles.qtyBtn}
-                              onPress={() => decrement(product.id)}
-                              testID={`decrement-product-${product.id}`}
-                            >
-                              <Ionicons name="remove" size={14} color="#FFFFFF" />
-                            </TouchableOpacity>
-                            <Text style={styles.qtyValue}>{qty}</Text>
-                            <TouchableOpacity
-                              style={styles.qtyBtn}
-                              onPress={() => addOrIncrement(product)}
-                              testID={`increment-product-${product.id}`}
-                            >
-                              <Ionicons name="add" size={14} color="#FFFFFF" />
-                            </TouchableOpacity>
+              ) : (() => {
+                const q = productSearch.trim().toLowerCase();
+                // Apply filter only after 2+ characters (per requirement)
+                const filtered = q.length >= 2
+                  ? orderProducts.filter((p) => p.name.toLowerCase().includes(q))
+                  : orderProducts;
+                if (q.length >= 2 && filtered.length === 0) {
+                  return (
+                    <View style={styles.orderProductsEmpty}>
+                      <Ionicons name="search" size={24} color="#BBB" />
+                      <Text style={styles.orderProductsEmptyText}>
+                        No products match "{productSearch}".
+                      </Text>
+                    </View>
+                  );
+                }
+                return (
+                  <View style={styles.productsGrid}>
+                    {filtered.map((product) => {
+                      const item = selectedItems[product.id];
+                      const qty = item?.quantity || 0;
+                      const tileBg = productTileColor(product.name);
+                      const accent = productAccentColor(product.name);
+                      const iconName = productIconForGroup(product.groupType);
+                      const unitLabel = getBaseUnit(product.groupType, qty > 0 ? qty : 1);
+                      return (
+                        <View key={product.id} style={styles.productCard} testID={`product-card-${product.id}`}>
+                          {/* Image placeholder */}
+                          <View style={[styles.productImageWrap, { backgroundColor: tileBg }]}>
+                            <Ionicons name={iconName} size={28} color={accent} />
                           </View>
-                        )}
-                      </View>
-                    );
-                  })}
-                </View>
-              )}
+
+                          {/* Name */}
+                          <Text style={styles.productCardName} numberOfLines={2}>{product.name}</Text>
+
+                          {/* Base unit label (fixed per product type) */}
+                          <Text style={styles.unitLabel} testID={`unit-label-${product.id}`}>{unitLabel}</Text>
+
+                          {/* +Add or -/qty/+ control */}
+                          {qty === 0 ? (
+                            <TouchableOpacity
+                              style={[styles.addBtn, { borderColor: accent }]}
+                              onPress={() => addOrIncrement(product)}
+                              testID={`add-product-${product.id}`}
+                            >
+                              <Ionicons name="add" size={14} color={accent} />
+                              <Text style={[styles.addBtnText, { color: accent }]}>Add</Text>
+                            </TouchableOpacity>
+                          ) : (
+                            <View style={[styles.qtyControl, { backgroundColor: accent }]}>
+                              <TouchableOpacity
+                                style={styles.qtyBtn}
+                                onPress={() => decrement(product.id)}
+                                testID={`decrement-product-${product.id}`}
+                              >
+                                <Ionicons name="remove" size={14} color="#FFFFFF" />
+                              </TouchableOpacity>
+                              <Text style={styles.qtyValue}>{qty}</Text>
+                              <TouchableOpacity
+                                style={styles.qtyBtn}
+                                onPress={() => addOrIncrement(product)}
+                                testID={`increment-product-${product.id}`}
+                              >
+                                <Ionicons name="add" size={14} color="#FFFFFF" />
+                              </TouchableOpacity>
+                            </View>
+                          )}
+                        </View>
+                      );
+                    })}
+                  </View>
+                );
+              })()}
             </ScrollView>
 
             {/* Fixed Bottom Section */}
             <View style={styles.orderModalFooter}>
-              {/* Order Type chips */}
+              {/*
+                Order Type (Pickup / Delivery) — commented out for now.
+                Delivery is not supported yet; orderType defaults to 'PICKUP'.
+                Re-enable this block when delivery goes live.
+
               <Text style={styles.orderFooterLabel}>Order Type</Text>
               <View style={styles.orderTypeRow}>
                 <TouchableOpacity
@@ -928,11 +972,7 @@ export default function MemberShopDetails() {
                   onPress={() => setOrderType('PICKUP')}
                   testID="order-type-pickup-btn"
                 >
-                  <Ionicons
-                    name="walk-outline"
-                    size={16}
-                    color={orderType === 'PICKUP' ? '#FFF' : '#FF8A00'}
-                  />
+                  <Ionicons name="walk-outline" size={16} color={orderType === 'PICKUP' ? '#FFF' : '#FF8A00'} />
                   <Text style={[styles.orderTypeChipText, orderType === 'PICKUP' && styles.orderTypeChipTextActive]}>Pickup</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -940,14 +980,11 @@ export default function MemberShopDetails() {
                   onPress={() => setOrderType('DELIVERY')}
                   testID="order-type-delivery-btn"
                 >
-                  <Ionicons
-                    name="bicycle-outline"
-                    size={16}
-                    color={orderType === 'DELIVERY' ? '#FFF' : '#FF8A00'}
-                  />
+                  <Ionicons name="bicycle-outline" size={16} color={orderType === 'DELIVERY' ? '#FFF' : '#FF8A00'} />
                   <Text style={[styles.orderTypeChipText, orderType === 'DELIVERY' && styles.orderTypeChipTextActive]}>Delivery</Text>
                 </TouchableOpacity>
               </View>
+              */}
 
               {!!orderError && orderProducts.length > 0 && (
                 <View style={styles.orderErrorBanner} testID="order-error-banner">
@@ -970,7 +1007,7 @@ export default function MemberShopDetails() {
                       <ActivityIndicator color="#FFF" />
                     ) : (
                       <>
-                        <Text style={styles.orderSubmitBtnText}>Submit Order</Text>
+                        <Text style={styles.orderSubmitBtnText}>Submit Order (Pickup)</Text>
                         {totalItems > 0 && (
                           <View style={styles.submitBadge}>
                             <Text style={styles.submitBadgeText}>{totalItems} {totalItems === 1 ? 'item' : 'items'}</Text>
@@ -1256,6 +1293,26 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 
+  // Search bar inside modal
+  productSearchWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E5E5E5',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    marginBottom: 12,
+  },
+  productSearchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: '#1A1A1A',
+    paddingVertical: 8,
+  },
+
   // Grid of product cards
   productsGrid: {
     flexDirection: 'row',
@@ -1274,7 +1331,7 @@ const styles = StyleSheet.create({
   },
   productImageWrap: {
     width: '100%',
-    aspectRatio: 1,
+    aspectRatio: 4 / 3,
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
