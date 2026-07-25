@@ -104,6 +104,20 @@ export default function MemberShopDetails() {
   const [productSearch, setProductSearch] = useState<string>('');
   const [unitPickerFor, setUnitPickerFor] = useState<number | null>(null);
 
+  // Post-submit toast on the shop-details page (shown after modal closes).
+  const [orderToast, setOrderToast] = useState<{ kind: 'success' | 'error'; message: string } | null>(null);
+  const orderToastTimerRef = useRef<any>(null);
+  const showOrderToast = (kind: 'success' | 'error', message: string) => {
+    if (orderToastTimerRef.current) clearTimeout(orderToastTimerRef.current);
+    setOrderToast({ kind, message });
+    orderToastTimerRef.current = setTimeout(() => setOrderToast(null), 3500);
+  };
+  useEffect(() => {
+    return () => {
+      if (orderToastTimerRef.current) clearTimeout(orderToastTimerRef.current);
+    };
+  }, []);
+
   // Image carousel state
   const [shopImages, setShopImages] = useState<string[]>([]);
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
@@ -371,59 +385,54 @@ export default function MemberShopDetails() {
       return;
     }
 
-    // Customer location: latest known GPS
-    let customerLatitude: number | null = null;
-    let customerLongitude: number | null = null;
-    try {
-      await loadLocationFromStorage();
-      const stored = useLocationStore.getState().location;
-      customerLatitude = stored?.latitude ?? location?.latitude ?? null;
-      customerLongitude = stored?.longitude ?? location?.longitude ?? null;
-    } catch {
-      customerLatitude = location?.latitude ?? null;
-      customerLongitude = location?.longitude ?? null;
-    }
+    // Build items in the shape the pickup-orders API expects:
+    // { productName, quantity } where quantity is a STRING combining the count and unit.
+    // Example: user picked 3 × "500g" → quantity: "3 × 500g".
+    const items = selectedList.map((item) => ({
+      productName: item.name,
+      quantity: `${item.quantity} × ${item.unit}`,
+    }));
 
     const payload = {
       customerId: Number(customerId),
       merchantId: Number(shop.id),
-      products: selectedList.map((item) => ({
-        id: item.id,
-        name: item.name,
-        groupType: item.groupType,
-        unit: item.unit,
-        quantity: item.quantity,
-      })),
-      productIds: selectedList.map((i) => i.id),
-      orderType,
-      orderDateTime: new Date().toISOString(),
-      customerLatitude,
-      customerLongitude,
-      customerName: user?.name || null,
-      customerPhone: userPhone || null,
-      categoryId: categoryId ? Number(categoryId) : null,
-      businessCategory: shop.businessCategory || null,
+      items,
     };
 
     setIsSubmittingOrder(true);
     try {
-      const res = await fetch(`${INTOWN_API_BASE}/order/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        throw new Error((data && (data as any).message) || `Order submission failed (${res.status})`);
-      }
+      const res = await fetch(
+        `${INTOWN_API_BASE}/customers/${Number(customerId)}/pickup-orders`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify(payload),
+        }
+      );
+      const data: any = await res.json().catch(() => ({}));
+
+      const status = String(data?.status || '').toUpperCase();
+      const isPlaced = res.ok && status === 'PLACED';
+
+      // Close modal FIRST, then show the toast on the shop-details page.
       setShowOrderModal(false);
       setSelectedItems({});
-      setOrderProducts([]);
-      Alert.alert('Order Submitted', 'Order submitted successfully.');
+      setChosenUnit({});
+      setUnitPickerFor(null);
+      setProductSearch('');
+
+      if (isPlaced) {
+        showOrderToast('success', 'Order placed successfully!');
+      } else {
+        const msg =
+          (data && (data.message || data.error)) ||
+          (status ? `Order status: ${status}` : `Order submission failed (${res.status})`);
+        showOrderToast('error', msg);
+      }
     } catch (err: any) {
       console.error('Order submit error:', err);
-      const msg = err?.message || 'Failed to submit order. Please try again.';
-      setOrderError(msg);
+      setShowOrderModal(false);
+      showOrderToast('error', err?.message || 'Failed to submit order. Please try again.');
     } finally {
       setIsSubmittingOrder(false);
     }
@@ -823,6 +832,38 @@ export default function MemberShopDetails() {
           )}
         </View>
       </Modal>
+
+      {/* Post-order Toast (floats on top of the shop details page) */}
+      {orderToast && (
+        <View
+          style={[
+            styles.orderToast,
+            orderToast.kind === 'success' ? styles.orderToastSuccess : styles.orderToastError,
+          ]}
+          pointerEvents="box-none"
+          testID="order-toast"
+        >
+          <View style={styles.orderToastInner}>
+            <Ionicons
+              name={orderToast.kind === 'success' ? 'checkmark-circle' : 'close-circle'}
+              size={22}
+              color={orderToast.kind === 'success' ? '#0C8A4A' : '#D32F2F'}
+            />
+            <Text
+              style={[
+                styles.orderToastText,
+                { color: orderToast.kind === 'success' ? '#0C8A4A' : '#D32F2F' },
+              ]}
+              numberOfLines={3}
+            >
+              {orderToast.message}
+            </Text>
+            <TouchableOpacity onPress={() => setOrderToast(null)} testID="order-toast-close-btn">
+              <Ionicons name="close" size={16} color="#666" />
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
 
       {/* ================= ORDER MODAL (Blinkit-style, 90% height) ================= */}
       <Modal
@@ -1586,6 +1627,41 @@ const styles = StyleSheet.create({
   submitBadgeText: {
     color: '#FFFFFF',
     fontSize: 12,
+    fontWeight: '700',
+  },
+
+  // Floating post-order toast on shop-details page
+  orderToast: {
+    position: 'absolute',
+    top: 80,
+    left: 16,
+    right: 16,
+    zIndex: 9999,
+    borderRadius: 12,
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 8,
+  },
+  orderToastSuccess: {
+    backgroundColor: '#E8F5E9',
+    borderColor: '#B7E1BF',
+  },
+  orderToastError: {
+    backgroundColor: '#FDECEA',
+    borderColor: '#F5C2C0',
+  },
+  orderToastInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    padding: 12,
+  },
+  orderToastText: {
+    flex: 1,
+    fontSize: 14,
     fontWeight: '700',
   },
 });
