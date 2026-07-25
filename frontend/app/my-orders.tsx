@@ -110,6 +110,7 @@ export default function MyOrdersScreen() {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
+        style={styles.tabsScroll}
         contentContainerStyle={styles.tabsRow}
       >
         {TABS.map((t) => {
@@ -186,20 +187,19 @@ export default function MyOrdersScreen() {
 }
 
 function OrderCard({ order }: { order: PickupOrder }) {
-  const [expanded, setExpanded] = useState(false);
   const statusKey = String(order.status).toUpperCase();
   const color = STATUS_COLORS[statusKey] || { bg: '#F5F5F5', text: '#666' };
   const orderDate = formatDateTime(order.acceptedAt || order.respondBy || order.endedAt || null);
 
-  const timestamps: { label: string; value?: string | null }[] = [
-    { label: 'Placed', value: order.respondBy },
-    { label: 'Accepted', value: order.acceptedAt },
-    { label: 'Packed', value: order.packedAt },
-    { label: 'Merchant Delivered', value: order.merchantDeliveredAt },
-    { label: 'Customer Received', value: order.customerReceivedAt },
-    { label: 'Completed', value: order.completedAt },
-    { label: 'Ended', value: order.endedAt },
-  ].filter((t) => !!t.value);
+  // Milestone timeline — always visible, matches the spec fields exactly
+  const milestones: { label: string; value?: string | null; icon: keyof typeof Ionicons.glyphMap; reached: boolean }[] = [
+    { label: 'Accepted Time',     value: order.acceptedAt,          icon: 'checkmark-circle-outline', reached: !!order.acceptedAt },
+    { label: 'Packed Time',       value: order.packedAt,            icon: 'archive-outline',          reached: !!order.packedAt },
+    { label: 'Pickup Ready Time', value: order.packedAt,            icon: 'cube-outline',             reached: statusKey === 'PICKUP_READY' || statusKey === 'COMPLETED' || !!order.merchantDeliveredAt },
+    { label: 'Delivered Time',    value: order.merchantDeliveredAt, icon: 'bicycle-outline',          reached: !!order.merchantDeliveredAt },
+    { label: 'Completed Time',    value: order.completedAt || order.customerReceivedAt, icon: 'flag-outline', reached: !!order.completedAt || !!order.customerReceivedAt },
+  ];
+  const anyMilestone = milestones.some((m) => m.reached && !!m.value);
 
   return (
     <View style={styles.card} testID={`my-orders-card-${order.pickup_id}`}>
@@ -235,29 +235,19 @@ function OrderCard({ order }: { order: PickupOrder }) {
         ))}
       </View>
 
-      {timestamps.length > 0 && (
-        <>
-          <TouchableOpacity
-            style={styles.toggleTimeline}
-            onPress={() => setExpanded((e) => !e)}
-            testID={`my-orders-timeline-toggle-${order.pickup_id}`}
-          >
-            <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={14} color="#666" />
-            <Text style={styles.toggleTimelineText}>{expanded ? 'Hide' : 'Show'} timeline</Text>
-          </TouchableOpacity>
-
-          {expanded && (
-            <View style={styles.timeline}>
-              {timestamps.map((t) => (
-                <View key={t.label} style={styles.timelineRow}>
-                  <View style={styles.timelineDot} />
-                  <Text style={styles.timelineLabel}>{t.label}</Text>
-                  <Text style={styles.timelineValue}>{formatDateTime(t.value)}</Text>
-                </View>
-              ))}
-            </View>
-          )}
-        </>
+      {/* Order tracking milestones — always visible */}
+      {anyMilestone && (
+        <View style={styles.timeline}>
+          {milestones
+            .filter((m) => !!m.value)
+            .map((m) => (
+              <View key={m.label} style={styles.timelineRow}>
+                <Ionicons name={m.icon} size={14} color={m.reached ? '#FF8A00' : '#CCC'} />
+                <Text style={[styles.timelineLabel, !m.reached && { color: '#AAA' }]}>{m.label}</Text>
+                <Text style={styles.timelineValue}>{formatDateTime(m.value)}</Text>
+              </View>
+            ))}
+        </View>
       )}
 
       {order.endReason && (
@@ -280,7 +270,8 @@ const styles = StyleSheet.create({
   backBtn: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   headerTitle: { fontSize: 17, fontWeight: '800', color: '#1A1A1A' },
 
-  tabsRow: { paddingHorizontal: 12, paddingVertical: 10, gap: 8, backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#EEE' },
+  tabsScroll: { flexGrow: 0, backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#EEE' },
+  tabsRow: { paddingHorizontal: 12, paddingVertical: 10, gap: 8, alignItems: 'center' },
   tab: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20,
@@ -320,7 +311,7 @@ const styles = StyleSheet.create({
   itemQty: { fontSize: 12, color: '#666', fontWeight: '700' },
   toggleTimeline: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 10 },
   toggleTimelineText: { fontSize: 12, color: '#666', fontWeight: '700' },
-  timeline: { marginTop: 8, paddingLeft: 4, gap: 6 },
+  timeline: { marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: '#F5F5F5', gap: 6 },
   timelineRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   timelineDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#FF8A00' },
   timelineLabel: { fontSize: 12, color: '#333', fontWeight: '700', minWidth: 130 },
