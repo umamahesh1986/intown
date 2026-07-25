@@ -1458,6 +1458,20 @@ export default function MemberDashboard() {
               <Ionicons name="person-outline" size={22} color="#FF8C00" />
               <Text style={styles.userPanelText}>My Account</Text>
             </TouchableOpacity>
+
+            {/* MY ORDERS */}
+            <TouchableOpacity
+              style={styles.userPanelItem}
+              onPress={() => {
+                closeDropdown();
+                router.push('/my-orders' as any);
+              }}
+              testID="member-menu-my-orders-btn"
+            >
+              <Ionicons name="receipt-outline" size={22} color="#FF8C00" />
+              <Text style={styles.userPanelText}>My Orders</Text>
+            </TouchableOpacity>
+
             <TouchableOpacity
               style={styles.userPanelItem}
               onPress={() => {

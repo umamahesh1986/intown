@@ -1221,6 +1221,19 @@ export default function UserDashboard() {
               <Text style={styles.userPanelText}>My Account</Text>
             </TouchableOpacity>
 
+            {/* MY ORDERS */}
+            <TouchableOpacity
+              style={styles.userPanelItem}
+              onPress={() => {
+                toggleDropdown();
+                router.push('/my-orders' as any);
+              }}
+              testID="user-menu-my-orders-btn"
+            >
+              <Ionicons name="receipt-outline" size={20} color="#FF8C00" />
+              <Text style={styles.userPanelText}>My Orders</Text>
+            </TouchableOpacity>
+
             {/* BECOME A Customer */}
             <TouchableOpacity
               style={styles.userPanelItem}

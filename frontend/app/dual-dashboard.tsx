@@ -958,6 +958,22 @@ export default function DualDashboard() {
               <Ionicons name="person-outline" size={22} color="#FF8A00" />
               <Text style={styles.userPanelText}>My Account</Text>
             </TouchableOpacity>
+
+            {/* MY ORDERS — visible for both customer and merchant modes */}
+            <TouchableOpacity
+              style={styles.userPanelItem}
+              onPress={() => {
+                closeDropdown();
+                router.push(activeTab === 'merchant' ? '/merchant-orders' as any : '/my-orders' as any);
+              }}
+              testID="dual-menu-my-orders-btn"
+            >
+              <Ionicons name="receipt-outline" size={22} color="#FF8A00" />
+              <Text style={styles.userPanelText}>
+                {activeTab === 'merchant' ? 'Customer Orders' : 'My Orders'}
+              </Text>
+            </TouchableOpacity>
+
             <TouchableOpacity
               style={styles.userPanelItem}
               onPress={() => {
