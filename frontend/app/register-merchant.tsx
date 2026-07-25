@@ -1219,13 +1219,29 @@ export default function RegisterMerchant() {
 
           {/* DESCRIPTION */}
           <View style={styles.formGroup}>
-            <Text style={styles.label}>Description *</Text>
+            <View style={styles.labelRow}>
+              <Text style={styles.label}>Description *</Text>
+              <Text
+                style={[
+                  styles.charCounter,
+                  description.length >= 250 && styles.charCounterMax,
+                ]}
+                testID="description-char-counter"
+              >
+                {description.length}/250
+              </Text>
+            </View>
             <TextInput
               style={styles.textArea}
               value={description}
-              onChangeText={setDescription}
+              onChangeText={(t) => setDescription(t.slice(0, 250))}
+              maxLength={250}
               multiline
+              placeholder="Tell customers about your shop (max 250 characters)"
+              placeholderTextColor="#B0B0B0"
+              testID="description-input"
             />
+            <Text style={styles.helperText}>Max 250 characters.</Text>
           </View>
 
           {/* YEARS IN BUSINESS */}
@@ -1982,6 +1998,20 @@ const styles = StyleSheet.create({
     color: '#777',
     marginTop: 4,
     fontStyle: 'italic',
+  },
+  labelRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  charCounter: {
+    fontSize: 12,
+    color: '#888',
+    fontWeight: '600',
+  },
+  charCounterMax: {
+    color: '#D32F2F',
   },
   disabledInput: {
     backgroundColor: '#F5F5F5',
