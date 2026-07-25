@@ -707,6 +707,96 @@ export const getAllProducts = async (): Promise<NormalizedProduct[]> => {
   const raw = await response.json();
   return flattenGroupedProducts(raw);
 };
+
+/* ===============================
+   PICKUP ORDERS  API
+================================ */
+
+export interface PickupOrderItem {
+  id?: number;
+  productName: string;
+  quantity: string;
+}
+
+export type PickupOrderStatus =
+  | 'PLACED'
+  | 'ACCEPTED'
+  | 'PICKUP_READY'
+  | 'COMPLETED'
+  | 'ENDED'
+  | string;
+
+export interface PickupOrder {
+  pickup_id: string;
+  customerId: number;
+  merchantId: number;
+  customerName?: string;
+  merchantName?: string;
+  status: PickupOrderStatus;
+  endReason?: string | null;
+  respondBy?: string | null;
+  acceptedAt?: string | null;
+  packedAt?: string | null;
+  customerReceivedAt?: string | null;
+  merchantDeliveredAt?: string | null;
+  completedAt?: string | null;
+  endedAt?: string | null;
+  items: PickupOrderItem[];
+  orderType?: 'PICKUP' | 'DELIVERY' | string;
+  createdAt?: string;
+}
+
+export const getCustomerPickupOrders = async (customerId: number | string): Promise<PickupOrder[]> => {
+  const res = await fetch(`${INTOWN_API_BASE}/customers/${customerId}/pickup-orders`);
+  if (!res.ok) throw new Error(`Failed to fetch customer orders (${res.status})`);
+  const data = await res.json();
+  return Array.isArray(data) ? data : Array.isArray((data as any)?.data) ? (data as any).data : [];
+};
+
+export const getMerchantPickupOrders = async (merchantId: number | string): Promise<PickupOrder[]> => {
+  const res = await fetch(`${INTOWN_API_BASE}/merchants/${merchantId}/pickup-orders`);
+  if (!res.ok) throw new Error(`Failed to fetch merchant orders (${res.status})`);
+  const data = await res.json();
+  return Array.isArray(data) ? data : Array.isArray((data as any)?.data) ? (data as any).data : [];
+};
+
+export const getMerchantPickupOrderById = async (
+  merchantId: number | string,
+  pickupId: string,
+): Promise<PickupOrder | null> => {
+  const res = await fetch(
+    `${INTOWN_API_BASE}/merchants/${merchantId}/pickup-orders/${encodeURIComponent(pickupId)}`
+  );
+  if (!res.ok) {
+    if (res.status === 404) return null;
+    throw new Error(`Failed to fetch order details (${res.status})`);
+  }
+  return res.json();
+};
+
+// Placeholder for the status-update endpoint the backend team will implement.
+// Contract (needs backend team confirmation):
+//   POST /IN/merchants/{merchantId}/pickup-orders/{pickup_id}/status
+//   body: { status: "ACCEPTED" | "PICKUP_READY" | "COMPLETED" }
+export const updateMerchantOrderStatus = async (
+  merchantId: number | string,
+  pickupId: string,
+  status: PickupOrderStatus,
+): Promise<PickupOrder | { ok: boolean; message?: string }> => {
+  const res = await fetch(
+    `${INTOWN_API_BASE}/merchants/${merchantId}/pickup-orders/${encodeURIComponent(pickupId)}/status`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ status }),
+    }
+  );
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error((data && (data.message || data.error)) || `Status update failed (${res.status})`);
+  }
+  return data;
+};
 export const getCustomerProfile = async (customerId: number) => {
   const res = await fetch(
     `${INTOWN_API_BASE}/customer/${customerId}/profile`,

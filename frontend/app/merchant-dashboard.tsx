@@ -942,6 +942,19 @@ export default function MerchantDashboard() {
             <Text style={styles.userPanelText}>My Account</Text>
           </TouchableOpacity>
 
+          {/* CUSTOMER ORDERS (merchant view) */}
+          <TouchableOpacity
+            style={styles.userPanelItem}
+            onPress={() => {
+              closeDropdown();
+              router.push('/merchant-orders' as any);
+            }}
+            testID="merchant-menu-orders-btn"
+          >
+            <Ionicons name="receipt-outline" size={22} color="#FF8A00" />
+            <Text style={styles.userPanelText}>Customer Orders</Text>
+          </TouchableOpacity>
+
           {/* BECOME A Customer */}
           <TouchableOpacity
               style={styles.userPanelItem}
