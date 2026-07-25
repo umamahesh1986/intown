@@ -37,6 +37,7 @@ import {
   getNearbyShopsByCategory,
 } from '../utils/api';
 import { getCustomerProfile, getMerchantImageByShopId, extractImageUrls, INTOWN_API_BASE } from '../utils/api';
+import { setNavShop } from '../utils/navCache';
 
 
 import {
@@ -1285,17 +1286,17 @@ export default function MemberDashboard() {
                       key={`merchant-${shop.id}-${index}`}
                       style={styles.merchantCard}
                       activeOpacity={0.9}
-                      onPress={() =>
+                      onPress={async () => {
+                        await setNavShop(shop);
                         router.push({
                           pathname: '/member-shop-details',
                           params: {
                             shopId: String(shop.id),
                             categoryId: '',
                             source: 'member',
-                            shopData: JSON.stringify(shop),
                           },
-                        })
-                      }
+                        });
+                      }}
                     >
                       <View style={styles.merchantImageWrapper}>
                         {imageUri ? (

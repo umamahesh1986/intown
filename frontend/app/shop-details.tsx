@@ -9,10 +9,12 @@ import {
   Pressable,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useState, useEffect } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistance } from '../utils/formatDistance';
 import { useLocationStore } from '../store/locationStore';
+import { getNavShop } from '../utils/navCache';
 
 interface Shop {
   id: string;
@@ -32,8 +34,33 @@ export default function ShopDetailsScreen() {
   const { location } = useLocationStore();
   const isUserFlow = params.source === 'user' || params.from === 'user';
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
-  
-  const shop: Shop = JSON.parse(params.shopData as string);
+  const [shop, setShop] = useState<Shop | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      // Prefer nav cache (no URL bloat). Fall back to legacy shopData param.
+      const cached = await getNavShop(params.shopId as string | undefined);
+      if (cached) {
+        setShop(cached);
+        return;
+      }
+      if (params.shopData) {
+        try { setShop(JSON.parse(params.shopData as string)); } catch {}
+      }
+    })();
+  }, [params.shopId, params.shopData]);
+
+  if (!shop) {
+    return (
+      <SafeAreaView style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFF' }}>
+        <Ionicons name="storefront-outline" size={40} color="#BBB" />
+        <Text style={{ marginTop: 12, color: '#666' }}>Shop details unavailable. Please go back and try again.</Text>
+        <TouchableOpacity onPress={() => router.back()} style={{ marginTop: 16, backgroundColor: '#FF8A00', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 8 }}>
+          <Text style={{ color: '#FFF', fontWeight: '700' }}>Go Back</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
 
   const handlePayNow = () => {
     if (isUserFlow) {

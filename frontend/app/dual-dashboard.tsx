@@ -28,6 +28,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import Footer from '../components/Footer';
 import { getAllNearbyShops, getCategories, getMerchantImageByShopId, extractImageUrls, INTOWN_API_BASE } from '../utils/api';
+import { setNavShop } from '../utils/navCache';
 import {
   CATEGORY_IMAGE_LIST,
   FALLBACK_CATEGORY_IMAGE,
@@ -1470,17 +1471,17 @@ export default function DualDashboard() {
                     key={`merchant-${shop.id}-${index}`}
                     style={styles.nbMerchantCard}
                     activeOpacity={0.9}
-                    onPress={() =>
+                    onPress={async () => {
+                      await setNavShop(shop);
                       router.push({
                         pathname: '/member-shop-details',
                         params: {
                           shopId: String(shop.id),
                           categoryId: '',
                           source: 'dual',
-                          shopData: JSON.stringify(shop),
                         },
-                      })
-                    }
+                      });
+                    }}
                   >
                     <View style={styles.nbMerchantImageWrapper}>
                       {imageUri ? (
