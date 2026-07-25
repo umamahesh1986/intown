@@ -13,6 +13,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { getMerchantImageByShopId, extractImageUrls, INTOWN_API_BASE } from '../utils/api';
+import { setNavShop } from '../utils/navCache';
 import { useLocationStore } from '../store/locationStore';
 import { formatDistance } from '../utils/formatDistance';
 import axios from 'axios';
@@ -235,18 +236,18 @@ export default function MemberShopList() {
     } catch {}
   };
 
-  const handleViewShop = (shop: any) => {
+  const handleViewShop = async (shop: any) => {
     try {
       if (!shop) return;
       const shopId = shop?.id ?? shop?.merchantId ?? shop?.merchant_id ?? '';
       if (!shopId) return;
+      await setNavShop(shop);
       router.push({
         pathname: '/member-shop-details',
         params: {
           shopId: String(shopId),
           categoryId: categoryId ?? '',
           source: source ?? 'user',
-          shopData: JSON.stringify(shop),
         },
       });
     } catch (err) {

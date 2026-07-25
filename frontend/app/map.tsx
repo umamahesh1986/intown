@@ -15,6 +15,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocationStore } from '../store/locationStore';
 import { getShops } from '../utils/api';
+import { setNavShop } from '../utils/navCache';
 
 interface Shop {
   id: string;
@@ -58,12 +59,12 @@ export default function MapScreen() {
     }
   };
 
-  const handleViewShop = (shop: Shop) => {
+  const handleViewShop = async (shop: Shop) => {
+    await setNavShop(shop);
     router.push({
       pathname: '/shop-details',
       params: {
         shopId: shop.id,
-        shopData: JSON.stringify(shop),
       },
     });
   };

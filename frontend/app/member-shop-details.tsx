@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistance } from '../utils/formatDistance';
 import { extractImageUrls, INTOWN_API_BASE, getAllProducts } from '../utils/api';
+import { getNavShop } from '../utils/navCache';
 import { useLocationStore } from '../store/locationStore';
 import { useAuthStore } from '../store/authStore';
 import PaymentModal from '../components/PaymentModal';
@@ -46,7 +47,7 @@ export default function MemberShopDetails() {
   const shopId = params.shopId;
   const categoryId = params.categoryId;
   const source = params.source;
-  const shopDataParam = params.shopData;
+  const shopDataParam = params.shopData; // Deprecated — kept for backwards compat with any old deep links
 
   const [shop, setShop] = useState<ShopData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -132,7 +133,21 @@ export default function MemberShopDetails() {
     setIsLoading(true);
     setError(null);
 
-    // 1. Try to use shop data passed via params (no API call needed)
+    // 1. Try in-memory / AsyncStorage nav cache (preferred — no URL bloat)
+    try {
+      const cached = await getNavShop(shopId);
+      if (cached && cached.id) {
+        setShop(cached);
+        const images = extractImageUrls(cached.s3ImageUrl);
+        setShopImages(images);
+        setIsLoading(false);
+        return;
+      }
+    } catch (e) {
+      console.warn('[ShopDetails] Failed to read nav cache', e);
+    }
+
+    // 2. Legacy fallback: shop data passed via URL param (kept for backward compat)
     if (shopDataParam) {
       try {
         const parsed = JSON.parse(shopDataParam);
@@ -148,7 +163,7 @@ export default function MemberShopDetails() {
       }
     }
 
-    // 2. Fallback: fetch from API
+    // 3. Fallback: fetch from API
     try {
       await loadLocationFromStorage();
       const storedLocation = useLocationStore.getState().location;

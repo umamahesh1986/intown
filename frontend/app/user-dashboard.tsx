@@ -36,6 +36,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useAuthStore } from '../store/authStore';
 import { useLocationStore, LocationDetails } from '../store/locationStore';
 import { getPlans, getCategories, getAllNearbyShops, getMerchantImageByShopId, extractImageUrls } from '../utils/api';
+import { setNavShop } from '../utils/navCache';
 
 import {
   getUserLocationWithDetails,
@@ -1095,17 +1096,17 @@ export default function UserDashboard() {
                       key={`merchant-${shop.id}-${index}`}
                       style={styles.merchantCard}
                       activeOpacity={0.9}
-                      onPress={() =>
+                      onPress={async () => {
+                        await setNavShop(shop);
                         router.push({
                           pathname: '/member-shop-details',
                           params: {
                             shopId: String(shop.id),
                             categoryId: '',
                             source: 'user',
-                            shopData: JSON.stringify(shop),
                           },
-                        })
-                      }
+                        });
+                      }}
                     >
                       <View style={styles.merchantImageWrapper}>
                         {imageUri ? (
