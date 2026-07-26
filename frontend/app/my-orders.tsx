@@ -86,7 +86,10 @@ export default function MyOrdersScreen() {
       try {
         const stored = await AsyncStorage.getItem('customer_id');
         setCustomerId(stored);
-      } catch {}
+        if (!stored) setLoading(false); // Skip loading spinner for unauth visitors
+      } catch {
+        setLoading(false);
+      }
     })();
   }, []);
 

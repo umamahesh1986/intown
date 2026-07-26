@@ -74,7 +74,10 @@ export default function MerchantOrdersScreen() {
       try {
         const stored = await AsyncStorage.getItem('merchant_id');
         setMerchantId(stored);
-      } catch {}
+        if (!stored) setLoading(false);
+      } catch {
+        setLoading(false);
+      }
     })();
   }, []);
 
