@@ -440,7 +440,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 12, paddingVertical: 10, backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1, borderBottomColor: '#EEE',
+    borderBottomWidth: 1, borderBottomColor: '#EEE',paddingTop:32,
   },
   backBtn: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   headerTitle: { fontSize: 17, fontWeight: '800', color: '#1A1A1A' },
