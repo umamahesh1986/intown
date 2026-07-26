@@ -1,7 +1,8 @@
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, RefreshControl, Alert } from 'react-native';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
@@ -53,7 +54,13 @@ export default function MerchantOrdersScreen() {
   const [error, setError] = useState<string>('');
   const [activeTab, setActiveTab] = useState<PickupOrderStatus>('PLACED');
   const [updatingId, setUpdatingId] = useState<string | null>(null);
-  const [toast, setToast] = useState<{ kind: 'success' | 'error'; message: string } | null>(null);
+  const [toast, setToast] = useState<{ kind: 'success' | 'error' | 'info'; message: string } | null>(null);
+
+  // Polling — track known PLACED order IDs so we can highlight NEW ones.
+  const knownPlacedIdsRef = useRef<Set<string>>(new Set());
+  const isFirstFetchRef = useRef(true);
+  const pollTimerRef = useRef<any>(null);
+  const POLL_INTERVAL_MS = 15000;
 
   useEffect(() => {
     (async () => {
@@ -73,6 +80,30 @@ export default function MerchantOrdersScreen() {
         const tb = new Date(b.respondBy || b.acceptedAt || b.endedAt || 0).getTime();
         return tb - ta;
       });
+
+      // Detect NEW placed orders — skip the very first fetch (initial load)
+      const currentPlacedIds = new Set<string>();
+      const newlyArrived: PickupOrder[] = [];
+      for (const o of list) {
+        if (String(o.status).toUpperCase() === 'PLACED') {
+          currentPlacedIds.add(o.pickup_id);
+          if (!isFirstFetchRef.current && !knownPlacedIdsRef.current.has(o.pickup_id)) {
+            newlyArrived.push(o);
+          }
+        }
+      }
+      knownPlacedIdsRef.current = currentPlacedIds;
+
+      if (newlyArrived.length > 0) {
+        // Auto-switch to PLACED tab so the merchant sees the new order right away
+        setActiveTab('PLACED');
+        const label =
+          newlyArrived.length === 1
+            ? `New order from ${newlyArrived[0].customerName || `Customer #${newlyArrived[0].customerId}`}`
+            : `${newlyArrived.length} new orders received`;
+        showToast('info', label);
+      }
+      isFirstFetchRef.current = false;
       setOrders(list);
     } catch (e: any) {
       setError(e?.message || 'Unable to load orders. Please try again.');
@@ -96,10 +127,24 @@ export default function MerchantOrdersScreen() {
     setRefreshing(false);
   }, [merchantId, fetchOrders]);
 
-  const showToast = (kind: 'success' | 'error', message: string) => {
+  const showToast = (kind: 'success' | 'error' | 'info', message: string) => {
     setToast({ kind, message });
     setTimeout(() => setToast(null), 3500);
   };
+
+  // Start / stop 15-second polling while this screen is focused.
+  useFocusEffect(
+    useCallback(() => {
+      if (!merchantId) return;
+      // Kick a poll immediately, then every POLL_INTERVAL_MS
+      const tick = () => { fetchOrders(merchantId).catch(() => {}); };
+      pollTimerRef.current = setInterval(tick, POLL_INTERVAL_MS);
+      return () => {
+        if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+        pollTimerRef.current = null;
+      };
+    }, [merchantId, fetchOrders])
+  );
 
   const advanceStatus = async (order: PickupOrder) => {
     if (!merchantId) return;
@@ -164,15 +209,34 @@ export default function MerchantOrdersScreen() {
       {/* Toast */}
       {toast && (
         <View
-          style={[styles.toast, toast.kind === 'success' ? styles.toastSuccess : styles.toastError]}
+          style={[
+            styles.toast,
+            toast.kind === 'success'
+              ? styles.toastSuccess
+              : toast.kind === 'error'
+                ? styles.toastError
+                : styles.toastInfo,
+          ]}
           testID="merchant-orders-toast"
         >
           <Ionicons
-            name={toast.kind === 'success' ? 'checkmark-circle' : 'close-circle'}
+            name={
+              toast.kind === 'success'
+                ? 'checkmark-circle'
+                : toast.kind === 'error'
+                  ? 'close-circle'
+                  : 'notifications'
+            }
             size={18}
-            color={toast.kind === 'success' ? '#0C8A4A' : '#D32F2F'}
+            color={toast.kind === 'success' ? '#0C8A4A' : toast.kind === 'error' ? '#D32F2F' : '#1E88E5'}
           />
-          <Text style={[styles.toastText, { color: toast.kind === 'success' ? '#0C8A4A' : '#D32F2F' }]} numberOfLines={2}>
+          <Text
+            style={[
+              styles.toastText,
+              { color: toast.kind === 'success' ? '#0C8A4A' : toast.kind === 'error' ? '#D32F2F' : '#1E88E5' },
+            ]}
+            numberOfLines={2}
+          >
             {toast.message}
           </Text>
         </View>
@@ -331,6 +395,7 @@ const styles = StyleSheet.create({
   },
   toastSuccess: { backgroundColor: '#E8F5E9', borderColor: '#B7E1BF' },
   toastError: { backgroundColor: '#FDECEA', borderColor: '#F5C2C0' },
+  toastInfo: { backgroundColor: '#E3F2FD', borderColor: '#BBDEFB' },
   toastText: { flex: 1, fontSize: 13, fontWeight: '700' },
 
   listContent: { padding: 12, paddingBottom: 32 },
