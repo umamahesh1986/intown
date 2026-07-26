@@ -135,9 +135,17 @@ export default function MyOrdersScreen() {
             msg = `Your order at ${merchant} has been completed.`;
             setActiveTab('COMPLETED');
             break;
-          case 'ENDED':
-            msg = `Your order at ${merchant} was ended.`;
+          case 'ENDED': {
+            const reason = String(primary.order.endReason || '').toUpperCase();
+            if (reason === 'REJECTED_BY_MERCHANT') {
+              msg = `${merchant} has rejected your order.`;
+            } else if (reason === 'EXPIRED_NO_RESPONSE') {
+              msg = `Your order at ${merchant} expired without a response.`;
+            } else {
+              msg = `Your order at ${merchant} was ended.`;
+            }
             break;
+          }
           default:
             msg = `Order ${primary.order.pickup_id} is now ${primary.to.replace('_', ' ')}.`;
         }

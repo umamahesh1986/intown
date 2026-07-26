@@ -179,6 +179,37 @@ export default function MerchantOrdersScreen() {
     }
   };
 
+  const rejectOrder = (order: PickupOrder) => {
+    if (!merchantId) return;
+    const doReject = async () => {
+      setUpdatingId(order.pickup_id);
+      try {
+        await performMerchantOrderAction(merchantId, order.pickup_id, 'REJECT');
+        // Optimistic — move to ENDED with reason
+        setOrders((prev) =>
+          prev.map((o) =>
+            o.pickup_id === order.pickup_id
+              ? { ...o, status: 'ENDED', endReason: 'REJECTED_BY_MERCHANT', endedAt: new Date().toISOString() }
+              : o
+          )
+        );
+        showToast('success', 'Order rejected. The customer has been notified.');
+      } catch (e: any) {
+        showToast('error', e?.message || 'Failed to reject order. Please try again.');
+      } finally {
+        setUpdatingId(null);
+      }
+    };
+    Alert.alert(
+      'Reject this order?',
+      `The customer will be notified with reason REJECTED_BY_MERCHANT. This cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Reject', style: 'destructive', onPress: doReject },
+      ]
+    );
+  };
+
   const filteredOrders = orders.filter((o) => String(o.status).toUpperCase() === activeTab);
   const countFor = (statusKey: PickupOrderStatus) =>
     orders.filter((o) => String(o.status).toUpperCase() === statusKey).length;
@@ -292,6 +323,7 @@ export default function MerchantOrdersScreen() {
                 key={order.pickup_id}
                 order={order}
                 onAdvance={() => advanceStatus(order)}
+                onReject={() => rejectOrder(order)}
                 isUpdating={updatingId === order.pickup_id}
               />
             ))
@@ -305,10 +337,12 @@ export default function MerchantOrdersScreen() {
 function MerchantOrderCard({
   order,
   onAdvance,
+  onReject,
   isUpdating,
 }: {
   order: PickupOrder;
   onAdvance: () => void;
+  onReject: () => void;
   isUpdating: boolean;
 }) {
   const statusKey = String(order.status).toUpperCase();
@@ -351,21 +385,35 @@ function MerchantOrderCard({
       </View>
 
       {nextInfo && (
-        <TouchableOpacity
-          style={[styles.actionBtn, isUpdating && styles.actionBtnDisabled]}
-          onPress={onAdvance}
-          disabled={isUpdating}
-          testID={`merchant-order-action-${order.pickup_id}`}
-        >
-          {isUpdating ? (
-            <ActivityIndicator color="#FFFFFF" size="small" />
-          ) : (
-            <>
-              <Ionicons name={nextInfo.icon} size={16} color="#FFFFFF" />
-              <Text style={styles.actionBtnText}>{nextInfo.label}</Text>
-            </>
+        <View style={styles.actionRow}>
+          <TouchableOpacity
+            style={[styles.actionBtn, styles.actionBtnPrimary, isUpdating && styles.actionBtnDisabled]}
+            onPress={onAdvance}
+            disabled={isUpdating}
+            testID={`merchant-order-action-${order.pickup_id}`}
+          >
+            {isUpdating ? (
+              <ActivityIndicator color="#FFFFFF" size="small" />
+            ) : (
+              <>
+                <Ionicons name={nextInfo.icon} size={16} color="#FFFFFF" />
+                <Text style={styles.actionBtnText}>{nextInfo.label}</Text>
+              </>
+            )}
+          </TouchableOpacity>
+
+          {statusKey === 'PLACED' && (
+            <TouchableOpacity
+              style={[styles.actionBtn, styles.actionBtnReject, isUpdating && styles.actionBtnDisabled]}
+              onPress={onReject}
+              disabled={isUpdating}
+              testID={`merchant-order-reject-${order.pickup_id}`}
+            >
+              <Ionicons name="close-circle" size={16} color="#FFFFFF" />
+              <Text style={styles.actionBtnText}>Reject</Text>
+            </TouchableOpacity>
           )}
-        </TouchableOpacity>
+        </View>
       )}
 
       {order.endReason && (
@@ -434,11 +482,15 @@ const styles = StyleSheet.create({
   itemBullet: { width: 5, height: 5, borderRadius: 3, backgroundColor: '#FF8A00' },
   itemName: { flex: 1, fontSize: 13, color: '#333', fontWeight: '600' },
   itemQty: { fontSize: 12, color: '#666', fontWeight: '700' },
+  actionRow: { flexDirection: 'row', gap: 8, marginTop: 12 },
   actionBtn: {
+    flex: 1,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    backgroundColor: '#FF8A00', borderRadius: 10, paddingVertical: 12, marginTop: 12,
+    borderRadius: 10, paddingVertical: 12,
   },
-  actionBtnDisabled: { backgroundColor: '#CCCCCC' },
+  actionBtnPrimary: { backgroundColor: '#FF8A00' },
+  actionBtnReject: { backgroundColor: '#D32F2F' },
+  actionBtnDisabled: { opacity: 0.5 },
   actionBtnText: { color: '#FFFFFF', fontWeight: '800', fontSize: 14 },
   endReasonBanner: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#FDECEA', borderRadius: 8, padding: 8, marginTop: 10 },
   endReasonText: { color: '#D32F2F', fontSize: 12, fontWeight: '700', textTransform: 'capitalize' },
