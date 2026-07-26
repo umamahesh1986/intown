@@ -7,7 +7,8 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   getMerchantPickupOrders,
-  updateMerchantOrderStatus,
+  performMerchantOrderAction,
+  confirmMerchantOrderDelivery,
   PickupOrder,
   PickupOrderStatus,
 } from '../utils/api';
@@ -27,10 +28,16 @@ const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
   ENDED: { bg: '#FDECEA', text: '#D32F2F' },
 };
 
-const NEXT_STATUS: Record<string, { next: PickupOrderStatus; label: string; icon: keyof typeof Ionicons.glyphMap }> = {
-  PLACED: { next: 'ACCEPTED', label: 'Accept Order', icon: 'checkmark-circle' },
-  ACCEPTED: { next: 'PICKUP_READY', label: 'Mark Pickup Ready', icon: 'cube' },
-  PICKUP_READY: { next: 'COMPLETED', label: 'Mark Completed', icon: 'flag' },
+// Merchant action wiring — spec: PUT /IN/merchants/{m}/pickup-orders/{p}
+// with body { action: 'ACCEPT' | 'PICKUP_READY' | 'REJECT' }, and the
+// completion step uses PUT /pickup-orders/{p}/confirmation (no body).
+const NEXT_STATUS: Record<
+  string,
+  { nextStatus: PickupOrderStatus; label: string; icon: keyof typeof Ionicons.glyphMap; kind: 'action' | 'confirm'; action?: 'ACCEPT' | 'PICKUP_READY' }
+> = {
+  PLACED:       { nextStatus: 'ACCEPTED',     label: 'Accept Order',       icon: 'checkmark-circle', kind: 'action',  action: 'ACCEPT' },
+  ACCEPTED:     { nextStatus: 'PICKUP_READY', label: 'Mark Pickup Ready',  icon: 'cube',             kind: 'action',  action: 'PICKUP_READY' },
+  PICKUP_READY: { nextStatus: 'COMPLETED',    label: 'Order Delivered',    icon: 'flag',             kind: 'confirm' },
 };
 
 const formatDateTime = (iso?: string | null): string => {
@@ -67,7 +74,10 @@ export default function MerchantOrdersScreen() {
       try {
         const stored = await AsyncStorage.getItem('merchant_id');
         setMerchantId(stored);
-      } catch {}
+        if (!stored) setLoading(false);
+      } catch {
+        setLoading(false);
+      }
     })();
   }, []);
 
@@ -152,12 +162,16 @@ export default function MerchantOrdersScreen() {
     if (!nextInfo) return;
     setUpdatingId(order.pickup_id);
     try {
-      await updateMerchantOrderStatus(merchantId, order.pickup_id, nextInfo.next);
+      if (nextInfo.kind === 'action' && nextInfo.action) {
+        await performMerchantOrderAction(merchantId, order.pickup_id, nextInfo.action);
+      } else if (nextInfo.kind === 'confirm') {
+        await confirmMerchantOrderDelivery(merchantId, order.pickup_id);
+      }
       // Optimistic local update
       setOrders((prev) =>
-        prev.map((o) => (o.pickup_id === order.pickup_id ? { ...o, status: nextInfo.next } : o))
+        prev.map((o) => (o.pickup_id === order.pickup_id ? { ...o, status: nextInfo.nextStatus } : o))
       );
-      showToast('success', `Order marked as ${nextInfo.next.replace('_', ' ')}`);
+      showToast('success', `Order marked as ${nextInfo.nextStatus.replace('_', ' ')}`);
     } catch (e: any) {
       showToast('error', e?.message || 'Failed to update status. Please try again.');
     } finally {

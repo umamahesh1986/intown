@@ -6,7 +6,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuthStore } from '../store/authStore';
-import { getCustomerPickupOrders, PickupOrder, PickupOrderStatus } from '../utils/api';
+import { getCustomerPickupOrders, confirmCustomerOrderReceived, PickupOrder, PickupOrderStatus } from '../utils/api';
 
 const TABS: { key: PickupOrderStatus; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
   { key: 'PLACED', label: 'Placed', icon: 'time-outline' },
@@ -44,7 +44,8 @@ export default function MyOrdersScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string>('');
   const [activeTab, setActiveTab] = useState<PickupOrderStatus>('PLACED');
-  const [toast, setToast] = useState<{ kind: 'info' | 'success'; message: string } | null>(null);
+  const [toast, setToast] = useState<{ kind: 'info' | 'success' | 'error'; message: string } | null>(null);
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
 
   // Polling — track status per order id so we can notify the customer on transitions.
   const lastStatusMapRef = useRef<Record<string, string>>({});
@@ -52,9 +53,32 @@ export default function MyOrdersScreen() {
   const pollTimerRef = useRef<any>(null);
   const POLL_INTERVAL_MS = 15000;
 
-  const showToast = (kind: 'info' | 'success', message: string) => {
+  const showToast = (kind: 'info' | 'success' | 'error', message: string) => {
     setToast({ kind, message });
     setTimeout(() => setToast(null), 3500);
+  };
+
+  const handlePickupConfirm = async (order: PickupOrder) => {
+    if (!customerId) return;
+    setConfirmingId(order.pickup_id);
+    try {
+      await confirmCustomerOrderReceived(customerId, order.pickup_id);
+      // Optimistic — mark customerReceivedAt so the button hides
+      setOrders((prev) =>
+        prev.map((o) =>
+          o.pickup_id === order.pickup_id
+            ? { ...o, customerReceivedAt: new Date().toISOString() }
+            : o
+        )
+      );
+      showToast('success', 'Thanks! We\u2019ve marked your order as picked up.');
+      // Immediately re-fetch to pick up any status change (if merchant already confirmed → COMPLETED)
+      fetchOrders(customerId).catch(() => {});
+    } catch (e: any) {
+      showToast('error', e?.message || 'Could not confirm pickup. Please try again.');
+    } finally {
+      setConfirmingId(null);
+    }
   };
 
   useEffect(() => {
@@ -62,7 +86,10 @@ export default function MyOrdersScreen() {
       try {
         const stored = await AsyncStorage.getItem('customer_id');
         setCustomerId(stored);
-      } catch {}
+        if (!stored) setLoading(false); // Skip loading spinner for unauth visitors
+      } catch {
+        setLoading(false);
+      }
     })();
   }, []);
 
@@ -235,7 +262,12 @@ export default function MyOrdersScreen() {
             </View>
           ) : (
             filteredOrders.map((order) => (
-              <OrderCard key={order.pickup_id} order={order} />
+              <OrderCard
+                key={order.pickup_id}
+                order={order}
+                onConfirmPickup={handlePickupConfirm}
+                isConfirming={confirmingId === order.pickup_id}
+              />
             ))
           )}
 
@@ -244,7 +276,12 @@ export default function MyOrdersScreen() {
             <>
               <Text style={styles.historyHeader}>History</Text>
               {historyOrders.map((order) => (
-                <OrderCard key={`h-${order.pickup_id}`} order={order} />
+                <OrderCard
+                  key={`h-${order.pickup_id}`}
+                  order={order}
+                  onConfirmPickup={handlePickupConfirm}
+                  isConfirming={confirmingId === order.pickup_id}
+                />
               ))}
             </>
           )}
@@ -254,16 +291,31 @@ export default function MyOrdersScreen() {
       {/* Status update toast — floats above the list */}
       {toast && (
         <View
-          style={[styles.toast, toast.kind === 'success' ? styles.toastSuccess : styles.toastInfo]}
+          style={[
+            styles.toast,
+            toast.kind === 'success' ? styles.toastSuccess : toast.kind === 'error' ? styles.toastError : styles.toastInfo,
+          ]}
           pointerEvents="box-none"
           testID="my-orders-toast"
         >
           <Ionicons
-            name={toast.kind === 'success' ? 'checkmark-circle' : 'notifications'}
+            name={
+              toast.kind === 'success'
+                ? 'checkmark-circle'
+                : toast.kind === 'error'
+                  ? 'close-circle'
+                  : 'notifications'
+            }
             size={18}
-            color={toast.kind === 'success' ? '#0C8A4A' : '#1E88E5'}
+            color={toast.kind === 'success' ? '#0C8A4A' : toast.kind === 'error' ? '#D32F2F' : '#1E88E5'}
           />
-          <Text style={[styles.toastText, { color: toast.kind === 'success' ? '#0C8A4A' : '#1E88E5' }]} numberOfLines={2}>
+          <Text
+            style={[
+              styles.toastText,
+              { color: toast.kind === 'success' ? '#0C8A4A' : toast.kind === 'error' ? '#D32F2F' : '#1E88E5' },
+            ]}
+            numberOfLines={2}
+          >
             {toast.message}
           </Text>
         </View>
@@ -272,10 +324,20 @@ export default function MyOrdersScreen() {
   );
 }
 
-function OrderCard({ order }: { order: PickupOrder }) {
+function OrderCard({
+  order,
+  onConfirmPickup,
+  isConfirming,
+}: {
+  order: PickupOrder;
+  onConfirmPickup?: (o: PickupOrder) => void;
+  isConfirming?: boolean;
+}) {
   const statusKey = String(order.status).toUpperCase();
   const color = STATUS_COLORS[statusKey] || { bg: '#F5F5F5', text: '#666' };
   const orderDate = formatDateTime(order.acceptedAt || order.respondBy || order.endedAt || null);
+  const canConfirmPickup = statusKey === 'PICKUP_READY' && !order.customerReceivedAt;
+  const alreadyConfirmedPickup = !!order.customerReceivedAt && statusKey !== 'COMPLETED';
 
   // Milestone timeline — always visible, matches the spec fields exactly
   const milestones: { label: string; value?: string | null; icon: keyof typeof Ionicons.glyphMap; reached: boolean }[] = [
@@ -333,6 +395,33 @@ function OrderCard({ order }: { order: PickupOrder }) {
                 <Text style={styles.timelineValue}>{formatDateTime(m.value)}</Text>
               </View>
             ))}
+        </View>
+      )}
+
+      {/* Customer pickup-confirm button (PICKUP_READY state) */}
+      {canConfirmPickup && onConfirmPickup && (
+        <TouchableOpacity
+          style={[styles.confirmPickupBtn, isConfirming && styles.confirmPickupBtnDisabled]}
+          onPress={() => onConfirmPickup(order)}
+          disabled={isConfirming}
+          testID={`confirm-pickup-btn-${order.pickup_id}`}
+        >
+          {isConfirming ? (
+            <ActivityIndicator color="#FFFFFF" size="small" />
+          ) : (
+            <>
+              <Ionicons name="hand-left-outline" size={16} color="#FFFFFF" />
+              <Text style={styles.confirmPickupBtnText}>I Picked Up My Order</Text>
+            </>
+          )}
+        </TouchableOpacity>
+      )}
+
+      {/* Waiting for merchant delivery confirmation */}
+      {alreadyConfirmedPickup && (
+        <View style={styles.waitingBanner}>
+          <Ionicons name="time-outline" size={14} color="#1E88E5" />
+          <Text style={styles.waitingBannerText}>Waiting for merchant to mark delivery to complete this order.</Text>
         </View>
       )}
 
@@ -406,6 +495,19 @@ const styles = StyleSheet.create({
   endReasonText: { color: '#D32F2F', fontSize: 12, fontWeight: '700', textTransform: 'capitalize' },
   historyHeader: { marginTop: 20, marginBottom: 8, fontSize: 13, fontWeight: '800', color: '#666' },
 
+  confirmPickupBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    backgroundColor: '#0C8A4A', borderRadius: 10, paddingVertical: 12, marginTop: 12,
+  },
+  confirmPickupBtnDisabled: { backgroundColor: '#CCCCCC' },
+  confirmPickupBtnText: { color: '#FFFFFF', fontWeight: '800', fontSize: 14 },
+  waitingBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: '#E3F2FD', borderRadius: 8, padding: 8, marginTop: 12,
+    borderWidth: 1, borderColor: '#BBDEFB',
+  },
+  waitingBannerText: { color: '#1E88E5', fontSize: 12, fontWeight: '700', flex: 1 },
+
   toast: {
     position: 'absolute', top: 120, left: 12, right: 12,
     flexDirection: 'row', alignItems: 'center', gap: 8,
@@ -415,5 +517,6 @@ const styles = StyleSheet.create({
   },
   toastSuccess: { backgroundColor: '#E8F5E9', borderColor: '#B7E1BF' },
   toastInfo: { backgroundColor: '#E3F2FD', borderColor: '#BBDEFB' },
+  toastError: { backgroundColor: '#FDECEA', borderColor: '#F5C2C0' },
   toastText: { flex: 1, fontSize: 13, fontWeight: '700' },
 });

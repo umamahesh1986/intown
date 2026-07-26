@@ -746,15 +746,23 @@ export interface PickupOrder {
   createdAt?: string;
 }
 
-export const getCustomerPickupOrders = async (customerId: number | string): Promise<PickupOrder[]> => {
-  const res = await fetch(`${INTOWN_API_BASE}/customers/${customerId}/pickup-orders`);
+export const getCustomerPickupOrders = async (
+  customerId: number | string,
+  status?: PickupOrderStatus,
+): Promise<PickupOrder[]> => {
+  const qs = status ? `?status=${encodeURIComponent(String(status).toUpperCase())}` : '';
+  const res = await fetch(`${INTOWN_API_BASE}/customers/${customerId}/pickup-orders${qs}`);
   if (!res.ok) throw new Error(`Failed to fetch customer orders (${res.status})`);
   const data = await res.json();
   return Array.isArray(data) ? data : Array.isArray((data as any)?.data) ? (data as any).data : [];
 };
 
-export const getMerchantPickupOrders = async (merchantId: number | string): Promise<PickupOrder[]> => {
-  const res = await fetch(`${INTOWN_API_BASE}/merchants/${merchantId}/pickup-orders`);
+export const getMerchantPickupOrders = async (
+  merchantId: number | string,
+  status?: PickupOrderStatus,
+): Promise<PickupOrder[]> => {
+  const qs = status ? `?status=${encodeURIComponent(String(status).toUpperCase())}` : '';
+  const res = await fetch(`${INTOWN_API_BASE}/merchants/${merchantId}/pickup-orders${qs}`);
   if (!res.ok) throw new Error(`Failed to fetch merchant orders (${res.status})`);
   const data = await res.json();
   return Array.isArray(data) ? data : Array.isArray((data as any)?.data) ? (data as any).data : [];
@@ -774,28 +782,81 @@ export const getMerchantPickupOrderById = async (
   return res.json();
 };
 
-// Placeholder for the status-update endpoint the backend team will implement.
-// Contract (needs backend team confirmation):
-//   POST /IN/merchants/{merchantId}/pickup-orders/{pickup_id}/status
-//   body: { status: "ACCEPTED" | "PICKUP_READY" | "COMPLETED" }
-export const updateMerchantOrderStatus = async (
+// Merchant action verbs accepted by PUT /IN/merchants/{m}/pickup-orders/{p}
+export type PickupOrderAction = 'ACCEPT' | 'REJECT' | 'PICKUP_READY';
+
+// Perform a merchant action on an order (ACCEPT / REJECT / PICKUP_READY).
+// Endpoint: PUT /IN/merchants/{merchantId}/pickup-orders/{pickup_id}
+// Body: { action: "ACCEPT" | "REJECT" | "PICKUP_READY" }
+export const performMerchantOrderAction = async (
   merchantId: number | string,
   pickupId: string,
-  status: PickupOrderStatus,
+  action: PickupOrderAction,
 ): Promise<PickupOrder | { ok: boolean; message?: string }> => {
   const res = await fetch(
-    `${INTOWN_API_BASE}/merchants/${merchantId}/pickup-orders/${encodeURIComponent(pickupId)}/status`,
+    `${INTOWN_API_BASE}/merchants/${merchantId}/pickup-orders/${encodeURIComponent(pickupId)}`,
     {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify({ status }),
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Accept: '*/*' },
+      body: JSON.stringify({ action }),
     }
   );
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    throw new Error((data && (data.message || data.error)) || `Status update failed (${res.status})`);
+    throw new Error((data && (data.message || data.error)) || `Action failed (${res.status})`);
   }
   return data;
+};
+
+// Mark a PACKED / PICKUP_READY order as delivered (completes if customer already confirmed receipt).
+// Endpoint: PUT /IN/merchants/{merchantId}/pickup-orders/{pickup_id}/confirmation  (no body)
+export const confirmMerchantOrderDelivery = async (
+  merchantId: number | string,
+  pickupId: string,
+): Promise<PickupOrder | { ok: boolean; message?: string }> => {
+  const res = await fetch(
+    `${INTOWN_API_BASE}/merchants/${merchantId}/pickup-orders/${encodeURIComponent(pickupId)}/confirmation`,
+    { method: 'PUT', headers: { Accept: '*/*' } }
+  );
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error((data && (data.message || data.error)) || `Confirmation failed (${res.status})`);
+  }
+  return data;
+};
+
+// Customer confirms they received / picked up the order.
+// Endpoint: PUT /IN/customers/{customerId}/pickup-orders/{pickup_id}/confirmation  (no body)
+// Valid only when the order is PACKED / PICKUP_READY. Completes the order if the merchant has
+// already confirmed delivery.
+export const confirmCustomerOrderReceived = async (
+  customerId: number | string,
+  pickupId: string,
+): Promise<PickupOrder | { ok: boolean; message?: string }> => {
+  const res = await fetch(
+    `${INTOWN_API_BASE}/customers/${customerId}/pickup-orders/${encodeURIComponent(pickupId)}/confirmation`,
+    { method: 'PUT', headers: { Accept: '*/*' } }
+  );
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error((data && (data.message || data.error)) || `Confirmation failed (${res.status})`);
+  }
+  return data;
+};
+
+// Legacy alias — accepts a target status and routes to the right endpoint/action.
+// Kept for backward compatibility with earlier code.
+export const updateMerchantOrderStatus = async (
+  merchantId: number | string,
+  pickupId: string,
+  status: PickupOrderStatus,
+) => {
+  const s = String(status).toUpperCase();
+  if (s === 'ACCEPTED') return performMerchantOrderAction(merchantId, pickupId, 'ACCEPT');
+  if (s === 'PICKUP_READY' || s === 'PACKED') return performMerchantOrderAction(merchantId, pickupId, 'PICKUP_READY');
+  if (s === 'REJECTED') return performMerchantOrderAction(merchantId, pickupId, 'REJECT');
+  if (s === 'COMPLETED') return confirmMerchantOrderDelivery(merchantId, pickupId);
+  throw new Error(`Unsupported merchant status transition: ${status}`);
 };
 export const getCustomerProfile = async (customerId: number) => {
   const res = await fetch(
