@@ -746,15 +746,23 @@ export interface PickupOrder {
   createdAt?: string;
 }
 
-export const getCustomerPickupOrders = async (customerId: number | string): Promise<PickupOrder[]> => {
-  const res = await fetch(`${INTOWN_API_BASE}/customers/${customerId}/pickup-orders`);
+export const getCustomerPickupOrders = async (
+  customerId: number | string,
+  status?: PickupOrderStatus,
+): Promise<PickupOrder[]> => {
+  const qs = status ? `?status=${encodeURIComponent(String(status).toUpperCase())}` : '';
+  const res = await fetch(`${INTOWN_API_BASE}/customers/${customerId}/pickup-orders${qs}`);
   if (!res.ok) throw new Error(`Failed to fetch customer orders (${res.status})`);
   const data = await res.json();
   return Array.isArray(data) ? data : Array.isArray((data as any)?.data) ? (data as any).data : [];
 };
 
-export const getMerchantPickupOrders = async (merchantId: number | string): Promise<PickupOrder[]> => {
-  const res = await fetch(`${INTOWN_API_BASE}/merchants/${merchantId}/pickup-orders`);
+export const getMerchantPickupOrders = async (
+  merchantId: number | string,
+  status?: PickupOrderStatus,
+): Promise<PickupOrder[]> => {
+  const qs = status ? `?status=${encodeURIComponent(String(status).toUpperCase())}` : '';
+  const res = await fetch(`${INTOWN_API_BASE}/merchants/${merchantId}/pickup-orders${qs}`);
   if (!res.ok) throw new Error(`Failed to fetch merchant orders (${res.status})`);
   const data = await res.json();
   return Array.isArray(data) ? data : Array.isArray((data as any)?.data) ? (data as any).data : [];
