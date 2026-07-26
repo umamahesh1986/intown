@@ -974,6 +974,7 @@ export default function MemberShopDetails() {
                       const currentUnit = currentUnitFor(product);
                       return (
                         <View key={product.id} style={styles.productCard} testID={`product-card-${product.id}`}>
+                          <View style={styles.productCardInner}>
                           {/* Image placeholder */}
                           <View style={[styles.productImageWrap, { backgroundColor: tileBg }]}>
                             <Ionicons name={iconName} size={28} color={accent} />
@@ -1039,6 +1040,7 @@ export default function MemberShopDetails() {
                               </TouchableOpacity>
                             </View>
                           )}
+                          </View>
                         </View>
                       );
                     })}
@@ -1402,19 +1404,22 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
 
-  // Grid of product cards
+  // Grid of product cards — exactly 3 columns on every device (percentage-only sizing).
   productsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'flex-start',
-    columnGap: 8,
+    marginHorizontal: -4,
   },
   productCard: {
-    width: '32%',
+    width: '33.3333%',
+    paddingHorizontal: 4,
+    marginBottom: 10,
+  },
+  productCardInner: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 8,
-    marginBottom: 10,
     borderWidth: 1,
     borderColor: '#EDEDED',
   },
