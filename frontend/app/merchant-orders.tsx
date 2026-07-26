@@ -37,7 +37,7 @@ const NEXT_STATUS: Record<
 > = {
   PLACED:       { nextStatus: 'ACCEPTED',     label: 'Accept Order',       icon: 'checkmark-circle', kind: 'action',  action: 'ACCEPT' },
   ACCEPTED:     { nextStatus: 'PICKUP_READY', label: 'Mark Pickup Ready',  icon: 'cube',             kind: 'action',  action: 'PICKUP_READY' },
-  PICKUP_READY: { nextStatus: 'COMPLETED',    label: 'Confirm Delivery',   icon: 'flag',             kind: 'confirm' },
+  PICKUP_READY: { nextStatus: 'COMPLETED',    label: 'Order Delivered',    icon: 'flag',             kind: 'confirm' },
 };
 
 const formatDateTime = (iso?: string | null): string => {

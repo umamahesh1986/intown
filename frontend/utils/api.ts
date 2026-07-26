@@ -817,6 +817,25 @@ export const confirmMerchantOrderDelivery = async (
   return data;
 };
 
+// Customer confirms they received / picked up the order.
+// Endpoint: PUT /IN/customers/{customerId}/pickup-orders/{pickup_id}/confirmation  (no body)
+// Valid only when the order is PACKED / PICKUP_READY. Completes the order if the merchant has
+// already confirmed delivery.
+export const confirmCustomerOrderReceived = async (
+  customerId: number | string,
+  pickupId: string,
+): Promise<PickupOrder | { ok: boolean; message?: string }> => {
+  const res = await fetch(
+    `${INTOWN_API_BASE}/customers/${customerId}/pickup-orders/${encodeURIComponent(pickupId)}/confirmation`,
+    { method: 'PUT', headers: { Accept: '*/*' } }
+  );
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error((data && (data.message || data.error)) || `Confirmation failed (${res.status})`);
+  }
+  return data;
+};
+
 // Legacy alias — accepts a target status and routes to the right endpoint/action.
 // Kept for backward compatibility with earlier code.
 export const updateMerchantOrderStatus = async (
