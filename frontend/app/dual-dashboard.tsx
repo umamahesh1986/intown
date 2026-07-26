@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   TouchableWithoutFeedback,
-  Pressable,
   Animated,
   Dimensions,
   RefreshControl,
@@ -25,11 +24,11 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuthStore } from '../store/authStore';
 import { useLocationStore } from '../store/locationStore';
-import { getProfileImage } from '../utils/profileImage';
 import { useFocusEffect } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import Footer from '../components/Footer';
 import { getAllNearbyShops, getCategories, getMerchantImageByShopId, extractImageUrls, INTOWN_API_BASE } from '../utils/api';
+import { setNavShop } from '../utils/navCache';
 import {
   CATEGORY_IMAGE_LIST,
   FALLBACK_CATEGORY_IMAGE,
@@ -319,21 +318,17 @@ export default function DualDashboard() {
 
   const startNearbyAutoScroll = () => {
     if (nearbyAutoScrollRef.current) clearInterval(nearbyAutoScrollRef.current);
-    // Advance one card every 2.5s with a smooth native animation. The previous
-    // implementation ran at 30ms with a 1px step which saturated the JS thread
-    // and caused iOS to terminate child press gestures (View All / Categories /
-    // Nearby Shops were unclickable).
     nearbyAutoScrollRef.current = setInterval(() => {
       if (!nearbyScrollRef.current || nearbyShops.length === 0) return;
+      nearbyScrollPos.current += 1;
       const totalWidth = nearbyShops.length * MERCHANT_CARD_WIDTH;
-      nearbyScrollPos.current += MERCHANT_CARD_WIDTH;
       if (nearbyScrollPos.current >= totalWidth) {
         nearbyScrollPos.current = 0;
         nearbyScrollRef.current.scrollTo({ x: 0, animated: false });
       } else {
-        nearbyScrollRef.current.scrollTo({ x: nearbyScrollPos.current, animated: true });
+        nearbyScrollRef.current.scrollTo({ x: nearbyScrollPos.current, animated: false });
       }
-    }, 2500);
+    }, 30);
   };
 
   const stopNearbyAutoScroll = () => {
@@ -357,18 +352,6 @@ export default function DualDashboard() {
     categoryColumns.push(categories.slice(i, i + 2));
   }
 
-  // Swap the avatar whenever the user toggles the Customer/Merchant tab so the
-  // header + dropdown always reflect the role currently being viewed.
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const role = activeTab === 'merchant' ? 'merchant' : 'customer';
-      const url = await getProfileImage(role);
-      if (!cancelled) setProfileImage(url);
-    })();
-    return () => { cancelled = true; };
-  }, [activeTab]);
-
   /* ===============================
      LOAD USER DATA
   ================================ */
@@ -385,8 +368,7 @@ export default function DualDashboard() {
       let isActive = true;
       const refreshProfileImage = async () => {
         try {
-          const role = activeTab === 'merchant' ? 'merchant' : 'customer';
-          const storedProfileImage = await getProfileImage(role);
+          const storedProfileImage = await AsyncStorage.getItem('user_profile_image');
           if (storedProfileImage && isActive) {
             setProfileImage(storedProfileImage);
           }
@@ -660,8 +642,7 @@ export default function DualDashboard() {
       if (storedShopName) {
         setMerchantShopName(storedShopName);
       }
-      const initialRole = activeTab === 'merchant' ? 'merchant' : 'customer';
-      const storedProfileImage = await getProfileImage(initialRole);
+      const storedProfileImage = await AsyncStorage.getItem('user_profile_image');
       if (storedProfileImage) {
         setProfileImage(storedProfileImage);
       }
@@ -704,21 +685,11 @@ export default function DualDashboard() {
         const data = await res.json();
         const apiTransactions: CustomerTransaction[] = data?.transactions ?? [];
         setCustomerTransactions(
-          apiTransactions.map((item: any) => ({
+          apiTransactions.map((item) => ({
             id: String(item.transactionId),
             date: new Date(item.transactionDate).toLocaleDateString(),
             amount: item.payablePrice ?? item.finalPaidAmount ?? item.totalPrice ?? item.totalBillAmount ?? 0,
-            // Backend may send the merchant under businessName, merchantName, or
-            // a nested merchant object. member-dashboard uses the same fallback
-            // chain — keep them in sync.
-            description:
-              item.businessName ??
-              item.merchantName ??
-              item.merchantBusinessName ??
-              item.merchant?.businessName ??
-              item.merchant?.contactName ??
-              item.shopName ??
-              'Unknown',
+            description: item.merchantName,
             type: 'debit',
             status: 'completed',
           }))
@@ -763,16 +734,11 @@ export default function DualDashboard() {
         const data = await res.json();
         const apiSales: MerchantSale[] = data?.sales ?? [];
         setMerchantTransactions(
-          apiSales.map((item: any) => ({
+          apiSales.map((item) => ({
             id: String(item.transactionId),
             date: new Date(item.transactionDate).toLocaleDateString(),
             amount: item.totalAmountReceived ?? item.totalSalesValue ?? 0,
-            description:
-              item.customerName ??
-              item.customerContactName ??
-              item.customer?.contactName ??
-              item.customer?.name ??
-              'Unknown',
+            description: item.customerName,
             type: 'credit',
             status: 'completed',
           }))
@@ -819,12 +785,11 @@ export default function DualDashboard() {
   };
 
   const closeDropdown = () => {
-    setShowDropdown(false);
     Animated.timing(dropdownAnim, {
       toValue: 0,
       duration: 160,
       useNativeDriver: true,
-    }).start();
+    }).start(() => setShowDropdown(false));
   };
 
   const toggleDropdown = () => {
@@ -906,18 +871,18 @@ export default function DualDashboard() {
 
           <View style={styles.locationTextContainer}>
             <Text style={styles.welcomeText}>YOUR LOCATION</Text>
-            <Text style={styles.locationText} numberOfLines={1} ellipsizeMode="tail">
+            <Text style={styles.locationText} numberOfLines={1}>
               {getLocationDisplayText()}
             </Text>
             {location?.city && !isPlusCode(location.city) && location.city !== getLocationDisplayText() && (
-              <Text style={styles.locationCityText} numberOfLines={1} ellipsizeMode="tail">
+              <Text style={styles.locationCityText} numberOfLines={1}>
                 {location.city}
               </Text>
             )}
           </View>
         </TouchableOpacity>
 
-        <View style={styles.headerRightIcons}>
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
 
           {/* Notification */}
           <TouchableOpacity style={styles.notificationCircle}>
@@ -942,90 +907,102 @@ export default function DualDashboard() {
 
       </View>
 
-      {/* Dropdown Panel — backdrop and panel rendered as two separate conditional blocks
-          (mirrors member-dashboard) so the backdrop only mounts while showDropdown is true
-          and doesn't outlive the close animation, which was hijacking taps on header / View All /
-          categories / nearby shops / profile. */}
+      {/* Dropdown Panel */}
       {showDropdown && (
-        <TouchableWithoutFeedback onPress={closeDropdown}>
-          <View style={styles.backdrop} />
-        </TouchableWithoutFeedback>
-      )}
-
-      {showDropdown && (
-        <Animated.View
-          style={[
-            styles.userPanel,
-            {
-              opacity: dropdownAnim,
-              transform: [
-                {
-                  translateY: dropdownAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [-8, 0],
-                  }),
-                },
-              ],
-            },
-          ]}
-        >
-          <View style={styles.userPanelHeader}>
-            <View style={styles.panelAvatarPlaceholder}>
-              {profileImage ? (
-                <Image source={{ uri: profileImage }} style={{ width: 40, height: 40, borderRadius: 20 }} />
-              ) : (
-                <Ionicons name="person" size={22} color="#fff" />
-              )}
+        <>
+          <TouchableWithoutFeedback onPress={closeDropdown}>
+            <View style={styles.backdrop} />
+          </TouchableWithoutFeedback>
+          <Animated.View
+            style={[
+              styles.userPanel,
+              {
+                opacity: dropdownAnim,
+                transform: [
+                  {
+                    translateY: dropdownAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [-8, 0],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          >
+            <View style={styles.userPanelHeader}>
+              <View style={styles.panelAvatarPlaceholder}>
+                {profileImage ? (
+                  <Image source={{ uri: profileImage }} style={{ width: 40, height: 40, borderRadius: 20 }} />
+                ) : (
+                  <Ionicons name="person" size={22} color="#fff" />
+                )}
+              </View>
+              <View style={{ marginLeft: 10 }}>
+                <Text style={styles.userPanelName}>{user?.name ?? 'User'}</Text>
+                <Text style={styles.userPanelPhone}>
+                  {(user as any)?.phone ?? (user as any)?.email ?? ''}
+                </Text>
+                <Text style={styles.userPanelTag}>Dual Account</Text>
+              </View>
             </View>
-            <View style={{ marginLeft: 10 }}>
-              <Text style={styles.userPanelName}>{user?.name ?? 'User'}</Text>
-              <Text style={styles.userPanelPhone}>
-                {(user as any)?.phone ?? (user as any)?.email ?? ''}
+
+            <TouchableOpacity
+              style={styles.userPanelItem}
+              onPress={() => {
+                closeDropdown();
+                router.push({
+                  pathname: '/account' as any,
+                  params: { from: activeTab === 'merchant' ? 'dual-merchant' : 'dual-customer' },
+                });
+              }}
+            >
+              <Ionicons name="person-outline" size={22} color="#FF8A00" />
+              <Text style={styles.userPanelText}>My Account</Text>
+            </TouchableOpacity>
+
+            {/* MY ORDERS — visible for both customer and merchant modes */}
+            <TouchableOpacity
+              style={styles.userPanelItem}
+              onPress={() => {
+                closeDropdown();
+                router.push(activeTab === 'merchant' ? '/merchant-orders' as any : '/my-orders' as any);
+              }}
+              testID="dual-menu-my-orders-btn"
+            >
+              <Ionicons name="receipt-outline" size={22} color="#FF8A00" />
+              <Text style={styles.userPanelText}>
+                {activeTab === 'merchant' ? 'Customer Orders' : 'My Orders'}
               </Text>
-              <Text style={styles.userPanelTag}>Dual Account</Text>
-            </View>
-          </View>
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.userPanelItem}
-            onPress={() => {
-              closeDropdown();
-              router.push({
-                pathname: '/account' as any,
-                params: { from: activeTab === 'merchant' ? 'dual-merchant' : 'dual-customer' },
-              });
-            }}
-          >
-            <Ionicons name="person-outline" size={22} color="#FF8A00" />
-            <Text style={styles.userPanelText}>My Account</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.userPanelItem}
-            onPress={() => {
-              closeDropdown();
-              router.push('/member-card');
-            }}
-          >
-            <Ionicons name="card-outline" size={22} color="#FF8A00" />
-            <Text style={styles.userPanelText}>Member Card</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.userPanelItem}
-            onPress={() => {
-              closeDropdown();
-              setActiveTab('merchant');
-            }}
-          >
-            <Ionicons name="storefront-outline" size={22} color="#FF8A00" />
-            <Text style={styles.userPanelText}>Merchant</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.userPanelItem} onPress={handleLogout}>
-            <Ionicons name="log-out-outline" size={22} color="#FF0000" />
-            <Text style={[styles.userPanelText, { color: '#FF0000' }]}>
-              Logout
-            </Text>
-          </TouchableOpacity>
-        </Animated.View>
+            <TouchableOpacity
+              style={styles.userPanelItem}
+              onPress={() => {
+                closeDropdown();
+                router.push('/member-card');
+              }}
+            >
+              <Ionicons name="card-outline" size={22} color="#FF8A00" />
+              <Text style={styles.userPanelText}>Member Card</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.userPanelItem}
+              onPress={() => {
+                closeDropdown();
+                setActiveTab('merchant');
+              }}
+            >
+              <Ionicons name="storefront-outline" size={22} color="#FF8A00" />
+              <Text style={styles.userPanelText}>Merchant</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.userPanelItem} onPress={handleLogout}>
+              <Ionicons name="log-out-outline" size={22} color="#FF0000" />
+              <Text style={[styles.userPanelText, { color: '#FF0000' }]}>
+                Logout
+              </Text>
+            </TouchableOpacity>
+          </Animated.View>
+        </>
       )}
 
       {/* Search Section (Customer Only) */}
@@ -1123,7 +1100,9 @@ export default function DualDashboard() {
         style={styles.content}
         contentContainerStyle={{ paddingBottom: 24 }}
         showsVerticalScrollIndicator={true}
-        keyboardShouldPersistTaps="handled"
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
       >
         {/* Role Info Card */}
         {/* <View style={styles.roleCard}>
@@ -1287,11 +1266,7 @@ export default function DualDashboard() {
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Recent Transactions</Text>
             {/* <Text style={styles.normalText}>(Will be calculated on customervisits):</Text> */}
-            <TouchableOpacity
-              onPress={() => setShowAllTransactions(true)}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              testID="dual-dashboard-view-all-btn"
-            >
+            <TouchableOpacity onPress={() => setShowAllTransactions(true)}>
               <Text style={styles.viewAllText}>View All</Text>
             </TouchableOpacity>
           </View>
@@ -1496,17 +1471,17 @@ export default function DualDashboard() {
                     key={`merchant-${shop.id}-${index}`}
                     style={styles.nbMerchantCard}
                     activeOpacity={0.9}
-                    onPress={() =>
+                    onPress={async () => {
+                      await setNavShop(shop);
                       router.push({
                         pathname: '/member-shop-details',
                         params: {
                           shopId: String(shop.id),
                           categoryId: '',
                           source: 'dual',
-                          shopData: JSON.stringify(shop),
                         },
-                      })
-                    }
+                      });
+                    }}
                   >
                     <View style={styles.nbMerchantImageWrapper}>
                       {imageUri ? (
@@ -1744,17 +1719,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
-    minWidth: 0,
-    paddingRight: 8,
   },
   locationTextContainer: {
+    marginLeft: 8,
     flex: 1,
-    minWidth: 0,
-  },
-  headerRightIcons: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexShrink: 0,
   },
   locationRow: {
     flexDirection: 'row',
@@ -1764,6 +1732,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#0F172A',
+    flex: 1,
   },
   locationCityText: {
     fontSize: 11,

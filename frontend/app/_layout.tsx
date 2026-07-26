@@ -170,7 +170,6 @@ export default function RootLayout() {
         <Stack.Screen name="member-dashboard" />
         <Stack.Screen name="merchant-dashboard" />
         <Stack.Screen name="dual-dashboard" />
-        <Stack.Screen name="search" />
         <Stack.Screen name="member-shop-list" />
         <Stack.Screen name="member-shop-details" />
         <Stack.Screen name="member-navigate" />

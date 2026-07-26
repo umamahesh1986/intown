@@ -20,7 +20,6 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { registerMember, INTOWN_API_BASE } from '../utils/api';
-import { setProfileImage } from '../utils/profileImage';
 import { useAuthStore } from '../store/authStore';
 import { useFocusEffect } from '@react-navigation/native';
 
@@ -400,7 +399,7 @@ export default function RegisterMember() {
               'customer_profile_images',
               JSON.stringify(uploadedUrls)
             );
-            await setProfileImage('customer', uploadedUrls[0]);
+            await AsyncStorage.setItem('user_profile_image', uploadedUrls[0]);
           }
         } catch (error) {
           console.error('S3 upload failed:', error);

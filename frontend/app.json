@@ -56,14 +56,7 @@
           "locationAlwaysAndWhenInUsePermission": "Allow IntownLocal to use your location to find nearby shops."
         }
       ],
-      [
-        "expo-build-properties",
-        {
-          "ios": {
-            "deploymentTarget": "16.4"
-          }
-        }
-      ],
+      "expo-build-properties",
       "./plugins/withUpiQueries",
       [
         "expo-speech-recognition",

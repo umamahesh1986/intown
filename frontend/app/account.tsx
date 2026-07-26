@@ -9,7 +9,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { useAuthStore } from '../store/authStore';
 import { INTOWN_API_BASE, getCategories, getProductsByCategory } from '../utils/api';
-import { setProfileImage as setProfileImageHelper } from '../utils/profileImage';
 import axios from 'axios';
 
 export default function Account() {
@@ -158,21 +157,19 @@ export default function Account() {
       setIsDualUser(dualUser);
 
       // `from` route param wins — let the dashboard explicitly choose which profile to load.
-      // Defaults when arriving without a `from` (e.g. the footer Profile tab):
-      //   • Dual users → always land on the customer profile.
-      //   • Otherwise → infer from cached userType / role / merchant signals.
+      // Falls back to inferred user-type / role / data signals if no param given.
       let merchantUser: boolean;
       if (fromParam === 'dual-merchant' || fromParam === 'merchant') {
         merchantUser = true;
       } else if (fromParam === 'dual-customer' || fromParam === 'member' || fromParam === 'user') {
         merchantUser = false;
-      } else if (dualUser) {
-        merchantUser = false;
       } else {
         merchantUser =
           lowerType.includes('merchant') ||
+          lowerType === 'dual' ||
           lowerType === 'in_merchant' ||
           lowerRole.includes('merchant') ||
+          lowerRole === 'dual' ||
           !!storedMerchantId ||
           hasMerchantData ||
           (parsedUserData?.userType === 'merchant');
@@ -180,14 +177,13 @@ export default function Account() {
 
       setIsMerchant(merchantUser);
 
-      // Profile image — pick role-specific cache only. Do NOT fall back to the
-      // generic `user_profile_image` here: for dual users that key holds the
-      // customer's image and would leak into the merchant view.
+      // Profile image — pick context-specific cache so dual users don't see
+      // the other side's image. Falls back to the generic `user_profile_image`.
       setMerchantImageCache(storedMerchantImage || null);
       setCustomerImageCache(storedCustomerImage || null);
       const contextualImage = merchantUser ? storedMerchantImage : storedCustomerImage;
-      if (contextualImage) setProfileImage(contextualImage);
-      else setProfileImage(null);
+      const effectiveImage = contextualImage || storedImage || null;
+      if (effectiveImage) setProfileImage(effectiveImage);
 
       // Load merchant shop images list (for the carousel on merchant-dashboard)
       if (storedShopImagesRaw) {
@@ -594,10 +590,7 @@ export default function Account() {
           storedMerchantIdRaw,
           storedCustomerIdRaw,
         });
-        // Save under both role keys so the avatar appears regardless of which
-        // dashboard the user lands on after registration completes.
-        await setProfileImageHelper('customer', pendingImageUri);
-        await setProfileImageHelper('merchant', pendingImageUri);
+        await AsyncStorage.setItem('user_profile_image', pendingImageUri);
         setProfileImage(pendingImageUri);
         setPendingImageUri(null);
         Alert.alert('Saved locally', 'Image saved locally. It will sync when your account is fully set up.');
@@ -677,15 +670,14 @@ export default function Account() {
         }
       }
 
-      // Persist via the unified helper so canonical (profile_image_<role>),
-      // legacy account keys (customer_profile_image / merchant_profile_image),
-      // and user_profile_image stay in sync.
+      // Persist + reflect everywhere
       const finalUrl = canonicalUrl || pendingImageUri;
+      await AsyncStorage.setItem('user_profile_image', finalUrl);
       if (userTypeParam === 'IN_MERCHANT') {
-        await setProfileImageHelper('merchant', finalUrl);
+        await AsyncStorage.setItem('merchant_profile_image', finalUrl);
         setMerchantImageCache(finalUrl);
       } else {
-        await setProfileImageHelper('customer', finalUrl);
+        await AsyncStorage.setItem('customer_profile_image', finalUrl);
         setCustomerImageCache(finalUrl);
       }
       setProfileImage(finalUrl);
