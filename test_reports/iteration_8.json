@@ -1,0 +1,18 @@
+{
+  "summary": "Verified the Merchant Registration 'Pay Joining Fee' order-creation fix. (1) Live curl to https://devapi.intownlocal.com/IN/payment/create-order with new payload {mobileNumber:'9876543210', amount:499, description, notes.type:'MERCHANT_JOINING'} returned HTTP 201 with internalOrderId=604, razorpayOrderId=order_TI4d9HVlucjyG7, keyId=rzp_test_SVoE9DrV8kRDqj, amount=499.00. (2) Frontend /register-merchant loads at 390x844 with 0 console errors. (3) [data-testid=pay-joining-fee-btn] visible with text 'Pay Joining Fee ₹499/-'. (4) Built dist bundle contains NO 'subscriptionPlan: MERCHANT_JOINING' string; the joining-fee POST body sends only {mobileNumber, amount, description, notes:{type:'MERCHANT_JOINING',...}} — no customerId, no subscriptionPlan. The residual 'customerId'+'subscriptionPlan' occurrences in the bundle belong to the (unrelated) plans/subscription code path where they are correct.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "register-merchant.tsx is 2563 lines — consider splitting into smaller modules (form sections, payment logic, category picker) for maintainability.",
+    "handlePayJoiningFee correctly conforms to backend OpenAPI CreateOrderRequest: exactly one of customerId/mobileNumber (mobileNumber only), no subscriptionPlan sent, amount converted rupees->paise for Razorpay."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "seed_data_creation": "None. Live create-order call generated internalOrderId=604 on devapi (order created only, no payment captured).",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Joining-fee create-order fix is verified end-to-end at API + code + rendered UI level. The button click cannot be end-to-end tested in preview without a full form fill + real Razorpay interaction. Any regression should re-check the payload shape in handlePayJoiningFee at /app/frontend/app/register-merchant.tsx (~lines 831-846).",
+  "rca of the issue": "Original 400 was caused by frontend sending BOTH customerId (undefined/null for unregistered merchant) AND subscriptionPlan='MERCHANT_JOINING'. Backend CreateOrderRequest requires EXACTLY ONE of customerId|mobileNumber and subscriptionPlan is a strict enum (FREE_TRIAL/MONTHLY/QUARTERLY/SEMI_ANNUAL/ANNUAL) — 'MERCHANT_JOINING' is not a valid enum value. Fix: send mobileNumber only, drop subscriptionPlan, preserve joining-fee context via description + notes.type. Also fixed amount unit: backend returns rupees (499.00), Razorpay needs paise, so multiply by 100."
+}
