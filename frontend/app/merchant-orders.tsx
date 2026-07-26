@@ -18,6 +18,7 @@ const TABS: { key: PickupOrderStatus; label: string; icon: keyof typeof Ionicons
   { key: 'ACCEPTED', label: 'Accepted', icon: 'checkmark-circle-outline' },
   { key: 'PICKUP_READY', label: 'Ready', icon: 'cube-outline' },
   { key: 'COMPLETED', label: 'Completed', icon: 'flag-outline' },
+  { key: 'ENDED', label: 'Rejected', icon: 'close-circle-outline' },
 ];
 
 const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
@@ -179,6 +180,37 @@ export default function MerchantOrdersScreen() {
     }
   };
 
+  const rejectOrder = (order: PickupOrder) => {
+    if (!merchantId) return;
+    const doReject = async () => {
+      setUpdatingId(order.pickup_id);
+      try {
+        await performMerchantOrderAction(merchantId, order.pickup_id, 'REJECT');
+        // Optimistic — move to ENDED with reason
+        setOrders((prev) =>
+          prev.map((o) =>
+            o.pickup_id === order.pickup_id
+              ? { ...o, status: 'ENDED', endReason: 'REJECTED_BY_MERCHANT', endedAt: new Date().toISOString() }
+              : o
+          )
+        );
+        showToast('success', 'Order rejected. The customer has been notified.');
+      } catch (e: any) {
+        showToast('error', e?.message || 'Failed to reject order. Please try again.');
+      } finally {
+        setUpdatingId(null);
+      }
+    };
+    Alert.alert(
+      'Reject this order?',
+      `The customer will be notified with reason REJECTED_BY_MERCHANT. This cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Reject', style: 'destructive', onPress: doReject },
+      ]
+    );
+  };
+
   const filteredOrders = orders.filter((o) => String(o.status).toUpperCase() === activeTab);
   const countFor = (statusKey: PickupOrderStatus) =>
     orders.filter((o) => String(o.status).toUpperCase() === statusKey).length;
@@ -201,15 +233,20 @@ export default function MerchantOrdersScreen() {
         {TABS.map((t) => {
           const active = activeTab === t.key;
           const count = countFor(t.key);
+          const isRejected = t.key === 'ENDED';
           return (
             <TouchableOpacity
               key={t.key}
-              style={[styles.tab, active && styles.tabActive]}
+              style={[
+                styles.tab,
+                active && (isRejected ? styles.tabActiveRejected : styles.tabActive),
+                isRejected && styles.tabRejectedIdle,
+              ]}
               onPress={() => setActiveTab(t.key)}
               testID={`merchant-orders-tab-${t.key}`}
             >
-              <Ionicons name={t.icon} size={14} color={active ? '#FFFFFF' : '#FF8A00'} />
-              <Text style={[styles.tabText, active && styles.tabTextActive]}>{t.label}</Text>
+              <Ionicons name={t.icon} size={14} color={active ? '#FFFFFF' : (isRejected ? '#D32F2F' : '#FF8A00')} />
+              <Text style={[styles.tabText, active && styles.tabTextActive, isRejected && !active && { color: '#D32F2F' }]}>{t.label}</Text>
               {count > 0 && (
                 <View style={[styles.tabBadge, active && styles.tabBadgeActive]}>
                   <Text style={[styles.tabBadgeText, active && styles.tabBadgeTextActive]}>{count}</Text>
@@ -292,6 +329,7 @@ export default function MerchantOrdersScreen() {
                 key={order.pickup_id}
                 order={order}
                 onAdvance={() => advanceStatus(order)}
+                onReject={() => rejectOrder(order)}
                 isUpdating={updatingId === order.pickup_id}
               />
             ))
@@ -305,10 +343,12 @@ export default function MerchantOrdersScreen() {
 function MerchantOrderCard({
   order,
   onAdvance,
+  onReject,
   isUpdating,
 }: {
   order: PickupOrder;
   onAdvance: () => void;
+  onReject: () => void;
   isUpdating: boolean;
 }) {
   const statusKey = String(order.status).toUpperCase();
@@ -351,21 +391,35 @@ function MerchantOrderCard({
       </View>
 
       {nextInfo && (
-        <TouchableOpacity
-          style={[styles.actionBtn, isUpdating && styles.actionBtnDisabled]}
-          onPress={onAdvance}
-          disabled={isUpdating}
-          testID={`merchant-order-action-${order.pickup_id}`}
-        >
-          {isUpdating ? (
-            <ActivityIndicator color="#FFFFFF" size="small" />
-          ) : (
-            <>
-              <Ionicons name={nextInfo.icon} size={16} color="#FFFFFF" />
-              <Text style={styles.actionBtnText}>{nextInfo.label}</Text>
-            </>
+        <View style={styles.actionRow}>
+          <TouchableOpacity
+            style={[styles.actionBtn, styles.actionBtnPrimary, isUpdating && styles.actionBtnDisabled]}
+            onPress={onAdvance}
+            disabled={isUpdating}
+            testID={`merchant-order-action-${order.pickup_id}`}
+          >
+            {isUpdating ? (
+              <ActivityIndicator color="#FFFFFF" size="small" />
+            ) : (
+              <>
+                <Ionicons name={nextInfo.icon} size={16} color="#FFFFFF" />
+                <Text style={styles.actionBtnText}>{nextInfo.label}</Text>
+              </>
+            )}
+          </TouchableOpacity>
+
+          {statusKey === 'PLACED' && (
+            <TouchableOpacity
+              style={[styles.actionBtn, styles.actionBtnReject, isUpdating && styles.actionBtnDisabled]}
+              onPress={onReject}
+              disabled={isUpdating}
+              testID={`merchant-order-reject-${order.pickup_id}`}
+            >
+              <Ionicons name="close-circle" size={16} color="#FFFFFF" />
+              <Text style={styles.actionBtnText}>Reject</Text>
+            </TouchableOpacity>
           )}
-        </TouchableOpacity>
+        </View>
       )}
 
       {order.endReason && (
@@ -396,6 +450,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF8F0', borderWidth: 1, borderColor: '#FFE1BF',
   },
   tabActive: { backgroundColor: '#FF8A00', borderColor: '#FF8A00' },
+  tabRejectedIdle: { backgroundColor: '#FDECEA', borderColor: '#F5C2C0' },
+  tabActiveRejected: { backgroundColor: '#D32F2F', borderColor: '#D32F2F' },
   tabText: { color: '#FF8A00', fontWeight: '700', fontSize: 12 },
   tabTextActive: { color: '#FFFFFF' },
   tabBadge: { backgroundColor: '#FFE1BF', paddingHorizontal: 6, paddingVertical: 1, borderRadius: 10, minWidth: 20, alignItems: 'center' },
@@ -434,11 +490,15 @@ const styles = StyleSheet.create({
   itemBullet: { width: 5, height: 5, borderRadius: 3, backgroundColor: '#FF8A00' },
   itemName: { flex: 1, fontSize: 13, color: '#333', fontWeight: '600' },
   itemQty: { fontSize: 12, color: '#666', fontWeight: '700' },
+  actionRow: { flexDirection: 'row', gap: 8, marginTop: 12 },
   actionBtn: {
+    flex: 1,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    backgroundColor: '#FF8A00', borderRadius: 10, paddingVertical: 12, marginTop: 12,
+    borderRadius: 10, paddingVertical: 12,
   },
-  actionBtnDisabled: { backgroundColor: '#CCCCCC' },
+  actionBtnPrimary: { backgroundColor: '#FF8A00' },
+  actionBtnReject: { backgroundColor: '#D32F2F' },
+  actionBtnDisabled: { opacity: 0.5 },
   actionBtnText: { color: '#FFFFFF', fontWeight: '800', fontSize: 14 },
   endReasonBanner: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#FDECEA', borderRadius: 8, padding: 8, marginTop: 10 },
   endReasonText: { color: '#D32F2F', fontSize: 12, fontWeight: '700', textTransform: 'capitalize' },

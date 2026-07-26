@@ -98,9 +98,21 @@
 - The `merchant-dashboard.tsx` hero carousel already reads `merchant_shop_images` on focus, so newly uploaded images appear in the dashboard carousel automatically.
 - Files modified: `/app/frontend/app/account.tsx`
 
+### Session 10 (Feb 2026) - Payment Modal on Customer Pickup Confirmation
+- **Feature**: When a customer taps "I Picked Up My Order" (on the `PICKUP_READY / Ready` tab of `/my-orders`), the existing `PaymentModal` now opens first. Only after the customer completes Submit → UPI/Cash chooser does the app call `confirmCustomerOrderReceived` and move the order to the `Completed` tab.
+- Implementation:
+  - Added `PaymentModal` import + `paymentOrder` state in `frontend/app/my-orders.tsx`.
+  - Button click now triggers `handleOpenPayment` (sets `paymentOrder`) instead of directly hitting the API.
+  - Modal's `onSuccess` callback invokes `handlePickupConfirm` which calls the confirmation API + switches `activeTab` to `COMPLETED`.
+  - Modal is passed `redirectTo="/my-orders"` so the user stays on the same screen after payment.
+- Verified: iteration_11.json — source, built bundle, and rendered smoke checks all pass. Existing `data-testid`s preserved (`confirm-pickup-btn-{pickup_id}`, `pay-upi-option`, `pay-cash-option`).
+
 ## Backlog
 - P1: Test full end-to-end login with real OTP on mobile device
+- P1: Replace 15-second polling on `/my-orders` and `/merchant-orders` with Expo Push Notifications once backend is ready
 - P2: Extract shared carousel + merchant card UI from `dual-dashboard.tsx`, `user-dashboard.tsx`, `member-dashboard.tsx` into reusable components
-- P2: Real payment gateway integration
+- P2: Fix React #418 (hydration mismatch) warnings on `/my-orders` and `/merchant-orders` initial load (pre-existing, non-blocking)
+- P2: Real payment gateway integration (Razorpay currently in test mode with hardcoded key `rzp_test_SVoE9DrV8kRDqj`)
+- P2: Refactor large screens — `register-merchant.tsx` (2500+ lines) and `member-shop-details.tsx` (1600+ lines) — into smaller components
 - P3: Push notifications, App Store/Play Store deployment
 - Known external bug: Backend `/IN/search/by-product-names` returns HTTP 500 for out-of-service-area coordinates (gracefully handled on frontend)
