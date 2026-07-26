@@ -601,7 +601,7 @@ export default function MemberShopDetails() {
             testID="open-order-modal-btn"
           >
             <Ionicons name="bag-handle-outline" size={20} color="#FFFFFF" />
-            <Text style={styles.orderBtnText}>Order</Text>
+            <Text style={styles.orderBtnText}>Pick at store</Text>
           </TouchableOpacity>
 
         {/* Description Card */}
