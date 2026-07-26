@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuthStore } from '../store/authStore';
 import { getCustomerPickupOrders, confirmCustomerOrderReceived, PickupOrder, PickupOrderStatus } from '../utils/api';
+import PaymentModal from '../components/PaymentModal';
 
 const TABS: { key: PickupOrderStatus; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
   { key: 'PLACED', label: 'Placed', icon: 'time-outline' },
@@ -47,6 +48,8 @@ export default function MyOrdersScreen() {
   const [activeTab, setActiveTab] = useState<PickupOrderStatus>('PLACED');
   const [toast, setToast] = useState<{ kind: 'info' | 'success' | 'error'; message: string } | null>(null);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  // Order awaiting payment before pickup confirmation
+  const [paymentOrder, setPaymentOrder] = useState<PickupOrder | null>(null);
 
   // Polling — track status per order id so we can notify the customer on transitions.
   const lastStatusMapRef = useRef<Record<string, string>>({});
@@ -59,6 +62,12 @@ export default function MyOrdersScreen() {
     setTimeout(() => setToast(null), 3500);
   };
 
+  // Step 1: Customer clicks "I Picked Up My Order" → open PaymentModal
+  const handleOpenPayment = (order: PickupOrder) => {
+    setPaymentOrder(order);
+  };
+
+  // Step 2: PaymentModal onSuccess → confirm pickup with the backend
   const handlePickupConfirm = async (order: PickupOrder) => {
     if (!customerId) return;
     setConfirmingId(order.pickup_id);
@@ -73,6 +82,8 @@ export default function MyOrdersScreen() {
         )
       );
       showToast('success', 'Thanks! We\u2019ve marked your order as picked up.');
+      // Move user to the Completed tab so they see the finished order immediately
+      setActiveTab('COMPLETED');
       // Immediately re-fetch to pick up any status change (if merchant already confirmed → COMPLETED)
       fetchOrders(customerId).catch(() => {});
     } catch (e: any) {
@@ -80,6 +91,11 @@ export default function MyOrdersScreen() {
     } finally {
       setConfirmingId(null);
     }
+  };
+
+  const handlePaymentSuccess = (order: PickupOrder) => {
+    // Fire the confirmation API — user will land back on /my-orders via PaymentModal's redirect
+    handlePickupConfirm(order).catch(() => {});
   };
 
   useEffect(() => {
@@ -275,8 +291,8 @@ export default function MyOrdersScreen() {
               <OrderCard
                 key={order.pickup_id}
                 order={order}
-                onConfirmPickup={handlePickupConfirm}
-                isConfirming={confirmingId === order.pickup_id}
+                onConfirmPickup={handleOpenPayment}
+                isConfirming={confirmingId === order.pickup_id || paymentOrder?.pickup_id === order.pickup_id}
               />
             ))
           )}
@@ -315,6 +331,24 @@ export default function MyOrdersScreen() {
           </Text>
         </View>
       )}
+      {/* Payment modal — opens when customer taps "I Picked Up My Order".
+          On successful submit + payment choice, we call the pickup-confirmation API. */}
+      {paymentOrder && customerId && (
+        <PaymentModal
+          visible={!!paymentOrder}
+          onClose={() => setPaymentOrder(null)}
+          onSuccess={() => {
+            const orderRef = paymentOrder;
+            setPaymentOrder(null);
+            if (orderRef) handlePaymentSuccess(orderRef);
+          }}
+          merchantId={paymentOrder.merchantId}
+          customerId={customerId}
+          merchantName={paymentOrder.merchantName || `Merchant #${paymentOrder.merchantId}`}
+          redirectTo="/my-orders"
+        />
+      )}
+
     </SafeAreaView>
   );
 }
