@@ -13,6 +13,7 @@ const TABS: { key: PickupOrderStatus; label: string; icon: keyof typeof Ionicons
   { key: 'ACCEPTED', label: 'Accepted', icon: 'checkmark-circle-outline' },
   { key: 'PICKUP_READY', label: 'Ready', icon: 'cube-outline' },
   { key: 'COMPLETED', label: 'Completed', icon: 'flag-outline' },
+  { key: 'ENDED', label: 'Rejected', icon: 'close-circle-outline' },
 ];
 
 const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
@@ -190,10 +191,6 @@ export default function MyOrdersScreen() {
   }, [customerId, fetchOrders]);
 
   const filteredOrders = orders.filter((o) => String(o.status).toUpperCase() === activeTab);
-  const historyOrders = orders.filter((o) => {
-    const s = String(o.status).toUpperCase();
-    return !TABS.some((t) => t.key === s);
-  });
 
   const countFor = (statusKey: PickupOrderStatus) =>
     orders.filter((o) => String(o.status).toUpperCase() === statusKey).length;
@@ -219,15 +216,20 @@ export default function MyOrdersScreen() {
         {TABS.map((t) => {
           const active = activeTab === t.key;
           const count = countFor(t.key);
+          const isRejected = t.key === 'ENDED';
           return (
             <TouchableOpacity
               key={t.key}
-              style={[styles.tab, active && styles.tabActive]}
+              style={[
+                styles.tab,
+                active && (isRejected ? styles.tabActiveRejected : styles.tabActive),
+                isRejected && styles.tabRejectedIdle,
+              ]}
               onPress={() => setActiveTab(t.key)}
               testID={`my-orders-tab-${t.key}`}
             >
-              <Ionicons name={t.icon} size={14} color={active ? '#FFFFFF' : '#FF8A00'} />
-              <Text style={[styles.tabText, active && styles.tabTextActive]}>{t.label}</Text>
+              <Ionicons name={t.icon} size={14} color={active ? '#FFFFFF' : (isRejected ? '#D32F2F' : '#FF8A00')} />
+              <Text style={[styles.tabText, active && styles.tabTextActive, isRejected && !active && { color: '#D32F2F' }]}>{t.label}</Text>
               {count > 0 && (
                 <View style={[styles.tabBadge, active && styles.tabBadgeActive]}>
                   <Text style={[styles.tabBadgeText, active && styles.tabBadgeTextActive]}>{count}</Text>
@@ -277,21 +279,6 @@ export default function MyOrdersScreen() {
                 isConfirming={confirmingId === order.pickup_id}
               />
             ))
-          )}
-
-          {/* History section (ENDED etc) */}
-          {activeTab === 'COMPLETED' && historyOrders.length > 0 && (
-            <>
-              <Text style={styles.historyHeader}>History</Text>
-              {historyOrders.map((order) => (
-                <OrderCard
-                  key={`h-${order.pickup_id}`}
-                  order={order}
-                  onConfirmPickup={handlePickupConfirm}
-                  isConfirming={confirmingId === order.pickup_id}
-                />
-              ))}
-            </>
           )}
         </ScrollView>
       )}
@@ -461,6 +448,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF8F0', borderWidth: 1, borderColor: '#FFE1BF',
   },
   tabActive: { backgroundColor: '#FF8A00', borderColor: '#FF8A00' },
+  tabRejectedIdle: { backgroundColor: '#FDECEA', borderColor: '#F5C2C0' },
+  tabActiveRejected: { backgroundColor: '#D32F2F', borderColor: '#D32F2F' },
   tabText: { color: '#FF8A00', fontWeight: '700', fontSize: 12 },
   tabTextActive: { color: '#FFFFFF' },
   tabBadge: {
