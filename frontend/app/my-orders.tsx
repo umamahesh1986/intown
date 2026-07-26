@@ -1,7 +1,8 @@
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, RefreshControl } from 'react-native';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuthStore } from '../store/authStore';
@@ -43,6 +44,18 @@ export default function MyOrdersScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string>('');
   const [activeTab, setActiveTab] = useState<PickupOrderStatus>('PLACED');
+  const [toast, setToast] = useState<{ kind: 'info' | 'success'; message: string } | null>(null);
+
+  // Polling — track status per order id so we can notify the customer on transitions.
+  const lastStatusMapRef = useRef<Record<string, string>>({});
+  const isFirstFetchRef = useRef(true);
+  const pollTimerRef = useRef<any>(null);
+  const POLL_INTERVAL_MS = 15000;
+
+  const showToast = (kind: 'info' | 'success', message: string) => {
+    setToast({ kind, message });
+    setTimeout(() => setToast(null), 3500);
+  };
 
   useEffect(() => {
     (async () => {
@@ -63,12 +76,67 @@ export default function MyOrdersScreen() {
         const tb = new Date(b.respondBy || b.acceptedAt || b.endedAt || 0).getTime();
         return tb - ta;
       });
+
+      // Detect status transitions and notify the customer
+      const changes: { order: PickupOrder; from: string; to: string }[] = [];
+      const nextMap: Record<string, string> = {};
+      for (const o of list) {
+        const currStatus = String(o.status).toUpperCase();
+        nextMap[o.pickup_id] = currStatus;
+        const prev = lastStatusMapRef.current[o.pickup_id];
+        if (!isFirstFetchRef.current && prev && prev !== currStatus) {
+          changes.push({ order: o, from: prev, to: currStatus });
+        }
+      }
+      lastStatusMapRef.current = nextMap;
+
+      if (changes.length > 0) {
+        // Show a toast for the first meaningful change (order-of-magnitude cleaner than N toasts)
+        const primary = changes[0];
+        const merchant = primary.order.merchantName || `Merchant #${primary.order.merchantId}`;
+        let msg = '';
+        switch (primary.to) {
+          case 'ACCEPTED':
+            msg = `${merchant} has accepted your order.`;
+            setActiveTab('ACCEPTED');
+            break;
+          case 'PICKUP_READY':
+            msg = `Your order at ${merchant} is ready for pickup.`;
+            setActiveTab('PICKUP_READY');
+            break;
+          case 'COMPLETED':
+            msg = `Your order at ${merchant} has been completed.`;
+            setActiveTab('COMPLETED');
+            break;
+          case 'ENDED':
+            msg = `Your order at ${merchant} was ended.`;
+            break;
+          default:
+            msg = `Order ${primary.order.pickup_id} is now ${primary.to.replace('_', ' ')}.`;
+        }
+        showToast(primary.to === 'COMPLETED' ? 'success' : 'info', msg);
+      }
+
+      isFirstFetchRef.current = false;
       setOrders(list);
     } catch (e: any) {
       setError(e?.message || 'Unable to load your orders. Please try again.');
       setOrders([]);
     }
   }, []);
+
+  // Start 15-second polling while this screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      if (!customerId) return;
+      const tick = () => { fetchOrders(customerId).catch(() => {}); };
+      pollTimerRef.current = setInterval(tick, POLL_INTERVAL_MS);
+      return () => {
+        if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+        pollTimerRef.current = null;
+      };
+    }, [customerId, fetchOrders])
+  );
 
   useEffect(() => {
     if (!customerId) return;
@@ -181,6 +249,24 @@ export default function MyOrdersScreen() {
             </>
           )}
         </ScrollView>
+      )}
+
+      {/* Status update toast — floats above the list */}
+      {toast && (
+        <View
+          style={[styles.toast, toast.kind === 'success' ? styles.toastSuccess : styles.toastInfo]}
+          pointerEvents="box-none"
+          testID="my-orders-toast"
+        >
+          <Ionicons
+            name={toast.kind === 'success' ? 'checkmark-circle' : 'notifications'}
+            size={18}
+            color={toast.kind === 'success' ? '#0C8A4A' : '#1E88E5'}
+          />
+          <Text style={[styles.toastText, { color: toast.kind === 'success' ? '#0C8A4A' : '#1E88E5' }]} numberOfLines={2}>
+            {toast.message}
+          </Text>
+        </View>
       )}
     </SafeAreaView>
   );
@@ -319,4 +405,15 @@ const styles = StyleSheet.create({
   endReasonBanner: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#FDECEA', borderRadius: 8, padding: 8, marginTop: 10 },
   endReasonText: { color: '#D32F2F', fontSize: 12, fontWeight: '700', textTransform: 'capitalize' },
   historyHeader: { marginTop: 20, marginBottom: 8, fontSize: 13, fontWeight: '800', color: '#666' },
+
+  toast: {
+    position: 'absolute', top: 120, left: 12, right: 12,
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    borderRadius: 10, padding: 10, borderWidth: 1,
+    shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 12, shadowOffset: { width: 0, height: 4 },
+    elevation: 8, zIndex: 9999,
+  },
+  toastSuccess: { backgroundColor: '#E8F5E9', borderColor: '#B7E1BF' },
+  toastInfo: { backgroundColor: '#E3F2FD', borderColor: '#BBDEFB' },
+  toastText: { flex: 1, fontSize: 13, fontWeight: '700' },
 });

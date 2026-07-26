@@ -128,27 +128,33 @@ export default function RootLayout() {
     '/member-card',
     '/near-by',
     '/savings',
-    '/plans'
+    '/plans',
+    '/merchant-orders',
+    '/my-orders'
   ].includes(pathname);
 
   // Check if user is merchant (by current path, last dashboard, or user type)
   const isMerchant = 
     pathname === '/merchant-dashboard' || 
+    pathname === '/merchant-orders' ||
     lastDashboard === '/merchant-dashboard' ||
     user?.userType?.toLowerCase() === 'merchant' ||
     user?.userType?.toLowerCase() === 'in_merchant';
 
-  // Define tabs - filter out Savings and Plans for merchant
-  const allTabs = [
+  // Define tabs — merchants see: Home, Orders, Profile. Customers/members: Home, Savings, Privilege, Profile.
+  const merchantTabs = [
+    { name: 'Home', icon: 'home', link: '/merchant-dashboard' },
+    { name: 'Orders', icon: 'receipt', link: '/merchant-orders' },
+    { name: 'Profile', icon: 'person', link: '/account' },
+  ];
+  const customerTabs = [
     { name: 'Home', icon: 'home', link: '/user-dashboard' },
     { name: 'Savings', icon: 'wallet', link: '/savings' },
     { name: 'Privilege', icon: 'pricetag', link: '/plans' },
     { name: 'Profile', icon: 'person', link: '/account' },
   ];
 
-  const tabs = isMerchant 
-    ? allTabs.filter(tab => tab.name !== 'Savings' && tab.name !== 'Privilege')
-    : allTabs;
+  const tabs = isMerchant ? merchantTabs : customerTabs;
 
   return (
     <View style={{ flex: 1, backgroundColor: '#FFFFFF', ...(Platform.OS === 'web' ? { minHeight: '100vh' } : {}) } as any}>
