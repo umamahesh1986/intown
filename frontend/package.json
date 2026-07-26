@@ -7,9 +7,12 @@
     "start:mobile": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo run:android",
-    "ios": "expo run:ios",
+    "ios": "expo run:ios --device \"iPhone 17\"",
+    "ios:xcode": "node scripts/start-ios-dev.js",
     "web": "expo start --web --port 3000",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "prebuild": "expo prebuild --no-install",
+    "postinstall": "expo prebuild --no-install"
   },
   "dependencies": {
     "@expo/ngrok": "^4.1.3",
