@@ -822,39 +822,46 @@ export default function RegisterMerchant() {
 
     setIsPaying(true);
     try {
-      // Step 1: Create Order (reuse existing plan payment endpoint)
-      const identifier = phoneNumber ? Number(phoneNumber) : 0;
+      // Step 1: Create Order
+      // Backend `CreateOrderRequest` requires EXACTLY ONE of `customerId` OR `mobileNumber`
+      // and only accepts these subscriptionPlan enum values: FREE_TRIAL, MONTHLY, QUARTERLY,
+      // SEMI_ANNUAL, ANNUAL. Since the merchant hasn't been registered yet (no customerId),
+      // we send `mobileNumber` only and omit `subscriptionPlan` entirely. The joining-fee
+      // context is preserved in `description` + `notes.type`.
       const createOrderRes = await fetch(`${INTOWN_API_BASE}/payment/create-order`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
         body: JSON.stringify({
-          customerId: identifier,
+          mobileNumber: phoneNumber,
           amount: JOINING_FEE_AMOUNT,
           description: 'INtown Merchant Joining Fee',
-          subscriptionPlan: 'MERCHANT_JOINING',
           notes: {
             type: 'MERCHANT_JOINING',
-            phoneNumber,
-            contactName,
-            businessName,
-            businessCategory,
+            phoneNumber: String(phoneNumber),
+            contactName: String(contactName || ''),
+            businessName: String(businessName || ''),
+            businessCategory: String(businessCategory || ''),
           },
         }),
       });
 
       if (!createOrderRes.ok) {
         const errData = await createOrderRes.json().catch(() => ({}));
-        throw new Error(errData.message || `Order creation failed (${createOrderRes.status})`);
+        throw new Error(errData.message || errData.error || `Order creation failed (${createOrderRes.status})`);
       }
 
       const orderData = await createOrderRes.json();
+
+      // Backend returns `amount` in rupees (e.g. 499.00); Razorpay Checkout expects paise.
+      const amountRupees = Number(orderData.amount ?? JOINING_FEE_AMOUNT);
+      const amountPaise = Math.round(amountRupees * 100);
 
       const razorpayOptions: any = {
         description: 'INtown Merchant Joining Fee',
         image: 'https://intown-prod.s3.ap-south-1.amazonaws.com/logo/intown-logo.png',
         currency: orderData.currency || 'INR',
         key: orderData.keyId || RAZORPAY_KEY_ID,
-        amount: String(orderData.amount ?? JOINING_FEE_AMOUNT * 100),
+        amount: String(amountPaise),
         name: 'INtown',
         order_id: orderData.razorpayOrderId,
         prefill: {
@@ -889,9 +896,8 @@ export default function RegisterMerchant() {
           razorpayPaymentId: paymentResponse.razorpay_payment_id,
           razorpayOrderId: paymentResponse.razorpay_order_id,
           razorpaySignature: paymentResponse.razorpay_signature,
-          amount: orderData.amount ?? JOINING_FEE_AMOUNT * 100,
-          subscriptionPlan: 'MERCHANT_JOINING',
-          customerId: identifier,
+          amount: amountPaise,
+          mobileNumber: phoneNumber,
         }),
       });
 
