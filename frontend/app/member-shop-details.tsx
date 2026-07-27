@@ -601,7 +601,7 @@ export default function MemberShopDetails() {
             testID="open-order-modal-btn"
           >
             <Ionicons name="bag-handle-outline" size={20} color="#FFFFFF" />
-            <Text style={styles.orderBtnText}>Pick at store</Text>
+            <Text style={styles.orderBtnText}>Pick @ Store</Text>
           </TouchableOpacity>
 
         {/* Description Card */}
@@ -1631,6 +1631,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FF8A00',
     borderRadius: 12,
     paddingVertical: 14,
+    marginBottom: 20,
   },
   orderSubmitBtnDisabled: {
     backgroundColor: '#CCCCCC',
