@@ -107,12 +107,22 @@
   - Modal is passed `redirectTo="/my-orders"` so the user stays on the same screen after payment.
 - Verified: iteration_11.json — source, built bundle, and rendered smoke checks all pass. Existing `data-testid`s preserved (`confirm-pickup-btn-{pickup_id}`, `pay-upi-option`, `pay-cash-option`).
 
+### Session 11 (Feb 2026) - Styles Extraction (P2 Refactor)
+- Extracted the giant `StyleSheet.create({...})` blocks out of the two biggest screen files into standalone modules, zero behaviour change:
+  - `frontend/styles/register-merchant.styles.ts` (693 lines) ← from `register-merchant.tsx`
+  - `frontend/styles/member-shop-details.styles.ts` (571 lines) ← from `member-shop-details.tsx`
+- `StyleSheet` import removed from the two `.tsx` files (no longer needed).
+- Line counts:
+  - `register-merchant.tsx`: 2562 → 1869 (-693)
+  - `member-shop-details.tsx`: 1687 → 1119 (-568)
+- Verified: `tsc --noEmit` reports **zero errors on refactored files** (all pre-existing TS errors are in unrelated files). Both screens render with zero pageerrors; styling identical.
+
 ## Backlog
 - P1: Test full end-to-end login with real OTP on mobile device
 - P1: Replace 15-second polling on `/my-orders` and `/merchant-orders` with Expo Push Notifications once backend is ready
 - P2: Extract shared carousel + merchant card UI from `dual-dashboard.tsx`, `user-dashboard.tsx`, `member-dashboard.tsx` into reusable components
 - P2: Fix React #418 (hydration mismatch) warnings on `/my-orders` and `/merchant-orders` initial load (pre-existing, non-blocking)
 - P2: Real payment gateway integration (Razorpay currently in test mode with hardcoded key `rzp_test_SVoE9DrV8kRDqj`)
-- P2: Refactor large screens — `register-merchant.tsx` (2500+ lines) and `member-shop-details.tsx` (1600+ lines) — into smaller components
+- P2: Further refactor — `register-merchant.tsx` (still 1869 lines) and `member-shop-details.tsx` (still 1119 lines) can be split into smaller **UI sub-components** (`<PhotoUploader/>`, `<CategoryProductPicker/>`, `<LocationPicker/>`, `<JoiningFeeSection/>`, `<PlaceOrderModal/>`, `<ImageCarousel/>`, `<ProductGrid/>`). Styles are already externalised.
 - P3: Push notifications, App Store/Play Store deployment
 - Known external bug: Backend `/IN/search/by-product-names` returns HTTP 500 for out-of-service-area coordinates (gracefully handled on frontend)
