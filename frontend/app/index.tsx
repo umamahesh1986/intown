@@ -40,7 +40,7 @@ export default function SplashScreen() {
               // User no longer exists in the database — force logout
               console.log('=== USER NOT FOUND IN DB — LOGGING OUT ===');
               await logout();
-              router.replace('/login');
+              router.replace('/promo-carousel');
               return;
             }
             console.log('=== USER VERIFIED ===');
@@ -60,11 +60,11 @@ export default function SplashScreen() {
             router.replace('/user-dashboard');
           }
         } else {
-          router.replace('/login');
+          router.replace('/promo-carousel');
         }
       } catch (error) {
         console.error('Navigation error:', error);
-        router.replace('/login');
+        router.replace('/promo-carousel');
       }
     }, 2000);
 

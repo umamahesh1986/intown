@@ -107,12 +107,36 @@
   - Modal is passed `redirectTo="/my-orders"` so the user stays on the same screen after payment.
 - Verified: iteration_11.json — source, built bundle, and rendered smoke checks all pass. Existing `data-testid`s preserved (`confirm-pickup-btn-{pickup_id}`, `pay-upi-option`, `pay-cash-option`).
 
+### Session 11 (Feb 2026) - Styles Extraction (P2 Refactor)
+- Extracted the giant `StyleSheet.create({...})` blocks out of the two biggest screen files into standalone modules, zero behaviour change:
+  - `frontend/styles/register-merchant.styles.ts` (693 lines) ← from `register-merchant.tsx`
+  - `frontend/styles/member-shop-details.styles.ts` (571 lines) ← from `member-shop-details.tsx`
+- `StyleSheet` import removed from the two `.tsx` files (no longer needed).
+- Line counts:
+  - `register-merchant.tsx`: 2562 → 1869 (-693)
+  - `member-shop-details.tsx`: 1687 → 1119 (-568)
+- Verified: `tsc --noEmit` reports **zero errors on refactored files** (all pre-existing TS errors are in unrelated files). Both screens render with zero pageerrors; styling identical.
+
+### Session 12 (Feb 2026) - Promo Carousel Before Login
+- **Feature**: Added a promotional image carousel screen at `/promo-carousel` that appears before the phone-number entry screen for unauthenticated users.
+- Implementation:
+  - New route: `frontend/app/promo-carousel.tsx` — SafeAreaView with a card containing:
+    * Horizontal `ScrollView` (pagingEnabled) with 3 promo images
+    * Pagination dots (tap-to-jump, animated highlight)
+    * Close button (X) top-right
+    * Two action buttons at the bottom: **Explore** and **View**
+    * All three exit actions call `router.replace('/login')`
+  - 3 images downloaded into `frontend/assets/images/promo/` (promo-1.jpg = Ganesh Chaturthi, promo-2.jpg = "75% + 90%" stats, promo-3.jpg = "500 meters" poster).
+  - Splash router (`app/index.tsx`) updated to route unauthenticated users through `/promo-carousel` (instead of `/login`) both on normal entry and on force-logout path.
+  - Screen registered in `_layout.tsx` Stack.
+- Verified end-to-end: `/` (splash, 2s) → `/promo-carousel` → any of Close/Explore/View → `/login`. All 3 exits confirmed via Playwright screenshot flow. `data-testid`s: `promo-carousel-screen`, `promo-close-btn`, `promo-explore-btn`, `promo-view-btn`, `promo-slide-0..2`, `promo-dot-0..2`.
+
 ## Backlog
 - P1: Test full end-to-end login with real OTP on mobile device
 - P1: Replace 15-second polling on `/my-orders` and `/merchant-orders` with Expo Push Notifications once backend is ready
 - P2: Extract shared carousel + merchant card UI from `dual-dashboard.tsx`, `user-dashboard.tsx`, `member-dashboard.tsx` into reusable components
 - P2: Fix React #418 (hydration mismatch) warnings on `/my-orders` and `/merchant-orders` initial load (pre-existing, non-blocking)
 - P2: Real payment gateway integration (Razorpay currently in test mode with hardcoded key `rzp_test_SVoE9DrV8kRDqj`)
-- P2: Refactor large screens — `register-merchant.tsx` (2500+ lines) and `member-shop-details.tsx` (1600+ lines) — into smaller components
+- P2: Further refactor — `register-merchant.tsx` (still 1869 lines) and `member-shop-details.tsx` (still 1119 lines) can be split into smaller **UI sub-components** (`<PhotoUploader/>`, `<CategoryProductPicker/>`, `<LocationPicker/>`, `<JoiningFeeSection/>`, `<PlaceOrderModal/>`, `<ImageCarousel/>`, `<ProductGrid/>`). Styles are already externalised.
 - P3: Push notifications, App Store/Play Store deployment
 - Known external bug: Backend `/IN/search/by-product-names` returns HTTP 500 for out-of-service-area coordinates (gracefully handled on frontend)

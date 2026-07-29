@@ -161,6 +161,7 @@ export default function RootLayout() {
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" />
         <Stack.Screen name="location" />
+        <Stack.Screen name="promo-carousel" />
         <Stack.Screen name="login" />
         <Stack.Screen name="otp" />
         <Stack.Screen name="user-dashboard" />
