@@ -117,6 +117,20 @@
   - `member-shop-details.tsx`: 1687 → 1119 (-568)
 - Verified: `tsc --noEmit` reports **zero errors on refactored files** (all pre-existing TS errors are in unrelated files). Both screens render with zero pageerrors; styling identical.
 
+### Session 12 (Feb 2026) - Promo Carousel Before Login
+- **Feature**: Added a promotional image carousel screen at `/promo-carousel` that appears before the phone-number entry screen for unauthenticated users.
+- Implementation:
+  - New route: `frontend/app/promo-carousel.tsx` — SafeAreaView with a card containing:
+    * Horizontal `ScrollView` (pagingEnabled) with 3 promo images
+    * Pagination dots (tap-to-jump, animated highlight)
+    * Close button (X) top-right
+    * Two action buttons at the bottom: **Explore** and **View**
+    * All three exit actions call `router.replace('/login')`
+  - 3 images downloaded into `frontend/assets/images/promo/` (promo-1.jpg = Ganesh Chaturthi, promo-2.jpg = "75% + 90%" stats, promo-3.jpg = "500 meters" poster).
+  - Splash router (`app/index.tsx`) updated to route unauthenticated users through `/promo-carousel` (instead of `/login`) both on normal entry and on force-logout path.
+  - Screen registered in `_layout.tsx` Stack.
+- Verified end-to-end: `/` (splash, 2s) → `/promo-carousel` → any of Close/Explore/View → `/login`. All 3 exits confirmed via Playwright screenshot flow. `data-testid`s: `promo-carousel-screen`, `promo-close-btn`, `promo-explore-btn`, `promo-view-btn`, `promo-slide-0..2`, `promo-dot-0..2`.
+
 ## Backlog
 - P1: Test full end-to-end login with real OTP on mobile device
 - P1: Replace 15-second polling on `/my-orders` and `/merchant-orders` with Expo Push Notifications once backend is ready
