@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
 import { useAuthStore } from '../store/authStore';
+import { LoginRequiredModal } from '../components/LoginRequiredModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { INTOWN_API_BASE } from '../utils/api';
 import { getProfileImage } from '../utils/profileImage';
@@ -11,9 +12,16 @@ import { useEffect, useState } from 'react';
 
 
 export default function MemberCardScreen() {
-  const { user } = useAuthStore();
+  const { user, isAuthenticated, isGuest } = useAuthStore();
   const router = useRouter();
   const [resolvedCustomerId, setResolvedCustomerId] = useState<string | null>(null);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+
+  useEffect(() => {
+    if (isGuest || !isAuthenticated) {
+      setShowLoginModal(true);
+    }
+  }, [isGuest, isAuthenticated]);
 
 
 
@@ -96,13 +104,27 @@ const [loading, setLoading] = useState(true);
 
   if (loading) {
   return (
-    <SafeAreaView style={styles.container}>
-      <Text>Loading customer card...</Text>
-    </SafeAreaView>
+    <>
+      <LoginRequiredModal
+        isVisible={showLoginModal}
+        onDismiss={() => setShowLoginModal(false)}
+        message="Please log in to view your member card"
+      />
+      <SafeAreaView style={styles.container}>
+        <Text>Loading customer card...</Text>
+      </SafeAreaView>
+    </>
   );
 }
 
   return (
+    <>
+      <LoginRequiredModal
+        isVisible={showLoginModal}
+        onDismiss={() => setShowLoginModal(false)}
+        message="Please log in to view your member card"
+      />
+      {isAuthenticated && !isGuest && (
     <SafeAreaView style={styles.container}>
       <TouchableOpacity
   style={styles.backButton}
@@ -150,8 +172,10 @@ const [loading, setLoading] = useState(true);
 
       </View>
     </SafeAreaView>
+      )}
+    </>
   );
-  
+
 }
 
 const styles = StyleSheet.create({

@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
+import { LoginRequiredModal } from '../components/LoginRequiredModal';
 import { getPlans } from '../utils/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -43,7 +44,8 @@ interface Plan {
 
 export default function Plans() {
   const router = useRouter();
-  const { user } = useAuthStore();
+  const { user, isAuthenticated, isGuest } = useAuthStore();
+  const [showLoginModal, setShowLoginModal] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [plans, setPlans] = useState<Plan[]>([]);
@@ -207,6 +209,13 @@ export default function Plans() {
   };
 
   const handleSubscribe = (plan: Plan) => {
+    // Subscribing is an account-based action — guests/unauthenticated users
+    // must log in first, even though browsing plans itself is unrestricted.
+    if (isGuest || !isAuthenticated) {
+      setShowLoginModal(true);
+      return;
+    }
+
     // Don't re-activate the already-active plan — its CTA reads "ACTIVE" only.
     if (activePlanId === plan.id) return;
 
@@ -264,6 +273,11 @@ export default function Plans() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <LoginRequiredModal
+        isVisible={showLoginModal}
+        onDismiss={() => setShowLoginModal(false)}
+        message="Please log in to subscribe to a plan"
+      />
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#1A1A1A" />

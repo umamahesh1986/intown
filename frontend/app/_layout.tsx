@@ -1,3 +1,15 @@
+// Ensure DOMException is available for all dependencies
+if (typeof (globalThis as any).DOMException === 'undefined') {
+  class PolyfilledDOMException extends Error {
+    code = 0;
+    constructor(message = '', name = 'Error') {
+      super(message);
+      this.name = name;
+    }
+  }
+  (globalThis as any).DOMException = PolyfilledDOMException;
+}
+
 import { Stack, usePathname } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { View, Text, TextInput, Platform } from 'react-native';

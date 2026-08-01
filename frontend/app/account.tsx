@@ -8,6 +8,7 @@ import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { useAuthStore } from '../store/authStore';
+import { LoginRequiredModal } from '../components/LoginRequiredModal';
 import { INTOWN_API_BASE, getCategories, getProductsByCategory } from '../utils/api';
 import { setProfileImage as setProfileImageHelper } from '../utils/profileImage';
 import axios from 'axios';
@@ -15,7 +16,14 @@ import axios from 'axios';
 export default function Account() {
   const router = useRouter();
   const params = useLocalSearchParams<{ from?: string }>();
-  const { user, updateProfile } = useAuthStore();
+  const { user, updateProfile, isAuthenticated, isGuest } = useAuthStore();
+  const [showLoginModal, setShowLoginModal] = useState(false);
+
+  useEffect(() => {
+    if (isGuest || !isAuthenticated) {
+      setShowLoginModal(true);
+    }
+  }, [isGuest, isAuthenticated]);
 
   const [editing, setEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -746,6 +754,13 @@ export default function Account() {
   );
 
   return (
+    <>
+      <LoginRequiredModal
+        isVisible={showLoginModal}
+        onDismiss={() => setShowLoginModal(false)}
+        message="Please log in to view your account"
+      />
+      {isAuthenticated && !isGuest && (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
@@ -1299,6 +1314,8 @@ export default function Account() {
         </View>
       </Modal>
     </SafeAreaView>
+      )}
+    </>
   );
 }
 

@@ -13,25 +13,29 @@ interface AuthState {
   user: User | null;
   token: string | null;
   isAuthenticated: boolean;
+  isGuest: boolean;
   setUser: (user: User | null) => void;
   setToken: (token: string | null) => void;
   setUserType: (userType: 'user' | 'member' | 'merchant' | 'dual') => void;
   logout: () => Promise<void>;
   loadAuth: () => Promise<void>;
-   updateProfile: (data: { name: string }) => void;
+  updateProfile: (data: { name: string }) => void;
+  setGuest: (isGuest: boolean) => void;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   token: null,
   isAuthenticated: false,
+  isGuest: false,
   setUser: async (user) => {
     if (user) {
       await AsyncStorage.setItem('user_data', JSON.stringify(user));
     } else {
       await AsyncStorage.removeItem('user_data');
     }
-    set({ user, isAuthenticated: !!user });
+    // A real login always supersedes any earlier guest session.
+    set({ user, isAuthenticated: !!user, isGuest: false });
   },
   setToken: async (token) => {
     if (token) {
@@ -65,12 +69,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       await AsyncStorage.multiRemove(keysToRemove);
 
       // Reset state immediately
-      set({ user: null, token: null, isAuthenticated: false });
+      set({ user: null, token: null, isAuthenticated: false, isGuest: false });
       console.log('Auth store logout completed — all data cleared');
     } catch (error) {
       console.error('Error in auth store logout:', error);
       // Reset state even if storage clear fails
-      set({ user: null, token: null, isAuthenticated: false });
+      set({ user: null, token: null, isAuthenticated: false, isGuest: false });
     }
   },
   loadAuth: async () => {
@@ -79,18 +83,21 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const userData = await AsyncStorage.getItem('user_data');
       if (token && userData) {
         const user = JSON.parse(userData);
-        set({ user, token, isAuthenticated: true });
+        set({ user, token, isAuthenticated: true, isGuest: false });
       }
     } catch (error) {
       console.error('Error loading auth:', error);
     }
   },
- updateProfile: (data) =>
-  set((state) => ({
-    user: state.user
-      ? { ...state.user, ...data }
-      : state.user,
-  })),
+  updateProfile: (data) =>
+   set((state) => ({
+     user: state.user
+       ? { ...state.user, ...data }
+       : state.user,
+   })),
 
+  setGuest: (isGuest) => {
+    set({ isGuest });
+  },
 
 }));

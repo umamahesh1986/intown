@@ -1,6 +1,6 @@
 {
   "name": "frontend",
-  "main": "expo-router/entry",
+  "main": "index.js",
   "version": "1.1.6",
   "scripts": {
     "start": "node serve-web.js",
@@ -11,7 +11,7 @@
     "web": "expo start --web --port 3000",
     "lint": "expo lint",
     "prebuild": "expo prebuild --no-install",
-    "postinstall": "expo prebuild --no-install"
+    "postinstall": "node patch-whatwg-fetch.js && expo prebuild --no-install"
   },
   "dependencies": {
     "@expo/ngrok": "^4.1.3",

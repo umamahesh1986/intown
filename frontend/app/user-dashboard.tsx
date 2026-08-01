@@ -34,6 +34,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAuthStore } from '../store/authStore';
+import { LoginRequiredModal } from '../components/LoginRequiredModal';
 import { useLocationStore, LocationDetails } from '../store/locationStore';
 import { getProfileImage } from '../utils/profileImage';
 import { getPlans, getCategories, getAllNearbyShops, getMerchantImageByShopId, extractImageUrls } from '../utils/api';
@@ -96,9 +97,10 @@ const CAROUSEL_HEIGHT =
 export default function UserDashboard() {
   const router = useRouter();
   const params = useLocalSearchParams<{ userType?: string }>();
-  const { user, logout } = useAuthStore();
+  const { user, logout, isAuthenticated, isGuest } = useAuthStore();
   const [userType, setUserType] = useState<string>('User');
   const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [showLoginModal, setShowLoginModal] = useState(false);
 
 
 
@@ -612,6 +614,11 @@ export default function UserDashboard() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <LoginRequiredModal
+        isVisible={showLoginModal}
+        onDismiss={() => setShowLoginModal(false)}
+        message="Please log in to view your profile"
+      />
       <View style={styles.container}>
         <ScrollView
           showsVerticalScrollIndicator={false}
@@ -652,6 +659,10 @@ export default function UserDashboard() {
                 <TouchableOpacity
                   onPress={(e) => {
                     e.stopPropagation();
+                    if (isGuest || !isAuthenticated) {
+                      setShowLoginModal(true);
+                      return;
+                    }
                     toggleDropdown(e);
                   }}
                   style={styles.iconCircleActive}

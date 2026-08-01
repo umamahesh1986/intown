@@ -7,6 +7,7 @@ import { formatDistance } from '../utils/formatDistance';
 import { extractImageUrls, INTOWN_API_BASE } from '../utils/api';
 import { useLocationStore } from '../store/locationStore';
 import { useAuthStore } from '../store/authStore';
+import { LoginRequiredModal } from '../components/LoginRequiredModal';
 import PaymentModal from '../components/PaymentModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -54,7 +55,7 @@ export default function MemberShopDetails() {
 
   const location = useLocationStore((state) => state.location);
   const loadLocationFromStorage = useLocationStore((state) => state.loadFromStorage);
-  const { user } = useAuthStore();
+  const { user, isAuthenticated, isGuest } = useAuthStore();
 
   const redirectTo = source === 'dual' ? '/dual-dashboard' : '/member-dashboard';
   const isUserFlow = source === 'user';
@@ -62,6 +63,11 @@ export default function MemberShopDetails() {
   const [showPayment, setShowPayment] = useState(false);
   const [customerId, setCustomerId] = useState<string | null>(null);
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+
+  // Viewing shop details is allowed for everyone — Pay/Navigate are
+  // account-based actions and require real login, regardless of `source`.
+  const requiresLogin = isGuest || !isAuthenticated;
 
   // Image carousel state
   const [shopImages, setShopImages] = useState<string[]>([]);
@@ -469,6 +475,10 @@ export default function MemberShopDetails() {
         <TouchableOpacity
           style={styles.navigateBtn}
           onPress={() => {
+            if (requiresLogin) {
+              setShowLoginModal(true);
+              return;
+            }
             if (isUserFlow) {
               setShowRegistrationModal(true);
               return;
@@ -491,6 +501,10 @@ export default function MemberShopDetails() {
         <TouchableOpacity
           style={styles.payBtn}
           onPress={() => {
+            if (requiresLogin) {
+              setShowLoginModal(true);
+              return;
+            }
             if (isUserFlow) {
               setShowRegistrationModal(true);
               return;
@@ -511,6 +525,12 @@ export default function MemberShopDetails() {
         customerId={customerId ?? ''}
         merchantName={shop.businessName || 'Shop'}
         redirectTo={redirectTo}
+      />
+
+      <LoginRequiredModal
+        isVisible={showLoginModal}
+        onDismiss={() => setShowLoginModal(false)}
+        message="Please login to this shop"
       />
 
       {/* Registration Modal (User Flow Only) */}

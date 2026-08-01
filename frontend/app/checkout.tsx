@@ -5,6 +5,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { INTOWN_API_BASE } from '../utils/api';
+import { useAuthStore } from '../store/authStore';
+import { LoginRequiredModal } from '../components/LoginRequiredModal';
 
 // Razorpay Production Key ID (public key - safe for client-side)
 const RAZORPAY_KEY_ID = 'rzp_live_RrNfvARmKIkZ7C';
@@ -77,6 +79,16 @@ export default function Checkout() {
     planDuration?: string;
     planCode?: string;
   }>();
+
+  const { isAuthenticated, isGuest } = useAuthStore();
+  const [showLoginModal, setShowLoginModal] = useState(false);
+
+  // Check if guest/not authenticated
+  useEffect(() => {
+    if (isGuest || !isAuthenticated) {
+      setShowLoginModal(true);
+    }
+  }, [isGuest, isAuthenticated]);
 
   const initialPlanId = params.planId ? Number(params.planId) : 2;
   const [selectedPlan, setSelectedPlan] = useState<PlanOption>(
@@ -232,140 +244,152 @@ export default function Checkout() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#1A1A1A" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Checkout</Text>
-        <View style={{ width: 40 }} />
-      </View>
+    <>
+      {/* Login Modal for Guests */}
+      <LoginRequiredModal
+        isVisible={showLoginModal}
+        onDismiss={() => setShowLoginModal(false)}
+        message="Please log in to purchase membership plans"
+      />
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Selected Plan */}
-        <View style={styles.selectedPlanCard}>
-          <View style={styles.selectedBadge}>
-            <Text style={styles.selectedBadgeText}>SELECTED PLAN</Text>
+      {/* Only show content if authenticated */}
+      {isAuthenticated && !isGuest && (
+        <SafeAreaView style={styles.container}>
+          <View style={styles.header}>
+            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+              <Ionicons name="arrow-back" size={24} color="#1A1A1A" />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Checkout</Text>
+            <View style={{ width: 40 }} />
           </View>
-          <Text style={styles.selectedPlanName}>{selectedPlan.name}</Text>
-          <View style={styles.priceRow}>
-            {Platform.OS === 'ios' ? (
-              <Text style={styles.price}>Free</Text>
-            ) : (
-              <>
-                <Text style={styles.currency}>&#8377;</Text>
-                <Text style={styles.price}>{selectedPlan.price}</Text>
-                <Text style={styles.duration}>/ {selectedPlan.duration}</Text>
-              </>
-            )}
-          </View>
-          <View style={styles.savingsBadge}>
-            <Ionicons name="trending-up" size={16} color="#4CAF50" />
-            <Text style={styles.savingsText}>{selectedPlan.savings} Instant Savings on every purchase</Text>
-          </View>
-          <View style={styles.featuresList}>
-            {selectedPlan.features.map((f, i) => (
-              <View key={i} style={styles.featureRow}>
-                <Ionicons name="checkmark-circle" size={18} color="#4CAF50" />
-                <Text style={styles.featureText}>{f}</Text>
+
+          <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+            {/* Selected Plan */}
+            <View style={styles.selectedPlanCard}>
+              <View style={styles.selectedBadge}>
+                <Text style={styles.selectedBadgeText}>SELECTED PLAN</Text>
               </View>
-            ))}
-          </View>
-        </View>
-
-        {/* Other Plans */}
-        {/* <Text style={styles.otherPlansTitle}>Other Plans</Text>
-        {PLANS.filter(p => p.id !== selectedPlan.id).map(plan => (
-          <TouchableOpacity
-            key={plan.id}
-            style={[styles.otherPlanCard, selectedPlan.id === plan.id && styles.otherPlanSelected]}
-            onPress={() => setSelectedPlan(plan)}
-            activeOpacity={0.7}
-          >
-            <View style={styles.otherPlanHeader}>
-              <Text style={styles.otherPlanName}>{plan.name}</Text>
-              <View style={styles.otherPlanSavings}>
-                <Text style={styles.otherPlanSavingsText}>{plan.savings} Savings</Text>
+              <Text style={styles.selectedPlanName}>{selectedPlan.name}</Text>
+              <View style={styles.priceRow}>
+                {Platform.OS === 'ios' ? (
+                  <Text style={styles.price}>Free</Text>
+                ) : (
+                  <>
+                    <Text style={styles.currency}>&#8377;</Text>
+                    <Text style={styles.price}>{selectedPlan.price}</Text>
+                    <Text style={styles.duration}>/ {selectedPlan.duration}</Text>
+                  </>
+                )}
+              </View>
+              <View style={styles.savingsBadge}>
+                <Ionicons name="trending-up" size={16} color="#4CAF50" />
+                <Text style={styles.savingsText}>{selectedPlan.savings} Instant Savings on every purchase</Text>
+              </View>
+              <View style={styles.featuresList}>
+                {selectedPlan.features.map((f, i) => (
+                  <View key={i} style={styles.featureRow}>
+                    <Ionicons name="checkmark-circle" size={18} color="#4CAF50" />
+                    <Text style={styles.featureText}>{f}</Text>
+                  </View>
+                ))}
               </View>
             </View>
-            <View style={styles.otherPlanPriceRow}>
-              <Text style={styles.otherPlanPrice}>&#8377;{plan.price}</Text>
-              <Text style={styles.otherPlanDuration}>/ {plan.duration}</Text>
-            </View>
-            <Text style={styles.switchText}>Tap to switch to this plan</Text>
-          </TouchableOpacity>
-        ))} */}
 
-        {/* Order Summary */}
-        {(() => {
-          if (Platform.OS === 'ios') {
-            return (
-              <View style={styles.summaryCard}>
-                <Text style={styles.summaryTitle}>Order Summary</Text>
-                <View style={styles.summaryRow}>
-                  <Text style={styles.summaryLabel}>{selectedPlan.name} Plan</Text>
-                  <Text style={styles.summaryValue}>Free</Text>
+            {/* Other Plans */}
+            {/* <Text style={styles.otherPlansTitle}>Other Plans</Text>
+            {PLANS.filter(p => p.id !== selectedPlan.id).map(plan => (
+              <TouchableOpacity
+                key={plan.id}
+                style={[styles.otherPlanCard, selectedPlan.id === plan.id && styles.otherPlanSelected]}
+                onPress={() => setSelectedPlan(plan)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.otherPlanHeader}>
+                  <Text style={styles.otherPlanName}>{plan.name}</Text>
+                  <View style={styles.otherPlanSavings}>
+                    <Text style={styles.otherPlanSavingsText}>{plan.savings} Savings</Text>
+                  </View>
                 </View>
-                <View style={styles.divider} />
-                <View style={styles.summaryRow}>
-                  <Text style={styles.totalLabel}>Total</Text>
-                  <Text style={styles.totalValue}>Free</Text>
+                <View style={styles.otherPlanPriceRow}>
+                  <Text style={styles.otherPlanPrice}>&#8377;{plan.price}</Text>
+                  <Text style={styles.otherPlanDuration}>/ {plan.duration}</Text>
                 </View>
-              </View>
-            );
-          }
-          const gstAmount = Math.round(selectedPlan.price * 0.18);
-          const totalPayable = selectedPlan.price + gstAmount;
-          return (
-            <View style={styles.summaryCard}>
-              <Text style={styles.summaryTitle}>Order Summary</Text>
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>{selectedPlan.name} Plan ({selectedPlan.duration})</Text>
-                <Text style={styles.summaryValue}>&#8377;{selectedPlan.price}</Text>
-              </View>
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>GST + Charges{'\n'}
-                  <Text style={styles.summarySubLabel}>(includes all applicable charges)</Text>
+                <Text style={styles.switchText}>Tap to switch to this plan</Text>
+              </TouchableOpacity>
+            ))} */}
+
+            {/* Order Summary */}
+            {(() => {
+              if (Platform.OS === 'ios') {
+                return (
+                  <View style={styles.summaryCard}>
+                    <Text style={styles.summaryTitle}>Order Summary</Text>
+                    <View style={styles.summaryRow}>
+                      <Text style={styles.summaryLabel}>{selectedPlan.name} Plan</Text>
+                      <Text style={styles.summaryValue}>Free</Text>
+                    </View>
+                    <View style={styles.divider} />
+                    <View style={styles.summaryRow}>
+                      <Text style={styles.totalLabel}>Total</Text>
+                      <Text style={styles.totalValue}>Free</Text>
+                    </View>
+                  </View>
+                );
+              }
+              const gstAmount = Math.round(selectedPlan.price * 0.18);
+              const totalPayable = selectedPlan.price + gstAmount;
+              return (
+                <View style={styles.summaryCard}>
+                  <Text style={styles.summaryTitle}>Order Summary</Text>
+                  <View style={styles.summaryRow}>
+                    <Text style={styles.summaryLabel}>{selectedPlan.name} Plan ({selectedPlan.duration})</Text>
+                    <Text style={styles.summaryValue}>&#8377;{selectedPlan.price}</Text>
+                  </View>
+                  <View style={styles.summaryRow}>
+                    <Text style={styles.summaryLabel}>GST + Charges{'\n'}
+                      <Text style={styles.summarySubLabel}>(includes all applicable charges)</Text>
+                    </Text>
+                    <Text style={styles.summaryValue}>&#8377;{gstAmount}</Text>
+                  </View>
+                  <View style={styles.divider} />
+                  <View style={styles.summaryRow}>
+                    <Text style={styles.totalLabel}>Total</Text>
+                    <Text style={styles.totalValue}>&#8377;{totalPayable}</Text>
+                  </View>
+                </View>
+              );
+            })()}
+
+            <View style={{ height: 100 }} />
+          </ScrollView>
+
+          {/* Checkout Button */}
+          <View style={styles.bottomBar}>
+            <View style={styles.bottomPriceInfo}>
+              <Text style={styles.bottomTotal}>
+                {Platform.OS === 'ios'
+                  ? 'Free'
+                  : `\u20B9${selectedPlan.price + Math.round(selectedPlan.price * 0.18)}`}
+              </Text>
+              <Text style={styles.bottomPlanName}>{selectedPlan.name} Plan</Text>
+            </View>
+            <TouchableOpacity
+              style={[styles.checkoutButton, isProcessing && styles.checkoutButtonDisabled]}
+              onPress={handleCheckout}
+              disabled={isProcessing}
+            >
+              {isProcessing ? (
+                <ActivityIndicator size="small" color="#FFF" />
+              ) : (
+                <Text style={styles.checkoutButtonText}>
+                  {Platform.OS === 'ios' ? 'Activate' : 'Pay Now'}
                 </Text>
-                <Text style={styles.summaryValue}>&#8377;{gstAmount}</Text>
-              </View>
-              <View style={styles.divider} />
-              <View style={styles.summaryRow}>
-                <Text style={styles.totalLabel}>Total</Text>
-                <Text style={styles.totalValue}>&#8377;{totalPayable}</Text>
-              </View>
-            </View>
-          );
-        })()}
-
-        <View style={{ height: 100 }} />
-      </ScrollView>
-
-      {/* Checkout Button */}
-      <View style={styles.bottomBar}>
-        <View style={styles.bottomPriceInfo}>
-          <Text style={styles.bottomTotal}>
-            {Platform.OS === 'ios'
-              ? 'Free'
-              : `\u20B9${selectedPlan.price + Math.round(selectedPlan.price * 0.18)}`}
-          </Text>
-          <Text style={styles.bottomPlanName}>{selectedPlan.name} Plan</Text>
-        </View>
-        <TouchableOpacity
-          style={[styles.checkoutButton, isProcessing && styles.checkoutButtonDisabled]}
-          onPress={handleCheckout}
-          disabled={isProcessing}
-        >
-          {isProcessing ? (
-            <ActivityIndicator size="small" color="#FFF" />
-          ) : (
-            <Text style={styles.checkoutButtonText}>
-              {Platform.OS === 'ios' ? 'Activate' : 'Pay Now'}
-            </Text>
-          )}
-        </TouchableOpacity>
-      </View>
-    </SafeAreaView>
+              )}
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+      )}
+    </>
   );
 }
 
