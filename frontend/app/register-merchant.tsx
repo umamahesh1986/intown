@@ -813,10 +813,12 @@ export default function RegisterMerchant() {
     if (!introducedByValid) missing.push('Valid Introduced By phone (or leave empty)');
 
     if (missing.length > 0) {
-      Alert.alert(
-        'Fill Required Fields',
-        'Please fill the following before paying the joining fee:\n\n• ' + missing.join('\n• ')
-      );
+      // Use inline banner (Alert.alert is often invisible on mobile web / in-app browsers)
+      const msg = 'Please fill: ' + missing.join(', ');
+      setPaymentError(msg);
+      console.warn('[Register] Cannot pay joining fee — missing fields:', missing);
+      // Best-effort: also try the native alert as a secondary channel
+      try { Alert.alert('Fill Required Fields', 'Please fill the following before paying the joining fee:\n\n• ' + missing.join('\n• ')); } catch {}
       return;
     }
 
