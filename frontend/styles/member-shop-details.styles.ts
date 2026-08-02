@@ -333,6 +333,7 @@ export const styles = StyleSheet.create({
     marginBottom: 8,
     borderWidth: 1,
     borderColor: '#E5E5E5',
+    position: 'relative',
   },
   unitChipText: {
     fontSize: 11,
@@ -349,6 +350,9 @@ export const styles = StyleSheet.create({
     marginBottom: 8,
     marginTop: -4,
     overflow: 'hidden',
+    position: 'absolute',
+    top: 22,
+    width: '70%',
   },
   unitOption: {
     paddingHorizontal: 8,
@@ -513,6 +517,7 @@ export const styles = StyleSheet.create({
     backgroundColor: '#FF8A00',
     borderRadius: 12,
     paddingVertical: 14,
+    marginBottom: 32,
   },
   orderSubmitBtnDisabled: {
     backgroundColor: '#CCCCCC',

@@ -279,13 +279,13 @@ export default function MemberShopDetails() {
 
   // Deterministic pastel color per product name (Blinkit-style tile bg)
   const productTileColor = (name: string) => {
-    const palette = ['#FFF3E0', '#E8F5E9', '#E3F2FD', '#F3E5F5', '#FFF8E1', '#FCE4EC', '#E0F7FA', '#F1F8E9'];
+    const palette = ['#FFF3E0'];
     let hash = 0;
     for (let i = 0; i < name.length; i += 1) hash = (hash * 31 + name.charCodeAt(i)) | 0;
     return palette[Math.abs(hash) % palette.length];
   };
   const productAccentColor = (name: string) => {
-    const palette = ['#FF8A00', '#4CAF50', '#2196F3', '#9C27B0', '#FF8F00', '#E91E63', '#00ACC1', '#7CB342'];
+    const palette = ['#FF8A00'];
     let hash = 0;
     for (let i = 0; i < name.length; i += 1) hash = (hash * 31 + name.charCodeAt(i)) | 0;
     return palette[Math.abs(hash) % palette.length];
@@ -603,7 +603,7 @@ export default function MemberShopDetails() {
             testID="open-order-modal-btn"
           >
             <Ionicons name="bag-handle-outline" size={20} color="#FFFFFF" />
-            <Text style={styles.orderBtnText}>Order</Text>
+            <Text style={styles.orderBtnText}>Pick @ Shop</Text>
           </TouchableOpacity>
         )}
 
