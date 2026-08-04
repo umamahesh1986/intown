@@ -237,7 +237,7 @@ export default function RegisterMerchant() {
   const [errors, setErrors] = useState<any>({});
 
   /* ================= JOINING FEE PAYMENT STATE ================= */
-  const JOINING_FEE_AMOUNT = 499;
+  const JOINING_FEE_AMOUNT = 499 * 1.18;
   const RAZORPAY_KEY_ID = 'rzp_live_RrNfvARmKIkZ7C';
   const [paymentCompleted, setPaymentCompleted] = useState(false);
   const [isPaying, setIsPaying] = useState(false);
@@ -1570,19 +1570,19 @@ export default function RegisterMerchant() {
           </View>
 
           {/* JOINING FEE PAYMENT */}
-          <View style={styles.sectionHeader}>
+          {/* <View style={styles.sectionHeader}>
             <Ionicons name="card-outline" size={18} color="#FF8A00" />
             <Text style={styles.sectionTitle}>Joining Fee</Text>
-          </View>
+          </View> */}
 
           <View style={styles.feeCard} testID="merchant-joining-fee-card">
             <View style={styles.feeRow}>
-              <Text style={styles.feeLabel}>One-time Joining Fee</Text>
-              <Text style={styles.feeAmount}>₹{JOINING_FEE_AMOUNT}/-</Text>
+              <Text style={styles.feeLabel}>Merchant Growth pack</Text>
+              <Text style={styles.feeAmount}>₹499/-</Text>
             </View>
-            <Text style={styles.feeSubText}>
+            {/* <Text style={styles.feeSubText}>
               Every merchant must pay a one-time joining fee to activate the account.
-            </Text>
+            </Text> */}
 
             {!paymentCompleted ? (
               <TouchableOpacity
@@ -1596,7 +1596,7 @@ export default function RegisterMerchant() {
                 ) : (
                   <>
                     <Ionicons name="lock-closed-outline" size={18} color="#FFFFFF" />
-                    <Text style={styles.payFeeBtnText}>Pay Joining Fee ₹{JOINING_FEE_AMOUNT}/-</Text>
+                    <Text style={styles.payFeeBtnText}>Merchant Growth pack ₹499/- + GST</Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -1614,11 +1614,11 @@ export default function RegisterMerchant() {
               </View>
             )}
 
-            {!paymentCompleted && !isPaying && (
+            {/* {!paymentCompleted && !isPaying && (
               <Text style={styles.feeHint}>
                 Ensure all mandatory business details above are filled — you can pay the joining fee anytime.
               </Text>
-            )}
+            )} */}
           </View>
 
           {/* TERMS */}
