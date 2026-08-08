@@ -98,6 +98,15 @@
 - The `merchant-dashboard.tsx` hero carousel already reads `merchant_shop_images` on focus, so newly uploaded images appear in the dashboard carousel automatically.
 - Files modified: `/app/frontend/app/account.tsx`
 
+### Session 10 (Aug 2026) - Reset to IOS_Changes_Vicky + Delete Account Confirmation Modal
+- Pulled `IOS_Changes_Vicky` branch (hard reset from `main`) to bring in iOS deployment work (iOS icons, iOS carousel assets, `LoginRequiredModal`, `ShopImageCarousel`, iOS metro/patch configs, `authStore` updates, etc.).
+- **New feature (`components/Footer.tsx`)**: Added a confirmation modal for the "Delete Account" footer link.
+  - Tap link → opens a centered card with a red ⚠️ icon, "Delete Account?" title, warning body, and two buttons.
+  - **Cancel** → closes the modal, stays in app.
+  - **Confirm** → calls `Linking.openURL('https://www.intownlocal.com/delete-account')` (opens INtown website's delete page in device browser / new tab).
+  - Testable via `data-testid`s: `footer-delete-account-btn`, `delete-confirm-cancel-btn`, `delete-confirm-confirm-btn`.
+- Verified end-to-end: user-dashboard footer → Delete Account link → modal appears → Cancel closes cleanly, Confirm fires the external URL. Web bundle rebuilt.
+
 ## Backlog
 - P1: Test full end-to-end login with real OTP on mobile device
 - P2: Extract shared carousel + merchant card UI from `dual-dashboard.tsx`, `user-dashboard.tsx`, `member-dashboard.tsx` into reusable components
