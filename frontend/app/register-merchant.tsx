@@ -237,7 +237,53 @@ export default function RegisterMerchant() {
   const [errors, setErrors] = useState<any>({});
 
   /* ================= JOINING FEE PAYMENT STATE ================= */
-  const JOINING_FEE_AMOUNT = 499 * 1.18;
+  const GST_RATE = 1.18;
+  const PLANS = [
+    {
+      id: 'START' as const,
+      name: 'START',
+      basePrice: 499,
+      features: [
+        { label: 'Lifetime INtown access', included: true },
+        { label: 'Store profile', included: true },
+        { label: 'Products / services', included: true },
+        { label: 'Create offers', included: true },
+        { label: 'Basic analytics', included: true },
+        { label: 'Pick @ store', included: true },
+        { label: 'Slot Booking', included: true },
+        { label: 'Circle', included: true },
+        { label: 'Featured visibility', included: false },
+        { label: 'Promotional campaign', included: false },
+        { label: 'Promotional creative', included: false },
+        { label: 'Social Media promotion', included: false },
+        { label: 'Campaign report', included: false },
+      ],
+    },
+    {
+      id: 'LAUNCH' as const,
+      name: 'LAUNCH',
+      basePrice: 999,
+      recommended: true,
+      features: [
+        { label: 'Lifetime INtown access', included: true },
+        { label: 'Store profile', included: true },
+        { label: 'Products / services', included: true },
+        { label: 'Create offers', included: true },
+        { label: 'Basic analytics', included: true },
+        { label: 'Pick @ store', included: true },
+        { label: 'Slot Booking', included: true },
+        { label: 'Circle', included: true },
+        { label: 'Featured visibility', included: true },
+        { label: 'Promotional campaign', included: true },
+        { label: 'Promotional creative', included: true },
+        { label: 'Social Media promotion', included: true },
+        { label: 'Campaign report', included: true },
+      ],
+    },
+  ];
+  const [selectedPlanId, setSelectedPlanId] = useState<'START' | 'LAUNCH'>('START');
+  const selectedPlan = PLANS.find(p => p.id === selectedPlanId) || PLANS[0];
+  const JOINING_FEE_AMOUNT = Math.round(selectedPlan.basePrice * GST_RATE * 100) / 100;
   const RAZORPAY_KEY_ID = 'rzp_live_RrNfvARmKIkZ7C';
   const [paymentCompleted, setPaymentCompleted] = useState(false);
   const [isPaying, setIsPaying] = useState(false);
@@ -1569,21 +1615,85 @@ export default function RegisterMerchant() {
             />
           </View>
 
-          {/* JOINING FEE PAYMENT */}
-          {/* <View style={styles.sectionHeader}>
-            <Ionicons name="card-outline" size={18} color="#FF8A00" />
-            <Text style={styles.sectionTitle}>Joining Fee</Text>
-          </View> */}
+          {/* JOINING FEE PAYMENT — Growth Pack Selector */}
+          <View style={styles.sectionHeader}>
+            <Ionicons name="rocket-outline" size={18} color="#FF8A00" />
+            <Text style={styles.sectionTitle}>Merchant Growth Pack</Text>
+          </View>
+          <Text style={styles.growthPackSubtitle}>
+            Choose the pack that fits your business. Both are one-time — no monthly fees.
+          </Text>
+
+          <View style={styles.plansRow}>
+            {PLANS.map((plan) => {
+              const isSelected = selectedPlanId === plan.id;
+              return (
+                <TouchableOpacity
+                  key={plan.id}
+                  activeOpacity={0.85}
+                  style={[styles.planCard, isSelected && styles.planCardSelected, paymentCompleted && styles.planCardDisabled]}
+                  onPress={() => !paymentCompleted && setSelectedPlanId(plan.id)}
+                  disabled={paymentCompleted}
+                  testID={`plan-card-${plan.id.toLowerCase()}`}
+                >
+                  {plan.recommended && (
+                    <View style={styles.planRecommendedBadge}>
+                      <Ionicons name="star" size={10} color="#FFFFFF" />
+                      <Text style={styles.planRecommendedText}>RECOMMENDED</Text>
+                    </View>
+                  )}
+                  <View style={styles.planHeaderRow}>
+                    <View style={styles.planRadio}>
+                      {isSelected ? (
+                        <View style={styles.planRadioInner} />
+                      ) : null}
+                    </View>
+                    <Text style={styles.planName}>{plan.name}</Text>
+                  </View>
+                  <View style={styles.planPriceRow}>
+                    <Text style={styles.planCurrency}>₹</Text>
+                    <Text style={styles.planPrice}>{plan.basePrice}</Text>
+                    <Text style={styles.planPriceSuffix}>+ GST</Text>
+                  </View>
+                  <Text style={styles.planPriceFinal}>
+                    You pay ₹{(plan.basePrice * GST_RATE).toFixed(2)}
+                  </Text>
+
+                  <View style={styles.planDivider} />
+
+                  <View style={styles.planFeatures}>
+                    {plan.features.map((f, idx) => (
+                      <View key={idx} style={styles.planFeatureRow}>
+                        <Ionicons
+                          name={f.included ? 'checkmark-circle' : 'close-circle'}
+                          size={14}
+                          color={f.included ? '#0C8A4A' : '#CCCCCC'}
+                        />
+                        <Text
+                          style={[
+                            styles.planFeatureText,
+                            !f.included && styles.planFeatureTextMuted,
+                          ]}
+                          numberOfLines={2}
+                        >
+                          {f.label}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+
+                  {isSelected && !paymentCompleted && (
+                    <View style={styles.planSelectedBadge}>
+                      <Ionicons name="checkmark" size={12} color="#FFFFFF" />
+                      <Text style={styles.planSelectedBadgeText}>Selected</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
 
           <View style={styles.feeCard} testID="merchant-joining-fee-card">
-            <View style={styles.feeRow}>
-              <Text style={styles.feeLabel}>Merchant Growth pack</Text>
-              <Text style={styles.feeAmount}>₹499/-</Text>
-            </View>
-            {/* <Text style={styles.feeSubText}>
-              Every merchant must pay a one-time joining fee to activate the account.
-            </Text> */}
-
             {!paymentCompleted ? (
               <TouchableOpacity
                 style={[styles.payFeeBtn, (!canInitiatePayment || isPaying) && styles.payFeeBtnDisabled]}
@@ -1596,14 +1706,18 @@ export default function RegisterMerchant() {
                 ) : (
                   <>
                     <Ionicons name="lock-closed-outline" size={18} color="#FFFFFF" />
-                    <Text style={styles.payFeeBtnText}>Merchant Growth pack ₹499/- + GST</Text>
+                    <Text style={styles.payFeeBtnText}>
+                      Pay {selectedPlan.name} ₹{selectedPlan.basePrice}/- + GST
+                    </Text>
                   </>
                 )}
               </TouchableOpacity>
             ) : (
               <View style={styles.paymentReceivedBanner} testID="payment-received-banner">
                 <Ionicons name="checkmark-circle" size={20} color="#0C8A4A" />
-                <Text style={styles.paymentReceivedText}>Payment received successfully</Text>
+                <Text style={styles.paymentReceivedText}>
+                  {selectedPlan.name} pack activated — payment received successfully
+                </Text>
               </View>
             )}
 
@@ -1613,12 +1727,6 @@ export default function RegisterMerchant() {
                 <Text style={styles.paymentErrorText}>{paymentError}</Text>
               </View>
             )}
-
-            {/* {!paymentCompleted && !isPaying && (
-              <Text style={styles.feeHint}>
-                Ensure all mandatory business details above are filled — you can pay the joining fee anytime.
-              </Text>
-            )} */}
           </View>
 
           {/* TERMS */}
