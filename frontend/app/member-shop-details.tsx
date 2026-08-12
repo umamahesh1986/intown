@@ -310,7 +310,11 @@ export default function MemberShopDetails() {
     setShowOrderModal(true);
     setIsLoadingProducts(true);
     try {
-      const flat = await getAllProducts();
+      const flat = await getAllProducts({
+        customerId,
+        merchantId: shop?.id,
+        categoryId,
+      });
       const list: OrderProduct[] = flat.map((p) => ({
         id: p.id,
         name: p.name,

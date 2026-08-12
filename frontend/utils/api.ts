@@ -700,10 +700,37 @@ export const getProductsByCategory = async (categoryId: number): Promise<Normali
   return flattenGroupedProducts(raw);
 };
 
-// Fetch full grouped products (all categories) — used by search and Order modal.
-export const getAllProducts = async (): Promise<NormalizedProduct[]> => {
-  const response = await fetch(`${INTOWN_API_BASE}/products/all-products-grouping`);
-  if (!response.ok) throw new Error('Failed to fetch products');
+// Fetch products for the Order modal.
+// Backend now filters to only the merchant's selected products when
+// customerId / merchantId / categoryId are supplied in the POST body.
+export interface AllProductsGroupingParams {
+  customerId?: number | string | null;
+  merchantId?: number | string | null;
+  categoryId?: number | string | null;
+}
+export const getAllProducts = async (
+  params?: AllProductsGroupingParams,
+): Promise<NormalizedProduct[]> => {
+  const body: Record<string, any> = {};
+  if (params?.customerId !== undefined && params?.customerId !== null && params.customerId !== '') {
+    body.customerId = Number(params.customerId);
+  }
+  if (params?.merchantId !== undefined && params?.merchantId !== null && params.merchantId !== '') {
+    body.merchantId = Number(params.merchantId);
+  }
+  if (params?.categoryId !== undefined && params?.categoryId !== null && params.categoryId !== '') {
+    body.categoryId = Number(params.categoryId);
+  }
+
+  const hasBody = Object.keys(body).length > 0;
+  const response = await fetch(`${INTOWN_API_BASE}/products/all-products-grouping`, {
+    method: hasBody ? 'POST' : 'GET',
+    headers: hasBody
+      ? { 'Content-Type': 'application/json', Accept: 'application/json' }
+      : { Accept: 'application/json' },
+    ...(hasBody ? { body: JSON.stringify(body) } : {}),
+  });
+  if (!response.ok) throw new Error(`Failed to fetch products (${response.status})`);
   const raw = await response.json();
   return flattenGroupedProducts(raw);
 };
