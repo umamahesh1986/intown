@@ -281,7 +281,7 @@ export default function RegisterMerchant() {
       ],
     },
   ];
-  const [selectedPlanId, setSelectedPlanId] = useState<'START' | 'LAUNCH'>('START');
+  const [selectedPlanId, setSelectedPlanId] = useState<'START' | 'LAUNCH'>('LAUNCH');
   const selectedPlan = PLANS.find(p => p.id === selectedPlanId) || PLANS[0];
   const JOINING_FEE_AMOUNT = Math.round(selectedPlan.basePrice * GST_RATE * 100) / 100;
   const RAZORPAY_KEY_ID = 'rzp_live_RrNfvARmKIkZ7C';
