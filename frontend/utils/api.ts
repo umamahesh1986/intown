@@ -274,6 +274,7 @@ export const registerMerchant = async (merchantData: any) => {
       phoneNumber: cleanPhone,
       pincode: merchantData.pincode,
       userType: 'IN_MERCHANT',
+      platform: 'IOS',
       latitude: merchantData.location?.latitude ?? merchantData.latitude ?? null,
       longitude: merchantData.location?.longitude ?? merchantData.longitude ?? null,
       address: merchantData.address,
