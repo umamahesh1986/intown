@@ -310,7 +310,7 @@ export default function MemberShopDetails() {
 
   const badge = getCategoryBadge(shop.businessCategory);
   // Get logged-in user's phone number
-  const userPhone = user?.phone || user?.phoneNumber || 'Not available';
+  const userPhone = user?.phone || user?.phone || 'Not available';
 
   const ShopContent = () => (
     <ScrollView
@@ -334,6 +334,15 @@ export default function MemberShopDetails() {
             </Text>
           </View>
         </View>
+          {/* Order */}
+          <View style={styles.orderContainer}>
+         <TouchableOpacity
+           style={styles.createOrderButton}
+           onPress={() => console.log("Create Order clicked")}
+           >
+        <Text style={styles.createOrderText}>Create Order</Text>
+            </TouchableOpacity>
+          </View>
 
         {/* Description Card */}
         <View style={styles.descriptionCard}>
@@ -766,5 +775,22 @@ const styles = StyleSheet.create({
   fullscreenImage: {
     width: '100%',
     height: '80%',
+  },
+  orderContainer: {
+    padding: 16,
+  },
+
+  createOrderButton: {
+    backgroundColor: "#f58220",
+    paddingVertical: 14,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  createOrderText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
   },
 });
