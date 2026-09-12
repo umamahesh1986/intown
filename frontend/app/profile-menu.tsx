@@ -8,62 +8,70 @@ export default function ProfileMenu() {
   const logout = useAuthStore((state) => state.logout);
   const router = useRouter();
 
- return (
-  <View style={styles.screen}>
+  return (
+    <View style={styles.screen}>
 
-    {/* Header with Back Button */}
-    <View style={styles.header}>
-      <TouchableOpacity
-        onPress={() => router.back()}
-        style={styles.backButton}
-      >
-        <Ionicons name="arrow-back" size={24} color="#000" />
-      </TouchableOpacity>
+      {/* Header with Back Button */}
+      <View style={styles.header}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+        >
+          <Ionicons name="arrow-back" size={24} color="#000" />
+        </TouchableOpacity>
 
-      <Text style={styles.headerTitle}>Profile</Text>
+        <Text style={styles.headerTitle}>Profile</Text>
+      </View>
+
+      <View style={styles.container}>
+
+        <TouchableOpacity
+          style={styles.item}
+          onPress={() => router.push("/account")}
+        >
+          <Ionicons name="person-outline" size={22} color="#FF8A00" />
+          <Text style={styles.text}>My Account</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.item}
+          onPress={() => router.push("/register-member")}
+        >
+          <Ionicons name="star-outline" size={22} color="#FF8A00" />
+          <Text style={styles.text}>Become a Customer</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.item}
+          onPress={() => router.push("/register-merchant")}
+        >
+          <Ionicons name="storefront-outline" size={22} color="#FF8A00" />
+          <Text style={styles.text}>Become a Merchant</Text>
+        </TouchableOpacity>
+
+        {/* Sales History */}
+        <TouchableOpacity
+          style={styles.item}
+          onPress={() => router.push("/admin-login")}
+        >
+          <Ionicons name="bar-chart-outline" size={22} color="#FF8A00" />
+          <Text style={styles.text}>Sales History</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.item}
+          onPress={() => {
+            logout();
+            router.replace("/login");
+          }}
+        >
+          <Ionicons name="log-out-outline" size={22} color="red" />
+          <Text style={[styles.text, { color: "red" }]}>Logout</Text>
+        </TouchableOpacity>
+
+      </View>
     </View>
-
-    <View style={styles.container}>
-
-      <TouchableOpacity
-  style={styles.item}
-  onPress={() => router.push("/account")}
->
-  <Ionicons name="person-outline" size={22} color="#FF8A00" />
-  <Text style={styles.text}>My Account</Text>
-</TouchableOpacity>
-
-      <TouchableOpacity
-  style={styles.item}
-  onPress={() => router.push("/register-member")}
->
-  <Ionicons name="star-outline" size={22} color="#FF8A00" />
-  <Text style={styles.text}>Become a Customer</Text>
-</TouchableOpacity>
-
-      <TouchableOpacity
-  style={styles.item}
-  onPress={() => router.push("/register-merchant")}
->
-        <Ionicons name="storefront-outline" size={22} color="#FF8A00" />
-        <Text style={styles.text}>Become a Merchant</Text>
-      </TouchableOpacity>
-
-     <TouchableOpacity
-  style={styles.item}
-  onPress={() => {
-    logout();
-    router.replace("/login");
-  }}
->
-  <Ionicons name="log-out-outline" size={22} color="red" />
-  <Text style={[styles.text, { color: "red" }]}>Logout</Text>
-</TouchableOpacity>
-
-    </View>
-</View>
-);
-
+  );
 }
 
 const styles = StyleSheet.create({
@@ -86,25 +94,26 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600"
   },
-  screen:{
-flex:1,
-backgroundColor:"#F5F6FA"
-},
 
-header:{
-flexDirection:"row",
-alignItems:"center",
-paddingHorizontal:16,
-paddingVertical:12
-},
+  screen: {
+    flex: 1,
+    backgroundColor: "#F5F6FA"
+  },
 
-backButton:{
-marginRight:10
-},
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 12
+  },
 
-headerTitle:{
-fontSize:18,
-fontWeight:"700",
-color:"#000"
-},
+  backButton: {
+    marginRight: 10
+  },
+
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#000"
+  },
 });

@@ -1,631 +1,372 @@
-// import React, { useState } from "react";
-// import {
-//   View,
-//   Text,
-//   StyleSheet,
-//   TextInput,
-//   TouchableOpacity,
-//   Alert,
-//   KeyboardAvoidingView,
-//   Platform,
-//   Keyboard,
-// } from "react-native";
-// import { useRouter } from "expo-router";
-// import { sendOtpApi } from "../utils/api";
-
-// export default function AdminLogin() {
-//   const router = useRouter();
-
-//   const [phone, setPhone] = useState("");
-//   const [isLoading, setIsLoading] = useState(false);
-//   const [phoneError, setPhoneError] = useState("");
-
-//   const handleSendOTP = async () => {
-//     const cleanPhone = phone.replace(/\D/g, "").slice(-10);
-
-//     if (cleanPhone.length !== 10) {
-//       setPhoneError("Please enter a valid 10-digit phone number");
-//       return;
-//     }
-
-//     setPhoneError("");
-//     setIsLoading(true);
-
-//     try {
-//       const mobileNumber = `91${cleanPhone}`;
-
-//       console.log("ADMIN MOBILE NUMBER:", mobileNumber);
-
-//       const response = await sendOtpApi(mobileNumber);
-
-//       console.log("ADMIN SEND OTP RESPONSE:", response);
-
-//       Keyboard.dismiss();
-
-//       router.push({
-//         pathname: "/admin-otp",
-//         params: {
-//           phone: cleanPhone,
-//         },
-//       });
-//     } catch (error: any) {
-//       console.log("ADMIN SEND OTP ERROR:", error);
-
-//       Alert.alert(
-//         "Error",
-//         error?.message || "Failed to send OTP"
-//       );
-//     } finally {
-//       setIsLoading(false);
-//     }
-//   };
-
-//   return (
-//     <KeyboardAvoidingView
-//       style={styles.container}
-//       behavior={Platform.OS === "ios" ? "padding" : "height"}
-//     >
-//       <View style={styles.card}>
-//         <Text style={styles.logo}>INtown</Text>
-
-//         <Text style={styles.title}>Admin Login</Text>
-
-//         <Text style={styles.subtitle}>
-//           Login to access Admin Portal
-//         </Text>
-
-//         <Text style={styles.label}>Mobile Number</Text>
-
-//         <View style={styles.inputRow}>
-//           <Text style={styles.countryCode}>+91</Text>
-
-//           <TextInput
-//             style={styles.input}
-//             placeholder="Enter mobile number"
-//             placeholderTextColor="#999"
-//             keyboardType="phone-pad"
-//             value={phone}
-//             onChangeText={(value) => {
-//               setPhone(value.replace(/\D/g, ""));
-//               setPhoneError("");
-//             }}
-//             maxLength={10}
-//           />
-//         </View>
-
-//         {phoneError ? (
-//           <Text style={styles.errorText}>
-//             {phoneError}
-//           </Text>
-//         ) : null}
-
-//         <TouchableOpacity
-//           style={[
-//             styles.button,
-//             isLoading && styles.buttonDisabled,
-//           ]}
-//           onPress={handleSendOTP}
-//           disabled={isLoading}
-//         >
-//           <Text style={styles.buttonText}>
-//             {isLoading ? "Sending OTP..." : "Get OTP"}
-//           </Text>
-//         </TouchableOpacity>
-
-//         <Text style={styles.note}>
-//           You will receive a one-time password on this number
-//         </Text>
-//       </View>
-//     </KeyboardAvoidingView>
-//   );
-// }
-
-// const styles = StyleSheet.create({
-//   container: {
-//     flex: 1,
-//     backgroundColor: "#f5f5f5",
-//     justifyContent: "center",
-//     paddingHorizontal: 20,
-//   },
-
-//   card: {
-//     width: "100%",
-//     maxWidth: 500,
-//     alignSelf: "center",
-//     backgroundColor: "#fff",
-//     borderRadius: 20,
-//     padding: 28,
-//     elevation: 6,
-//     shadowColor: "#000",
-//     shadowOffset: {
-//       width: 0,
-//       height: 4,
-//     },
-//     shadowOpacity: 0.12,
-//     shadowRadius: 10,
-//   },
-
-//   logo: {
-//     color: "#f58220",
-//     fontSize: 32,
-//     fontWeight: "800",
-//     textAlign: "center",
-//     marginBottom: 20,
-//   },
-
-//   title: {
-//     fontSize: 28,
-//     fontWeight: "800",
-//     color: "#222",
-//     textAlign: "center",
-//   },
-
-//   subtitle: {
-//     fontSize: 14,
-//     color: "#777",
-//     textAlign: "center",
-//     marginTop: 8,
-//     marginBottom: 28,
-//   },
-
-//   label: {
-//     fontSize: 14,
-//     fontWeight: "700",
-//     color: "#333",
-//     marginBottom: 8,
-//   },
-
-//   inputRow: {
-//     height: 55,
-//     borderWidth: 1,
-//     borderColor: "#ddd",
-//     borderRadius: 12,
-//     flexDirection: "row",
-//     alignItems: "center",
-//     paddingHorizontal: 15,
-//   },
-
-//   countryCode: {
-//     fontSize: 16,
-//     fontWeight: "700",
-//     color: "#333",
-//     marginRight: 8,
-//   },
-
-//   input: {
-//     flex: 1,
-//     height: "100%",
-//     fontSize: 16,
-//     color: "#222",
-//   },
-
-//   errorText: {
-//     color: "#d93025",
-//     fontSize: 13,
-//     marginTop: 8,
-//   },
-
-//   button: {
-//     height: 54,
-//     backgroundColor: "#f58220",
-//     borderRadius: 12,
-//     justifyContent: "center",
-//     alignItems: "center",
-//     marginTop: 22,
-//   },
-
-//   buttonDisabled: {
-//     opacity: 0.6,
-//   },
-
-//   buttonText: {
-//     color: "#fff",
-//     fontSize: 17,
-//     fontWeight: "700",
-//   },
-
-//   note: {
-//     color: "#999",
-//     fontSize: 12,
-//     textAlign: "center",
-//     marginTop: 15,
-//   },
-// });
-
-
-
 import React, { useState } from "react";
 import {
   View,
   Text,
-  StyleSheet,
   TextInput,
   TouchableOpacity,
+  StyleSheet,
   Alert,
-  KeyboardAvoidingView,
-  Platform,
-  Image,
   ActivityIndicator,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
-import { Video, ResizeMode } from "expo-av";
-import { sendOtpApi } from "../utils/api";
 
-const RADIUS = 12;
-
-const VIDEO_URL =
-  "https://intown-dev.s3.ap-south-1.amazonaws.com/LoginBackgroundVideo/INtownVideo.mp4";
-
-const LOGO_URL =
-  "https://intown-dev.s3.ap-south-1.amazonaws.com/app_logo/intown-logo.jpg";
-
-const BackgroundContent = React.memo(() => {
-  if (Platform.OS === "web") {
-    return (
-      <video
-        src={VIDEO_URL}
-        autoPlay
-        loop
-        muted
-        playsInline
-        style={{
-          position: "absolute",
-          width: "100%",
-          height: "100%",
-          objectFit: "cover",
-          top: 0,
-          left: 0,
-          zIndex: -1,
-        }}
-      />
-    );
-  }
-
-  return (
-    <View style={StyleSheet.absoluteFill}>
-      <Video
-        source={{ uri: VIDEO_URL }}
-        style={StyleSheet.absoluteFill}
-        resizeMode={ResizeMode.COVER}
-        shouldPlay
-        isLooping
-        isMuted
-      />
-    </View>
-  );
-});
+const API = "https://devapi.intownlocal.com";
 
 export default function AdminLogin() {
   const router = useRouter();
 
   const [phone, setPhone] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [phoneError, setPhoneError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSendOTP = async () => {
-    const cleanPhone = phone
-      .replace(/\D/g, "")
-      .slice(-10);
+  const handleLogin = async () => {
+    const mobile = phone.trim();
 
-    if (cleanPhone.length !== 10) {
-      setPhoneError(
+    if (!mobile) {
+      Alert.alert("Error", "Please enter phone number");
+      return;
+    }
+
+    if (mobile.length !== 10) {
+      Alert.alert(
+        "Invalid Number",
         "Please enter a valid 10-digit phone number"
       );
       return;
     }
 
-    setPhoneError("");
-    setIsLoading(true);
-
     try {
-      const mobileNumber = `91${cleanPhone}`;
+      setLoading(true);
 
-      console.log(
-        "LOGIN MOBILE NUMBER:",
-        mobileNumber
+      console.log("Searching phone:", mobile);
+
+      const response = await fetch(
+        `${API}/IN/search/${encodeURIComponent(mobile)}`,
+        {
+          method: "GET",
+          headers: {
+            Accept: "application/json",
+          },
+        }
       );
 
-      const response = await sendOtpApi(mobileNumber);
+      console.log("Search status:", response.status);
 
-      console.log(
-        "SEND OTP RESPONSE:",
-        response
+      if (!response.ok) {
+        if (response.status === 404) {
+          Alert.alert(
+            "Not Registered",
+            "This phone number is not registered."
+          );
+        } else {
+          Alert.alert(
+            "Login Failed",
+            `Unable to identify user. Status: ${response.status}`
+          );
+        }
+
+        return;
+      }
+
+      const data = await response.json();
+
+      console.log("Login response:", data);
+      console.log("Customer object:", data?.customer);
+      console.log("Merchant object:", data?.merchant);
+
+      /*
+       * CUSTOMER
+       */
+      if (data?.customer) {
+        const customer = data.customer;
+
+        const customerId =
+          customer?.customerId ??
+          customer?.id ??
+          customer?.customerID ??
+          customer?.userId;
+
+        console.log("Customer ID:", customerId);
+
+        if (!customerId) {
+          Alert.alert(
+            "Login Error",
+            "Customer ID was not found in API response."
+          );
+          return;
+        }
+
+        await AsyncStorage.setItem(
+          "customerId",
+          String(customerId)
+        );
+
+        await AsyncStorage.setItem(
+          "userPhone",
+          mobile
+        );
+
+        await AsyncStorage.setItem(
+          "userRole",
+          "CUSTOMER"
+        );
+
+        await AsyncStorage.removeItem("merchantId");
+
+        console.log(
+          "Customer login successful"
+        );
+
+        console.log(
+          "Opening /admin-customer"
+        );
+
+        router.replace("/admin-customer");
+
+        return;
+      }
+
+      /*
+       * MERCHANT
+       */
+      if (data?.merchant) {
+        const merchant = data.merchant;
+
+        const merchantId =
+          merchant?.merchantId ??
+          merchant?.id ??
+          merchant?.merchantID ??
+          merchant?.userId;
+
+        console.log("Merchant ID:", merchantId);
+
+        if (!merchantId) {
+          Alert.alert(
+            "Login Error",
+            "Merchant ID was not found in API response."
+          );
+          return;
+        }
+
+        await AsyncStorage.setItem(
+          "merchantId",
+          String(merchantId)
+        );
+
+        await AsyncStorage.setItem(
+          "userPhone",
+          mobile
+        );
+
+        await AsyncStorage.setItem(
+          "userRole",
+          "MERCHANT"
+        );
+
+        await AsyncStorage.removeItem("customerId");
+
+        console.log(
+          "Merchant login successful"
+        );
+
+        console.log(
+          "Opening /admin-merchants"
+        );
+
+        router.replace("/admin-merchants");
+
+        return;
+      }
+
+      Alert.alert(
+        "Not Registered",
+        "This phone number is not registered as Customer or Merchant."
       );
-
-      router.push({
-        pathname: "/admin-otp",
-        params: {
-          phone: cleanPhone,
-        },
-      });
-    } catch (err: any) {
-      console.log("SEND OTP ERROR:", err);
+    } catch (error) {
+      console.log("LOGIN ERROR:", error);
 
       Alert.alert(
         "Error",
-        err?.message ||
-          "Failed to send OTP. Please try again."
+        "Something went wrong. Please try again."
       );
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  const inputWebStyle: any =
-    Platform.OS === "web"
-      ? {
-          outlineStyle: "none",
-          outlineWidth: 0,
-          outlineColor: "transparent",
-        }
-      : undefined;
-
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={
-        Platform.OS === "ios"
-          ? "padding"
-          : "height"
-      }
-    >
-      <BackgroundContent />
+    <View style={styles.container}>
+      <View style={styles.card}>
+        <Text style={styles.logo}>
+          INtown
+        </Text>
 
-      <View style={styles.overlay}>
-        <View style={styles.centerWrap}>
-          <View style={styles.headerCard}>
-            <View style={styles.logoBox}>
-              <Image
-                source={{ uri: LOGO_URL }}
-                style={styles.logo}
-                resizeMode="contain"
-              />
-            </View>
-          </View>
+        <Text style={styles.title}>
+          Welcome Back
+        </Text>
 
-          <View style={styles.formWrap}>
-            <View style={styles.formCard}>
-              <Text style={styles.loginTitle}>
-                Login
-              </Text>
+        <Text style={styles.subtitle}>
+          Login with your registered phone number
+        </Text>
 
-              <Text style={styles.loginSubtitle}>
-                Enter your mobile number
-              </Text>
+        <Text style={styles.label}>
+          Phone Number
+        </Text>
 
-              <View style={styles.inputRow}>
-                <View style={styles.iconCircle}>
-                  <Ionicons
-                    name="call"
-                    size={18}
-                    color="#666"
-                  />
-                </View>
+        <View style={styles.phoneContainer}>
+          <Text style={styles.countryCode}>
+            +91
+          </Text>
 
-                <TextInput
-                  style={[
-                    styles.input,
-                    inputWebStyle,
-                  ]}
-                  placeholder="Enter mobile number"
-                  placeholderTextColor="#9b9b9b"
-                  keyboardType="phone-pad"
-                  value={phone}
-                  onChangeText={(value) => {
-                    setPhone(
-                      value
-                        .replace(/\D/g, "")
-                        .slice(0, 10)
-                    );
-                    setPhoneError("");
-                  }}
-                  maxLength={10}
-                />
-              </View>
+          <TextInput
+            value={phone}
+            onChangeText={(value) => {
+              const number =
+                value.replace(/[^0-9]/g, "");
 
-              {phoneError ? (
-                <Text style={styles.errorText}>
-                  {phoneError}
-                </Text>
-              ) : null}
-
-              <TouchableOpacity
-                style={[
-                  styles.button,
-                  isLoading &&
-                    styles.buttonDisabled,
-                ]}
-                onPress={handleSendOTP}
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <View
-                    style={styles.buttonContent}
-                  >
-                    <ActivityIndicator
-                      color="#fff"
-                      size="small"
-                    />
-
-                    <Text
-                      style={styles.buttonText}
-                    >
-                      {" "}
-                      Sending OTP...
-                    </Text>
-                  </View>
-                ) : (
-                  <Text
-                    style={styles.buttonText}
-                  >
-                    Get OTP
-                  </Text>
-                )}
-              </TouchableOpacity>
-
-              <Text style={styles.smallNote}>
-                You will receive a one-time
-                password on this number
-              </Text>
-            </View>
-          </View>
+              setPhone(number);
+            }}
+            placeholder="Enter phone number"
+            placeholderTextColor="#999"
+            keyboardType="phone-pad"
+            maxLength={10}
+            style={styles.input}
+          />
         </View>
+
+        <TouchableOpacity
+          style={[
+            styles.loginButton,
+            loading && styles.disabledButton,
+          ]}
+          onPress={handleLogin}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator
+              color="#FFFFFF"
+            />
+          ) : (
+            <Text style={styles.loginText}>
+              LOGIN
+            </Text>
+          )}
+        </TouchableOpacity>
+
+        <Text style={styles.info}>
+          Your registered phone number will
+          automatically identify your account.
+        </Text>
       </View>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-
-  overlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.45)",
-  },
-
-  centerWrap: {
-    flex: 1,
+    backgroundColor: "#F6F7F9",
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: 20,
+    padding: 20,
   },
 
-  headerCard: {
+  card: {
     width: "100%",
-    backgroundColor: "#fe6f09",
-    borderTopLeftRadius: RADIUS,
-    borderTopRightRadius: RADIUS,
-    alignItems: "center",
-    paddingTop: 28,
-    paddingBottom: 24,
+    maxWidth: 430,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 28,
+
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 8,
-    },
-    shadowOpacity: 0.18,
-    shadowRadius: 20,
-    elevation: 8,
-    overflow: "hidden",
-  },
-
-  logoBox: {
-    backgroundColor: "#fe6f09",
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    alignSelf: "center",
-  },
-
-  logo: {
-    width: 220,
-    height: 48,
-  },
-
-  formWrap: {
-    width: "100%",
-    marginTop: -18,
-  },
-
-  formCard: {
-    width: "100%",
-    backgroundColor: "#fe6f09",
-    borderBottomLeftRadius: RADIUS,
-    borderBottomRightRadius: RADIUS,
-    paddingVertical: 20,
-    paddingHorizontal: 18,
-    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 15,
     shadowOffset: {
       width: 0,
       height: 6,
     },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 6,
+
+    elevation: 5,
   },
 
-  loginTitle: {
-    color: "#fff",
-    fontSize: 24,
+  logo: {
+    fontSize: 34,
+    fontWeight: "900",
+    color: "#F58220",
+    textAlign: "center",
+    marginBottom: 25,
+  },
+
+  title: {
+    fontSize: 26,
     fontWeight: "800",
+    color: "#222",
     textAlign: "center",
-    marginBottom: 5,
   },
 
-  loginSubtitle: {
-    color: "#FFE0CC",
-    fontSize: 13,
+  subtitle: {
+    fontSize: 14,
+    color: "#777",
     textAlign: "center",
-    marginBottom: 18,
+    marginTop: 8,
+    marginBottom: 28,
   },
 
-  inputRow: {
+  label: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#333",
+    marginBottom: 8,
+  },
+
+  phoneContainer: {
+    height: 54,
+    borderWidth: 1,
+    borderColor: "#DDDDDD",
+    borderRadius: 12,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F7F7F7",
-    borderRadius: 10,
-    height: 56,
-    paddingHorizontal: 12,
-    marginBottom: 18,
-    borderColor: "#ececec",
-    borderWidth: 1,
+    paddingHorizontal: 14,
+    backgroundColor: "#FFFFFF",
   },
 
-  iconCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
+  countryCode: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#333",
     marginRight: 10,
   },
 
   input: {
     flex: 1,
     fontSize: 16,
-    color: "#000",
-    height: "100%",
+    color: "#222",
   },
 
-  errorText: {
-    color: "#FFE0CC",
-    fontSize: 13,
-    marginBottom: 12,
-    marginTop: -8,
-  },
-
-  button: {
-    backgroundColor: "#E85B1A",
+  loginButton: {
     height: 54,
-    borderRadius: 10,
-    alignItems: "center",
+    backgroundColor: "#F58220",
+    borderRadius: 12,
     justifyContent: "center",
-    marginBottom: 12,
-  },
-
-  buttonDisabled: {
-    opacity: 0.65,
-  },
-
-  buttonContent: {
-    flexDirection: "row",
     alignItems: "center",
+    marginTop: 22,
   },
 
-  buttonText: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "700",
+  disabledButton: {
+    opacity: 0.7,
   },
 
-  smallNote: {
-    color: "#FFE0CC",
-    fontSize: 13,
+  loginText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "800",
+  },
+
+  info: {
+    fontSize: 12,
+    lineHeight: 18,
+    color: "#888",
     textAlign: "center",
-    marginTop: 6,
+    marginTop: 20,
   },
 });
-
