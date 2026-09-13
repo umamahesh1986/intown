@@ -5,7 +5,6 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  Alert,
   ActivityIndicator,
   Modal,
 } from "react-native";
@@ -25,13 +24,26 @@ export default function AdminLogin() {
   const [merchantData, setMerchantData] = useState<any>(null);
   const [loginPhone, setLoginPhone] = useState("");
 
+  const [showAlertModal, setShowAlertModal] = useState(false);
+  const [alertMessage, setAlertMessage] = useState(
+    "Please enter your registered phone number"
+  );
+
+  const showCustomAlert = (message: string) => {
+    setAlertMessage(message);
+    setShowAlertModal(true);
+  };
+
+  const closeCustomAlert = () => {
+    setShowAlertModal(false);
+  };
+
   const loginAsCustomer = async () => {
     try {
       const customerId = customerData?.customer?.id;
 
       if (!customerId) {
-        Alert.alert(
-          "Customer ID Missing",
+        showCustomAlert(
           "Customer ID was not returned by the API."
         );
         return;
@@ -60,8 +72,7 @@ export default function AdminLogin() {
     } catch (error) {
       console.log("Customer login error:", error);
 
-      Alert.alert(
-        "Error",
+      showCustomAlert(
         "Unable to login as Customer."
       );
     }
@@ -71,14 +82,10 @@ export default function AdminLogin() {
     try {
       const merchantId = merchantData?.merchant?.id;
 
-      console.log(
-        "Merchant ID:",
-        merchantId
-      );
+      console.log("Merchant ID:", merchantId);
 
       if (!merchantId) {
-        Alert.alert(
-          "Merchant ID Missing",
+        showCustomAlert(
           "Merchant ID was not returned by the API."
         );
         return;
@@ -107,8 +114,7 @@ export default function AdminLogin() {
     } catch (error) {
       console.log("Merchant login error:", error);
 
-      Alert.alert(
-        "Error",
+      showCustomAlert(
         "Unable to login as Merchant."
       );
     }
@@ -118,17 +124,15 @@ export default function AdminLogin() {
     const cleanPhone = phone.trim();
 
     if (!cleanPhone) {
-      Alert.alert(
-        "Enter Phone Number",
-        "Please enter your registered phone number."
+      showCustomAlert(
+        "Please enter your registered phone number"
       );
       return;
     }
 
     if (!/^\d{10}$/.test(cleanPhone)) {
-      Alert.alert(
-        "Invalid Phone Number",
-        "Please enter a valid 10-digit phone number."
+      showCustomAlert(
+        "Please enter your registered phone number"
       );
       return;
     }
@@ -158,7 +162,13 @@ export default function AdminLogin() {
         response.status
       );
 
-      const data = await response.json();
+      let data: any = null;
+
+      try {
+        data = await response.json();
+      } catch (error) {
+        data = null;
+      }
 
       console.log(
         "FULL LOGIN RESPONSE:",
@@ -166,10 +176,8 @@ export default function AdminLogin() {
       );
 
       if (!response.ok) {
-        Alert.alert(
-          "Search Failed",
-          data?.message ||
-            "Unable to check this phone number."
+        showCustomAlert(
+          "Please enter your registered phone number"
         );
         return;
       }
@@ -181,12 +189,12 @@ export default function AdminLogin() {
       const merchantId = merchant?.id ?? null;
 
       console.log(
-        "Customer object:",
+        "Customer:",
         customer
       );
 
       console.log(
-        "Merchant object:",
+        "Merchant:",
         merchant
       );
 
@@ -253,7 +261,9 @@ export default function AdminLogin() {
           "merchantId"
         );
 
-        router.replace("/admin-customer");
+        router.replace(
+          "/admin-customer"
+        );
 
         return;
       }
@@ -278,14 +288,15 @@ export default function AdminLogin() {
           "customerId"
         );
 
-        router.replace("/admin-merchants");
+        router.replace(
+          "/admin-merchants"
+        );
 
         return;
       }
 
-      Alert.alert(
-        "Not Registered",
-        "This phone number is not registered as a Customer or Merchant."
+      showCustomAlert(
+        "Please enter your registered phone number"
       );
     } catch (error) {
       console.log(
@@ -293,9 +304,8 @@ export default function AdminLogin() {
         error
       );
 
-      Alert.alert(
-        "Error",
-        "Something went wrong while checking the phone number."
+      showCustomAlert(
+        "Please enter your registered phone number"
       );
     } finally {
       setLoading(false);
@@ -304,7 +314,9 @@ export default function AdminLogin() {
 
   return (
     <View style={styles.container}>
+
       <View style={styles.card}>
+
         <View style={styles.logoCircle}>
           <Text style={styles.logoText}>
             IN
@@ -312,7 +324,7 @@ export default function AdminLogin() {
         </View>
 
         <Text style={styles.title}>
-          Sales History
+          Login
         </Text>
 
         <Text style={styles.subtitle}>
@@ -320,6 +332,7 @@ export default function AdminLogin() {
         </Text>
 
         <View style={styles.inputContainer}>
+
           <Text style={styles.countryCode}>
             +91
           </Text>
@@ -339,6 +352,7 @@ export default function AdminLogin() {
             maxLength={10}
             style={styles.input}
           />
+
         </View>
 
         <TouchableOpacity
@@ -361,8 +375,49 @@ export default function AdminLogin() {
           )}
         </TouchableOpacity>
 
-      
       </View>
+
+      {/* REGISTERED PHONE ALERT MODAL */}
+
+      <Modal
+        visible={showAlertModal}
+        transparent
+        animationType="fade"
+        onRequestClose={closeCustomAlert}
+      >
+        <View style={styles.alertOverlay}>
+
+          <View style={styles.alertModal}>
+
+            <View style={styles.alertIcon}>
+              <Text style={styles.alertIconText}>
+                !
+              </Text>
+            </View>
+
+            <Text style={styles.alertTitle}>
+              Phone Number
+            </Text>
+
+            <Text style={styles.alertMessage}>
+              {alertMessage}
+            </Text>
+
+            <TouchableOpacity
+              style={styles.alertButton}
+              onPress={closeCustomAlert}
+            >
+              <Text style={styles.alertButtonText}>
+                OK
+              </Text>
+            </TouchableOpacity>
+
+          </View>
+
+        </View>
+      </Modal>
+
+      {/* CUSTOMER / MERCHANT MODAL */}
 
       <Modal
         visible={showRoleModal}
@@ -373,7 +428,9 @@ export default function AdminLogin() {
         }
       >
         <View style={styles.modalOverlay}>
+
           <View style={styles.roleModal}>
+
             <View style={styles.roleIcon}>
               <Text style={styles.roleIconText}>
                 IN
@@ -399,7 +456,7 @@ export default function AdminLogin() {
                 </Text>
 
                 <Text style={styles.roleButtonSubtitle}>
-                  Open Customer Sales History
+                  Open Customer page
                 </Text>
               </View>
 
@@ -418,7 +475,7 @@ export default function AdminLogin() {
                 </Text>
 
                 <Text style={styles.roleButtonSubtitle}>
-                  Open Merchant Sales History
+                  Open Merchant page
                 </Text>
               </View>
 
@@ -437,9 +494,12 @@ export default function AdminLogin() {
                 Cancel
               </Text>
             </TouchableOpacity>
+
           </View>
+
         </View>
       </Modal>
+
     </View>
   );
 }
@@ -547,7 +607,72 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
 
- 
+  /* ALERT MODAL */
+
+  alertOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
+  },
+
+  alertModal: {
+    width: "100%",
+    maxWidth: 380,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 22,
+    padding: 28,
+    alignItems: "center",
+  },
+
+  alertIcon: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    backgroundColor: "#FFF1E5",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+
+  alertIconText: {
+    color: "#F58220",
+    fontSize: 30,
+    fontWeight: "900",
+  },
+
+  alertTitle: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: "#171717",
+    marginBottom: 10,
+  },
+
+  alertMessage: {
+    fontSize: 15,
+    color: "#666666",
+    textAlign: "center",
+    lineHeight: 22,
+    marginBottom: 24,
+  },
+
+  alertButton: {
+    width: "100%",
+    height: 50,
+    borderRadius: 13,
+    backgroundColor: "#F58220",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  alertButtonText: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "800",
+  },
+
+  /* ROLE MODAL */
 
   modalOverlay: {
     flex: 1,
@@ -644,4 +769,3 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
 });
-
