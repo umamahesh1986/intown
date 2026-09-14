@@ -728,7 +728,7 @@ export const styles = StyleSheet.create({
   },
   planRecommendedBadge: {
     position: 'absolute',
-    top: -10,
+    top: 22,
     right: 14,
     flexDirection: 'row',
     alignItems: 'center',
@@ -762,8 +762,8 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   planRadioInner: {
-    width: 9,
-    height: 9,
+    width: 10,
+    height: 10,
     borderRadius: 5,
     backgroundColor: '#FF8A00',
   },
