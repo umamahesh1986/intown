@@ -701,38 +701,18 @@ export const getProductsByCategory = async (categoryId: number): Promise<Normali
 };
 
 // Fetch products for the Order modal.
-// merchantId is sent as a URL query param; customerId / categoryId go in the JSON body.
-export interface AllProductsGroupingParams {
-  customerId?: number | string | null;
-  merchantId?: number | string | null;
-  categoryId?: number | string | null;
-}
+// merchantId is sent as a URL query param; backend returns only that merchant's selected products.
 export const getAllProducts = async (
-  params?: AllProductsGroupingParams,
+  params?: { merchantId?: number | string | null },
 ): Promise<NormalizedProduct[]> => {
-  const body: Record<string, any> = {};
-  if (params?.customerId !== undefined && params?.customerId !== null && params.customerId !== '') {
-    body.customerId = Number(params.customerId);
-  }
-  if (params?.categoryId !== undefined && params?.categoryId !== null && params.categoryId !== '') {
-    body.categoryId = Number(params.categoryId);
-  }
-
-  // merchantId goes in the URL as a query param
   const merchantIdQs =
     params?.merchantId !== undefined && params?.merchantId !== null && params.merchantId !== ''
       ? `?merchantId=${encodeURIComponent(String(params.merchantId))}`
       : '';
-
-  const hasBody = Object.keys(body).length > 0;
   const url = `${INTOWN_API_BASE}/products/all-products-grouping${merchantIdQs}`;
-
   const response = await fetch(url, {
-    method: hasBody || merchantIdQs ? 'POST' : 'GET',
-    headers: hasBody
-      ? { 'Content-Type': 'application/json', Accept: 'application/json' }
-      : { Accept: 'application/json' },
-    ...(hasBody ? { body: JSON.stringify(body) } : {}),
+    method: 'GET',
+    headers: { Accept: 'application/json' },
   });
   if (!response.ok) throw new Error(`Failed to fetch products (${response.status})`);
   const raw = await response.json();
