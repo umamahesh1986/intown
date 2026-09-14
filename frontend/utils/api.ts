@@ -701,8 +701,7 @@ export const getProductsByCategory = async (categoryId: number): Promise<Normali
 };
 
 // Fetch products for the Order modal.
-// Backend now filters to only the merchant's selected products when
-// customerId / merchantId / categoryId are supplied in the POST body.
+// merchantId is sent as a URL query param; customerId / categoryId go in the JSON body.
 export interface AllProductsGroupingParams {
   customerId?: number | string | null;
   merchantId?: number | string | null;
@@ -715,16 +714,21 @@ export const getAllProducts = async (
   if (params?.customerId !== undefined && params?.customerId !== null && params.customerId !== '') {
     body.customerId = Number(params.customerId);
   }
-  if (params?.merchantId !== undefined && params?.merchantId !== null && params.merchantId !== '') {
-    body.merchantId = Number(params.merchantId);
-  }
   if (params?.categoryId !== undefined && params?.categoryId !== null && params.categoryId !== '') {
     body.categoryId = Number(params.categoryId);
   }
 
+  // merchantId goes in the URL as a query param
+  const merchantIdQs =
+    params?.merchantId !== undefined && params?.merchantId !== null && params.merchantId !== ''
+      ? `?merchantId=${encodeURIComponent(String(params.merchantId))}`
+      : '';
+
   const hasBody = Object.keys(body).length > 0;
-  const response = await fetch(`${INTOWN_API_BASE}/products/all-products-grouping`, {
-    method: hasBody ? 'POST' : 'GET',
+  const url = `${INTOWN_API_BASE}/products/all-products-grouping${merchantIdQs}`;
+
+  const response = await fetch(url, {
+    method: hasBody || merchantIdQs ? 'POST' : 'GET',
     headers: hasBody
       ? { 'Content-Type': 'application/json', Accept: 'application/json' }
       : { Accept: 'application/json' },
