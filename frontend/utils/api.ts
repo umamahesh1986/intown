@@ -648,6 +648,31 @@ export const flattenGroupedProducts = (raw: any): NormalizedProduct[] => {
     ? raw.data
     : raw;
 
+  const stripCustomUnits = (units: string[] | undefined) =>
+    Array.isArray(units) ? units.filter((u) => !/^custom/i.test(String(u).trim())) : [];
+
+  // Case 0: NEW merchant-scoped shape — { categories: [{ products: [{productId, productName, catalogGroup, unitOptions, ...}] }] }
+  if (payload && typeof payload === 'object' && Array.isArray((payload as any).categories)) {
+    const out: NormalizedProduct[] = [];
+    (payload as any).categories.forEach((cat: any) => {
+      if (!cat || !Array.isArray(cat.products)) return;
+      cat.products.forEach((p: any) => {
+        if (!p) return;
+        const id = p.productId ?? p.id;
+        const name = p.productName ?? p.name;
+        if (id === undefined || name === undefined) return;
+        out.push({
+          id: Number(id),
+          name: String(name),
+          s3ImageUrl: p.s3ImageUrl ?? null,
+          groupType: p.catalogGroup ?? p.groupType,
+          unitOptions: stripCustomUnits(p.unitOptions),
+        });
+      });
+    });
+    return out;
+  }
+
   // Case 1: flat array
   if (Array.isArray(payload)) {
     return payload
@@ -661,14 +686,14 @@ export const flattenGroupedProducts = (raw: any): NormalizedProduct[] => {
       }));
   }
 
-  // Case 2: grouped dict
+  // Case 2: legacy grouped dict
   if (typeof payload === 'object') {
     const out: NormalizedProduct[] = [];
     Object.keys(payload).forEach((key) => {
       const group = payload[key];
       if (!group || typeof group !== 'object' || !Array.isArray(group.products)) return;
       const rawUnits: string[] = Array.isArray(group.unit_options) ? group.unit_options : [];
-      const unitOptions = rawUnits.filter((u) => !/^custom/i.test(String(u).trim()));
+      const unitOptions = stripCustomUnits(rawUnits);
       (group.products as any[]).forEach((p: any) => {
         if (p && (p.id !== undefined) && (p.name !== undefined)) {
           out.push({

@@ -292,12 +292,13 @@ export default function MemberShopDetails() {
   };
 
   const productIconForGroup = (groupType: string): keyof typeof Ionicons.glyphMap => {
-    switch (groupType) {
-      case 'LooseByWeight_KG_Grams': return 'scale-outline';
-      case 'LooseByVolume_ML_Liters': return 'water-outline';
-      case 'Packaged_PiecePack': return 'cube-outline';
-      default: return 'pricetag-outline';
-    }
+    // Accept both the legacy naming (LooseByWeight_KG_Grams, LooseByVolume_ML_Liters, Packaged_PiecePack)
+    // and the new merchant-scoped API values (LOOSE_BY_WEIGHT, LOOSE_BY_VOLUME, PACKAGED).
+    const key = String(groupType || '').toUpperCase();
+    if (key.includes('WEIGHT') || key.includes('KG') || key.includes('GRAM')) return 'scale-outline';
+    if (key.includes('VOLUME') || key.includes('ML') || key.includes('LITER')) return 'water-outline';
+    if (key.includes('PACKAGE') || key.includes('PIECE') || key.includes('PACK')) return 'cube-outline';
+    return 'pricetag-outline';
   };
 
   const openOrderModal = async () => {
