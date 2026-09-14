@@ -8,6 +8,7 @@ import { extractImageUrls, INTOWN_API_BASE, getAllProducts } from '../utils/api'
 import { getNavShop } from '../utils/navCache';
 import { useLocationStore } from '../store/locationStore';
 import { useAuthStore } from '../store/authStore';
+import { useNotificationStore } from '../store/notificationStore';
 import PaymentModal from '../components/PaymentModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { styles } from '../styles/member-shop-details.styles';
@@ -440,6 +441,18 @@ export default function MemberShopDetails() {
 
       if (isPlaced) {
         showOrderToast('success', 'Order placed successfully!');
+        // Push a notification the customer can tap later to open /my-orders on PLACED tab
+        const pickupId = String(data?.pickup_id ?? data?.pickupId ?? data?.id ?? '');
+        if (pickupId) {
+          useNotificationStore.getState().add({
+            kind: 'ORDER_PLACED_CUSTOMER',
+            title: 'Order placed',
+            body: `Your order at ${shop?.businessName || 'the shop'} has been placed. We'll notify you when it's ready.`,
+            targetRoute: '/my-orders',
+            targetTab: 'PLACED',
+            pickup_id: pickupId,
+          });
+        }
       } else {
         const msg =
           (data && (data.message || data.error)) ||
