@@ -28,6 +28,7 @@ import {
   setManualLocation
 } from '../utils/location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import NotificationBell from '../components/NotificationBell';
 import { INTOWN_API_BASE } from '../utils/api';
 import Footer from '../components/Footer'
 import { useFocusEffect } from '@react-navigation/native';
@@ -656,9 +657,7 @@ export default function MerchantDashboard() {
           <View style={styles.headerIcons}>
 
             {/* Notification */}
-            <TouchableOpacity style={styles.notificationIconBtn}>
-              <Ionicons name="notifications-outline" size={22} color="#333" />
-            </TouchableOpacity>
+            <NotificationBell iconSize={22} iconColor="#333" buttonStyle={styles.notificationIconBtn} />
 
             {/* Profile */}
             <TouchableOpacity

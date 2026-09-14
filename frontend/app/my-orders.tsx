@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, RefreshControl } from 'react-native';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -39,13 +39,17 @@ const formatDateTime = (iso?: string | null): string => {
 export default function MyOrdersScreen() {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
+  const params = useLocalSearchParams<{ tab?: string; highlightId?: string }>();
 
   const [customerId, setCustomerId] = useState<string | null>(null);
   const [orders, setOrders] = useState<PickupOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string>('');
-  const [activeTab, setActiveTab] = useState<PickupOrderStatus>('PLACED');
+  const [activeTab, setActiveTab] = useState<PickupOrderStatus>(
+    (params?.tab as PickupOrderStatus) || 'PLACED',
+  );
+  const [highlightId, setHighlightId] = useState<string | null>(params?.highlightId ?? null);
   const [toast, setToast] = useState<{ kind: 'info' | 'success' | 'error'; message: string } | null>(null);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   // Order awaiting payment before pickup confirmation
@@ -109,6 +113,12 @@ export default function MyOrdersScreen() {
       }
     })();
   }, []);
+
+  // React to URL param changes — clicking a notification while already on /my-orders
+  useEffect(() => {
+    if (params?.tab) setActiveTab(params.tab as PickupOrderStatus);
+    if (params?.highlightId !== undefined) setHighlightId(params.highlightId ?? null);
+  }, [params?.tab, params?.highlightId]);
 
   const fetchOrders = useCallback(async (id: string) => {
     setError('');
@@ -293,6 +303,7 @@ export default function MyOrdersScreen() {
                 order={order}
                 onConfirmPickup={handleOpenPayment}
                 isConfirming={confirmingId === order.pickup_id || paymentOrder?.pickup_id === order.pickup_id}
+                isHighlighted={highlightId === order.pickup_id}
               />
             ))
           )}
@@ -357,10 +368,12 @@ function OrderCard({
   order,
   onConfirmPickup,
   isConfirming,
+  isHighlighted,
 }: {
   order: PickupOrder;
   onConfirmPickup?: (o: PickupOrder) => void;
   isConfirming?: boolean;
+  isHighlighted?: boolean;
 }) {
   const statusKey = String(order.status).toUpperCase();
   const color = STATUS_COLORS[statusKey] || { bg: '#F5F5F5', text: '#666' };
@@ -379,7 +392,10 @@ function OrderCard({
   const anyMilestone = milestones.some((m) => m.reached && !!m.value);
 
   return (
-    <View style={styles.card} testID={`my-orders-card-${order.pickup_id}`}>
+    <View
+      style={[styles.card, isHighlighted && { borderColor: '#FF8A00', borderWidth: 2 }]}
+      testID={`my-orders-card-${order.pickup_id}`}
+    >
       <View style={styles.cardTopRow}>
         <View style={{ flex: 1 }}>
           <Text style={styles.merchantName} numberOfLines={1}>

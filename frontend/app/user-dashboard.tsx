@@ -46,6 +46,7 @@ import {
   isPlusCode,
 } from '../utils/location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import NotificationBell from '../components/NotificationBell';
 
 import { FontStylesWithFallback } from '../utils/fonts';
 import { formatDistance } from '../utils/formatDistance';
@@ -639,9 +640,7 @@ export default function UserDashboard() {
 
             <View style={styles.headerIcons}>
 
-              <TouchableOpacity style={styles.iconCircle}>
-                <Ionicons name="notifications-outline" size={24} color="#475569" />
-              </TouchableOpacity>
+              <NotificationBell iconSize={24} iconColor="#475569" buttonStyle={styles.iconCircle} />
 
                 <TouchableOpacity
                   onPress={(e) => {

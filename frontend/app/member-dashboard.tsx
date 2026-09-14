@@ -47,6 +47,7 @@ import {
   isPlusCode,
 } from '../utils/location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import NotificationBell from '../components/NotificationBell';
 import Footer from '../components/Footer'
 import { CATEGORY_ICON_MAP } from '../utils/categoryIconMap';
 import { FontStylesWithFallback } from '../utils/fonts';
@@ -937,9 +938,7 @@ export default function MemberDashboard() {
             <View style={styles.headerIcons}>
 
               {/* Notification */}
-              <TouchableOpacity style={styles.notificationIconBtn}>
-                <Ionicons name="notifications-outline" size={20} color="#333" />
-              </TouchableOpacity>
+              <NotificationBell iconSize={20} iconColor="#333" buttonStyle={styles.notificationIconBtn} />
 
               {/* Profile */}
               <TouchableOpacity

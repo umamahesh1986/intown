@@ -22,6 +22,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import NotificationBell from '../components/NotificationBell';
 import { useAuthStore } from '../store/authStore';
 import { useLocationStore } from '../store/locationStore';
 import { useFocusEffect } from '@react-navigation/native';
@@ -885,9 +886,7 @@ export default function DualDashboard() {
         <View style={{ flexDirection: "row", alignItems: "center" }}>
 
           {/* Notification */}
-          <TouchableOpacity style={styles.notificationCircle}>
-            <Ionicons name="notifications-outline" size={20} color="#333" />
-          </TouchableOpacity>
+          <NotificationBell iconSize={20} iconColor="#333" buttonStyle={styles.notificationCircle} />
 
           {/* Profile */}
           <TouchableOpacity

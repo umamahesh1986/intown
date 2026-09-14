@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, RefreshControl, Alert } from 'react-native';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -12,6 +12,7 @@ import {
   PickupOrder,
   PickupOrderStatus,
 } from '../utils/api';
+import { useNotificationStore } from '../store/notificationStore';
 
 const TABS: { key: PickupOrderStatus; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
   { key: 'PLACED', label: 'New', icon: 'notifications-outline' },
@@ -54,15 +55,25 @@ const formatDateTime = (iso?: string | null): string => {
 
 export default function MerchantOrdersScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ tab?: string; highlightId?: string }>();
 
   const [merchantId, setMerchantId] = useState<string | null>(null);
   const [orders, setOrders] = useState<PickupOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string>('');
-  const [activeTab, setActiveTab] = useState<PickupOrderStatus>('PLACED');
+  const [activeTab, setActiveTab] = useState<PickupOrderStatus>(
+    (params?.tab as PickupOrderStatus) || 'PLACED',
+  );
+  const [highlightId, setHighlightId] = useState<string | null>(params?.highlightId ?? null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [toast, setToast] = useState<{ kind: 'success' | 'error' | 'info'; message: string } | null>(null);
+
+  // React to URL param changes — clicking a notification while already on /merchant-orders
+  useEffect(() => {
+    if (params?.tab) setActiveTab(params.tab as PickupOrderStatus);
+    if (params?.highlightId !== undefined) setHighlightId(params.highlightId ?? null);
+  }, [params?.tab, params?.highlightId]);
 
   // Polling — track known PLACED order IDs so we can highlight NEW ones.
   const knownPlacedIdsRef = useRef<Set<string>>(new Set());
@@ -113,6 +124,18 @@ export default function MerchantOrdersScreen() {
             ? `New order from ${newlyArrived[0].customerName || `Customer #${newlyArrived[0].customerId}`}`
             : `${newlyArrived.length} new orders received`;
         showToast('info', label);
+        // Push into the notification centre so the bell shows a badge + list
+        const addNotif = useNotificationStore.getState().add;
+        newlyArrived.forEach((o) => {
+          addNotif({
+            kind: 'ORDER_RECEIVED_MERCHANT',
+            title: 'New pickup order',
+            body: `From ${o.customerName || `Customer #${o.customerId}`} — tap to view & accept.`,
+            targetRoute: '/merchant-orders',
+            targetTab: 'PLACED',
+            pickup_id: o.pickup_id,
+          });
+        });
       }
       isFirstFetchRef.current = false;
       setOrders(list);
@@ -331,6 +354,7 @@ export default function MerchantOrdersScreen() {
                 onAdvance={() => advanceStatus(order)}
                 onReject={() => rejectOrder(order)}
                 isUpdating={updatingId === order.pickup_id}
+                isHighlighted={highlightId === order.pickup_id}
               />
             ))
           )}
@@ -345,11 +369,13 @@ function MerchantOrderCard({
   onAdvance,
   onReject,
   isUpdating,
+  isHighlighted,
 }: {
   order: PickupOrder;
   onAdvance: () => void;
   onReject: () => void;
   isUpdating: boolean;
+  isHighlighted?: boolean;
 }) {
   const statusKey = String(order.status).toUpperCase();
   const color = STATUS_COLORS[statusKey] || { bg: '#F5F5F5', text: '#666' };
@@ -357,7 +383,10 @@ function MerchantOrderCard({
   const orderDate = formatDateTime(order.acceptedAt || order.respondBy || order.endedAt || null);
 
   return (
-    <View style={styles.card} testID={`merchant-order-card-${order.pickup_id}`}>
+    <View
+      style={[styles.card, isHighlighted && { borderColor: '#FF8A00', borderWidth: 2 }]}
+      testID={`merchant-order-card-${order.pickup_id}`}
+    >
       <View style={styles.cardTopRow}>
         <View style={{ flex: 1 }}>
           <Text style={styles.customerName} numberOfLines={1}>
