@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const STORAGE_KEY = 'intown_notifications_v1';
 const MAX_ITEMS = 50;
 
-export type NotificationKind = 'ORDER_PLACED_CUSTOMER' | 'ORDER_RECEIVED_MERCHANT';
+export type NotificationKind = 'ORDER_PLACED_CUSTOMER' | 'ORDER_RECEIVED_MERCHANT' | 'ORDER_STATUS_CUSTOMER';
 
 export interface NotificationItem {
   id: string;
@@ -61,9 +61,9 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       timestamp: Date.now(),
       read: false,
     };
-    // De-dupe: if a notification for the same pickup_id + kind already exists and is unread, skip
+    // De-dupe: same pickup_id + kind + tab already notified (read or unread) → skip
     const existing = get().items.find(
-      (x) => x.pickup_id === item.pickup_id && x.kind === item.kind && !x.read,
+      (x) => x.pickup_id === item.pickup_id && x.kind === item.kind && x.targetTab === item.targetTab,
     );
     if (existing) return;
 

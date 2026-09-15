@@ -6,6 +6,7 @@ import { useLocationStore } from '../store/locationStore';
 import { getUserLocationWithDetails } from '../utils/location';
 import CommonBottomTabs from '../components/CommonBottomTabs';
 import ForceUpdateModal from '../components/ForceUpdateModal';
+import OrderNotificationPoller from '../components/OrderNotificationPoller';
 import { Fonts } from '../utils/fonts';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -194,6 +195,9 @@ export default function RootLayout() {
 
       {/* Force Update Modal — checks Play Store / App Store version on mount */}
       <ForceUpdateModal />
+
+      {/* Background 15s poller — bell notifications for merchants (new orders) & customers (status updates) on every screen */}
+      <OrderNotificationPoller />
     </View>
   );
 }

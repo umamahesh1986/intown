@@ -121,7 +121,13 @@ export const NotificationBell: React.FC<Props> = ({
                   >
                     <View style={styles.itemIconWrap}>
                       <Ionicons
-                        name={item.kind === 'ORDER_RECEIVED_MERCHANT' ? 'storefront' : 'bag-check-outline'}
+                        name={
+                          item.kind === 'ORDER_RECEIVED_MERCHANT'
+                            ? 'storefront'
+                            : item.kind === 'ORDER_STATUS_CUSTOMER'
+                              ? 'time-outline'
+                              : 'bag-check-outline'
+                        }
                         size={18}
                         color="#FF8A00"
                       />
