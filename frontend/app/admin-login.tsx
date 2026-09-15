@@ -13,10 +13,19 @@ import { useRouter } from "expo-router";
 
 const API = "https://devapi.intownlocal.com";
 
+/*ADMIN LOGIN */
+const ADMIN_EMAIL = "admin@intownlocal.com";
+const ADMIN_PASSWORD = "Admin@123";
+
 export default function AdminLogin() {
   const router = useRouter();
 
+  const [loginType, setLoginType] = useState<"USER" | "ADMIN">("USER");
+
   const [phone, setPhone] = useState("");
+  const [adminEmail, setAdminEmail] = useState("");
+  const [adminPassword, setAdminPassword] = useState("");
+
   const [loading, setLoading] = useState(false);
 
   const [showRoleModal, setShowRoleModal] = useState(false);
@@ -38,14 +47,59 @@ export default function AdminLogin() {
     setShowAlertModal(false);
   };
 
+  /* ADMIN LOGIN */
+  const handleAdminLogin = async () => {
+    const email = adminEmail.trim().toLowerCase();
+    const password = adminPassword;
+
+    if (!email) {
+      showCustomAlert("Please enter your admin email");
+      return;
+    }
+
+    if (!password) {
+      showCustomAlert("Please enter your admin password");
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      if (
+        email !== ADMIN_EMAIL.toLowerCase() ||
+        password !== ADMIN_PASSWORD
+      ) {
+        showCustomAlert("Invalid admin email or password");
+        return;
+      }
+
+      /*Customer / Merchant */
+      await AsyncStorage.removeItem("customerId");
+      await AsyncStorage.removeItem("merchantId");
+      await AsyncStorage.removeItem("userPhone");
+
+     
+      await AsyncStorage.setItem("userRole", "ADMIN");
+      await AsyncStorage.setItem("adminEmail", email);
+
+      /*Open Admin Dashboard*/
+      router.replace("/admin-dashboard");
+    } catch (error) {
+      console.log("Admin login error:", error);
+
+      showCustomAlert("Unable to login as Admin");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /*CUSTOMER LOGIN*/
   const loginAsCustomer = async () => {
     try {
       const customerId = customerData?.customer?.id;
 
       if (!customerId) {
-        showCustomAlert(
-          "Customer ID was not returned by the API."
-        );
+        showCustomAlert("Customer ID was not returned by the API.");
         return;
       }
 
@@ -65,6 +119,7 @@ export default function AdminLogin() {
       );
 
       await AsyncStorage.removeItem("merchantId");
+      await AsyncStorage.removeItem("adminEmail");
 
       setShowRoleModal(false);
 
@@ -78,6 +133,7 @@ export default function AdminLogin() {
     }
   };
 
+  /* MERCHANT LOGIN */
   const loginAsMerchant = async () => {
     try {
       const merchantId = merchantData?.merchant?.id;
@@ -107,6 +163,7 @@ export default function AdminLogin() {
       );
 
       await AsyncStorage.removeItem("customerId");
+      await AsyncStorage.removeItem("adminEmail");
 
       setShowRoleModal(false);
 
@@ -120,7 +177,8 @@ export default function AdminLogin() {
     }
   };
 
-  const handleLogin = async () => {
+  /* CUSTOMER / MERCHANT LOGIN */
+  const handleUserLogin = async () => {
     const cleanPhone = phone.trim();
 
     if (!cleanPhone) {
@@ -182,11 +240,17 @@ export default function AdminLogin() {
         return;
       }
 
-      const customer = data?.customer ?? null;
-      const merchant = data?.merchant ?? null;
+      const customer =
+        data?.customer ?? null;
 
-      const customerId = customer?.id ?? null;
-      const merchantId = merchant?.id ?? null;
+      const merchant =
+        data?.merchant ?? null;
+
+      const customerId =
+        customer?.id ?? null;
+
+      const merchantId =
+        merchant?.id ?? null;
 
       console.log(
         "Customer:",
@@ -236,10 +300,14 @@ export default function AdminLogin() {
 
       setLoginPhone(cleanPhone);
 
+      /* BOTH CUSTOMER + MERCHANT */
+
       if (hasCustomer && hasMerchant) {
         setShowRoleModal(true);
         return;
       }
+
+      /* CUSTOMER ONLY */
 
       if (hasCustomer) {
         await AsyncStorage.setItem(
@@ -261,12 +329,18 @@ export default function AdminLogin() {
           "merchantId"
         );
 
+        await AsyncStorage.removeItem(
+          "adminEmail"
+        );
+
         router.replace(
           "/admin-customer"
         );
 
         return;
       }
+
+      /* MERCHANT ONLY*/
 
       if (hasMerchant) {
         await AsyncStorage.setItem(
@@ -286,6 +360,10 @@ export default function AdminLogin() {
 
         await AsyncStorage.removeItem(
           "customerId"
+        );
+
+        await AsyncStorage.removeItem(
+          "adminEmail"
         );
 
         router.replace(
@@ -312,11 +390,37 @@ export default function AdminLogin() {
     }
   };
 
+  /* MAIN LOGIN */
+
+  const handleLogin = async () => {
+    if (loginType === "ADMIN") {
+      await handleAdminLogin();
+    } else {
+      await handleUserLogin();
+    }
+  };
+
+  /*SWITCH LOGIN TYPE*/
+  
+  const switchLoginType = (
+    type: "USER" | "ADMIN"
+  ) => {
+    setLoginType(type);
+
+    setPhone("");
+    setAdminEmail("");
+    setAdminPassword("");
+
+    setShowAlertModal(false);
+    setShowRoleModal(false);
+  };
+
   return (
     <View style={styles.container}>
 
       <View style={styles.card}>
 
+        {/* LOGO */}
         <View style={styles.logoCircle}>
           <Text style={styles.logoText}>
             IN
@@ -324,45 +428,148 @@ export default function AdminLogin() {
         </View>
 
         <Text style={styles.title}>
-          Login
+          {loginType === "ADMIN"
+            ? "Admin Login"
+            : "Login"}
         </Text>
 
         <Text style={styles.subtitle}>
-          Enter your registered phone number
+          {loginType === "ADMIN"
+            ? "Login with your admin credentials"
+            : "Enter your registered phone number"}
         </Text>
 
-        <View style={styles.inputContainer}>
+        {/* LOGIN TYPE SWITCH */}
 
-          <Text style={styles.countryCode}>
-            +91
-          </Text>
+        <View style={styles.switchContainer}>
 
-          <TextInput
-            value={phone}
-            onChangeText={(text) =>
-              setPhone(
-                text
-                  .replace(/[^0-9]/g, "")
-                  .slice(0, 10)
-              )
+          <TouchableOpacity
+            style={[
+              styles.switchButton,
+              loginType === "USER" &&
+                styles.switchButtonActive,
+            ]}
+            onPress={() =>
+              switchLoginType("USER")
             }
-            placeholder="Phone Number"
-            placeholderTextColor="#999"
-            keyboardType="phone-pad"
-            maxLength={10}
-            style={styles.input}
-          />
+            disabled={loading}
+          >
+            <Text
+              style={[
+                styles.switchText,
+                loginType === "USER" &&
+                  styles.switchTextActive,
+              ]}
+            >
+              User Login
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.switchButton,
+              loginType === "ADMIN" &&
+                styles.switchButtonActive,
+            ]}
+            onPress={() =>
+              switchLoginType("ADMIN")
+            }
+            disabled={loading}
+          >
+            <Text
+              style={[
+                styles.switchText,
+                loginType === "ADMIN" &&
+                  styles.switchTextActive,
+              ]}
+            >
+              Admin Login
+            </Text>
+          </TouchableOpacity>
 
         </View>
+
+        {/*USER LOGIN */}
+
+        {loginType === "USER" && (
+          <>
+            <View style={styles.inputContainer}>
+
+              <Text style={styles.countryCode}>
+                +91
+              </Text>
+
+              <TextInput
+                value={phone}
+                onChangeText={(text) =>
+                  setPhone(
+                    text
+                      .replace(
+                        /[^0-9]/g,
+                        ""
+                      )
+                      .slice(0, 10)
+                  )
+                }
+                placeholder="Phone Number"
+                placeholderTextColor="#999"
+                keyboardType="phone-pad"
+                maxLength={10}
+                style={styles.input}
+              />
+
+            </View>
+          </>
+        )}
+
+        {/*ADMIN LOGIN */}
+
+        {loginType === "ADMIN" && (
+          <>
+            <View style={styles.inputContainer}>
+
+              <TextInput
+                value={adminEmail}
+                onChangeText={setAdminEmail}
+                placeholder="Admin Email"
+                placeholderTextColor="#999"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                style={styles.input}
+              />
+
+            </View>
+
+            <View style={styles.inputContainer}>
+
+              <TextInput
+                value={adminPassword}
+                onChangeText={setAdminPassword}
+                placeholder="Password"
+                placeholderTextColor="#999"
+                secureTextEntry
+                autoCapitalize="none"
+                autoCorrect={false}
+                style={styles.input}
+              />
+
+            </View>
+          </>
+        )}
+
+        {/* LOGIN BUTTON */}
 
         <TouchableOpacity
           style={[
             styles.button,
-            loading && styles.buttonDisabled,
+            loading &&
+              styles.buttonDisabled,
           ]}
           onPress={handleLogin}
           disabled={loading}
         >
+
           {loading ? (
             <ActivityIndicator
               size="small"
@@ -370,44 +577,62 @@ export default function AdminLogin() {
             />
           ) : (
             <Text style={styles.buttonText}>
-              Continue
+              {loginType === "ADMIN"
+                ? "Admin Login"
+                : "Continue"}
             </Text>
           )}
+
         </TouchableOpacity>
 
       </View>
 
-      {/* REGISTERED PHONE ALERT MODAL */}
+      {/* ALERT MODAL */}
 
       <Modal
         visible={showAlertModal}
         transparent
         animationType="fade"
-        onRequestClose={closeCustomAlert}
+        onRequestClose={
+          closeCustomAlert
+        }
       >
+
         <View style={styles.alertOverlay}>
 
           <View style={styles.alertModal}>
 
             <View style={styles.alertIcon}>
-              <Text style={styles.alertIconText}>
+
+              <Text
+                style={styles.alertIconText}
+              >
                 !
               </Text>
+
             </View>
 
             <Text style={styles.alertTitle}>
-              Phone Number
+              {loginType === "ADMIN"
+                ? "Admin Login"
+                : "Phone Number"}
             </Text>
 
-            <Text style={styles.alertMessage}>
+            <Text
+              style={styles.alertMessage}
+            >
               {alertMessage}
             </Text>
 
             <TouchableOpacity
               style={styles.alertButton}
-              onPress={closeCustomAlert}
+              onPress={
+                closeCustomAlert
+              }
             >
-              <Text style={styles.alertButtonText}>
+              <Text
+                style={styles.alertButtonText}
+              >
                 OK
               </Text>
             </TouchableOpacity>
@@ -415,6 +640,7 @@ export default function AdminLogin() {
           </View>
 
         </View>
+
       </Modal>
 
       {/* CUSTOMER / MERCHANT MODAL */}
@@ -427,61 +653,92 @@ export default function AdminLogin() {
           setShowRoleModal(false)
         }
       >
+
         <View style={styles.modalOverlay}>
 
           <View style={styles.roleModal}>
 
             <View style={styles.roleIcon}>
-              <Text style={styles.roleIconText}>
+
+              <Text
+                style={styles.roleIconText}
+              >
                 IN
               </Text>
+
             </View>
 
             <Text style={styles.modalTitle}>
               Choose Account
             </Text>
 
-            <Text style={styles.modalSubtitle}>
-              This phone number is registered as both
-              Customer and Merchant.
+            <Text
+              style={styles.modalSubtitle}
+            >
+              This phone number is registered
+              as both Customer and Merchant.
             </Text>
 
             <TouchableOpacity
               style={styles.roleButton}
               onPress={loginAsCustomer}
             >
+
               <View>
-                <Text style={styles.roleButtonTitle}>
+
+                <Text
+                  style={
+                    styles.roleButtonTitle
+                  }
+                >
                   Customer
                 </Text>
 
-                <Text style={styles.roleButtonSubtitle}>
+                <Text
+                  style={
+                    styles.roleButtonSubtitle
+                  }
+                >
                   Open Customer page
                 </Text>
+
               </View>
 
               <Text style={styles.arrow}>
                 →
               </Text>
+
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.roleButton}
               onPress={loginAsMerchant}
             >
+
               <View>
-                <Text style={styles.roleButtonTitle}>
+
+                <Text
+                  style={
+                    styles.roleButtonTitle
+                  }
+                >
                   Merchant
                 </Text>
 
-                <Text style={styles.roleButtonSubtitle}>
+                <Text
+                  style={
+                    styles.roleButtonSubtitle
+                  }
+                >
                   Open Merchant page
                 </Text>
+
               </View>
 
               <Text style={styles.arrow}>
                 →
               </Text>
+
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -490,14 +747,19 @@ export default function AdminLogin() {
                 setShowRoleModal(false)
               }
             >
-              <Text style={styles.cancelText}>
+
+              <Text
+                style={styles.cancelText}
+              >
                 Cancel
               </Text>
+
             </TouchableOpacity>
 
           </View>
 
         </View>
+
       </Modal>
 
     </View>
@@ -505,6 +767,7 @@ export default function AdminLogin() {
 }
 
 const styles = StyleSheet.create({
+
   container: {
     flex: 1,
     backgroundColor: "#F7F8FA",
@@ -520,6 +783,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     padding: 28,
     alignItems: "center",
+
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
@@ -557,9 +821,54 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#777777",
     textAlign: "center",
-    marginBottom: 28,
+    marginBottom: 20,
   },
 
+  /*
+   * LOGIN SWITCH
+   */
+  switchContainer: {
+    width: "100%",
+    flexDirection: "row",
+    backgroundColor: "#F7F7F7",
+    borderRadius: 14,
+    padding: 4,
+    marginBottom: 20,
+  },
+
+  switchButton: {
+    flex: 1,
+    height: 44,
+    borderRadius: 11,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  switchButtonActive: {
+    backgroundColor: "#FFFFFF",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.08,
+    shadowRadius: 5,
+    elevation: 2,
+  },
+
+  switchText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#888888",
+  },
+
+  switchTextActive: {
+    color: "#F58220",
+  },
+
+  /*
+   * INPUT
+   */
   inputContainer: {
     width: "100%",
     height: 56,
@@ -570,7 +879,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#FAFAFA",
     paddingHorizontal: 16,
-    marginBottom: 18,
+    marginBottom: 14,
   },
 
   countryCode: {
@@ -587,6 +896,9 @@ const styles = StyleSheet.create({
     height: "100%",
   },
 
+  /*
+   * LOGIN BUTTON
+   */
   button: {
     width: "100%",
     height: 56,
@@ -594,7 +906,8 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 24,
+    marginTop: 4,
+    marginBottom: 10,
   },
 
   buttonDisabled: {
@@ -607,8 +920,9 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
 
-  /* ALERT MODAL */
-
+  /*
+   * ALERT MODAL
+   */
   alertOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.55)",
@@ -672,8 +986,9 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
 
-  /* ROLE MODAL */
-
+  /*
+   * ROLE MODAL
+   */
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.55)",
@@ -768,4 +1083,5 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "700",
   },
+
 });
