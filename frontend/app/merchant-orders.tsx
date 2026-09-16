@@ -6,13 +6,12 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
-  getMerchantPickupOrders,
   performMerchantOrderAction,
   confirmMerchantOrderDelivery,
   PickupOrder,
   PickupOrderStatus,
 } from '../utils/api';
-import { useNotificationStore } from '../store/notificationStore';
+import { pollMerchantOrders } from '../components/OrderNotificationPoller';
 
 const TABS: { key: PickupOrderStatus; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
   { key: 'PLACED', label: 'New', icon: 'notifications-outline' },
@@ -96,7 +95,8 @@ export default function MerchantOrdersScreen() {
   const fetchOrders = useCallback(async (id: string) => {
     setError('');
     try {
-      const list = await getMerchantPickupOrders(id);
+      // Single shared fetch: also feeds the bell notifications + persisted snapshot
+      const list = await pollMerchantOrders(id);
       list.sort((a, b) => {
         const ta = new Date(a.respondBy || a.acceptedAt || a.endedAt || 0).getTime();
         const tb = new Date(b.respondBy || b.acceptedAt || b.endedAt || 0).getTime();
@@ -124,18 +124,6 @@ export default function MerchantOrdersScreen() {
             ? `New order from ${newlyArrived[0].customerName || `Customer #${newlyArrived[0].customerId}`}`
             : `${newlyArrived.length} new orders received`;
         showToast('info', label);
-        // Push into the notification centre so the bell shows a badge + list
-        const addNotif = useNotificationStore.getState().add;
-        newlyArrived.forEach((o) => {
-          addNotif({
-            kind: 'ORDER_RECEIVED_MERCHANT',
-            title: 'New pickup order',
-            body: `From ${o.customerName || `Customer #${o.customerId}`} — tap to view & accept.`,
-            targetRoute: '/merchant-orders',
-            targetTab: 'PLACED',
-            pickup_id: o.pickup_id,
-          });
-        });
       }
       isFirstFetchRef.current = false;
       setOrders(list);

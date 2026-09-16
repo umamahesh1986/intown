@@ -140,6 +140,7 @@
 - `notificationStore.add` de-dupe now keys on `pickup_id + kind + targetTab` (read or unread) to avoid duplicates between the global poller and screen-level pollers.
 - Verified via Playwright with API interception on `/dual-dashboard`: badge=2, both notification types listed, tap → correct tab + highlighted card.
 - Note: the external dev API (`devapi.intownlocal.com`) has no CORS headers for the web preview origin, so live API calls from the browser fail in preview; this does not affect the native app.
+- Follow-up: de-duplicated polling — `/merchant-orders` and `/my-orders` now fetch via the shared `pollMerchantOrders` / `pollCustomerOrders` and the global poller skips that role while on those screens. Verified: exactly 1 call per role every 15s on every screen (was 2× on order screens).
 
 ## Backlog
 

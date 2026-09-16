@@ -6,7 +6,8 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuthStore } from '../store/authStore';
-import { getCustomerPickupOrders, confirmCustomerOrderReceived, PickupOrder, PickupOrderStatus } from '../utils/api';
+import { confirmCustomerOrderReceived, PickupOrder, PickupOrderStatus } from '../utils/api';
+import { pollCustomerOrders } from '../components/OrderNotificationPoller';
 import PaymentModal from '../components/PaymentModal';
 
 const TABS: { key: PickupOrderStatus; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
@@ -123,7 +124,8 @@ export default function MyOrdersScreen() {
   const fetchOrders = useCallback(async (id: string) => {
     setError('');
     try {
-      const list = await getCustomerPickupOrders(id);
+      // Single shared fetch: also feeds the bell notifications + persisted snapshot
+      const list = await pollCustomerOrders(id);
       // Sort newest first based on any of the meaningful timestamps
       list.sort((a, b) => {
         const ta = new Date(a.respondBy || a.acceptedAt || a.endedAt || 0).getTime();
