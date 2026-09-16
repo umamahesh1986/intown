@@ -47,7 +47,7 @@ export const customerStatusMessage = (o: PickupOrder, status: string) => {
   }
 };
 
-export const pollMerchantOrders = async (merchantId: string) => {
+export const pollMerchantOrders = async (merchantId: string): Promise<PickupOrder[]> => {
   const list = await getMerchantPickupOrders(merchantId);
   const placed = list.filter((o) => String(o.status).toUpperCase() === 'PLACED');
   const placedIds = placed.map((o) => o.pickup_id);
@@ -70,9 +70,10 @@ export const pollMerchantOrders = async (merchantId: string) => {
       );
   }
   await writeJson(MERCHANT_SNAP_KEY, { merchantId, placedIds } as MerchantSnap);
+  return list;
 };
 
-export const pollCustomerOrders = async (customerId: string) => {
+export const pollCustomerOrders = async (customerId: string): Promise<PickupOrder[]> => {
   const list = await getCustomerPickupOrders(customerId);
   const statusMap: Record<string, string> = {};
   for (const o of list) statusMap[o.pickup_id] = String(o.status).toUpperCase();
@@ -97,12 +98,17 @@ export const pollCustomerOrders = async (customerId: string) => {
     }
   }
   await writeJson(CUSTOMER_SNAP_KEY, { customerId, statusMap } as CustomerSnap);
+  return list;
 };
 
 export default function OrderNotificationPoller() {
   const pathname = usePathname();
   const busyRef = useRef(false);
   const active = !SKIP_PATHS.includes(pathname);
+  // The order screens run their own 15s poll (via pollMerchantOrders / pollCustomerOrders),
+  // so skip the matching role here to avoid duplicate /pickup-orders calls.
+  const skipMerchant = pathname === '/merchant-orders';
+  const skipCustomer = pathname === '/my-orders';
 
   useEffect(() => {
     if (!active) return;
@@ -116,8 +122,8 @@ export default function OrderNotificationPoller() {
           AsyncStorage.getItem('customer_id'),
         ]);
         await Promise.all([
-          merchantId ? pollMerchantOrders(merchantId).catch((e) => console.warn('[OrderPoller] merchant', e)) : null,
-          customerId ? pollCustomerOrders(customerId).catch((e) => console.warn('[OrderPoller] customer', e)) : null,
+          merchantId && !skipMerchant ? pollMerchantOrders(merchantId).catch((e) => console.warn('[OrderPoller] merchant', e)) : null,
+          customerId && !skipCustomer ? pollCustomerOrders(customerId).catch((e) => console.warn('[OrderPoller] customer', e)) : null,
         ]);
       } finally {
         busyRef.current = false;
@@ -127,7 +133,7 @@ export default function OrderNotificationPoller() {
     tick();
     const timer = setInterval(tick, POLL_INTERVAL_MS);
     return () => clearInterval(timer);
-  }, [active]);
+  }, [active, skipMerchant, skipCustomer]);
 
   return null;
 }
