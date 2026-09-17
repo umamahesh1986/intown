@@ -141,6 +141,18 @@
 - Verified via Playwright with API interception on `/dual-dashboard`: badge=2, both notification types listed, tap → correct tab + highlighted card.
 - Note: the external dev API (`devapi.intownlocal.com`) has no CORS headers for the web preview origin, so live API calls from the browser fail in preview; this does not affect the native app.
 - Follow-up: de-duplicated polling — `/merchant-orders` and `/my-orders` now fetch via the shared `pollMerchantOrders` / `pollCustomerOrders` and the global poller skips that role while on those screens. Verified: exactly 1 call per role every 15s on every screen (was 2× on order screens).
+### Session 14 (Jun 2026) - Expo Push + Pickup Confirmation Alert + Orders Tab Badge
+- **Expo Push (client side)** — `expo-notifications` + `expo-device` installed, plugin added to `app.json` (channel `orders`, colour `#FF8A00`; EAS projectId already present).
+  - `utils/pushNotifications.ts`: notification handler, Android channel, `registerForPushNotifications()` → sends token to backend, `presentLocalNotification()`, `notificationFromPushData()`.
+  - `components/PushNotificationBridge.tsx` (mounted in `_layout.tsx`): registers token after login for each role, mirrors foreground pushes into the bell, deep-links on tap (foreground/background/cold start) to the right orders tab + highlighted card.
+  - **Backend contract (to be implemented by API team)**: `PUT /IN/merchants/{id}/push-token` and `PUT /IN/customers/{id}/push-token` with `{ "expoPushToken": "ExponentPushToken[...]", "platform": "ios"|"android" }`. Push `data` must be `{ "type": "ORDER_RECEIVED_MERCHANT"|"ORDER_STATUS_CUSTOMER"|"ORDER_PICKED_UP_MERCHANT", "pickup_id": "...", "status": "PLACED|ACCEPTED|PICKUP_READY|COMPLETED|ENDED" }`, sent via `https://exp.host/--/api/v2/push/send` with `channelId: "orders"`.
+  - Polling fallback kept: 15s normally; drops to 60s once the backend accepts the token (`expo_push_registered_v1 = '1'`). Poller also raises a system-tray local notification for genuinely new items on native.
+  - Requires a dev/release EAS build on a physical device to test remote push (not testable in web preview).
+- **Pickup Confirmation Alert**: `pollMerchantOrders` tracks `customerReceivedAt`; when a customer confirms pickup, the merchant gets `ORDER_PICKED_UP_MERCHANT` ("Customer picked up order … Tap to mark it delivered") → `/merchant-orders?tab={status}&highlightId=…`.
+- **Unread Tab Badge**: `CommonBottomTabs` shows a red unread count on any tab whose `link` matches unread notifications' `targetRoute` (merchant Orders tab). Clears as notifications are read. testIDs: `bottom-tab-{name}`, `bottom-tab-badge-{name}`.
+- `notificationStore.add` now returns `boolean`; new `markReadByPickup()`.
+- Verified on web with API interception: bell=2 & Orders tab badge=2 after new order + pickup confirmation; tapping picked-up alert → Ready tab, card highlighted, tab badge → 1.
+- **Notification Sound** (`utils/notificationFeedback.ts`): generated `assets/sounds/order-chime.wav` (two-tone chime); `playNotificationFeedback()` vibrates (`Vibration` native / `navigator.vibrate` web) and plays the chime via expo-av whenever a genuinely new notification is added in-app (poller `notify()` and foreground push receive). Verified on web: chime asset fetched + played when a new order arrived.
 
 ## Backlog
 

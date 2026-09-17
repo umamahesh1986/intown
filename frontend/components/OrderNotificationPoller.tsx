@@ -1,16 +1,21 @@
 import { useEffect, useRef } from 'react';
 import { usePathname } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useNotificationStore } from '../store/notificationStore';
+import { useNotificationStore, NotificationItem } from '../store/notificationStore';
 import { getMerchantPickupOrders, getCustomerPickupOrders, PickupOrder } from '../utils/api';
+import { presentLocalNotification, isPushRegistered } from '../utils/pushNotifications';
+import { playNotificationFeedback } from '../utils/notificationFeedback';
 
 const POLL_INTERVAL_MS = 15000;
+// Once the backend has accepted our Expo push token, pushes are the primary channel — poll far less often.
+const POLL_INTERVAL_WITH_PUSH_MS = 60000;
 const MERCHANT_SNAP_KEY = 'notif_snap_merchant_v1';
 const CUSTOMER_SNAP_KEY = 'notif_snap_customer_v1';
 const SKIP_PATHS = ['/', '/index', '/login', '/otp', '/promo-carousel', '/location'];
 
-type MerchantSnap = { merchantId: string; placedIds: string[] };
+type MerchantSnap = { merchantId: string; placedIds: string[]; pickedUpIds?: string[] };
 type CustomerSnap = { customerId: string; statusMap: Record<string, string> };
+type NewNotification = Omit<NotificationItem, 'id' | 'timestamp' | 'read'>;
 
 const readJson = async <T,>(key: string): Promise<T | null> => {
   try {
@@ -26,6 +31,19 @@ const writeJson = (key: string, value: unknown) =>
 
 const customerLabel = (o: PickupOrder) => o.customerName || `Customer #${o.customerId}`;
 const merchantLabel = (o: PickupOrder) => o.merchantName || `Merchant #${o.merchantId}`;
+
+// Adds to the bell; also raises a system-tray alert + chime/vibration when it is genuinely new (poll fallback path).
+const notify = (n: NewNotification) => {
+  const added = useNotificationStore.getState().add(n);
+  if (added) {
+    playNotificationFeedback();
+    presentLocalNotification(n.title, n.body, {
+      type: n.kind,
+      pickup_id: n.pickup_id,
+      status: n.targetTab,
+    });
+  }
+};
 
 export const customerStatusMessage = (o: PickupOrder, status: string) => {
   const m = merchantLabel(o);
@@ -51,15 +69,16 @@ export const pollMerchantOrders = async (merchantId: string): Promise<PickupOrde
   const list = await getMerchantPickupOrders(merchantId);
   const placed = list.filter((o) => String(o.status).toUpperCase() === 'PLACED');
   const placedIds = placed.map((o) => o.pickup_id);
+  const pickedUp = list.filter((o) => !!o.customerReceivedAt);
+  const pickedUpIds = pickedUp.map((o) => o.pickup_id);
   const snap = await readJson<MerchantSnap>(MERCHANT_SNAP_KEY);
 
   if (snap && snap.merchantId === merchantId) {
-    const known = new Set(snap.placedIds);
-    const add = useNotificationStore.getState().add;
+    const knownPlaced = new Set(snap.placedIds);
     placed
-      .filter((o) => !known.has(o.pickup_id))
+      .filter((o) => !knownPlaced.has(o.pickup_id))
       .forEach((o) =>
-        add({
+        notify({
           kind: 'ORDER_RECEIVED_MERCHANT',
           title: 'New pickup order',
           body: `From ${customerLabel(o)} — tap to view & accept.`,
@@ -68,8 +87,25 @@ export const pollMerchantOrders = async (merchantId: string): Promise<PickupOrde
           pickup_id: o.pickup_id,
         }),
       );
+
+    // Customer tapped "I Picked Up My Order" — only when we have a previous picked-up baseline
+    if (snap.pickedUpIds) {
+      const knownPickedUp = new Set(snap.pickedUpIds);
+      pickedUp
+        .filter((o) => !knownPickedUp.has(o.pickup_id))
+        .forEach((o) =>
+          notify({
+            kind: 'ORDER_PICKED_UP_MERCHANT',
+            title: 'Customer picked up order',
+            body: `${customerLabel(o)} confirmed pickup of ${o.pickup_id}. Tap to mark it delivered.`,
+            targetRoute: '/merchant-orders',
+            targetTab: String(o.status).toUpperCase(),
+            pickup_id: o.pickup_id,
+          }),
+        );
+    }
   }
-  await writeJson(MERCHANT_SNAP_KEY, { merchantId, placedIds } as MerchantSnap);
+  await writeJson(MERCHANT_SNAP_KEY, { merchantId, placedIds, pickedUpIds } as MerchantSnap);
   return list;
 };
 
@@ -80,13 +116,12 @@ export const pollCustomerOrders = async (customerId: string): Promise<PickupOrde
   const snap = await readJson<CustomerSnap>(CUSTOMER_SNAP_KEY);
 
   if (snap && snap.customerId === customerId) {
-    const add = useNotificationStore.getState().add;
     for (const o of list) {
       const curr = statusMap[o.pickup_id];
       const prev = snap.statusMap[o.pickup_id];
       if (prev && prev !== curr) {
         const { title, body } = customerStatusMessage(o, curr);
-        add({
+        notify({
           kind: 'ORDER_STATUS_CUSTOMER',
           title,
           body,
@@ -112,6 +147,8 @@ export default function OrderNotificationPoller() {
 
   useEffect(() => {
     if (!active) return;
+    let timer: any = null;
+    let cancelled = false;
 
     const tick = async () => {
       if (busyRef.current) return;
@@ -130,9 +167,17 @@ export default function OrderNotificationPoller() {
       }
     };
 
-    tick();
-    const timer = setInterval(tick, POLL_INTERVAL_MS);
-    return () => clearInterval(timer);
+    (async () => {
+      const interval = (await isPushRegistered()) ? POLL_INTERVAL_WITH_PUSH_MS : POLL_INTERVAL_MS;
+      if (cancelled) return;
+      tick();
+      timer = setInterval(tick, interval);
+    })();
+
+    return () => {
+      cancelled = true;
+      if (timer) clearInterval(timer);
+    };
   }, [active, skipMerchant, skipCustomer]);
 
   return null;

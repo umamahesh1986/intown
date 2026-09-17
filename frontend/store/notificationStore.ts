@@ -4,7 +4,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const STORAGE_KEY = 'intown_notifications_v1';
 const MAX_ITEMS = 50;
 
-export type NotificationKind = 'ORDER_PLACED_CUSTOMER' | 'ORDER_RECEIVED_MERCHANT' | 'ORDER_STATUS_CUSTOMER';
+export type NotificationKind =
+  | 'ORDER_PLACED_CUSTOMER'
+  | 'ORDER_RECEIVED_MERCHANT'
+  | 'ORDER_STATUS_CUSTOMER'
+  | 'ORDER_PICKED_UP_MERCHANT';
 
 export interface NotificationItem {
   id: string;
@@ -23,8 +27,9 @@ interface NotificationState {
   hydrated: boolean;
   unreadCount: () => number;
   hydrate: () => Promise<void>;
-  add: (n: Omit<NotificationItem, 'id' | 'timestamp' | 'read'>) => void;
+  add: (n: Omit<NotificationItem, 'id' | 'timestamp' | 'read'>) => boolean;
   markRead: (id: string) => void;
+  markReadByPickup: (pickup_id: string) => void;
   markAllRead: () => void;
   clear: () => void;
 }
@@ -65,15 +70,22 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     const existing = get().items.find(
       (x) => x.pickup_id === item.pickup_id && x.kind === item.kind && x.targetTab === item.targetTab,
     );
-    if (existing) return;
+    if (existing) return false;
 
     const next = [item, ...get().items].slice(0, MAX_ITEMS);
     set({ items: next });
     persist(next);
+    return true;
   },
 
   markRead: (id) => {
     const next = get().items.map((n) => (n.id === id ? { ...n, read: true } : n));
+    set({ items: next });
+    persist(next);
+  },
+
+  markReadByPickup: (pickup_id) => {
+    const next = get().items.map((n) => (n.pickup_id === pickup_id ? { ...n, read: true } : n));
     set({ items: next });
     persist(next);
   },

@@ -63,7 +63,16 @@
         {
           "microphonePermission": "Allow IntownLocal to use the microphone for voice search.",
           "speechRecognitionPermission": "Allow IntownLocal to securely recognize your speech for voice search.",
-          "androidSpeechServicePackages": ["com.google.android.googlequicksearchbox"]
+          "androidSpeechServicePackages": [
+            "com.google.android.googlequicksearchbox"
+          ]
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "defaultChannel": "orders",
+          "color": "#FF8A00"
         }
       ]
     ],

@@ -124,9 +124,11 @@ export const NotificationBell: React.FC<Props> = ({
                         name={
                           item.kind === 'ORDER_RECEIVED_MERCHANT'
                             ? 'storefront'
-                            : item.kind === 'ORDER_STATUS_CUSTOMER'
-                              ? 'time-outline'
-                              : 'bag-check-outline'
+                            : item.kind === 'ORDER_PICKED_UP_MERCHANT'
+                              ? 'hand-left-outline'
+                              : item.kind === 'ORDER_STATUS_CUSTOMER'
+                                ? 'time-outline'
+                                : 'bag-check-outline'
                         }
                         size={18}
                         color="#FF8A00"
