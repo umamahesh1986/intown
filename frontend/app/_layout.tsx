@@ -7,6 +7,7 @@ import { getUserLocationWithDetails } from '../utils/location';
 import CommonBottomTabs from '../components/CommonBottomTabs';
 import ForceUpdateModal from '../components/ForceUpdateModal';
 import OrderNotificationPoller from '../components/OrderNotificationPoller';
+import PushNotificationBridge from '../components/PushNotificationBridge';
 import { Fonts } from '../utils/fonts';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -198,6 +199,9 @@ export default function RootLayout() {
 
       {/* Background 15s poller — bell notifications for merchants (new orders) & customers (status updates) on every screen */}
       <OrderNotificationPoller />
+
+      {/* Expo push: token registration, foreground mirroring into the bell, tap deep-links */}
+      <PushNotificationBridge />
     </View>
   );
 }
