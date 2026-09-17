@@ -152,6 +152,7 @@
 - **Unread Tab Badge**: `CommonBottomTabs` shows a red unread count on any tab whose `link` matches unread notifications' `targetRoute` (merchant Orders tab). Clears as notifications are read. testIDs: `bottom-tab-{name}`, `bottom-tab-badge-{name}`.
 - `notificationStore.add` now returns `boolean`; new `markReadByPickup()`.
 - Verified on web with API interception: bell=2 & Orders tab badge=2 after new order + pickup confirmation; tapping picked-up alert → Ready tab, card highlighted, tab badge → 1.
+- **Notification Sound** (`utils/notificationFeedback.ts`): generated `assets/sounds/order-chime.wav` (two-tone chime); `playNotificationFeedback()` vibrates (`Vibration` native / `navigator.vibrate` web) and plays the chime via expo-av whenever a genuinely new notification is added in-app (poller `notify()` and foreground push receive). Verified on web: chime asset fetched + played when a new order arrived.
 
 ## Backlog
 

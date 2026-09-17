@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNotificationStore, NotificationItem } from '../store/notificationStore';
 import { getMerchantPickupOrders, getCustomerPickupOrders, PickupOrder } from '../utils/api';
 import { presentLocalNotification, isPushRegistered } from '../utils/pushNotifications';
+import { playNotificationFeedback } from '../utils/notificationFeedback';
 
 const POLL_INTERVAL_MS = 15000;
 // Once the backend has accepted our Expo push token, pushes are the primary channel — poll far less often.
@@ -31,10 +32,11 @@ const writeJson = (key: string, value: unknown) =>
 const customerLabel = (o: PickupOrder) => o.customerName || `Customer #${o.customerId}`;
 const merchantLabel = (o: PickupOrder) => o.merchantName || `Merchant #${o.merchantId}`;
 
-// Adds to the bell; also raises a system-tray alert when it is genuinely new (poll fallback path).
+// Adds to the bell; also raises a system-tray alert + chime/vibration when it is genuinely new (poll fallback path).
 const notify = (n: NewNotification) => {
   const added = useNotificationStore.getState().add(n);
   if (added) {
+    playNotificationFeedback();
     presentLocalNotification(n.title, n.body, {
       type: n.kind,
       pickup_id: n.pickup_id,

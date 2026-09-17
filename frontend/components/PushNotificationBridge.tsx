@@ -9,6 +9,7 @@ import {
   notificationFromPushData,
   PushData,
 } from '../utils/pushNotifications';
+import { playNotificationFeedback } from '../utils/notificationFeedback';
 
 const AUTH_FREE_PATHS = ['/', '/index', '/login', '/otp', '/promo-carousel', '/location'];
 
@@ -49,7 +50,7 @@ export default function PushNotificationBridge() {
     const received = Notifications.addNotificationReceivedListener((n) => {
       const content = n.request.content;
       const item = notificationFromPushData(content.data as PushData, content.title ?? undefined, content.body ?? undefined);
-      if (item) useNotificationStore.getState().add(item);
+      if (item && useNotificationStore.getState().add(item)) playNotificationFeedback();
     });
 
     // User tapped a notification (foreground / background)
