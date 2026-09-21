@@ -49,14 +49,7 @@ export default function ProfileMenu() {
           <Text style={styles.text}>Become a Merchant</Text>
         </TouchableOpacity>
 
-        {/* Sales History */}
-        <TouchableOpacity
-          style={styles.item}
-          onPress={() => router.push("/admin-login")}
-        >
-          <Ionicons name="bar-chart-outline" size={22} color="#FF8A00" />
-          <Text style={styles.text}>Sales History</Text>
-        </TouchableOpacity>
+       
 
         <TouchableOpacity
           style={styles.item}
