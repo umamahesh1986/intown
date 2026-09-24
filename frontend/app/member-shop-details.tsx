@@ -993,7 +993,7 @@ export default function MemberShopDetails() {
                     <View style={styles.orderProductsEmpty}>
                       <Ionicons name="search" size={24} color="#BBB" />
                       <Text style={styles.orderProductsEmptyText}>
-                        No products match "{productSearch}".
+                        No products match &quot;{productSearch}&quot;.
                       </Text>
                     </View>
                   );

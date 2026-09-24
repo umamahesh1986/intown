@@ -161,6 +161,12 @@
   - **Confirm** → calls `Linking.openURL('https://www.intownlocal.com/delete-account')` (opens INtown website's delete page in device browser / new tab).
   - Testable via `data-testid`s: `footer-delete-account-btn`, `delete-confirm-cancel-btn`, `delete-confirm-confirm-btn`.
 - Verified end-to-end: user-dashboard footer → Delete Account link → modal appears → Cancel closes cleanly, Confirm fires the external URL. Web bundle rebuilt.
+### Session 15 (Jun 2026) - Switched to `IOS_Changes_Vicky` + merged pick-at-store from `main`
+- Checked out `IOS_Changes_Vicky` (tracking `origin/IOS_Changes_Vicky`) and merged `origin/main` into it (commits `eec5658`, `7b785fb`). The branch now has all pick-at-store work: customer ordering (`member-shop-details`), `/my-orders`, `/merchant-orders`, Payment Modal, Notification Bell + global poller, Expo push client, pickup alert, tab badges, chime, Merchant Growth Pack (START/LAUNCH) fee, promo assets, etc.
+- Conflict resolution — kept iOS versions of `checkout.tsx`, `plans.tsx`, `index.tsx` (iOS: no Razorpay for plans, splash `ShopImageCarousel`), `package.json` scripts (`main: index.js`, `postinstall` fetch patch + prebuild); combined `CommonBottomTabs.tsx` (guest/login modal + unread badge) and `member-shop-details.tsx` imports; kept both PRD sections; took main's `build.gradle` version (42 / 1.3.2).
+- Fixes after merge: re-added `expo-notifications` / `expo-device` deps (lost with `--ours` package.json), restored `utils/profileImage.ts` (used by iOS `index.tsx`), widened `authStore` `userType` to include `'dual'`.
+- Local dev note: run `yarn install` (postinstall runs `patch-whatwg-fetch.js` + `expo prebuild`); in this container use `yarn install --ignore-scripts && node patch-whatwg-fetch.js`.
+- Verified on web build: splash → iOS carousel, merchant new-order bell + Orders tab badge, tap → `/merchant-orders?tab=PLACED` highlighted card.
 
 ## Backlog
 
