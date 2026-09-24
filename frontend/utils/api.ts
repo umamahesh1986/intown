@@ -1,10 +1,48 @@
 import axios from "axios";
 import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-const BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://api.intownlocal.com';
+
+// ==========================================================================
+// API base URL resolution
+// ==========================================================================
+// Priority:
+//   1. Explicit EXPO_PUBLIC_API_BASE_URL (set at build time via eas.json,
+//      or locally via frontend/.env for `npx expo start`)
+//   2. EXPO_PUBLIC_ENV === 'production' → hit production API
+//   3. Fallback for local dev / preview / undefined → dev API
+// This guarantees the production URL is only ever used by an explicit
+// production build; local dev never accidentally hits production.
+// ==========================================================================
+const PROD_BASE = 'https://api.intownlocal.com';
+const DEV_BASE = 'https://devapi.intownlocal.com';
+
+const resolvedBaseUrl = (() => {
+  const explicit = process.env.EXPO_PUBLIC_API_BASE_URL;
+  if (explicit && explicit.trim().length > 0) return explicit.trim();
+  const env = (process.env.EXPO_PUBLIC_ENV || '').toLowerCase();
+  return env === 'production' || env === 'prod' ? PROD_BASE : DEV_BASE;
+})();
+
+const resolvedOtpBase = (() => {
+  const explicit = process.env.EXPO_PUBLIC_OTP_API_BASE_URL;
+  if (explicit && explicit.trim().length > 0) return explicit.trim();
+  const env = (process.env.EXPO_PUBLIC_ENV || '').toLowerCase();
+  return env === 'production' || env === 'prod'
+    ? `${PROD_BASE}/IN`
+    : `${DEV_BASE}/IN`;
+})();
+
+const BASE_URL = resolvedBaseUrl;
 export const INTOWN_API_BASE = `${BASE_URL}/IN`;
 
-const OTP_API_BASE = process.env.EXPO_PUBLIC_OTP_API_BASE_URL || 'https://api.intownlocal.com/IN';
+const OTP_API_BASE = resolvedOtpBase;
+
+// Log which environment we're hitting (helps confirm on-device the right
+// URL is being used). Safe to strip in production if noisy.
+try {
+  // eslint-disable-next-line no-console
+  console.log('[intown-api] Using base URL:', BASE_URL);
+} catch {}
 
 /* ===============================
    CUSTOM OTP APIs (No Firebase)
@@ -585,7 +623,97 @@ export const getCategories = async (forRegistration: boolean = false) => {
 /* ===============================
    MERCHANT CATEGORY-PRODUCT  API
 ================================ */
-export const getProductsByCategory = async (categoryId: number) => {
+
+// Normalized product returned by all product APIs.
+// Handles both the flat legacy shape ([{id, name, s3ImageUrl?}]) AND the
+// grouped shape returned by /IN/products/ (keys: LooseByWeight_KG_Grams,
+// LooseByVolume_ML_Liters, Packaged_PiecePack — each with unit_options + products[]).
+export interface NormalizedProduct {
+  id: number;
+  name: string;
+  s3ImageUrl?: string | null;
+  groupType?: string;
+  unitOptions?: string[];
+}
+
+/**
+ * Flattens any product API response into a flat array of NormalizedProduct.
+ * - Grouped dict → walks all top-level groups whose values have `products[]`.
+ * - Flat array → returned as-is (with fields preserved).
+ * - `data`-wrapped payload → unwrapped first.
+ * "custom (...)" unit_options are stripped so the caller only sees fixed units.
+ */
+export const flattenGroupedProducts = (raw: any): NormalizedProduct[] => {
+  if (!raw) return [];
+  const payload = raw?.data && !Array.isArray(raw) && (raw?.data?.products || Array.isArray(raw?.data))
+    ? raw.data
+    : raw;
+
+  const stripCustomUnits = (units: string[] | undefined) =>
+    Array.isArray(units) ? units.filter((u) => !/^custom/i.test(String(u).trim())) : [];
+
+  // Case 0: NEW merchant-scoped shape — { categories: [{ products: [{productId, productName, catalogGroup, unitOptions, ...}] }] }
+  if (payload && typeof payload === 'object' && Array.isArray((payload as any).categories)) {
+    const out: NormalizedProduct[] = [];
+    (payload as any).categories.forEach((cat: any) => {
+      if (!cat || !Array.isArray(cat.products)) return;
+      cat.products.forEach((p: any) => {
+        if (!p) return;
+        const id = p.productId ?? p.id;
+        const name = p.productName ?? p.name;
+        if (id === undefined || name === undefined) return;
+        out.push({
+          id: Number(id),
+          name: String(name),
+          s3ImageUrl: p.s3ImageUrl ?? null,
+          groupType: p.catalogGroup ?? p.groupType,
+          unitOptions: stripCustomUnits(p.unitOptions),
+        });
+      });
+    });
+    return out;
+  }
+
+  // Case 1: flat array
+  if (Array.isArray(payload)) {
+    return payload
+      .filter((p: any) => p && typeof p === 'object' && (p.id !== undefined) && (p.name !== undefined))
+      .map((p: any) => ({
+        id: Number(p.id),
+        name: String(p.name),
+        s3ImageUrl: p.s3ImageUrl ?? null,
+        groupType: p.groupType,
+        unitOptions: Array.isArray(p.unitOptions) ? p.unitOptions : undefined,
+      }));
+  }
+
+  // Case 2: legacy grouped dict
+  if (typeof payload === 'object') {
+    const out: NormalizedProduct[] = [];
+    Object.keys(payload).forEach((key) => {
+      const group = payload[key];
+      if (!group || typeof group !== 'object' || !Array.isArray(group.products)) return;
+      const rawUnits: string[] = Array.isArray(group.unit_options) ? group.unit_options : [];
+      const unitOptions = stripCustomUnits(rawUnits);
+      (group.products as any[]).forEach((p: any) => {
+        if (p && (p.id !== undefined) && (p.name !== undefined)) {
+          out.push({
+            id: Number(p.id),
+            name: String(p.name),
+            s3ImageUrl: p.s3ImageUrl ?? null,
+            groupType: key,
+            unitOptions,
+          });
+        }
+      });
+    });
+    return out;
+  }
+
+  return [];
+};
+
+export const getProductsByCategory = async (categoryId: number): Promise<NormalizedProduct[]> => {
   const response = await fetch(
     `${INTOWN_API_BASE}/products/by-category/${categoryId}`
   );
@@ -594,7 +722,178 @@ export const getProductsByCategory = async (categoryId: number) => {
     throw new Error('Failed to fetch products');
   }
 
-  return response.json();
+  const raw = await response.json();
+  return flattenGroupedProducts(raw);
+};
+
+// Fetch products for the Order modal.
+// merchantId is sent as a URL query param; backend returns only that merchant's selected products.
+export const getAllProducts = async (
+  params?: { merchantId?: number | string | null },
+): Promise<NormalizedProduct[]> => {
+  const merchantIdQs =
+    params?.merchantId !== undefined && params?.merchantId !== null && params.merchantId !== ''
+      ? `?merchantId=${encodeURIComponent(String(params.merchantId))}`
+      : '';
+  const url = `${INTOWN_API_BASE}/products/all-products-grouping${merchantIdQs}`;
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: { Accept: 'application/json' },
+  });
+  if (!response.ok) throw new Error(`Failed to fetch products (${response.status})`);
+  const raw = await response.json();
+  return flattenGroupedProducts(raw);
+};
+
+/* ===============================
+   PICKUP ORDERS  API
+================================ */
+
+export interface PickupOrderItem {
+  id?: number;
+  productName: string;
+  quantity: string;
+}
+
+export type PickupOrderStatus =
+  | 'PLACED'
+  | 'ACCEPTED'
+  | 'PICKUP_READY'
+  | 'COMPLETED'
+  | 'ENDED'
+  | string;
+
+export interface PickupOrder {
+  pickup_id: string;
+  customerId: number;
+  merchantId: number;
+  customerName?: string;
+  merchantName?: string;
+  status: PickupOrderStatus;
+  endReason?: string | null;
+  respondBy?: string | null;
+  acceptedAt?: string | null;
+  packedAt?: string | null;
+  customerReceivedAt?: string | null;
+  merchantDeliveredAt?: string | null;
+  completedAt?: string | null;
+  endedAt?: string | null;
+  items: PickupOrderItem[];
+  orderType?: 'PICKUP' | 'DELIVERY' | string;
+  createdAt?: string;
+}
+
+export const getCustomerPickupOrders = async (
+  customerId: number | string,
+  status?: PickupOrderStatus,
+): Promise<PickupOrder[]> => {
+  const qs = status ? `?status=${encodeURIComponent(String(status).toUpperCase())}` : '';
+  const res = await fetch(`${INTOWN_API_BASE}/customers/${customerId}/pickup-orders${qs}`);
+  if (!res.ok) throw new Error(`Failed to fetch customer orders (${res.status})`);
+  const data = await res.json();
+  return Array.isArray(data) ? data : Array.isArray((data as any)?.data) ? (data as any).data : [];
+};
+
+export const getMerchantPickupOrders = async (
+  merchantId: number | string,
+  status?: PickupOrderStatus,
+): Promise<PickupOrder[]> => {
+  const qs = status ? `?status=${encodeURIComponent(String(status).toUpperCase())}` : '';
+  const res = await fetch(`${INTOWN_API_BASE}/merchants/${merchantId}/pickup-orders${qs}`);
+  if (!res.ok) throw new Error(`Failed to fetch merchant orders (${res.status})`);
+  const data = await res.json();
+  return Array.isArray(data) ? data : Array.isArray((data as any)?.data) ? (data as any).data : [];
+};
+
+export const getMerchantPickupOrderById = async (
+  merchantId: number | string,
+  pickupId: string,
+): Promise<PickupOrder | null> => {
+  const res = await fetch(
+    `${INTOWN_API_BASE}/merchants/${merchantId}/pickup-orders/${encodeURIComponent(pickupId)}`
+  );
+  if (!res.ok) {
+    if (res.status === 404) return null;
+    throw new Error(`Failed to fetch order details (${res.status})`);
+  }
+  return res.json();
+};
+
+// Merchant action verbs accepted by PUT /IN/merchants/{m}/pickup-orders/{p}
+export type PickupOrderAction = 'ACCEPT' | 'REJECT' | 'PICKUP_READY';
+
+// Perform a merchant action on an order (ACCEPT / REJECT / PICKUP_READY).
+// Endpoint: PUT /IN/merchants/{merchantId}/pickup-orders/{pickup_id}
+// Body: { action: "ACCEPT" | "REJECT" | "PICKUP_READY" }
+export const performMerchantOrderAction = async (
+  merchantId: number | string,
+  pickupId: string,
+  action: PickupOrderAction,
+): Promise<PickupOrder | { ok: boolean; message?: string }> => {
+  const res = await fetch(
+    `${INTOWN_API_BASE}/merchants/${merchantId}/pickup-orders/${encodeURIComponent(pickupId)}`,
+    {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Accept: '*/*' },
+      body: JSON.stringify({ action }),
+    }
+  );
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error((data && (data.message || data.error)) || `Action failed (${res.status})`);
+  }
+  return data;
+};
+
+// Mark a PACKED / PICKUP_READY order as delivered (completes if customer already confirmed receipt).
+// Endpoint: PUT /IN/merchants/{merchantId}/pickup-orders/{pickup_id}/confirmation  (no body)
+export const confirmMerchantOrderDelivery = async (
+  merchantId: number | string,
+  pickupId: string,
+): Promise<PickupOrder | { ok: boolean; message?: string }> => {
+  const res = await fetch(
+    `${INTOWN_API_BASE}/merchants/${merchantId}/pickup-orders/${encodeURIComponent(pickupId)}/confirmation`,
+    { method: 'PUT', headers: { Accept: '*/*' } }
+  );
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error((data && (data.message || data.error)) || `Confirmation failed (${res.status})`);
+  }
+  return data;
+};
+
+// Customer confirms they received / picked up the order.
+// Endpoint: PUT /IN/customers/{customerId}/pickup-orders/{pickup_id}/confirmation  (no body)
+// Valid only when the order is PACKED / PICKUP_READY. Completes the order if the merchant has
+// already confirmed delivery.
+export const confirmCustomerOrderReceived = async (
+  customerId: number | string,
+  pickupId: string,
+): Promise<PickupOrder | { ok: boolean; message?: string }> => {
+  const res = await fetch(
+    `${INTOWN_API_BASE}/customers/${customerId}/pickup-orders/${encodeURIComponent(pickupId)}/confirmation`,
+    { method: 'PUT', headers: { Accept: '*/*' } }
+  );
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error((data && (data.message || data.error)) || `Confirmation failed (${res.status})`);
+  }
+  return data;
+};
+
+// Legacy alias — accepts a target status and routes to the right endpoint/action.
+// Kept for backward compatibility with earlier code.
+export const updateMerchantOrderStatus = async (
+  merchantId: number | string,
+  pickupId: string,
+  status: PickupOrderStatus,
+) => {
+  const s = String(status).toUpperCase();
+  if (s === 'ACCEPTED') return performMerchantOrderAction(merchantId, pickupId, 'ACCEPT');
+  if (s === 'PICKUP_READY' || s === 'PACKED') return performMerchantOrderAction(merchantId, pickupId, 'PICKUP_READY');
+  if (s === 'REJECTED') return performMerchantOrderAction(merchantId, pickupId, 'REJECT');
+  if (s === 'COMPLETED') return confirmMerchantOrderDelivery(merchantId, pickupId);
+  throw new Error(`Unsupported merchant status transition: ${status}`);
 };
 export const getCustomerProfile = async (customerId: number) => {
   const res = await fetch(
@@ -778,23 +1077,21 @@ export const getMerchantImagesByShopId = async (
 
 export const searchProducts = async (text: string) => {
   const res = await fetch(
-    `${INTOWN_API_BASE}/products/`
+    `${INTOWN_API_BASE}/products/all-products-grouping`
   );
 
   if (!res.ok) {
     throw new Error('Products API failed');
   }
 
-  const data = await res.json();
-
-  // 🔍 filter locally for auto-suggestions
-  return Array.isArray(data)
-    ? data.filter((item: any) =>
-        (item.productName || item.name || '')
-          .toLowerCase()
-          .includes(text.toLowerCase())
-      )
-    : [];
+  const raw = await res.json();
+  // Handles both grouped and flat responses (see flattenGroupedProducts)
+  const flat = flattenGroupedProducts(raw);
+  const q = (text || '').toLowerCase();
+  if (!q) return flat;
+  return flat.filter((item) =>
+    (item.name || '').toLowerCase().includes(q)
+  );
 };
 
 /* ===============================

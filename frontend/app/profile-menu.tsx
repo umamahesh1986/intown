@@ -35,6 +35,15 @@ export default function ProfileMenu() {
 
       <TouchableOpacity
   style={styles.item}
+  onPress={() => router.push("/my-orders" as any)}
+  testID="profile-menu-my-orders-btn"
+>
+  <Ionicons name="receipt-outline" size={22} color="#FF8A00" />
+  <Text style={styles.text}>My Orders</Text>
+</TouchableOpacity>
+
+      <TouchableOpacity
+  style={styles.item}
   onPress={() => router.push("/register-member")}
 >
   <Ionicons name="star-outline" size={22} color="#FF8A00" />

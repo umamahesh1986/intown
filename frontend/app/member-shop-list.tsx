@@ -13,6 +13,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { getMerchantImageByShopId, extractImageUrls, INTOWN_API_BASE } from '../utils/api';
+import { setNavShop } from '../utils/navCache';
 import { useLocationStore } from '../store/locationStore';
 import { formatDistance } from '../utils/formatDistance';
 import axios from 'axios';
@@ -48,12 +49,7 @@ export default function MemberShopList() {
     return urls[0] ?? null;
   };
 
-  // Resolve search location. Priority order:
-  //   1. Manually-selected location from the location picker (locationStore)
-  //   2. Persisted location from AsyncStorage
-  //   3. Live GPS (only for first-time users with no stored location)
-  // GPS used to come first, which silently overwrote the user's chosen city —
-  // e.g. picking "Hyderabad" still searched against simulator GPS (Apple Park).
+  // ALWAYS fetch fresh GPS location for search
   useEffect(() => {
     if (!categoryId && !query) {
       setIsLoading(false);
@@ -64,17 +60,71 @@ export default function MemberShopList() {
       let lat: number | null = null;
       let lng: number | null = null;
 
-      // 1. User's selected location (from header picker) — source of truth
+      // 1. ALWAYS try live GPS first (user's current device location)
       try {
-        const stored = useLocationStore.getState().location;
-        if (stored?.latitude && stored?.longitude) {
-          lat = stored.latitude;
-          lng = stored.longitude;
-          console.log('[ShopList] Using selected location from store:', lat, lng);
-        }
-      } catch (e) {}
+        if (Platform.OS === 'web') {
+          const pos = await new Promise<{ lat: number; lng: number } | null>((resolve) => {
+            if (!navigator.geolocation) { resolve(null); return; }
+            const t = setTimeout(() => resolve(null), 10000);
+            navigator.geolocation.getCurrentPosition(
+              (p) => { clearTimeout(t); resolve({ lat: p.coords.latitude, lng: p.coords.longitude }); },
+              () => { clearTimeout(t); resolve(null); },
+              { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+            );
+          });
+          if (pos) {
+            lat = pos.lat;
+            lng = pos.lng;
+            console.log('[ShopList] Using LIVE GPS (web):', lat, lng);
+          }
+        } else {
+          // Mobile: request permission and get current position
+          const perm = await Location.requestForegroundPermissionsAsync();
+          if (perm.status === 'granted') {
+            // Try lastKnown first (instant, recent)
+            try {
+              const lastKnown = await Promise.race([
+                Location.getLastKnownPositionAsync(),
+                new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000))
+              ]);
+              if (lastKnown && lastKnown.coords) {
+                lat = lastKnown.coords.latitude;
+                lng = lastKnown.coords.longitude;
+                console.log('[ShopList] Using lastKnown GPS:', lat, lng);
+              }
+            } catch (e) {}
 
-      // 2. AsyncStorage hydration (cold start before store has loaded)
+            // If no lastKnown, get fresh position
+            if (!lat || !lng) {
+              const pos = await Promise.race([
+                Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }),
+                new Promise<null>((resolve) => setTimeout(() => resolve(null), 10000))
+              ]);
+              if (pos && 'coords' in pos) {
+                lat = pos.coords.latitude;
+                lng = pos.coords.longitude;
+                console.log('[ShopList] Using LIVE GPS (mobile):', lat, lng);
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('[ShopList] Live GPS failed:', e);
+      }
+
+      // 2. Only if GPS completely fails, try stored location
+      if (!lat || !lng) {
+        console.log('[ShopList] GPS unavailable, trying stored location...');
+        try {
+          const stored = useLocationStore.getState().location;
+          if (stored?.latitude && stored?.longitude) {
+            lat = stored.latitude;
+            lng = stored.longitude;
+            console.log('[ShopList] Fallback to store coords:', lat, lng);
+          }
+        } catch (e) {}
+      }
+
       if (!lat || !lng) {
         try {
           await useLocationStore.getState().loadFromStorage();
@@ -82,60 +132,9 @@ export default function MemberShopList() {
           if (loaded?.latitude && loaded?.longitude) {
             lat = loaded.latitude;
             lng = loaded.longitude;
-            console.log('[ShopList] Hydrated location from AsyncStorage:', lat, lng);
+            console.log('[ShopList] Fallback to AsyncStorage coords:', lat, lng);
           }
         } catch (e) {}
-      }
-
-      // 3. Live GPS — only as last resort for first-time users
-      if (!lat || !lng) {
-        try {
-          if (Platform.OS === 'web') {
-            const pos = await new Promise<{ lat: number; lng: number } | null>((resolve) => {
-              if (!navigator.geolocation) { resolve(null); return; }
-              const t = setTimeout(() => resolve(null), 10000);
-              navigator.geolocation.getCurrentPosition(
-                (p) => { clearTimeout(t); resolve({ lat: p.coords.latitude, lng: p.coords.longitude }); },
-                () => { clearTimeout(t); resolve(null); },
-                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-              );
-            });
-            if (pos) {
-              lat = pos.lat;
-              lng = pos.lng;
-              console.log('[ShopList] Fallback to live GPS (web):', lat, lng);
-            }
-          } else {
-            const perm = await Location.requestForegroundPermissionsAsync();
-            if (perm.status === 'granted') {
-              try {
-                const lastKnown = await Promise.race([
-                  Location.getLastKnownPositionAsync(),
-                  new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000)),
-                ]);
-                if (lastKnown && lastKnown.coords) {
-                  lat = lastKnown.coords.latitude;
-                  lng = lastKnown.coords.longitude;
-                  console.log('[ShopList] Fallback to lastKnown GPS:', lat, lng);
-                }
-              } catch (e) {}
-
-              if (!lat || !lng) {
-                const pos = await Promise.race([
-                  Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }),
-                  new Promise<null>((resolve) => setTimeout(() => resolve(null), 10000)),
-                ]);
-                if (pos && 'coords' in pos) {
-                  lat = pos.coords.latitude;
-                  lng = pos.coords.longitude;
-                  console.log('[ShopList] Fallback to live GPS (mobile):', lat, lng);
-                }
-              }
-            }
-          }
-        } catch (e) {
-          console.warn('[ShopList] Live GPS failed:', e);
-        }
       }
 
       if (!lat || !lng) {
@@ -237,18 +236,18 @@ export default function MemberShopList() {
     } catch {}
   };
 
-  const handleViewShop = (shop: any) => {
+  const handleViewShop = async (shop: any) => {
     try {
       if (!shop) return;
       const shopId = shop?.id ?? shop?.merchantId ?? shop?.merchant_id ?? '';
       if (!shopId) return;
+      await setNavShop(shop);
       router.push({
         pathname: '/member-shop-details',
         params: {
           shopId: String(shopId),
           categoryId: categoryId ?? '',
           source: source ?? 'user',
-          shopData: JSON.stringify(shop),
         },
       });
     } catch (err) {

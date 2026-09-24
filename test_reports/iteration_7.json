@@ -1,0 +1,27 @@
+{
+  "summary": "Verified the navCache-based shop navigation fix. Direct navigation to /member-shop-details?shopId=100070&categoryId=100001&source=user and /shop-details?shopId=999999&source=user both render WITHOUT any `shopData` JSON blob in the URL, and gracefully show a fallback ('Unable to load shop details' / 'Shop details unavailable') when the nav cache is empty and the upstream API is unreachable. No crashes. /my-orders and /merchant-orders continue to render (unaffected). Code review confirms all 5 senders (user-dashboard, member-dashboard, dual-dashboard, member-shop-list, map) now call setNavShop(shop) then router.push with only shopId/categoryId/source, and both consumers (member-shop-details, shop-details) prefer getNavShop() with a legacy shopData param fallback + API fetch fallback.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/test_reports/screenshots/nav_member_shop_details.png",
+    "/app/test_reports/screenshots/nav_shop_details.png",
+    "/app/test_reports/screenshots/nav_dashboard.png"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "navCache.ts uses `memoryCache.__current` as a sentinel key inside a Record<string, Shop>. Iterating over `Object.keys(memoryCache)` would include '__current' — currently no code does that, but consider using a Map or a separate variable to avoid future foot-guns.",
+    "getNavShop's fallback to `__current` returns the last-set shop even if a mismatched id is provided (when the id key isn't in memory but current has a different id, it correctly rejects — but if key is null it returns current). This is intentional per the docstring but worth calling out.",
+    "member-shop-details.tsx still parses `shopDataParam` (legacy fallback). Once you confirm no old deep-link URLs are in circulation (e.g., emailed/shared links), you can drop this branch to shrink the bundle."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A", "frontend": "100%"},
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Primary acceptance criterion (no `shopData=%7B...%7D` in URL) is verified. Real end-to-end click on a nearby shop card could NOT be exercised on the Emergent preview because the upstream nearby-shops API (https://devapi.intownlocal.com) blocks CORS from the preview origin, so the 'INtown Previlage Nearby Shops' carousel stays empty. The code path is verified by grep + fallback render on direct URL. If needed on a real device/build, the mobile app will populate the carousel and clicking a card will call setNavShop + router.push with only shopId/categoryId/source.",
+  "rca of the issue": "N/A — this iteration verifies a fix, no bug found."
+}

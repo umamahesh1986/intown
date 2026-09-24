@@ -1,15 +1,18 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Modal, Dimensions, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Image, Modal, Dimensions, ActivityIndicator, Alert, Platform, TextInput } from 'react-native';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistance } from '../utils/formatDistance';
-import { extractImageUrls, INTOWN_API_BASE } from '../utils/api';
+import { extractImageUrls, INTOWN_API_BASE, getAllProducts } from '../utils/api';
+import { getNavShop } from '../utils/navCache';
 import { useLocationStore } from '../store/locationStore';
 import { useAuthStore } from '../store/authStore';
 import { LoginRequiredModal } from '../components/LoginRequiredModal';
+import { useNotificationStore } from '../store/notificationStore';
 import PaymentModal from '../components/PaymentModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { styles } from '../styles/member-shop-details.styles';
 
 interface ShopData {
   id: number;
@@ -47,7 +50,7 @@ export default function MemberShopDetails() {
   const shopId = params.shopId;
   const categoryId = params.categoryId;
   const source = params.source;
-  const shopDataParam = params.shopData;
+  const shopDataParam = params.shopData; // Deprecated — kept for backwards compat with any old deep links
 
   const [shop, setShop] = useState<ShopData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -69,6 +72,61 @@ export default function MemberShopDetails() {
   // account-based actions and require real login, regardless of `source`.
   const requiresLogin = isGuest || !isAuthenticated;
 
+  // ================= ORDER FEATURE STATE =================
+  const SUPPORTED_ORDER_CATEGORIES = [
+    'pharmacy',
+    'dairy products',
+    'meat',
+    'bakery',
+    'stationery',
+    'bags & accessories',
+    'electronics & home appliances',
+    'groceries',
+  ];
+
+  // Product coming from /IN/products/ grouped by unit-type
+  interface OrderProduct {
+    id: number;
+    name: string;
+    groupType: string;          // e.g. LooseByWeight_KG_Grams
+    unitOptions: string[];      // fixed unit list from API (e.g. ['100g','250g','500g','1kg'])
+  }
+  interface SelectedOrderItem {
+    id: number;
+    name: string;
+    groupType: string;
+    unit: string;
+    quantity: number;
+  }
+
+  const [showOrderModal, setShowOrderModal] = useState(false);
+  const [orderProducts, setOrderProducts] = useState<OrderProduct[]>([]);
+  // Keyed by productId → SelectedOrderItem
+  const [selectedItems, setSelectedItems] = useState<Record<number, SelectedOrderItem>>({});
+  // Per-product currently-picked unit (before Add). Persists across increments/decrements.
+  const [chosenUnit, setChosenUnit] = useState<Record<number, string>>({});
+  // Delivery is not supported yet — default to PICKUP.
+  const [orderType, setOrderType] = useState<'PICKUP' | 'DELIVERY' | null>('PICKUP');
+  const [isLoadingProducts, setIsLoadingProducts] = useState(false);
+  const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
+  const [orderError, setOrderError] = useState<string>('');
+  const [productSearch, setProductSearch] = useState<string>('');
+  const [unitPickerFor, setUnitPickerFor] = useState<number | null>(null);
+
+  // Post-submit toast on the shop-details page (shown after modal closes).
+  const [orderToast, setOrderToast] = useState<{ kind: 'success' | 'error'; message: string } | null>(null);
+  const orderToastTimerRef = useRef<any>(null);
+  const showOrderToast = (kind: 'success' | 'error', message: string) => {
+    if (orderToastTimerRef.current) clearTimeout(orderToastTimerRef.current);
+    setOrderToast({ kind, message });
+    orderToastTimerRef.current = setTimeout(() => setOrderToast(null), 3500);
+  };
+  useEffect(() => {
+    return () => {
+      if (orderToastTimerRef.current) clearTimeout(orderToastTimerRef.current);
+    };
+  }, []);
+
   // Image carousel state
   const [shopImages, setShopImages] = useState<string[]>([]);
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
@@ -83,7 +141,21 @@ export default function MemberShopDetails() {
     setIsLoading(true);
     setError(null);
 
-    // 1. Try to use shop data passed via params (no API call needed)
+    // 1. Try in-memory / AsyncStorage nav cache (preferred — no URL bloat)
+    try {
+      const cached = await getNavShop(shopId);
+      if (cached && cached.id) {
+        setShop(cached);
+        const images = extractImageUrls(cached.s3ImageUrl);
+        setShopImages(images);
+        setIsLoading(false);
+        return;
+      }
+    } catch (e) {
+      console.warn('[ShopDetails] Failed to read nav cache', e);
+    }
+
+    // 2. Legacy fallback: shop data passed via URL param (kept for backward compat)
     if (shopDataParam) {
       try {
         const parsed = JSON.parse(shopDataParam);
@@ -99,7 +171,7 @@ export default function MemberShopDetails() {
       }
     }
 
-    // 2. Fallback: fetch from API
+    // 3. Fallback: fetch from API
     try {
       await loadLocationFromStorage();
       const storedLocation = useLocationStore.getState().location;
@@ -204,6 +276,202 @@ export default function MemberShopDetails() {
 
   const handlePaymentSuccess = (amount: number, savings: number, method: string) => {
     console.log('Payment successful:', { amount, savings, method });
+  };
+
+  // ================= ORDER FEATURE HANDLERS =================
+  const isOrderCategorySupported = (category?: string) => {
+    if (!category) return false;
+    return SUPPORTED_ORDER_CATEGORIES.includes(category.trim().toLowerCase());
+  };
+
+  // Deterministic pastel color per product name (Blinkit-style tile bg)
+  const productTileColor = (name: string) => {
+    const palette = ['#FFF3E0'];
+    let hash = 0;
+    for (let i = 0; i < name.length; i += 1) hash = (hash * 31 + name.charCodeAt(i)) | 0;
+    return palette[Math.abs(hash) % palette.length];
+  };
+  const productAccentColor = (name: string) => {
+    const palette = ['#FF8A00'];
+    let hash = 0;
+    for (let i = 0; i < name.length; i += 1) hash = (hash * 31 + name.charCodeAt(i)) | 0;
+    return palette[Math.abs(hash) % palette.length];
+  };
+
+  const productIconForGroup = (groupType: string): keyof typeof Ionicons.glyphMap => {
+    // Accept both the legacy naming (LooseByWeight_KG_Grams, LooseByVolume_ML_Liters, Packaged_PiecePack)
+    // and the new merchant-scoped API values (LOOSE_BY_WEIGHT, LOOSE_BY_VOLUME, PACKAGED).
+    const key = String(groupType || '').toUpperCase();
+    if (key.includes('WEIGHT') || key.includes('KG') || key.includes('GRAM')) return 'scale-outline';
+    if (key.includes('VOLUME') || key.includes('ML') || key.includes('LITER')) return 'water-outline';
+    if (key.includes('PACKAGE') || key.includes('PIECE') || key.includes('PACK')) return 'cube-outline';
+    return 'pricetag-outline';
+  };
+
+  const openOrderModal = async () => {
+    setOrderError('');
+    setSelectedItems({});
+    setChosenUnit({});
+    setUnitPickerFor(null);
+    setOrderType('PICKUP'); // Delivery not supported yet
+    setProductSearch('');
+    setShowOrderModal(true);
+    setIsLoadingProducts(true);
+    try {
+      const flat = await getAllProducts({ merchantId: shop?.id });
+      const list: OrderProduct[] = flat.map((p) => ({
+        id: p.id,
+        name: p.name,
+        groupType: p.groupType || 'Packaged_PiecePack',
+        unitOptions: p.unitOptions && p.unitOptions.length > 0 ? p.unitOptions : ['1 unit'],
+      }));
+      setOrderProducts(list);
+    } catch (err: any) {
+      console.error('Failed to load products for order:', err);
+      setOrderProducts([]);
+      setOrderError('Unable to load products. Please try again.');
+    } finally {
+      setIsLoadingProducts(false);
+    }
+  };
+
+  // Returns the unit label currently chosen for a product (falls back to the
+  // first unit_option from the API when the user hasn't picked one yet).
+  const currentUnitFor = (product: OrderProduct): string => {
+    const item = selectedItems[product.id];
+    if (item?.unit) return item.unit;
+    if (chosenUnit[product.id]) return chosenUnit[product.id];
+    return product.unitOptions[0] || '1 unit';
+  };
+
+  const pickUnitFor = (product: OrderProduct, unit: string) => {
+    setChosenUnit((prev) => ({ ...prev, [product.id]: unit }));
+    // If already added, update the selected item's unit too
+    setSelectedItems((prev) => {
+      if (!prev[product.id]) return prev;
+      return { ...prev, [product.id]: { ...prev[product.id], unit } };
+    });
+    setUnitPickerFor(null);
+  };
+
+  const addOrIncrement = (product: OrderProduct) => {
+    setSelectedItems((prev) => {
+      const existing = prev[product.id];
+      if (existing) {
+        return { ...prev, [product.id]: { ...existing, quantity: existing.quantity + 1 } };
+      }
+      const unit = chosenUnit[product.id] || product.unitOptions[0] || '1 unit';
+      return {
+        ...prev,
+        [product.id]: {
+          id: product.id,
+          name: product.name,
+          groupType: product.groupType,
+          unit,
+          quantity: 1,
+        },
+      };
+    });
+  };
+
+  const decrement = (productId: number) => {
+    setSelectedItems((prev) => {
+      const existing = prev[productId];
+      if (!existing) return prev;
+      const nextQty = existing.quantity - 1;
+      const next = { ...prev };
+      if (nextQty <= 0) {
+        delete next[productId];
+      } else {
+        next[productId] = { ...existing, quantity: nextQty };
+      }
+      return next;
+    });
+  };
+
+  const handleSubmitOrder = async () => {
+    setOrderError('');
+    if (!customerId) {
+      Alert.alert('Login Required', 'Please login again to place an order.');
+      return;
+    }
+    if (!shop?.id) {
+      Alert.alert('Error', 'Merchant info missing.');
+      return;
+    }
+    const selectedList = Object.values(selectedItems);
+    if (selectedList.length === 0) {
+      Alert.alert('Select Products', 'Please add at least one product to order.');
+      return;
+    }
+    if (!orderType) {
+      Alert.alert('Order Type', 'Please choose Pickup or Delivery.');
+      return;
+    }
+
+    // Build items in the shape the pickup-orders API expects:
+    // { productName, quantity } where quantity is a STRING combining the count and unit.
+    // Example: user picked 3 × "500g" → quantity: "3 × 500g".
+    const items = selectedList.map((item) => ({
+      productName: item.name,
+      quantity: `${item.quantity} × ${item.unit}`,
+    }));
+
+    const payload = {
+      customerId: Number(customerId),
+      merchantId: Number(shop.id),
+      items,
+    };
+
+    setIsSubmittingOrder(true);
+    try {
+      const res = await fetch(
+        `${INTOWN_API_BASE}/customers/${Number(customerId)}/pickup-orders`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify(payload),
+        }
+      );
+      const data: any = await res.json().catch(() => ({}));
+
+      const status = String(data?.status || '').toUpperCase();
+      const isPlaced = res.ok && status === 'PLACED';
+
+      // Close modal FIRST, then show the toast on the shop-details page.
+      setShowOrderModal(false);
+      setSelectedItems({});
+      setChosenUnit({});
+      setUnitPickerFor(null);
+      setProductSearch('');
+
+      if (isPlaced) {
+        showOrderToast('success', 'Order placed successfully!');
+        // Push a notification the customer can tap later to open /my-orders on PLACED tab
+        const pickupId = String(data?.pickup_id ?? data?.pickupId ?? data?.id ?? '');
+        if (pickupId) {
+          useNotificationStore.getState().add({
+            kind: 'ORDER_PLACED_CUSTOMER',
+            title: 'Order placed',
+            body: `Your order at ${shop?.businessName || 'the shop'} has been placed. We'll notify you when it's ready.`,
+            targetRoute: '/my-orders',
+            targetTab: 'PLACED',
+            pickup_id: pickupId,
+          });
+        }
+      } else {
+        const msg =
+          (data && (data.message || data.error)) ||
+          (status ? `Order status: ${status}` : `Order submission failed (${res.status})`);
+        showOrderToast('error', msg);
+      }
+    } catch (err: any) {
+      console.error('Order submit error:', err);
+      setShowOrderModal(false);
+      showOrderToast('error', err?.message || 'Failed to submit order. Please try again.');
+    } finally {
+      setIsSubmittingOrder(false);
+    }
   };
 
   const renderShopImageCarousel = () => {
@@ -316,7 +584,7 @@ export default function MemberShopDetails() {
 
   const badge = getCategoryBadge(shop.businessCategory);
   // Get logged-in user's phone number
-  const userPhone = user?.phone || user?.phoneNumber || 'Not available';
+  const userPhone = user?.phone || 'Not available';
 
   const ShopContent = () => (
     <ScrollView
@@ -340,6 +608,24 @@ export default function MemberShopDetails() {
             </Text>
           </View>
         </View>
+
+        {/* Order Button — visible only for supported categories */}
+        {isOrderCategorySupported(shop.businessCategory) && (
+          <TouchableOpacity
+            style={styles.orderBtn}
+            onPress={() => {
+              if (isUserFlow) {
+                setShowRegistrationModal(true);
+                return;
+              }
+              openOrderModal();
+            }}
+            testID="open-order-modal-btn"
+          >
+            <Ionicons name="bag-handle-outline" size={20} color="#FFFFFF" />
+            <Text style={styles.orderBtnText}>Pick @ Shop</Text>
+          </TouchableOpacity>
+        )}
 
         {/* Description Card */}
         <View style={styles.descriptionCard}>
@@ -596,195 +882,272 @@ export default function MemberShopDetails() {
           )}
         </View>
       </Modal>
+
+      {/* Post-order Toast (floats on top of the shop details page) */}
+      {orderToast && (
+        <View
+          style={[
+            styles.orderToast,
+            orderToast.kind === 'success' ? styles.orderToastSuccess : styles.orderToastError,
+          ]}
+          pointerEvents="box-none"
+          testID="order-toast"
+        >
+          <View style={styles.orderToastInner}>
+            <Ionicons
+              name={orderToast.kind === 'success' ? 'checkmark-circle' : 'close-circle'}
+              size={22}
+              color={orderToast.kind === 'success' ? '#0C8A4A' : '#D32F2F'}
+            />
+            <Text
+              style={[
+                styles.orderToastText,
+                { color: orderToast.kind === 'success' ? '#0C8A4A' : '#D32F2F' },
+              ]}
+              numberOfLines={3}
+            >
+              {orderToast.message}
+            </Text>
+            <TouchableOpacity onPress={() => setOrderToast(null)} testID="order-toast-close-btn">
+              <Ionicons name="close" size={16} color="#666" />
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
+      {/* ================= ORDER MODAL (Blinkit-style, 90% height) ================= */}
+      <Modal
+        visible={showOrderModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowOrderModal(false)}
+      >
+        <View style={styles.orderModalOverlay}>
+          <View style={styles.orderModalCard}>
+            {/* Fixed Header */}
+            <View style={styles.orderModalHeader}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.orderModalTitle} numberOfLines={1}>Place Order</Text>
+                <Text style={styles.orderModalSubtitle} numberOfLines={1}>{shop.businessName}</Text>
+              </View>
+              <TouchableOpacity onPress={() => setShowOrderModal(false)} style={styles.orderModalCloseBtn} testID="close-order-modal-btn">
+                <Ionicons name="close" size={22} color="#333" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Scrollable Content */}
+            <ScrollView
+              style={styles.orderModalScroll}
+              contentContainerStyle={styles.orderModalScrollContent}
+              showsVerticalScrollIndicator={false}
+              nestedScrollEnabled
+            >
+              {/* Search Products */}
+              <View style={styles.productSearchWrap}>
+                <Ionicons name="search" size={16} color="#999" />
+                <TextInput
+                  style={styles.productSearchInput}
+                  value={productSearch}
+                  onChangeText={setProductSearch}
+                  placeholder="Search products (type 2+ letters)…"
+                  placeholderTextColor="#B0B0B0"
+                  returnKeyType="search"
+                  autoCorrect={false}
+                  testID="product-search-input"
+                />
+                {productSearch.length > 0 && (
+                  <TouchableOpacity onPress={() => setProductSearch('')} testID="product-search-clear-btn">
+                    <Ionicons name="close-circle" size={16} color="#999" />
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              <Text style={styles.orderSectionLabel}>Select Products</Text>
+
+              {isLoadingProducts ? (
+                <View style={styles.orderProductsLoading}>
+                  <ActivityIndicator color="#FF8A00" />
+                  <Text style={styles.orderProductsLoadingText}>Loading products...</Text>
+                </View>
+              ) : orderProducts.length === 0 ? (
+                <View style={styles.orderProductsEmpty}>
+                  <Ionicons name="cube-outline" size={28} color="#BBB" />
+                  <Text style={styles.orderProductsEmptyText}>
+                    {orderError || 'No products available.'}
+                  </Text>
+                  {!!orderError && (
+                    <TouchableOpacity style={styles.retryBtn} onPress={openOrderModal} testID="retry-load-products-btn">
+                      <Ionicons name="refresh" size={16} color="#FFFFFF" />
+                      <Text style={styles.retryBtnText}>Retry</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              ) : (() => {
+                const q = productSearch.trim().toLowerCase();
+                // Apply filter only after 2+ characters (per requirement)
+                const filtered = q.length >= 2
+                  ? orderProducts.filter((p) => p.name.toLowerCase().includes(q))
+                  : orderProducts;
+                if (q.length >= 2 && filtered.length === 0) {
+                  return (
+                    <View style={styles.orderProductsEmpty}>
+                      <Ionicons name="search" size={24} color="#BBB" />
+                      <Text style={styles.orderProductsEmptyText}>
+                        No products match "{productSearch}".
+                      </Text>
+                    </View>
+                  );
+                }
+                return (
+                  <View style={styles.productsGrid}>
+                    {filtered.map((product) => {
+                      const item = selectedItems[product.id];
+                      const qty = item?.quantity || 0;
+                      const tileBg = productTileColor(product.name);
+                      const accent = productAccentColor(product.name);
+                      const iconName = productIconForGroup(product.groupType);
+                      const currentUnit = currentUnitFor(product);
+                      return (
+                        <View key={product.id} style={styles.productCard} testID={`product-card-${product.id}`}>
+                          <View style={styles.productCardInner}>
+                          {/* Image placeholder */}
+                          <View style={[styles.productImageWrap, { backgroundColor: tileBg }]}>
+                            <Ionicons name={iconName} size={28} color={accent} />
+                          </View>
+
+                          {/* Name */}
+                          <Text style={styles.productCardName} numberOfLines={2}>{product.name}</Text>
+
+                          {/* Unit picker — uses unit_options straight from the API */}
+                          <TouchableOpacity
+                            style={styles.unitChip}
+                            onPress={() => setUnitPickerFor(unitPickerFor === product.id ? null : product.id)}
+                            testID={`unit-picker-${product.id}`}
+                          >
+                            <Text style={styles.unitChipText} numberOfLines={1}>{currentUnit}</Text>
+                            <Ionicons name="chevron-down" size={11} color="#666" />
+                          </TouchableOpacity>
+
+                          {unitPickerFor === product.id && (
+                            <View style={styles.unitDropdown}>
+                              {product.unitOptions.map((u) => {
+                                const selected = u === currentUnit;
+                                return (
+                                  <TouchableOpacity
+                                    key={u}
+                                    style={[styles.unitOption, selected && styles.unitOptionSelected]}
+                                    onPress={() => pickUnitFor(product, u)}
+                                    testID={`unit-option-${product.id}-${u}`}
+                                  >
+                                    <Text style={[styles.unitOptionText, selected && styles.unitOptionTextSelected]}>{u}</Text>
+                                  </TouchableOpacity>
+                                );
+                              })}
+                            </View>
+                          )}
+
+                          {/* +Add or -/qty/+ control */}
+                          {qty === 0 ? (
+                            <TouchableOpacity
+                              style={[styles.addBtn, { borderColor: accent }]}
+                              onPress={() => addOrIncrement(product)}
+                              testID={`add-product-${product.id}`}
+                            >
+                              <Ionicons name="add" size={14} color={accent} />
+                              <Text style={[styles.addBtnText, { color: accent }]}>Add</Text>
+                            </TouchableOpacity>
+                          ) : (
+                            <View style={[styles.qtyControl, { backgroundColor: accent }]}>
+                              <TouchableOpacity
+                                style={styles.qtyBtn}
+                                onPress={() => decrement(product.id)}
+                                testID={`decrement-product-${product.id}`}
+                              >
+                                <Ionicons name="remove" size={14} color="#FFFFFF" />
+                              </TouchableOpacity>
+                              <Text style={styles.qtyValue}>{qty}</Text>
+                              <TouchableOpacity
+                                style={styles.qtyBtn}
+                                onPress={() => addOrIncrement(product)}
+                                testID={`increment-product-${product.id}`}
+                              >
+                                <Ionicons name="add" size={14} color="#FFFFFF" />
+                              </TouchableOpacity>
+                            </View>
+                          )}
+                          </View>
+                        </View>
+                      );
+                    })}
+                  </View>
+                );
+              })()}
+            </ScrollView>
+
+            {/* Fixed Bottom Section */}
+            <View style={styles.orderModalFooter}>
+              {/*
+                Order Type (Pickup / Delivery) — commented out for now.
+                Delivery is not supported yet; orderType defaults to 'PICKUP'.
+                Re-enable this block when delivery goes live.
+
+              <Text style={styles.orderFooterLabel}>Order Type</Text>
+              <View style={styles.orderTypeRow}>
+                <TouchableOpacity
+                  style={[styles.orderTypeChip, orderType === 'PICKUP' && styles.orderTypeChipActive]}
+                  onPress={() => setOrderType('PICKUP')}
+                  testID="order-type-pickup-btn"
+                >
+                  <Ionicons name="walk-outline" size={16} color={orderType === 'PICKUP' ? '#FFF' : '#FF8A00'} />
+                  <Text style={[styles.orderTypeChipText, orderType === 'PICKUP' && styles.orderTypeChipTextActive]}>Pickup</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.orderTypeChip, orderType === 'DELIVERY' && styles.orderTypeChipActive]}
+                  onPress={() => setOrderType('DELIVERY')}
+                  testID="order-type-delivery-btn"
+                >
+                  <Ionicons name="bicycle-outline" size={16} color={orderType === 'DELIVERY' ? '#FFF' : '#FF8A00'} />
+                  <Text style={[styles.orderTypeChipText, orderType === 'DELIVERY' && styles.orderTypeChipTextActive]}>Delivery</Text>
+                </TouchableOpacity>
+              </View>
+              */}
+
+              {!!orderError && orderProducts.length > 0 && (
+                <View style={styles.orderErrorBanner} testID="order-error-banner">
+                  <Ionicons name="alert-circle" size={16} color="#D32F2F" />
+                  <Text style={styles.orderErrorText} numberOfLines={2}>{orderError}</Text>
+                </View>
+              )}
+
+              {(() => {
+                const totalItems = Object.values(selectedItems).reduce((sum, i) => sum + (i.quantity || 0), 0);
+                const canSubmit = totalItems > 0 && !!orderType && !isSubmittingOrder;
+                return (
+                  <TouchableOpacity
+                    style={[styles.orderSubmitBtn, !canSubmit && styles.orderSubmitBtnDisabled]}
+                    onPress={handleSubmitOrder}
+                    disabled={!canSubmit}
+                    testID="submit-order-btn"
+                  >
+                    {isSubmittingOrder ? (
+                      <ActivityIndicator color="#FFF" />
+                    ) : (
+                      <>
+                        <Text style={styles.orderSubmitBtnText}>Submit Order (Pickup)</Text>
+                        {totalItems > 0 && (
+                          <View style={styles.submitBadge}>
+                            <Text style={styles.submitBadgeText}>{totalItems} {totalItems === 1 ? 'item' : 'items'}</Text>
+                          </View>
+                        )}
+                      </>
+                    )}
+                  </TouchableOpacity>
+                );
+              })()}
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFF' },
-  loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
-  loadingText: { marginTop: 12, fontSize: 16, color: '#666', textAlign: 'center' },
-  retryButton: {
-    marginTop: 20,
-    backgroundColor: '#FF8A00',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  retryButtonText: { color: '#FFF', fontSize: 16, fontWeight: '600', marginLeft: 8 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 16,
-    backgroundColor: '#FFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#EEE',
-  },
-  backButton: { width: 40, height: 40, justifyContent: 'center' },
-  headerTitle: { fontSize: 18, fontWeight: '600', color: '#1A1A1A' },
-  shopImage: {
-    width: '100%',
-    height: 250,
-    backgroundColor: '#FFF3E0',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  shopImageFull: { width: '100%', height: 250, resizeMode: 'cover' },
-  shopArrow: {
-    position: 'absolute',
-    top: '50%',
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    transform: [{ translateY: -16 }],
-  },
-  shopArrowLeft: { left: 10 },
-  shopArrowRight: { right: 10 },
-  content: { padding: 16 },
-  userFlowPressable: { flex: 1 },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 16,
-  },
-  shopName: { fontSize: 24, fontWeight: 'bold', color: '#1A1A1A', flex: 1 },
-  badge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999 },
-  badgeText: { fontSize: 12, fontWeight: '700' },
-  descriptionCard: {
-    backgroundColor: '#FFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-  },
-  descriptionTitle: { fontSize: 16, fontWeight: '700', color: '#1A1A1A', marginBottom: 8 },
-  descriptionText: { fontSize: 14, color: '#666666', lineHeight: 22 },
-  infoCard: { backgroundColor: '#FFF', borderRadius: 12, padding: 16, marginBottom: 16 },
-  infoRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 14 },
-  infoLabel: { fontSize: 14, color: '#666', marginLeft: 10, width: 80 },
-  infoValue: { fontSize: 14, fontWeight: '600', color: '#1A1A1A', flex: 1 },
-  openingHoursTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1A1A1A',
-    marginBottom: 12,
-  },
-  hoursRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F5F5F5',
-    gap: 10,
-  },
-  hoursLabel: {
-    fontSize: 14,
-    color: '#666',
-    width: 70,
-  },
-  hoursValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1A1A1A',
-    flex: 1,
-  },
-  savingsCard: {
-    backgroundColor: '#E8F5E9',
-    borderRadius: 12,
-    padding: 20,
-    alignItems: 'center',
-  },
-  savingsTitle: { fontSize: 20, fontWeight: 'bold', color: '#2E7D32', marginTop: 8 },
-  savingsText: { fontSize: 14, color: '#2E7D32', textAlign: 'center', marginTop: 8 },
-  bottomButtons: {
-    flexDirection: 'row',
-    padding: 16,
-    backgroundColor: '#FFF',
-    borderTopWidth: 1,
-    borderTopColor: '#EEE',
-    gap: 12,
-  },
-  navigateBtn: {
-    flex: 1,
-    backgroundColor: '#2196F3',
-    borderRadius: 12,
-    paddingVertical: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  navigateBtnText: { color: '#FFF', fontSize: 16, fontWeight: 'bold', marginLeft: 8 },
-  payBtn: {
-    flex: 1,
-    backgroundColor: '#FF8A00',
-    borderRadius: 12,
-    paddingVertical: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  payBtnText: { color: '#FFF', fontSize: 16, fontWeight: 'bold', marginLeft: 8 },
-  modalContainer: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 24,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1A1A1A',
-    marginBottom: 24,
-    textAlign: 'center',
-  },
-  modalButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFF3E0',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-  },
-  modalButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FF8A00',
-    marginLeft: 12,
-  },
-  modalCancelButton: {
-    padding: 16,
-    alignItems: 'center',
-  },
-  modalCancelText: {
-    fontSize: 16,
-    color: '#666666',
-  },
-  fullscreenOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.95)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  fullscreenCloseBtn: {
-    position: 'absolute',
-    top: 50,
-    right: 20,
-    zIndex: 10,
-  },
-  fullscreenImage: {
-    width: '100%',
-    height: '80%',
-  },
-});

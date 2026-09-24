@@ -31,13 +31,13 @@ import * as ImagePicker from 'expo-image-picker';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAuthStore } from '../store/authStore';
 import { useLocationStore } from '../store/locationStore';
-import { getProfileImage } from '../utils/profileImage';
 import {
   getCategories,
   getAllNearbyShops,
   getNearbyShopsByCategory,
 } from '../utils/api';
 import { getCustomerProfile, getMerchantImageByShopId, extractImageUrls, INTOWN_API_BASE } from '../utils/api';
+import { setNavShop } from '../utils/navCache';
 
 
 import {
@@ -47,6 +47,7 @@ import {
   isPlusCode,
 } from '../utils/location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import NotificationBell from '../components/NotificationBell';
 import Footer from '../components/Footer'
 import { CATEGORY_ICON_MAP } from '../utils/categoryIconMap';
 import { FontStylesWithFallback } from '../utils/fonts';
@@ -318,20 +319,18 @@ export default function MemberDashboard() {
 
   const startNearbyAutoScroll = () => {
     if (nearbyAutoScrollRef.current) clearInterval(nearbyAutoScrollRef.current);
-    // Advance one card every 2.5s with a smooth native animation. The previous
-    // 30ms / 1px loop saturated the JS thread and caused iOS to terminate child
-    // press gestures, making View All / Categories / Nearby Shops unclickable.
     nearbyAutoScrollRef.current = setInterval(() => {
       if (!nearbyScrollRef.current || nearbyShops.length === 0) return;
+      nearbyScrollPos.current += 1;
+      // Reset to start when scrolled past original list (seamless loop)
       const totalWidth = nearbyShops.length * MERCHANT_CARD_WIDTH;
-      nearbyScrollPos.current += MERCHANT_CARD_WIDTH;
       if (nearbyScrollPos.current >= totalWidth) {
         nearbyScrollPos.current = 0;
         nearbyScrollRef.current.scrollTo({ x: 0, animated: false });
       } else {
-        nearbyScrollRef.current.scrollTo({ x: nearbyScrollPos.current, animated: true });
+        nearbyScrollRef.current.scrollTo({ x: nearbyScrollPos.current, animated: false });
       }
-    }, 2500);
+    }, 30);
   };
 
   const stopNearbyAutoScroll = () => {
@@ -425,7 +424,7 @@ export default function MemberDashboard() {
           await AsyncStorage.setItem('customer_name', name);
         }
 
-        const storedProfileImage = await getProfileImage('customer');
+        const storedProfileImage = await AsyncStorage.getItem('user_profile_image');
         if (storedProfileImage) {
           setProfileImage(storedProfileImage);
         }
@@ -451,7 +450,7 @@ export default function MemberDashboard() {
       let isActive = true;
       const refreshProfileImage = async () => {
         try {
-          const storedProfileImage = await getProfileImage('customer');
+          const storedProfileImage = await AsyncStorage.getItem('user_profile_image');
           if (storedProfileImage && isActive) {
             setProfileImage(storedProfileImage);
           }
@@ -768,12 +767,11 @@ export default function MemberDashboard() {
   };
 
   const closeDropdown = () => {
-    setShowDropdown(false);
     Animated.timing(dropdownAnim, {
       toValue: 0,
       duration: 160,
       useNativeDriver: true,
-    }).start();
+    }).start(() => setShowDropdown(false));
   };
 
   const toggleDropdown = () => {
@@ -908,11 +906,7 @@ export default function MemberDashboard() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={{ flex: 1 }}>
-        <ScrollView
-          ref={contentScrollRef}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
+        <ScrollView ref={contentScrollRef} showsVerticalScrollIndicator={false}>
 
 
           {/* HEADER */}
@@ -944,9 +938,7 @@ export default function MemberDashboard() {
             <View style={styles.headerIcons}>
 
               {/* Notification */}
-              <TouchableOpacity style={styles.notificationIconBtn}>
-                <Ionicons name="notifications-outline" size={20} color="#333" />
-              </TouchableOpacity>
+              <NotificationBell iconSize={20} iconColor="#333" buttonStyle={styles.notificationIconBtn} />
 
               {/* Profile */}
               <TouchableOpacity
@@ -1293,17 +1285,17 @@ export default function MemberDashboard() {
                       key={`merchant-${shop.id}-${index}`}
                       style={styles.merchantCard}
                       activeOpacity={0.9}
-                      onPress={() =>
+                      onPress={async () => {
+                        await setNavShop(shop);
                         router.push({
                           pathname: '/member-shop-details',
                           params: {
                             shopId: String(shop.id),
                             categoryId: '',
                             source: 'member',
-                            shopData: JSON.stringify(shop),
                           },
-                        })
-                      }
+                        });
+                      }}
                     >
                       <View style={styles.merchantImageWrapper}>
                         {imageUri ? (
@@ -1466,6 +1458,20 @@ export default function MemberDashboard() {
               <Ionicons name="person-outline" size={22} color="#FF8C00" />
               <Text style={styles.userPanelText}>My Account</Text>
             </TouchableOpacity>
+
+            {/* MY ORDERS */}
+            <TouchableOpacity
+              style={styles.userPanelItem}
+              onPress={() => {
+                closeDropdown();
+                router.push('/my-orders' as any);
+              }}
+              testID="member-menu-my-orders-btn"
+            >
+              <Ionicons name="receipt-outline" size={22} color="#FF8C00" />
+              <Text style={styles.userPanelText}>My Orders</Text>
+            </TouchableOpacity>
+
             <TouchableOpacity
               style={styles.userPanelItem}
               onPress={() => {

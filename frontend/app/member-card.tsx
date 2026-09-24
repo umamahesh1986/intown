@@ -7,7 +7,6 @@ import { useAuthStore } from '../store/authStore';
 import { LoginRequiredModal } from '../components/LoginRequiredModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { INTOWN_API_BASE } from '../utils/api';
-import { getProfileImage } from '../utils/profileImage';
 import { useEffect, useState } from 'react';
 
 
@@ -71,7 +70,7 @@ const [loading, setLoading] = useState(true);
         setPhotoUri(data.profileImage);
       } else {
         // Also try to load from AsyncStorage as fallback
-        const storedImage = await getProfileImage('customer');
+        const storedImage = await AsyncStorage.getItem('user_profile_image');
         if (storedImage) {
           setPhotoUri(storedImage);
         }
@@ -80,7 +79,7 @@ const [loading, setLoading] = useState(true);
       console.error('Profile fetch error:', err);
       // Try to load profile image from AsyncStorage as fallback
       try {
-        const storedImage = await getProfileImage('customer');
+        const storedImage = await AsyncStorage.getItem('user_profile_image');
         if (storedImage) {
           setPhotoUri(storedImage);
         }

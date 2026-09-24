@@ -1,7 +1,6 @@
 import {
   View,
   Text,
-  StyleSheet,
   TextInput,
   TouchableOpacity,
   ScrollView,
@@ -20,7 +19,6 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { registerMerchant } from '../utils/api';
-import { setProfileImage } from '../utils/profileImage';
 import { useAuthStore } from '../store/authStore';
 import * as Location from 'expo-location';
 import { useFocusEffect } from '@react-navigation/native';
@@ -29,6 +27,7 @@ import {
   getProductsByCategory,
   INTOWN_API_BASE,
 } from '../utils/api';
+import { styles } from '../styles/register-merchant.styles';
 
 
 
@@ -154,7 +153,7 @@ export default function RegisterMerchant() {
     const data = await res.json();
     const images = Array.isArray(data?.s3ImageUrl) ? data.s3ImageUrl : [];
     if (!images.length) return;
-    await setProfileImage('merchant', images[0]);
+    await AsyncStorage.setItem('merchant_profile_image', images[0]);
     await AsyncStorage.setItem('merchant_shop_images', JSON.stringify(images));
   };
   const addImages = (newImages: string[]) => {
@@ -237,6 +236,64 @@ export default function RegisterMerchant() {
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<any>({});
 
+  /* ================= JOINING FEE PAYMENT STATE ================= */
+  const GST_RATE = 1.18;
+  const PLANS = [
+    {
+      id: 'START' as const,
+      name: 'START',
+      basePrice: 499,
+      features: [
+        { label: 'Lifetime INtown access', included: true },
+        { label: 'Store profile', included: true },
+        { label: 'Products / services', included: true },
+        { label: 'Create offers', included: true },
+        { label: 'Basic analytics', included: true },
+        { label: 'Pick @ store', included: true },
+        { label: 'Slot Booking', included: true },
+        { label: 'Circle', included: true },
+        { label: 'Featured visibility', included: false },
+        { label: 'Promotional campaign', included: false },
+        { label: 'Promotional creative', included: false },
+        { label: 'Social Media promotion', included: false },
+        { label: 'Campaign report', included: false },
+      ],
+    },
+    {
+      id: 'LAUNCH' as const,
+      name: 'LAUNCH',
+      basePrice: 999,
+      recommended: true,
+      features: [
+        { label: 'Lifetime INtown access', included: true },
+        { label: 'Store profile', included: true },
+        { label: 'Products / services', included: true },
+        { label: 'Create offers', included: true },
+        { label: 'Basic analytics', included: true },
+        { label: 'Pick @ store', included: true },
+        { label: 'Slot Booking', included: true },
+        { label: 'Circle', included: true },
+        { label: 'Featured visibility', included: true },
+        { label: 'Promotional campaign', included: true },
+        { label: 'Promotional creative', included: true },
+        { label: 'Social Media promotion', included: true },
+        { label: 'Campaign report', included: true },
+      ],
+    },
+  ];
+  const [selectedPlanId, setSelectedPlanId] = useState<'START' | 'LAUNCH'>('LAUNCH');
+  const selectedPlan = PLANS.find(p => p.id === selectedPlanId) || PLANS[0];
+  const JOINING_FEE_AMOUNT = Math.round(selectedPlan.basePrice * GST_RATE * 100) / 100;
+  const RAZORPAY_KEY_ID = 'rzp_live_RrNfvARmKIkZ7C';
+  const [paymentCompleted, setPaymentCompleted] = useState(false);
+  const [isPaying, setIsPaying] = useState(false);
+  const [paymentError, setPaymentError] = useState<string>('');
+  const [paymentDetails, setPaymentDetails] = useState<{
+    razorpayPaymentId?: string;
+    razorpayOrderId?: string;
+    razorpaySignature?: string;
+  } | null>(null);
+
   /* ================= BACKEND CATEGORY FLOW (NEW) ================= */
 
   const [categories, setCategories] = useState<{ id: number; name: string }[]>([]);
@@ -273,7 +330,19 @@ export default function RegisterMerchant() {
     pincode.trim().length > 0 &&
     location !== null && location.latitude !== undefined && location.longitude !== undefined &&
     introducedByValid &&
+    paymentCompleted &&
     agreedToTerms;
+
+  // Fields required BEFORE the merchant can pay the joining fee.
+  // Kept lightweight so the button becomes clickable as soon as the
+  // core business identity is filled; deeper validation runs inside
+  // handlePayJoiningFee before actually calling Razorpay.
+  const canInitiatePayment =
+    !paymentCompleted &&
+    !isPaying &&
+    businessName.trim().length > 0 &&
+    contactName.trim().length > 0 &&
+    selectedCategoryId !== null;
 
   /* ================= AUTO-POPULATE PHONE NUMBER ================= */
 
@@ -407,13 +476,7 @@ export default function RegisterMerchant() {
     try {
       const prodData = await getProductsByCategory(cat.id);
 
-      if (Array.isArray(prodData)) {
-        setProducts(prodData);
-      } else if (Array.isArray(prodData?.data)) {
-        setProducts(prodData.data);
-      } else {
-        setProducts([]);
-      }
+      setProducts(Array.isArray(prodData) ? prodData : []);
 
       // ✅ OPEN POPUP ONLY AFTER PRODUCTS ARE READY
       setShowProductModal(true);
@@ -741,11 +804,191 @@ export default function RegisterMerchant() {
   };
 
 
+  /* ================= JOINING FEE PAYMENT HANDLER ================= */
+
+  const loadRazorpayWebScript = (): Promise<boolean> => {
+    return new Promise((resolve) => {
+      if (typeof document === 'undefined') return resolve(false);
+      if ((window as any).Razorpay) return resolve(true);
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.async = true;
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
+  const openRazorpayWeb = (options: any): Promise<any> => {
+    return new Promise((resolve, reject) => {
+      const RazorpayCtor = (window as any).Razorpay;
+      if (!RazorpayCtor) {
+        reject(new Error('Razorpay SDK not available'));
+        return;
+      }
+      const rzp = new RazorpayCtor({
+        ...options,
+        handler: (response: any) => resolve(response),
+        modal: {
+          ondismiss: () => reject({ code: 'PAYMENT_CANCELLED', description: 'User cancelled payment' }),
+        },
+      });
+      rzp.on('payment.failed', (resp: any) => {
+        reject(resp?.error || new Error('Payment failed'));
+      });
+      rzp.open();
+    });
+  };
+
+  const handlePayJoiningFee = async () => {
+    setPaymentError('');
+
+    // Validate required fields before opening Razorpay
+    const missing: string[] = [];
+    if (!businessName.trim()) missing.push('Business Name');
+    if (!contactName.trim()) missing.push('Contact Name');
+    if (selectedCategoryId === null) missing.push('Business Category');
+    if (!description.trim()) missing.push('Description');
+    if (!yearsInBusiness.trim()) missing.push('Years in Business');
+    if (!branches.trim()) missing.push('Branches');
+    if (!/^[6-9]\d{9}$/.test(phoneNumber)) missing.push('Valid 10-digit Phone Number');
+    if (!/^[1-9][0-9]{5}$/.test(pincode)) missing.push('Valid 6-digit Pincode');
+    if (!location || !Number.isFinite(location.latitude) || !Number.isFinite(location.longitude)) {
+      missing.push('Shop Location');
+    }
+    if (!introducedByValid) missing.push('Valid Introduced By phone (or leave empty)');
+
+    if (missing.length > 0) {
+      // Use inline banner (Alert.alert is often invisible on mobile web / in-app browsers)
+      const msg = 'Please fill: ' + missing.join(', ');
+      setPaymentError(msg);
+      console.warn('[Register] Cannot pay joining fee — missing fields:', missing);
+      // Best-effort: also try the native alert as a secondary channel
+      try { Alert.alert('Fill Required Fields', 'Please fill the following before paying the joining fee:\n\n• ' + missing.join('\n• ')); } catch {}
+      return;
+    }
+
+    setIsPaying(true);
+    try {
+      // Step 1: Create Order
+      // Backend `CreateOrderRequest` requires EXACTLY ONE of `customerId` OR `mobileNumber`
+      // and only accepts these subscriptionPlan enum values: FREE_TRIAL, MONTHLY, QUARTERLY,
+      // SEMI_ANNUAL, ANNUAL. Since the merchant hasn't been registered yet (no customerId),
+      // we send `mobileNumber` only and omit `subscriptionPlan` entirely. The joining-fee
+      // context is preserved in `description` + `notes.type`.
+      const createOrderRes = await fetch(`${INTOWN_API_BASE}/payment/create-order`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({
+          mobileNumber: phoneNumber,
+          amount: JOINING_FEE_AMOUNT,
+          description: 'INtown Merchant Joining Fee',
+          notes: {
+            type: 'MERCHANT_JOINING',
+            phoneNumber: String(phoneNumber),
+            contactName: String(contactName || ''),
+            businessName: String(businessName || ''),
+            businessCategory: String(businessCategory || ''),
+          },
+        }),
+      });
+
+      if (!createOrderRes.ok) {
+        const errData = await createOrderRes.json().catch(() => ({}));
+        throw new Error(errData.message || errData.error || `Order creation failed (${createOrderRes.status})`);
+      }
+
+      const orderData = await createOrderRes.json();
+
+      // Backend returns `amount` in rupees (e.g. 499.00); Razorpay Checkout expects paise.
+      const amountRupees = Number(orderData.amount ?? JOINING_FEE_AMOUNT);
+      const amountPaise = Math.round(amountRupees * 100);
+
+      const razorpayOptions: any = {
+        description: 'INtown Merchant Joining Fee',
+        image: 'https://intown-prod.s3.ap-south-1.amazonaws.com/logo/intown-logo.png',
+        currency: orderData.currency || 'INR',
+        key: orderData.keyId || RAZORPAY_KEY_ID,
+        amount: String(amountPaise),
+        name: 'INtown',
+        order_id: orderData.razorpayOrderId,
+        prefill: {
+          contact: phoneNumber,
+          name: contactName,
+          email: email || '',
+        },
+        theme: { color: '#FF8A00' },
+      };
+
+      // Step 2: Open Razorpay (native or web)
+      let paymentResponse: any;
+      if (Platform.OS === 'web') {
+        const ok = await loadRazorpayWebScript();
+        if (!ok) throw new Error('Unable to load Razorpay. Please check your internet connection.');
+        paymentResponse = await openRazorpayWeb(razorpayOptions);
+      } else {
+        let RazorpayCheckout: any;
+        try {
+          RazorpayCheckout = require('react-native-razorpay').default;
+        } catch (e) {
+          throw new Error('Payment module not available. Please update the app.');
+        }
+        paymentResponse = await RazorpayCheckout.open(razorpayOptions);
+      }
+
+      // Step 3: Verify Payment
+      const verifyRes = await fetch(`${INTOWN_API_BASE}/payment/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({
+          razorpayPaymentId: paymentResponse.razorpay_payment_id,
+          razorpayOrderId: paymentResponse.razorpay_order_id,
+          razorpaySignature: paymentResponse.razorpay_signature,
+          amount: amountPaise,
+          mobileNumber: phoneNumber,
+        }),
+      });
+
+      const verifyData = await verifyRes.json().catch(() => ({}));
+
+      if (!verifyRes.ok || verifyData?.status === 'FAILED') {
+        throw new Error(verifyData?.message || 'Payment verification failed');
+      }
+
+      setPaymentDetails({
+        razorpayPaymentId: paymentResponse.razorpay_payment_id,
+        razorpayOrderId: paymentResponse.razorpay_order_id,
+        razorpaySignature: paymentResponse.razorpay_signature,
+      });
+      setPaymentCompleted(true);
+      setPaymentError('');
+      Alert.alert('Payment received successfully', 'Your ₹499 joining fee has been received. Please accept the terms and complete your registration.');
+    } catch (err: any) {
+      console.error('Joining fee payment error:', err);
+      setPaymentCompleted(false);
+      setPaymentDetails(null);
+      // Ensure terms cannot be checked
+      setAgreedToTerms(false);
+      const cancelled = err?.code === 'PAYMENT_CANCELLED' || String(err?.description || '').toLowerCase().includes('cancel');
+      const msg = cancelled
+        ? 'Payment was cancelled. Please retry to continue registration.'
+        : (err?.message || err?.description || 'Payment failed. Please retry to continue registration.');
+      setPaymentError(msg);
+      Alert.alert(cancelled ? 'Payment Cancelled' : 'Payment Failed', msg);
+    } finally {
+      setIsPaying(false);
+    }
+  };
+
   /* ================= SUBMIT (UNCHANGED) ================= */
 
   const handleRegister = async () => {
     if (!validateForm()) {
       Alert.alert('Error', 'Please fill required fields');
+      return;
+    }
+    if (!paymentCompleted || !paymentDetails?.razorpayPaymentId) {
+      Alert.alert('Payment Required', 'Please pay the ₹499 joining fee before completing registration.');
       return;
     }
 
@@ -786,6 +1029,11 @@ export default function RegisterMerchant() {
       breakEndAt,
       weekOff,
       offer,
+      joiningFee: JOINING_FEE_AMOUNT,
+      joiningFeePaid: true,
+      razorpayPaymentId: paymentDetails?.razorpayPaymentId,
+      razorpayOrderId: paymentDetails?.razorpayOrderId,
+      razorpaySignature: paymentDetails?.razorpaySignature,
     };
 
     try {
@@ -1026,13 +1274,29 @@ export default function RegisterMerchant() {
 
           {/* DESCRIPTION */}
           <View style={styles.formGroup}>
-            <Text style={styles.label}>Description *</Text>
+            <View style={styles.labelRow}>
+              <Text style={styles.label}>Description *</Text>
+              <Text
+                style={[
+                  styles.charCounter,
+                  description.length >= 250 && styles.charCounterMax,
+                ]}
+                testID="description-char-counter"
+              >
+                {description.length}/250
+              </Text>
+            </View>
             <TextInput
               style={styles.textArea}
               value={description}
-              onChangeText={setDescription}
+              onChangeText={(t) => setDescription(t.slice(0, 250))}
+              maxLength={250}
               multiline
+              placeholder="Tell customers about your shop (max 250 characters)"
+              placeholderTextColor="#B0B0B0"
+              testID="description-input"
             />
+            <Text style={styles.helperText}>Max 250 characters.</Text>
           </View>
 
           {/* YEARS IN BUSINESS */}
@@ -1352,17 +1616,144 @@ export default function RegisterMerchant() {
             />
           </View>
 
+          {/* JOINING FEE PAYMENT — Growth Pack Selector */}
+          <View style={styles.sectionHeader}>
+            <Ionicons name="rocket-outline" size={18} color="#FF8A00" />
+            <Text style={styles.sectionTitle}>Merchant Growth Pack</Text>
+          </View>
+          <Text style={styles.growthPackSubtitle}>
+            Choose the pack that fits your business. Both are one-time — no monthly fees.
+          </Text>
+
+          <View style={styles.plansRow}>
+            {PLANS.map((plan) => {
+              const isSelected = selectedPlanId === plan.id;
+              return (
+                <TouchableOpacity
+                  key={plan.id}
+                  activeOpacity={0.85}
+                  style={[styles.planCard, isSelected && styles.planCardSelected, paymentCompleted && styles.planCardDisabled]}
+                  onPress={() => !paymentCompleted && setSelectedPlanId(plan.id)}
+                  disabled={paymentCompleted}
+                  testID={`plan-card-${plan.id.toLowerCase()}`}
+                >
+                  {plan.recommended && (
+                    <View style={styles.planRecommendedBadge}>
+                      <Ionicons name="star" size={10} color="#FFFFFF" />
+                      <Text style={styles.planRecommendedText}>RECOMMENDED</Text>
+                    </View>
+                  )}
+                  <View style={styles.planHeaderRow}>
+                    <View style={styles.planRadio}>
+                      {isSelected ? (
+                        <View style={styles.planRadioInner} />
+                      ) : null}
+                    </View>
+                    <Text style={styles.planName}>{plan.name}</Text>
+                  </View>
+                  <View style={styles.planPriceRow}>
+                    <Text style={styles.planCurrency}>₹</Text>
+                    <Text style={styles.planPrice}>{plan.basePrice}</Text>
+                    <Text style={styles.planPriceSuffix}>+ GST</Text>
+                  </View>
+                  <Text style={styles.planPriceFinal}>
+                    You pay ₹{(plan.basePrice * GST_RATE).toFixed(2)}
+                  </Text>
+
+                  <View style={styles.planDivider} />
+
+                  <View style={styles.planFeatures}>
+                    {plan.features.map((f, idx) => (
+                      <View key={idx} style={styles.planFeatureRow}>
+                        <Ionicons
+                          name={f.included ? 'checkmark-circle' : 'close-circle'}
+                          size={14}
+                          color={f.included ? '#0C8A4A' : '#CCCCCC'}
+                        />
+                        <Text
+                          style={[
+                            styles.planFeatureText,
+                            !f.included && styles.planFeatureTextMuted,
+                          ]}
+                          numberOfLines={2}
+                        >
+                          {f.label}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+
+                  {isSelected && !paymentCompleted && (
+                    <View style={styles.planSelectedBadge}>
+                      <Ionicons name="checkmark" size={12} color="#FFFFFF" />
+                      <Text style={styles.planSelectedBadgeText}>Selected</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          <View style={styles.feeCard} testID="merchant-joining-fee-card">
+            {!paymentCompleted ? (
+              <TouchableOpacity
+                style={[styles.payFeeBtn, (!canInitiatePayment || isPaying) && styles.payFeeBtnDisabled]}
+                onPress={handlePayJoiningFee}
+                disabled={!canInitiatePayment || isPaying}
+                testID="pay-joining-fee-btn"
+              >
+                {isPaying ? (
+                  <ActivityIndicator color="#FFF" />
+                ) : (
+                  <>
+                    <Ionicons name="lock-closed-outline" size={18} color="#FFFFFF" />
+                    <Text style={styles.payFeeBtnText}>
+                      Pay {selectedPlan.name} ₹{selectedPlan.basePrice}/- + GST
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            ) : (
+              <View style={styles.paymentReceivedBanner} testID="payment-received-banner">
+                <Ionicons name="checkmark-circle" size={20} color="#0C8A4A" />
+                <Text style={styles.paymentReceivedText}>
+                  {selectedPlan.name} pack activated — payment received successfully
+                </Text>
+              </View>
+            )}
+
+            {!!paymentError && !paymentCompleted && (
+              <View style={styles.paymentErrorBanner} testID="payment-error-banner">
+                <Ionicons name="alert-circle" size={18} color="#D32F2F" />
+                <Text style={styles.paymentErrorText}>{paymentError}</Text>
+              </View>
+            )}
+          </View>
+
           {/* TERMS */}
           <View style={styles.row}>
-            <Switch value={agreedToTerms} onValueChange={setAgreedToTerms} />
-            <Text style={{ marginLeft: 8 }}>I agree to terms</Text>
+            <Switch
+              value={agreedToTerms}
+              onValueChange={setAgreedToTerms}
+              disabled={!paymentCompleted}
+              testID="agree-terms-switch"
+            />
+            <Text style={{ marginLeft: 8, color: paymentCompleted ? '#1A1A1A' : '#999' }}>
+              I agree to terms
+            </Text>
           </View>
+          {!paymentCompleted && (
+            <Text style={styles.helperText}>
+              Complete the joining fee payment to enable this checkbox.
+            </Text>
+          )}
 
           {/* SUBMIT BUTTON */}
           <TouchableOpacity
             style={[styles.submitBtn, (!isFormValid || isLoading) && styles.submitBtnDisabled]}
             onPress={handleRegister}
             disabled={!isFormValid || isLoading}
+            testID="register-as-merchant-btn"
           >
             {isLoading ? (
               <ActivityIndicator color="#FFF" />
@@ -1585,599 +1976,5 @@ export default function RegisterMerchant() {
     </SafeAreaView>
   );
 }
-
-/* ================= STYLES (UNCHANGED) ================= */
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F5F5F5' },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#EEEEEE',
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1A1A1A',
-  },
-  placeholder: {
-    width: 40,
-  },
-  content: { padding: 16 },
-  formGroup: { marginBottom: 16 },
-  label: { fontSize: 14, fontWeight: '600', marginBottom: 6 },
-  slug:{
-    fontSize: 12,
-    color: '#666',
-  },
-  input: {
-    backgroundColor: '#FFF',
-    borderWidth: 1,
-    borderColor: '#DDD',
-    borderRadius: 8,
-    padding: 12,
-  },
-  inputError: {
-    borderColor: '#FF3B30',
-  },
-  textArea: {
-    backgroundColor: '#FFF',
-    borderWidth: 1,
-    borderColor: '#DDD',
-    borderRadius: 8,
-    padding: 12,
-    minHeight: 80,
-  },
-  row: { flexDirection: 'row', alignItems: 'center', marginVertical: 6 },
-  rowText: { marginLeft: 8 },
-  submitBtn: {
-    backgroundColor: '#FF8A00',
-    padding: 14,
-    borderRadius: 8,
-    marginTop: 24,
-    alignItems: 'center',
-  },
-  submitBtnDisabled: {
-    backgroundColor: '#CCCCCC',
-  },
-
-  selectProductsBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 12,
-    marginTop: 12,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#FF8A00',
-    backgroundColor: '#FFF8F0',
-  },
-  selectProductsBtnText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#FF8A00',
-  },
-  productCountBadge: {
-    backgroundColor: '#FF8A00',
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 6,
-  },
-  productCountText: {
-    color: '#FFF',
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  selectedProductsContainer: {
-    marginVertical: 12,
-    padding: 12,
-    backgroundColor: '#FFF',
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#EEE',
-  },
-  selectedProductsTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#333',
-    marginBottom: 8,
-  },
-  selectedProductsList: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  selectedProductChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFF3E0',
-    borderRadius: 16,
-    paddingVertical: 6,
-    paddingLeft: 12,
-    paddingRight: 6,
-    gap: 4,
-  },
-  selectedProductChipText: {
-    fontSize: 13,
-    color: '#333',
-    fontWeight: '500',
-  },
-  removeProductBtn: {
-    padding: 2,
-  },
-  submitText: { color: '#FFF', fontWeight: '600' },
-  helperText: {
-    fontSize: 12,
-    color: '#777',
-    marginTop: 4,
-    fontStyle: 'italic',
-  },
-  disabledInput: {
-    backgroundColor: '#F5F5F5',
-    color: '#666666',
-  },
-  errorText: {
-    fontSize: 12,
-    color: 'red',
-    marginTop: 4,
-  },
-  imageActions: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 12,
-  },
-  imageButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FFF3E0',
-    borderRadius: 8,
-    paddingVertical: 10,
-    borderWidth: 1,
-    borderColor: '#FFD9B3',
-  },
-  imageButtonText: {
-    marginLeft: 8,
-    color: '#FF8A00',
-    fontWeight: '600',
-  },
-  imagesPreviewContainer: {
-    overflow: 'visible',
-    marginTop: 8,
-  },
-  imagesPreview: {
-    paddingTop: 12,
-    paddingBottom: 4,
-    paddingLeft: 4,
-  },
-  imagesPreviewContent: {
-    paddingRight: 16,
-  },
-  imageThumbContainer: {
-    position: 'relative',
-    marginRight: 16,
-  },
-  imageThumb: {
-    width: 80,
-    height: 80,
-    borderRadius: 8,
-    backgroundColor: '#EEE',
-  },
-  removeImageButton: {
-    position: 'absolute',
-    top: -10,
-    right: -10,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    width: 28,
-    height: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOpacity: 0.25,
-    shadowRadius: 3,
-    shadowOffset: { width: 0, height: 1 },
-    zIndex: 10,
-  },
-  imageCountText: {
-    marginTop: 8,
-    fontSize: 13,
-    color: '#666',
-    fontStyle: 'italic',
-  },
-  locationButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFF',
-    borderWidth: 1,
-    borderColor: '#DDD',
-    borderRadius: 8,
-    padding: 12,
-  },
-  locationButtonText: {
-    marginLeft: 8,
-    fontSize: 14,
-    color: '#333',
-  },
-  locationDisplay: {
-    backgroundColor: '#FFF',
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    borderRadius: 10,
-    padding: 12,
-  },
-  locationCoords: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 10,
-  },
-  locationCoordsText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1A1A1A',
-  },
-  changeLocationBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 10,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#FF8A00',
-    backgroundColor: '#FFF8F0',
-  },
-  changeLocationText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#FF8A00',
-  },
-
-  categoryGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    marginTop: 10,
-  },
-
-  categoryCard: {
-    width: '31%',       // 3 columns
-    padding: 14,
-    marginBottom: 12,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#DDD',
-    backgroundColor: '#FFF',
-    alignItems: 'center',
-  },
-
-  categoryCardSelected: {
-    backgroundColor: '#E3F2FD',
-    borderColor: '#2196F3',
-  },
-
-  categoryText: {
-    fontSize: 14,
-    color: '#333',
-    fontWeight: '500',
-    textAlign: 'center',
-  },
-
-  categoryTextSelected: {
-    color: '#2196F3',
-    fontWeight: '700',
-  },
-  modalOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
-  modalBox: {
-    width: '90%',
-    backgroundColor: '#FFF',
-    borderRadius: 12,
-    padding: 16,
-  },
-
-  modalTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    marginBottom: 12,
-  },
-
-  productRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 10,
-  },
-
-  productText: {
-    marginLeft: 10,
-    fontSize: 14,
-  },
-
-  modalActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 16,
-  },
-
-  okBtn: {
-    backgroundColor: '#2196F3',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-  },
-
-  popupOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.35)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 24,
-  },
-  popupCard: {
-    width: '100%',
-    maxWidth: 360,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: '#E6E6E6',
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 3,
-  },
-  popupTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1A1A1A',
-    marginBottom: 8,
-  },
-  popupMessage: {
-    fontSize: 14,
-    color: '#444444',
-    marginBottom: 16,
-  },
-  popupButton: {
-    alignSelf: 'flex-end',
-    backgroundColor: '#FF8A00',
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    borderRadius: 8,
-  },
-  popupButtonText: {
-    color: '#FFFFFF',
-    fontWeight: '600',
-    fontSize: 14,
-  },
-
-  // Business Timings section
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-    marginTop: 8,
-    paddingBottom: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#EEE',
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#333',
-    marginLeft: 8,
-  },
-  timeRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 16,
-  },
-  timeField: {
-    flex: 1,
-  },
-  timePickerBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFF',
-    borderWidth: 1,
-    borderColor: '#DDD',
-    borderRadius: 8,
-    padding: 12,
-    gap: 8,
-  },
-  timePickerText: {
-    fontSize: 14,
-    color: '#333',
-  },
-  dayChipsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  dayChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#DDD',
-    backgroundColor: '#FFF',
-  },
-  dayChipSelected: {
-    backgroundColor: '#FF8A00',
-    borderColor: '#FF8A00',
-  },
-  dayChipText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#555',
-  },
-  dayChipTextSelected: {
-    color: '#FFF',
-  },
-  timePickerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-    gap: 8,
-  },
-  timeColumn: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  timeColumnLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#888',
-    marginBottom: 8,
-  },
-  timeGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  timeGridItem: {
-    width: '22%',
-    paddingVertical: 10,
-    borderRadius: 8,
-    alignItems: 'center',
-    backgroundColor: '#F5F5F5',
-  },
-  timeScroll: {
-    maxHeight: 160,
-  },
-  timeOption: {
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 8,
-    marginBottom: 4,
-    alignItems: 'center',
-    backgroundColor: '#F5F5F5',
-  },
-  timeOptionSelected: {
-    backgroundColor: '#FF8A00',
-  },
-  timeOptionText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-  },
-  timeOptionTextSelected: {
-    color: '#FFF',
-  },
-
-  // Spinner Picker Styles
-  wheelPickerCard: {
-    width: '85%',
-    maxWidth: 320,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 24,
-    shadowColor: '#000',
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 8,
-  },
-  wheelPickerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1A1A1A',
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  wheelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  spinnerColumn: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  spinnerArrow: {
-    padding: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  spinnerValueBox: {
-    borderWidth: 1,
-    borderColor: '#DDD',
-    borderRadius: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    minWidth: 64,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FAFAFA',
-    marginVertical: 4,
-  },
-  spinnerValue: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#1A1A1A',
-  },
-  wheelColon: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#1A1A1A',
-    marginHorizontal: 2,
-  },
-  wheelActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-    marginTop: 24,
-    gap: 16,
-  },
-  wheelCancelBtn: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-  },
-  wheelCancelText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#666',
-  },
-  wheelSaveBtn: {
-    paddingVertical: 10,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#DDD',
-  },
-  wheelSaveText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#1A1A1A',
-  },
-
-
-
-});
 
 

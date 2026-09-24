@@ -36,8 +36,8 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useAuthStore } from '../store/authStore';
 import { LoginRequiredModal } from '../components/LoginRequiredModal';
 import { useLocationStore, LocationDetails } from '../store/locationStore';
-import { getProfileImage } from '../utils/profileImage';
 import { getPlans, getCategories, getAllNearbyShops, getMerchantImageByShopId, extractImageUrls } from '../utils/api';
+import { setNavShop } from '../utils/navCache';
 
 import {
   getUserLocationWithDetails,
@@ -47,6 +47,7 @@ import {
   isPlusCode,
 } from '../utils/location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import NotificationBell from '../components/NotificationBell';
 
 import { FontStylesWithFallback } from '../utils/fonts';
 import { formatDistance } from '../utils/formatDistance';
@@ -258,20 +259,18 @@ export default function UserDashboard() {
 
   const startNearbyAutoScroll = () => {
     if (nearbyAutoScrollRef.current) clearInterval(nearbyAutoScrollRef.current);
-    // Advance one card every 2.5s with a smooth native animation. The previous
-    // 30ms / 1px loop saturated the JS thread and made iOS terminate child
-    // press gestures on View All / Categories / Nearby Shops.
     nearbyAutoScrollRef.current = setInterval(() => {
       if (!nearbyScrollRef.current || nearbyShops.length === 0) return;
+      nearbyScrollPos.current += 1;
+      // Reset to start when scrolled past original list (seamless loop)
       const totalWidth = nearbyShops.length * MERCHANT_CARD_WIDTH;
-      nearbyScrollPos.current += MERCHANT_CARD_WIDTH;
       if (nearbyScrollPos.current >= totalWidth) {
         nearbyScrollPos.current = 0;
         nearbyScrollRef.current.scrollTo({ x: 0, animated: false });
       } else {
-        nearbyScrollRef.current.scrollTo({ x: nearbyScrollPos.current, animated: true });
+        nearbyScrollRef.current.scrollTo({ x: nearbyScrollPos.current, animated: false });
       }
-    }, 2500);
+    }, 30);
   };
 
   const stopNearbyAutoScroll = () => {
@@ -417,7 +416,7 @@ export default function UserDashboard() {
 
   const loadProfileImage = async () => {
     try {
-      const storedImage = await getProfileImage('customer');
+      const storedImage = await AsyncStorage.getItem('user_profile_image');
       if (storedImage) {
         setProfileImage(storedImage);
       }
@@ -523,12 +522,11 @@ export default function UserDashboard() {
         useNativeDriver: true,
       }).start();
     } else {
-      setShowDropdown(false);
       Animated.timing(dropdownAnim, {
         toValue: 0,
         duration: 160,
         useNativeDriver: true,
-      }).start();
+      }).start(() => setShowDropdown(false));
     }
   };
 
@@ -620,10 +618,7 @@ export default function UserDashboard() {
         message="Please log in to view your profile"
       />
       <View style={styles.container}>
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
+        <ScrollView showsVerticalScrollIndicator={false}>
           {/* Header */}
 
           <View style={styles.headerRow}>
@@ -652,9 +647,7 @@ export default function UserDashboard() {
 
             <View style={styles.headerIcons}>
 
-              <TouchableOpacity style={styles.iconCircle}>
-                <Ionicons name="notifications-outline" size={24} color="#475569" />
-              </TouchableOpacity>
+              <NotificationBell iconSize={24} iconColor="#475569" buttonStyle={styles.iconCircle} />
 
                 <TouchableOpacity
                   onPress={(e) => {
@@ -1113,17 +1106,17 @@ export default function UserDashboard() {
                       key={`merchant-${shop.id}-${index}`}
                       style={styles.merchantCard}
                       activeOpacity={0.9}
-                      onPress={() =>
+                      onPress={async () => {
+                        await setNavShop(shop);
                         router.push({
                           pathname: '/member-shop-details',
                           params: {
                             shopId: String(shop.id),
                             categoryId: '',
                             source: 'user',
-                            shopData: JSON.stringify(shop),
                           },
-                        })
-                      }
+                        });
+                      }}
                     >
                       <View style={styles.merchantImageWrapper}>
                         {imageUri ? (
@@ -1237,6 +1230,19 @@ export default function UserDashboard() {
             >
               <Ionicons name="person-outline" size={20} color="#FF8C00" />
               <Text style={styles.userPanelText}>My Account</Text>
+            </TouchableOpacity>
+
+            {/* MY ORDERS */}
+            <TouchableOpacity
+              style={styles.userPanelItem}
+              onPress={() => {
+                toggleDropdown();
+                router.push('/my-orders' as any);
+              }}
+              testID="user-menu-my-orders-btn"
+            >
+              <Ionicons name="receipt-outline" size={20} color="#FF8C00" />
+              <Text style={styles.userPanelText}>My Orders</Text>
             </TouchableOpacity>
 
             {/* BECOME A Customer */}

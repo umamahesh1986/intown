@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Platform, Dimensions } from '
 import { useRouter, usePathname } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
+import { useNotificationStore } from '../store/notificationStore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LoginRequiredModal } from './LoginRequiredModal';
@@ -43,6 +44,8 @@ export default function CommonBottomTabs({ tabs }: CommonBottomTabsProps) {
   const router = useRouter();
   const pathname = usePathname();
   const { user, isAuthenticated, isGuest } = useAuthStore();
+  const notifItems = useNotificationStore((s) => s.items);
+  const unreadFor = (link: string) => notifItems.filter((n) => !n.read && n.targetRoute === link).length;
   const [lastDashboard, setLastDashboard] = useState<string | null>(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const insets = useSafeAreaInsets();
@@ -142,18 +145,27 @@ export default function CommonBottomTabs({ tabs }: CommonBottomTabsProps) {
         
         // Fix: Explicitly cast the icon name to any for Ionicons compatibility
         const iconName = (isActive ? tab.icon : `${tab.icon}-outline`) as any;
+        const unread = unreadFor(tab.link);
 
         return (
           <TouchableOpacity 
             key={tab.name} 
             style={styles.tabItem} 
             onPress={() => handleTabPress(tab)}
+            testID={`bottom-tab-${tab.name.toLowerCase()}`}
           >
-            <Ionicons 
-              name={iconName} 
-              size={24} 
-              color={isActive ? INTOWN_ORANGE : '#666'} 
-            />
+            <View style={styles.iconWrap}>
+              <Ionicons 
+                name={iconName} 
+                size={24} 
+                color={isActive ? INTOWN_ORANGE : '#666'} 
+              />
+              {unread > 0 && (
+                <View style={styles.tabBadge} testID={`bottom-tab-badge-${tab.name.toLowerCase()}`}>
+                  <Text style={styles.tabBadgeText}>{unread > 9 ? '9+' : unread}</Text>
+                </View>
+              )}
+            </View>
             <Text style={[styles.tabLabel, { color: isActive ? INTOWN_ORANGE : '#666' }]}>
               {tab.name}
             </Text>
@@ -179,5 +191,21 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   tabItem: { alignItems: 'center', flex: 1 },
+  iconWrap: { position: 'relative' },
+  tabBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -10,
+    minWidth: 18,
+    height: 18,
+    paddingHorizontal: 4,
+    borderRadius: 9,
+    backgroundColor: '#D32F2F',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tabBadgeText: { color: '#FFFFFF', fontSize: 10, fontWeight: '800', lineHeight: 12 },
   tabLabel: { fontSize: 10, marginTop: 4, fontWeight: '700' }
 });

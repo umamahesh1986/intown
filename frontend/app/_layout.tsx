@@ -18,6 +18,8 @@ import { useLocationStore } from '../store/locationStore';
 import { getUserLocationWithDetails } from '../utils/location';
 import CommonBottomTabs from '../components/CommonBottomTabs';
 import ForceUpdateModal from '../components/ForceUpdateModal';
+import OrderNotificationPoller from '../components/OrderNotificationPoller';
+import PushNotificationBridge from '../components/PushNotificationBridge';
 import { Fonts } from '../utils/fonts';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -140,33 +142,40 @@ export default function RootLayout() {
     '/member-card',
     '/near-by',
     '/savings',
-    '/plans'
+    '/plans',
+    '/merchant-orders',
+    '/my-orders'
   ].includes(pathname);
 
   // Check if user is merchant (by current path, last dashboard, or user type)
   const isMerchant = 
     pathname === '/merchant-dashboard' || 
+    pathname === '/merchant-orders' ||
     lastDashboard === '/merchant-dashboard' ||
     user?.userType?.toLowerCase() === 'merchant' ||
     user?.userType?.toLowerCase() === 'in_merchant';
 
-  // Define tabs - filter out Savings and Plans for merchant
-  const allTabs = [
+  // Define tabs — merchants see: Home, Orders, Profile. Customers/members: Home, Savings, Privilege, Profile.
+  const merchantTabs = [
+    { name: 'Home', icon: 'home', link: '/merchant-dashboard' },
+    { name: 'Orders', icon: 'receipt', link: '/merchant-orders' },
+    { name: 'Profile', icon: 'person', link: '/account' },
+  ];
+  const customerTabs = [
     { name: 'Home', icon: 'home', link: '/user-dashboard' },
     { name: 'Savings', icon: 'wallet', link: '/savings' },
     { name: 'Privilege', icon: 'pricetag', link: '/plans' },
     { name: 'Profile', icon: 'person', link: '/account' },
   ];
 
-  const tabs = isMerchant 
-    ? allTabs.filter(tab => tab.name !== 'Savings' && tab.name !== 'Privilege')
-    : allTabs;
+  const tabs = isMerchant ? merchantTabs : customerTabs;
 
   return (
     <View style={{ flex: 1, backgroundColor: '#FFFFFF', ...(Platform.OS === 'web' ? { minHeight: '100vh' } : {}) } as any}>
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" />
         <Stack.Screen name="location" />
+        <Stack.Screen name="promo-carousel" />
         <Stack.Screen name="login" />
         <Stack.Screen name="otp" />
         <Stack.Screen name="user-dashboard" />
@@ -176,7 +185,6 @@ export default function RootLayout() {
         <Stack.Screen name="member-dashboard" />
         <Stack.Screen name="merchant-dashboard" />
         <Stack.Screen name="dual-dashboard" />
-        <Stack.Screen name="search" />
         <Stack.Screen name="member-shop-list" />
         <Stack.Screen name="member-shop-details" />
         <Stack.Screen name="member-navigate" />
@@ -189,6 +197,8 @@ export default function RootLayout() {
         <Stack.Screen name="plans" />
         <Stack.Screen name="checkout" />
         <Stack.Screen name="payment-history" />
+        <Stack.Screen name="my-orders" />
+        <Stack.Screen name="merchant-orders" />
       </Stack>
 
       {/* Conditionally render the bar with dynamic tabs */}
@@ -198,6 +208,12 @@ export default function RootLayout() {
 
       {/* Force Update Modal — checks Play Store / App Store version on mount */}
       <ForceUpdateModal />
+
+      {/* Background 15s poller — bell notifications for merchants (new orders) & customers (status updates) on every screen */}
+      <OrderNotificationPoller />
+
+      {/* Expo push: token registration, foreground mirroring into the bell, tap deep-links */}
+      <PushNotificationBridge />
     </View>
   );
 }

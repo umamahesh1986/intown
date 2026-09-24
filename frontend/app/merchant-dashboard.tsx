@@ -22,13 +22,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
 import { useLocationStore } from '../store/locationStore';
-import { getProfileImage } from '../utils/profileImage';
 import {
   getUserLocationWithDetails,
   searchLocations,
   setManualLocation
 } from '../utils/location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import NotificationBell from '../components/NotificationBell';
 import { INTOWN_API_BASE } from '../utils/api';
 import Footer from '../components/Footer'
 import { useFocusEffect } from '@react-navigation/native';
@@ -239,7 +239,7 @@ export default function MerchantDashboard() {
         try {
           const storedProfileImage =
             (await AsyncStorage.getItem('merchant_profile_image')) ??
-            (await getProfileImage('merchant'));
+            (await AsyncStorage.getItem('user_profile_image'));
           if (storedProfileImage && isActive) {
             setProfileImage(storedProfileImage);
           }
@@ -384,7 +384,7 @@ export default function MerchantDashboard() {
         }
         const storedProfileImage =
           (await AsyncStorage.getItem('merchant_profile_image')) ??
-          (await getProfileImage('merchant'));
+          (await AsyncStorage.getItem('user_profile_image'));
         if (storedProfileImage && isMounted) {
           setProfileImage(storedProfileImage);
         }
@@ -424,7 +424,7 @@ export default function MerchantDashboard() {
     try {
       const storedProfileImage =
         (await AsyncStorage.getItem('merchant_profile_image')) ??
-        (await getProfileImage('merchant'));
+        (await AsyncStorage.getItem('user_profile_image'));
       const storedImagesRaw = await AsyncStorage.getItem('merchant_shop_images');
       if (storedImagesRaw) {
         try {
@@ -621,22 +621,18 @@ export default function MerchantDashboard() {
   };
 
   const closeDropdown = () => {
-    setShowDropdown(false);
     Animated.timing(dropdownAnim, {
       toValue: 0,
       duration: 150,
       useNativeDriver: true,
-    }).start();
+    }).start(() => setShowDropdown(false));
   };
 
 
   return (
     <ErrorBoundary fallbackText="Merchant Dashboard Error">
     <SafeAreaView style={styles.container}>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      >
+      <ScrollView showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
 
@@ -661,9 +657,7 @@ export default function MerchantDashboard() {
           <View style={styles.headerIcons}>
 
             {/* Notification */}
-            <TouchableOpacity style={styles.notificationIconBtn}>
-              <Ionicons name="notifications-outline" size={22} color="#333" />
-            </TouchableOpacity>
+            <NotificationBell iconSize={22} iconColor="#333" buttonStyle={styles.notificationIconBtn} />
 
             {/* Profile */}
             <TouchableOpacity
@@ -854,7 +848,7 @@ export default function MerchantDashboard() {
               <View key={sale.transactionId} style={styles.transactionRow}>
                 {/* Left: Customer Info */}
                 <View style={{ flex: 1.5 }}>
-                  <Text style={styles.transactionMerchant} numberOfLines={1}>{sale.customerName || (sale as any).customerContactName || (sale as any).customer?.contactName || 'Unknown'}</Text>
+                  <Text style={styles.transactionMerchant} numberOfLines={1}>{sale.customerName}</Text>
                   <Text style={styles.transactionDate}>{sale.customerPhone}</Text>
                   <Text style={[styles.transactionDate, { color: '#bbb' }]}>
                     {formatTransactionDate(sale.transactionDate)}
@@ -947,6 +941,19 @@ export default function MerchantDashboard() {
             <Text style={styles.userPanelText}>My Account</Text>
           </TouchableOpacity>
 
+          {/* CUSTOMER ORDERS (merchant view) */}
+          <TouchableOpacity
+            style={styles.userPanelItem}
+            onPress={() => {
+              closeDropdown();
+              router.push('/merchant-orders' as any);
+            }}
+            testID="merchant-menu-orders-btn"
+          >
+            <Ionicons name="receipt-outline" size={22} color="#FF8A00" />
+            <Text style={styles.userPanelText}>Customer Orders</Text>
+          </TouchableOpacity>
+
           {/* BECOME A Customer */}
           <TouchableOpacity
               style={styles.userPanelItem}
@@ -1018,7 +1025,7 @@ export default function MerchantDashboard() {
                   <View key={`all-${sale.transactionId}`} style={styles.transactionRow}>
                     <View style={styles.transactionLeft}>
                       <Text style={styles.transactionMerchant} numberOfLines={1}>
-                        {sale.customerName || (sale as any).customerContactName || (sale as any).customer?.contactName || 'Unknown'}
+                        {sale.customerName}
                       </Text>
                       <Text style={styles.transactionDate}>
                         {sale.customerPhone}

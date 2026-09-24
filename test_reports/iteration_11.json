@@ -1,0 +1,54 @@
+{
+  "summary": "Frontend-only verification of the PaymentModal wiring on /my-orders 'I Picked Up My Order' button. Source, built bundle, and rendered smoke test all confirm the two-step flow (open PaymentModal → onSuccess calls confirmCustomerOrderReceived and switches to COMPLETED tab). No customer auth available so full runtime flow was not exercised, per request.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "/my-orders", "issues": ["Pre-existing (from iteration_9) — 2 minified React #418 hydration warnings appear as pageerrors. Not blocking, unrelated to this change."]}
+    ]
+  },
+  "verification_details": {
+    "source_check": {
+      "import_PaymentModal": "line 10: import PaymentModal from '../components/PaymentModal' ✓",
+      "paymentOrder_state": "line 52: useState<PickupOrder|null> ✓",
+      "handleOpenPayment": "line 66-68: sets paymentOrder ✓",
+      "button_wired_to_open_modal": "line 294: onConfirmPickup={handleOpenPayment} (no direct API call) ✓",
+      "onSuccess_calls_confirm_and_switches_tab": "line 71-94 handlePickupConfirm calls confirmCustomerOrderReceived(customerId, order.pickup_id) then setActiveTab('COMPLETED') ✓",
+      "modal_props": "line 336-350: visible, onClose, onSuccess, merchantId=paymentOrder.merchantId, customerId, merchantName fallback, redirectTo='/my-orders' ✓",
+      "testID_preserved": "confirm-pickup-btn-{pickup_id} on line 436 ✓"
+    },
+    "bundle_check": {
+      "file": "/app/frontend/dist/_expo/static/js/web/entry-c6776c744e678afe5360227557cc6ad6.js",
+      "I_Picked_Up_My_Order_occurrences": 1,
+      "my-orders_string_occurrences": 6,
+      "confirm-pickup-btn_present": true
+    },
+    "rendered_smoke": {
+      "url": "https://github-intown-app.preview.emergentagent.com/my-orders",
+      "5_tabs_found": ["PLACED", "ACCEPTED", "PICKUP_READY", "COMPLETED", "ENDED"],
+      "empty_state_shown": "Please log in as a customer to view your orders.",
+      "console_errors": 0,
+      "page_errors": "2x React #418 hydration (pre-existing, tracked from iteration_9)"
+    },
+    "regression": {
+      "merchant-orders.tsx": "Still imports/uses performMerchantOrderAction and confirmMerchantOrderDelivery — untouched ✓",
+      "member-shop-details.tsx & member-navigate.tsx": "PaymentModal usage unchanged; onSuccess/redirectTo signature compatible (signature = (amount, savings, paymentMethod) => void) ✓"
+    },
+    "PaymentModal_signature_compat": "onSuccess in my-orders ignores the (amount,savings,paymentMethod) args and calls handlePaymentSuccess(orderRef) — compatible."
+  },
+  "test_report_links": ["/app/test_reports/screenshots/my-orders-smoke.png"],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Minor: In my-orders.tsx line 96-99, handlePaymentSuccess is a thin wrapper that only calls handlePickupConfirm. Could inline it, but not blocking.",
+    "Note: PaymentModal also calls router.replace(redirectTo) after onSuccess (line 206/260). Since redirectTo='/my-orders' and user is already on /my-orders, this is a no-op — good.",
+    "Pre-existing (P2): React #418 hydration warnings still present on /my-orders — same as observed on /merchant-orders in iteration_9. Non-blocking."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (skipped per request)", "frontend": "100% (all verifiable checks pass)"},
+  "test_credentials": "None — no OTP-based customer login possible in this env, per request",
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "PaymentModal wiring on /my-orders is verified at source + bundle + DOM. To do a true end-to-end validation of the button → modal → Submit → UPI/Cash → confirmCustomerOrderReceived flow, an authenticated customer session with an order in PICKUP_READY status is required (not available in this environment). The 2 React #418 hydration warnings are pre-existing (iteration_9) and not caused by this change."
+}

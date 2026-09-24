@@ -1,0 +1,25 @@
+{
+  "summary": "Verified fix for Expo Router 404 on /my-orders and /merchant-orders. Both routes now render correctly with expected page titles and tab chips. No 'Unmatched Route' fallback text present.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "MyOrders / CustomerOrders tab bar", "issues": ["Status tab chips render as very tall vertical bars (~700px height) instead of a compact horizontal tab strip. Likely a flex/height style issue on the tabs container. Not part of routing fix, but worth main agent attention."]}
+    ]
+  },
+  "test_report_links": [],
+  "action_items": [
+    "Optional: review the tab-chip styling on my-orders.tsx and merchant-orders.tsx — chips currently expand vertically to fill remaining space instead of sitting in a horizontal tab bar."
+  ],
+  "critical_code_review_comments": [
+    "Registering each new route in _layout.tsx Stack.Screen is easy to forget. Consider using file-based auto-registration or adding a lint/test to ensure every app/*.tsx page has a corresponding Stack.Screen entry."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A", "frontend": "100%"},
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Routing fix verified on mobile viewport (390x844) against preview URL. /my-orders shows title 'My Orders' with tabs Placed/Accepted/Ready/Completed and 'Loading your orders...'; /merchant-orders shows 'Customer Orders' with tabs New/Accepted/Ready/Completed and 'Loading orders...'. Neither shows Unmatched Route fallback. Note the request mentioned 'Pickup Ready' but the actual label rendered is 'Ready' — appears intentional in code.",
+  "rca of the issue": "Expo Router in this project uses explicit <Stack.Screen name=...> declarations in app/_layout.tsx. Newly added screens my-orders.tsx and merchant-orders.tsx were not listed, so the router fell back to the Unmatched Route (404) screen. Fix: added Stack.Screen entries for both names. Verified by direct navigation to both URLs on the external preview host."
+}

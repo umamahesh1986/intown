@@ -5,7 +5,7 @@ interface User {
   id: string;
   name: string;
   phone: string;
-  userType: 'user' | 'member' | 'merchant' | 'dual' | null;
+  userType: 'user' | 'member' | 'merchant' | null; // user type tracking
   membershipPlan?: string;
 }
 
@@ -16,7 +16,7 @@ interface AuthState {
   isGuest: boolean;
   setUser: (user: User | null) => void;
   setToken: (token: string | null) => void;
-  setUserType: (userType: 'user' | 'member' | 'merchant' | 'dual') => void;
+  setUserType: (userType: 'user' | 'member' | 'merchant') => void;
   logout: () => Promise<void>;
   loadAuth: () => Promise<void>;
   updateProfile: (data: { name: string }) => void;
