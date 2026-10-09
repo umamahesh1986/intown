@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getActiveSpecialOffers, formatOfferValidTill } from '../utils/specialOffer';
+import { getTrendingTaps } from '../utils/offerAnalytics';
 
 interface DealsStripProps {
   shops: any[];
@@ -10,12 +11,34 @@ interface DealsStripProps {
 
 const formatKm = (d: any) => (typeof d === 'number' && isFinite(d) ? `${d.toFixed(1)} km` : '');
 
-// Horizontal "Deals near you" row for the member home — only shops with an active special offer.
+// Horizontal "Deals near you" row for the member home — only shops with an active special offer,
+// ranked by taps in the last 7 days (trending first), then by the original (distance) order.
 export const DealsStrip = ({ shops, onPressShop }: DealsStripProps) => {
-  const deals = (shops || [])
-    .map((s) => ({ shop: s, offers: getActiveSpecialOffers(s) }))
-    .filter((d) => d.offers.length > 0);
+  const baseDeals = useMemo(
+    () =>
+      (shops || [])
+        .map((s) => ({ shop: s, offers: getActiveSpecialOffers(s) }))
+        .filter((d) => d.offers.length > 0),
+    [shops],
+  );
+  const idsKey = baseDeals.map((d) => String(d.shop.id)).join(',');
+  const [taps, setTaps] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    if (!idsKey) return;
+    let alive = true;
+    getTrendingTaps(idsKey.split(',')).then((t) => alive && setTaps(t));
+    return () => {
+      alive = false;
+    };
+  }, [idsKey]);
+
+  const deals = useMemo(
+    () => [...baseDeals].sort((a, b) => (taps[String(b.shop.id)] || 0) - (taps[String(a.shop.id)] || 0)),
+    [baseDeals, taps],
+  );
   if (deals.length === 0) return null;
+  const topTaps = taps[String(deals[0].shop.id)] || 0;
 
   return (
     <View style={styles.section} testID="deals-strip">
@@ -29,13 +52,15 @@ export const DealsStrip = ({ shops, onPressShop }: DealsStripProps) => {
         </View>
       </View>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
-        {deals.map(({ shop, offers }) => {
+        {deals.map(({ shop, offers }, idx) => {
           const name = shop.businessName || shop.shopName || shop.name || 'Shop';
           const validTill = formatOfferValidTill(shop);
+          const shopTaps = taps[String(shop.id)] || 0;
+          const trending = idx === 0 && topTaps > 0;
           return (
             <TouchableOpacity
               key={String(shop.id)}
-              style={styles.card}
+              style={[styles.card, trending && styles.cardTrending]}
               activeOpacity={0.9}
               onPress={() => onPressShop(shop)}
               testID={`deal-card-${shop.id}`}
@@ -52,6 +77,12 @@ export const DealsStrip = ({ shops, onPressShop }: DealsStripProps) => {
                   <Ionicons name="pricetag" size={10} color="#FFF" />
                   <Text style={styles.tagText}>{offers.length > 1 ? `${offers.length} offers` : 'Offer'}</Text>
                 </View>
+                {trending && (
+                  <View style={styles.trendingTag} testID={`deal-trending-${shop.id}`}>
+                    <Ionicons name="flame" size={11} color="#FFF" />
+                    <Text style={styles.trendingText}>Trending</Text>
+                  </View>
+                )}
               </View>
               <View style={styles.body}>
                 <Text style={styles.offer} numberOfLines={2}>{offers[0]}</Text>
@@ -62,7 +93,11 @@ export const DealsStrip = ({ shops, onPressShop }: DealsStripProps) => {
                       <Ionicons name="location-outline" size={11} color="#888" /> {formatKm(shop.distance)}
                     </Text>
                   )}
-                  {!!validTill && <Text style={styles.metaValid}>till {validTill}</Text>}
+                  {shopTaps > 0 ? (
+                    <Text style={styles.metaTaps} testID={`deal-taps-${shop.id}`}>{shopTaps} tapped this week</Text>
+                  ) : (
+                    !!validTill && <Text style={styles.metaValid}>till {validTill}</Text>
+                  )}
                 </View>
               </View>
             </TouchableOpacity>
@@ -94,6 +129,21 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 2,
   },
+  cardTrending: { borderColor: '#FF8A00', borderWidth: 1.5 },
+  trendingTag: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#FF6D00',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+  },
+  trendingText: { color: '#FFF', fontSize: 10, fontWeight: '800' },
+  metaTaps: { fontSize: 11, color: '#FF6D00', fontWeight: '700' },
   imageWrap: { height: 96, backgroundColor: '#F1F8E9', position: 'relative' },
   image: { width: '100%', height: '100%' },
   imagePlaceholder: { flex: 1, alignItems: 'center', justifyContent: 'center' },

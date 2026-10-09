@@ -203,6 +203,12 @@
 - New shared `components/NearbyMerchantCard.tsx` (replaces duplicated card JSX in both dashboards): special-offer merchants get an orange "SPECIAL OFFER" ribbon, green frame + glow, "Deal / N deals" pill, tinted image, green category badge, and an offer box (first offer + "Valid till"). Regular cards unchanged. `sortSpecialOffersFirst()` puts offer merchants first in the auto-scrolling list; taps on them record `TAP` (`shop_list`). testIDs `nearby-merchant-{id}-{i}`, `nearby-merchant-ribbon-{id}`.
 - Verified on preview with live data (2 merchants with offers highlighted & first).
 
+### Session 21 (Jun 2026) - Pulse glow on offer cards + trending sort for Deals strip
+- `NearbyMerchantCard`: special-offer cards wrapped in an `Animated.View` with a looping (2.2s) glow layer (opacity 0.15→0.75, scale 1→1.035) and a subtle card breathe (1→1.012); RN `Animated` with native driver on device. testID `nearby-merchant-pulse-{id}`.
+- Backend `GET /api/offer-analytics/trending?merchantIds=a,b&days=7 → {taps: {id: n}}` (Mongo aggregate on `offer_events`).
+- `DealsStrip`: fetches taps for the deal merchants (`getTrendingTaps`) and sorts by taps desc (ties keep distance order); top card with taps>0 gets an orange border + "Trending" flame tag; cards show "N tapped this week" (falls back to "till {date}").
+- Verified on preview: Uma Grocery (3 taps) ranked before Vinod Grocery (2 taps) with Trending tag; pulse animation running (6 animated wrappers).
+
 ## Backlog
 
 - P1: Test full end-to-end login with real OTP on mobile device

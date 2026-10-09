@@ -1,8 +1,25 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Image, Animated, Easing, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { extractImageUrls } from '../utils/api';
 import { getActiveSpecialOffers, formatOfferValidTill } from '../utils/specialOffer';
+
+// Subtle looping glow + breathe used behind special-offer cards.
+const usePulse = (enabled: boolean) => {
+  const pulse = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (!enabled) return;
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 1, duration: 1100, easing: Easing.inOut(Easing.sin), useNativeDriver: Platform.OS !== 'web' }),
+        Animated.timing(pulse, { toValue: 0, duration: 1100, easing: Easing.inOut(Easing.sin), useNativeDriver: Platform.OS !== 'web' }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [enabled, pulse]);
+  return pulse;
+};
 
 interface Props {
   shop: any;
@@ -27,8 +44,16 @@ export const NearbyMerchantCard = ({ shop, onPress, testID }: Props) => {
   const special = offers.length > 0;
   const validTill = special ? formatOfferValidTill(shop) : '';
   const offerText = shop.offer || '';
+  const pulse = usePulse(special);
+  const glowOpacity = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.15, 0.75] });
+  const glowScale = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.035] });
+  const cardScale = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.012] });
 
   return (
+    <Animated.View style={[styles.wrap, special && { transform: [{ scale: cardScale }] }]} testID={special ? `nearby-merchant-pulse-${shop.id}` : undefined}>
+      {special && (
+        <Animated.View pointerEvents="none" style={[styles.glow, { opacity: glowOpacity, transform: [{ scale: glowScale }] }]} />
+      )}
     <TouchableOpacity
       style={[styles.card, special && styles.cardSpecial]}
       activeOpacity={0.9}
@@ -89,6 +114,7 @@ export const NearbyMerchantCard = ({ shop, onPress, testID }: Props) => {
         ) : null}
       </View>
     </TouchableOpacity>
+    </Animated.View>
   );
 };
 
@@ -96,6 +122,23 @@ const GREEN = '#2E7D32';
 const ORANGE = '#FF8A00';
 
 const styles = StyleSheet.create({
+  wrap: { width: 220, position: 'relative' },
+  glow: {
+    position: 'absolute',
+    top: -4,
+    left: -4,
+    right: -4,
+    bottom: -4,
+    borderRadius: 18,
+    borderWidth: 3,
+    borderColor: '#66BB6A',
+    backgroundColor: 'rgba(102, 187, 106, 0.10)',
+    shadowColor: '#2E7D32',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.9,
+    shadowRadius: 14,
+    elevation: 8,
+  },
   card: {
     width: 220,
     backgroundColor: '#FFF',

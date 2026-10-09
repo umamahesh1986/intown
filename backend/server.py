@@ -83,6 +83,20 @@ async def create_offer_event(input: OfferEventCreate):
     return {"ok": True, "id": doc["id"]}
 
 
+@api_router.get("/offer-analytics/trending")
+async def get_trending_offers(merchantIds: str = Query(..., description="comma-separated"), days: int = Query(7, ge=1, le=90)):
+    ids = [m.strip() for m in merchantIds.split(",") if m.strip()]
+    if not ids:
+        return {"days": days, "taps": {}}
+    since_day = (datetime.now(timezone.utc) - timedelta(days=days - 1)).strftime("%Y-%m-%d")
+    pipeline = [
+        {"$match": {"merchantId": {"$in": ids}, "eventType": "TAP", "day": {"$gte": since_day}}},
+        {"$group": {"_id": "$merchantId", "taps": {"$sum": 1}}},
+    ]
+    rows = await db.offer_events.aggregate(pipeline).to_list(len(ids))
+    return {"days": days, "taps": {r["_id"]: r["taps"] for r in rows}}
+
+
 @api_router.get("/offer-analytics/{merchant_id}", response_model=OfferAnalytics)
 async def get_offer_analytics(merchant_id: str, days: int = Query(7, ge=1, le=90)):
     since = datetime.now(timezone.utc) - timedelta(days=days - 1)

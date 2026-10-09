@@ -19,6 +19,22 @@ export interface OfferAnalytics {
 
 const sent = new Set<string>();
 
+// Tap counts (last `days`) for a set of merchants — used to rank "Deals near you". {} on failure.
+export const getTrendingTaps = async (merchantIds: (string | number)[], days = 7): Promise<Record<string, number>> => {
+  const ids = merchantIds.map(String).filter(Boolean);
+  if (ids.length === 0) return {};
+  try {
+    const res = await fetch(`${ANALYTICS_BASE}/offer-analytics/trending?merchantIds=${encodeURIComponent(ids.join(','))}&days=${days}`, {
+      headers: { Accept: 'application/json' },
+    });
+    if (!res.ok) return {};
+    const json = await res.json();
+    return json?.taps || {};
+  } catch {
+    return {};
+  }
+};
+
 // Fire-and-forget; de-duped per merchant/type/source for the app session so re-renders don't inflate counts.
 export const trackOfferEvent = async (
   merchantId: string | number | undefined | null,
