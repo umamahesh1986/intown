@@ -85,7 +85,7 @@ const styles = StyleSheet.create({
   statLabel: { fontSize: 11, color: '#777' },
   bars: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: 12, paddingHorizontal: 4 },
   barCol: { alignItems: 'center', gap: 4, flex: 1 },
-  bar: { width: 14, borderRadius: 4, backgroundColor: '#2E7D32' },
+  bar: { width: 14, borderRadius: 4, backgroundColor: '#FF8A00' },
   barLabel: { fontSize: 10, color: '#888' },
   unavailable: { fontSize: 12, color: '#777', paddingVertical: 8 },
 });

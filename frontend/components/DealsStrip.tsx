@@ -110,7 +110,7 @@ export const DealsStrip = ({ shops, onPressShop }: DealsStripProps) => {
 };
 
 const styles = StyleSheet.create({
-  section: { marginBottom: 24, padding: 16, borderRadius: 16 },
+  section: { marginTop: 24, marginBottom: 24, padding: 16, borderRadius: 16 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   title: { fontSize: 16, fontWeight: '700', color: '#1A1A1A' },
@@ -155,14 +155,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: 'rgba(46,125,50,0.95)',
+    backgroundColor: '#FF8A00',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 999,
   },
   tagText: { color: '#FFF', fontSize: 10, fontWeight: '800' },
   body: { padding: 12, gap: 4 },
-  offer: { fontSize: 14, fontWeight: '800', color: '#FF8A00', lineHeight: 19, minHeight: 38 },
+  offer: { fontSize: 12, fontWeight: '700', color: '#FF8A00', lineHeight: 19, minHeight: 38 },
   shop: { fontSize: 13, fontWeight: '600', color: '#1A1A1A' },
   metaRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 2 },
   meta: { fontSize: 11, color: '#888' },

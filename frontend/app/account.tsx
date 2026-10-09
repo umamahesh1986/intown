@@ -1593,7 +1593,7 @@ const styles = StyleSheet.create({
   shareRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
   shareBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 999 },
   shareWhatsApp: { backgroundColor: '#25D366' },
-  shareImage: { backgroundColor: '#2E7D32' },
+  shareImage: { backgroundColor: '#FF8A00' },
   shareMore: { backgroundColor: '#E8F5E9' },
   shareBtnText: { color: '#FFF', fontWeight: '700', fontSize: 13 },
   offscreen: { position: 'absolute', left: -5000, top: 0, opacity: 0 },

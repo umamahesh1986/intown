@@ -52,17 +52,13 @@ export const NearbyMerchantCard = ({ shop, onPress, testID }: Props) => {
   const cardScale = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.012] });
 
   return (
-    <Animated.View style={[styles.wrap, special && { transform: [{ scale: cardScale }] }]} testID={special ? `nearby-merchant-pulse-${shop.id}` : undefined}>
-      {special && (
-        <Animated.View pointerEvents="none"  />
-      )}
+    <Animated.View style={styles.wrap} testID={special ? `nearby-merchant-pulse-${shop.id}` : undefined}>
     <TouchableOpacity
       style={[styles.card, special && styles.cardSpecial]}
       activeOpacity={0.9}
       onPress={() => onPress(shop)}
       testID={testID ?? `nearby-merchant-${shop.id}`}
     >
-      {special && <View style={styles.topBar} />}
       <View style={styles.imageWrapper}>
         {heroUri ? (
           <Image source={{ uri: heroUri }} style={styles.image} resizeMode="cover" testID={offerImage ? `nearby-merchant-offer-image-${shop.id}` : undefined} />
@@ -233,6 +229,6 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   specialRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 6 },
-  specialText: { flex: 1, fontSize: 12.5, fontWeight: '800', color: GREEN, lineHeight: 17 },
-  specialValid: { fontSize: 10.5, color: '#558B2F', fontWeight: '600', marginLeft: 20 },
+  specialText: { flex: 1, fontSize: 10, fontWeight: '600', color: GREEN, lineHeight: 17 },
+  specialValid: { fontSize: 10, color: '#558B2F', fontWeight: '600', marginLeft: 20 },
 });
