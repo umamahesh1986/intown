@@ -198,6 +198,11 @@
   - `components/OfferAnalyticsCard.tsx` in My Account → Offer (view mode, when offers exist): Views / Taps / Customers (unique viewers) for last 7 days + 7-day mini bars; "Analytics unavailable" if backend unreachable.
 - Verified end-to-end on preview: strip shows 1 deal → tap (TAP) → shop details (VIEW) → merchant card shows 1/1/1.
 
+### Session 20 (Jun 2026) - Remove Recent Transactions (customer) + highlighted special-offer merchant cards
+- Removed "Recent Transactions" from `member-dashboard` and from the **customer tab** of `dual-dashboard` (merchant tab keeps it). Dual dashboard customer tab now also shows the `DealsStrip`.
+- New shared `components/NearbyMerchantCard.tsx` (replaces duplicated card JSX in both dashboards): special-offer merchants get an orange "SPECIAL OFFER" ribbon, green frame + glow, "Deal / N deals" pill, tinted image, green category badge, and an offer box (first offer + "Valid till"). Regular cards unchanged. `sortSpecialOffersFirst()` puts offer merchants first in the auto-scrolling list; taps on them record `TAP` (`shop_list`). testIDs `nearby-merchant-{id}-{i}`, `nearby-merchant-ribbon-{id}`.
+- Verified on preview with live data (2 merchants with offers highlighted & first).
+
 ## Backlog
 
 - P1: Test full end-to-end login with real OTP on mobile device
