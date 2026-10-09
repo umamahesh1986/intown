@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
+import { LoginRequiredModal } from '../components/LoginRequiredModal';
 import { getPlans } from '../utils/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -43,11 +44,13 @@ interface Plan {
 
 export default function Plans() {
   const router = useRouter();
-  const { user } = useAuthStore();
+  const { user, isAuthenticated, isGuest } = useAuthStore();
+  const [showLoginModal, setShowLoginModal] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [selectedPlan, setSelectedPlan] = useState<number | null>(null);
+  const [activePlanId, setActivePlanId] = useState<number | null>(null);
   const [isRegularUser, setIsRegularUser] = useState(false);
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
 
@@ -68,24 +71,60 @@ export default function Plans() {
     checkUserType();
   }, [user]);
 
+  // Restore the previously activated plan so it shows as ACTIVE / orange-filled
+  // when the user revisits this screen.
+  useEffect(() => {
+    (async () => {
+      try {
+        const stored = await AsyncStorage.getItem('active_plan_id');
+        if (stored) {
+          const id = Number(stored);
+          if (Number.isFinite(id)) {
+            setActivePlanId(id);
+            setSelectedPlan(id);
+          }
+        }
+      } catch {}
+    })();
+  }, []);
+
   const fetchPlans = async () => {
     try {
       const plansData = await getPlans();
+      let resolved: Plan[];
       if (plansData && Array.isArray(plansData) && plansData.length > 0) {
-        setPlans(plansData);
+        resolved = plansData;
       } else {
         // Fallback plans if API doesn't return data or returns empty
-        setPlans(getDefaultPlans());
+        resolved = getDefaultPlans();
       }
+      // iOS: Razorpay is not supported. Force all plans to Free + CTA "Activate"
+      // so users can register/login/use the app without any payment.
+      if (isIOS) {
+        resolved = resolved.map((p) => ({
+          ...p,
+          price: 0,
+          duration: 'Free',
+          cta: 'Activate',
+        }));
+      }
+      setPlans(resolved);
     } catch (error) {
       console.error('Error fetching plans:', error);
       // Set fallback plans on error
-      setPlans(getDefaultPlans());
+      const fallback = getDefaultPlans();
+      setPlans(
+        isIOS
+          ? fallback.map((p) => ({ ...p, price: 0, duration: 'Free', cta: 'Activate' }))
+          : fallback
+      );
     } finally {
       setIsLoading(false);
       setRefreshing(false);
     }
   };
+
+  const isIOS = Platform.OS === 'ios';
 
   const getDefaultPlans = (): Plan[] => [
     // {
@@ -170,6 +209,38 @@ export default function Plans() {
   };
 
   const handleSubscribe = (plan: Plan) => {
+    // Subscribing is an account-based action — guests/unauthenticated users
+    // must log in first, even though browsing plans itself is unrestricted.
+    if (isGuest || !isAuthenticated) {
+      setShowLoginModal(true);
+      return;
+    }
+
+    // Don't re-activate the already-active plan — its CTA reads "ACTIVE" only.
+    if (activePlanId === plan.id) return;
+
+    // iOS — no Razorpay/checkout. Mark the plan as active locally and go back
+    // to the dashboard so the user can use the app immediately.
+    if (isIOS) {
+      (async () => {
+        try {
+          await AsyncStorage.multiSet([
+            ['active_plan_id', String(plan.id)],
+            ['ios_active_plan', JSON.stringify({
+              planId: plan.id,
+              planName: plan.name,
+              activatedAt: new Date().toISOString(),
+            })],
+          ]);
+          setActivePlanId(plan.id);
+        } catch {}
+        router.back();
+      })();
+      return;
+    }
+    // Non-iOS: remember the choice locally; checkout will persist on success.
+    AsyncStorage.setItem('active_plan_id', String(plan.id)).catch(() => {});
+    setActivePlanId(plan.id);
     router.push({
       pathname: '/checkout',
       params: {
@@ -202,6 +273,11 @@ export default function Plans() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <LoginRequiredModal
+        isVisible={showLoginModal}
+        onDismiss={() => setShowLoginModal(false)}
+        message="Please log in to subscribe to a plan"
+      />
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#1A1A1A" />
@@ -332,14 +408,18 @@ export default function Plans() {
         {/* Plans Grid */}
         <View style={styles.plansContainer}>
           {plans.map((plan) => {
-            const showPopular = isRegularUser ? false : plan.isPopular;
+            const isActive = activePlanId === plan.id;
+            // The activated plan always takes the orange-filled highlight; the
+            // "popular" badge only highlights when nothing is active yet.
+            const highlight = isActive || (!activePlanId && !isRegularUser && plan.isPopular);
+            const showPopular = !activePlanId && !isRegularUser && plan.isPopular;
             return (
             <View key={plan.id} style={styles.planCardWrap}>
               <TouchableOpacity
                 style={[
                   styles.planCard,
                   selectedPlan === plan.id && styles.planCardSelected,
-                  showPopular && styles.planCardPopular,
+                  highlight && styles.planCardPopular,
                 ]}
                 onPress={() => handleSelectPlan(plan.id)}
                 activeOpacity={0.85}
@@ -388,13 +468,21 @@ export default function Plans() {
                 <TouchableOpacity
                   style={[
                     styles.subscribeButton,
-                    plan.price === 0 && styles.subscribeButtonFree,
-                    showPopular && styles.subscribeButtonPopular,
+                    // The active plan is always orange-filled. Everything else
+                    // falls back to the free-style (white bg) when price=0.
+                    !highlight && plan.price === 0 && styles.subscribeButtonFree,
+                    highlight && styles.subscribeButtonPopular,
                   ]}
                   onPress={() => handleSubscribe(plan)}
                 >
-                  <Text style={styles.subscribeButtonText}>
-                    {plan.cta || 'Subscribe Now'}
+                  <Text
+                    style={[
+                      styles.subscribeButtonText,
+                      // Orange text on white bg when the button is unfilled.
+                      !highlight && plan.price === 0 && styles.subscribeButtonTextFree,
+                    ]}
+                  >
+                    {isActive ? 'ACTIVE' : (plan.cta || 'Subscribe Now')}
                   </Text>
                 </TouchableOpacity>
               </TouchableOpacity>

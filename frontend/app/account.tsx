@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, Alert, Platform, ScrollView, ActivityIndicator, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { useCallback } from 'react';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,13 +8,45 @@ import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { useAuthStore } from '../store/authStore';
+import { LoginRequiredModal } from '../components/LoginRequiredModal';
+import { DateSpinnerModal, formatYmd } from '../components/DateSpinnerModal';
+import { OfferShareCard, buildOfferShareText, shareOfferOnWhatsApp, shareOfferText, shareOfferAsImage } from '../components/OfferShareCard';
+import { OfferAnalyticsCard } from '../components/OfferAnalyticsCard';
 import { INTOWN_API_BASE, getCategories, getProductsByCategory } from '../utils/api';
 import axios from 'axios';
 
+const pad2 = (n: number) => String(n).padStart(2, '0');
+// ISO datetime (backend) → 'YYYY-MM-DD' (local)
+const isoToYmd = (iso?: string | null) => {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return isNaN(d.getTime()) ? '' : `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+};
+// 'YYYY-MM-DD' → ISO at local end-of-day so the offer stays valid for the whole chosen day
+const ymdToIsoEndOfDay = (ymd: string) => {
+  const [y, m, d] = ymd.split('-').map(Number);
+  return new Date(y, m - 1, d, 23, 59, 59).toISOString();
+};
+
 export default function Account() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ from?: string }>();
-  const { user, updateProfile } = useAuthStore();
+  const params = useLocalSearchParams<{ from?: string; section?: string }>();
+  // Scroll to the Offer card when opened from the "offer expiring" notification
+  const scrollRef = useRef<ScrollView>(null);
+  const offerCardY = useRef<number | null>(null);
+  const scrolledToOffer = useRef(false);
+  const scrollToOfferIfRequested = () => {
+    if (params?.section === 'offer' && offerCardY.current != null && !scrolledToOffer.current) {
+      scrolledToOffer.current = true;
+      setTimeout(() => scrollRef.current?.scrollTo({ y: Math.max(0, offerCardY.current! - 12), animated: true }), 250);
+    }
+  };
+  const { user, updateProfile, isAuthenticated, isGuest } = useAuthStore();
+  const [showLoginModal, setShowLoginModal] = useState(false);
+
+  useEffect(() => {
+    setShowLoginModal(isGuest || !isAuthenticated);
+  }, [isGuest, isAuthenticated]);
 
   const [editing, setEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -39,6 +71,17 @@ export default function Account() {
   const [breakEndAt, setBreakEndAt] = useState('');
   const [weekOff, setWeekOff] = useState('');
   const [offer, setOffer] = useState('');
+  const [specialOffersText, setSpecialOffersText] = useState(''); // one offer per line → specialOffers[]
+  const [specialOfferEndDate, setSpecialOfferEndDate] = useState(''); // 'YYYY-MM-DD'
+  const [showEndDatePicker, setShowEndDatePicker] = useState(false);
+  const offerShareRef = useRef<View>(null);
+  const specialOfferList = specialOffersText.split('\n').map(s => s.trim()).filter(Boolean);
+  const offerShareProps = {
+    shopName: name || 'Our shop',
+    offers: specialOfferList,
+    validTill: specialOfferEndDate ? formatYmd(specialOfferEndDate) : undefined,
+    currentOffer: offer || undefined,
+  };
   const [shopLat, setShopLat] = useState<number | null>(null);
   const [shopLng, setShopLng] = useState<number | null>(null);
 
@@ -205,9 +248,11 @@ export default function Account() {
       }
 
       // Load merchant fields from search response
+      let resolvedName = '';
       if (merchantUser && parsedSearch?.merchant) {
         const m = parsedSearch.merchant;
-        setName(m.shopName || m.businessName || m.contactName || '');
+        resolvedName = m.shopName || m.businessName || m.contactName || '';
+        setName(resolvedName);
         setContactName(m.contactName || '');
         setEmail(m.email || '');
         setBusinessCategory(m.businessCategory || '');
@@ -220,6 +265,8 @@ export default function Account() {
         setBreakEndAt(m.breakEndAt || '');
         setWeekOff(m.weekOff || '');
         setOffer(m.offer || '');
+        setSpecialOffersText(Array.isArray(m.specialOffers) ? m.specialOffers.filter(Boolean).join('\n') : '');
+        setSpecialOfferEndDate(isoToYmd(m.specialOfferEndDate));
         setShopLat(m.latitude ?? null);
         setShopLng(m.longitude ?? null);
 
@@ -232,12 +279,13 @@ export default function Account() {
           setCustomProductsList(m.productNames);
         }
       } else if (parsedSearch?.customer) {
-        setName(parsedSearch.customer.contactName || parsedSearch.customer.name || '');
+        resolvedName = parsedSearch.customer.contactName || parsedSearch.customer.name || '';
+        setName(resolvedName);
         setEmail(parsedSearch.customer.email || '');
       }
 
-      // Fallback name from user_data
-      if (parsedUserData && !name) {
+      // Fallback name from user_data (use the just-resolved value — `name` state is stale here)
+      if (parsedUserData && !resolvedName && !name) {
         if (parsedUserData.name) setName(parsedUserData.name);
         if (parsedUserData.email) setEmail(parsedUserData.email);
       }
@@ -303,14 +351,22 @@ export default function Account() {
           breakEndAt,
           weekOff,
           offer,
+          specialOffers: specialOffersText.split('\n').map(s => s.trim()).filter(Boolean),
           productNames: customProductsList.filter(p => p.trim()),
         };
+        // Backend PATCH ignores null, so only send the end date when one is set
+        if (specialOfferEndDate) edited.specialOfferEndDate = ymdToIsoEndOfDay(specialOfferEndDate);
         if (shopLat != null && shopLng != null) {
           edited.latitude = shopLat;
           edited.longitude = shopLng;
         }
 
         const payload = { ...baseMerchant, ...edited };
+        // Backend PATCH rejects (400) the GET-shaped image array and the "+00:00" date format it
+        // itself returns — images are managed by separate upload flows, and the end date is re-sent
+        // above in ISO "Z" format when set.
+        delete payload.s3ImageUrl;
+        if (!specialOfferEndDate) delete payload.specialOfferEndDate;
 
         // PATCH merchant update API — surface failures in the Alert rather
         // than swallowing them silently.
@@ -705,7 +761,12 @@ export default function Account() {
     else setBreakEndAt(val);
   };
 
-  const renderField = (label: string, value: string, setter?: (v: string) => void, opts?: { multiline?: boolean; keyboardType?: string }) => (
+  const renderField = (
+    label: string,
+    value: string,
+    setter?: (v: string) => void,
+    opts?: { multiline?: boolean; keyboardType?: string; placeholder?: string; emptyText?: string },
+  ) => (
     <View style={styles.fieldGroup}>
       <Text style={styles.label}>{label}</Text>
       {editing && setter ? (
@@ -715,10 +776,14 @@ export default function Account() {
           onChangeText={setter}
           multiline={opts?.multiline}
           keyboardType={opts?.keyboardType as any}
+          placeholder={opts?.placeholder}
           placeholderTextColor="#999"
+          testID={`account-input-${label.toLowerCase().replace(/\s+/g, '-')}`}
         />
       ) : (
-        <Text style={styles.value}>{value || 'Not provided'}</Text>
+        <Text style={styles.value} testID={`account-value-${label.toLowerCase().replace(/\s+/g, '-')}`}>
+          {value || opts?.emptyText || 'Not provided'}
+        </Text>
       )}
     </View>
   );
@@ -738,6 +803,13 @@ export default function Account() {
   );
 
   return (
+    <>
+      <LoginRequiredModal
+        isVisible={showLoginModal}
+        onDismiss={() => setShowLoginModal(false)}
+        message="Please log in to view your account"
+      />
+      {isAuthenticated && !isGuest && (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
@@ -749,7 +821,7 @@ export default function Account() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView showsVerticalScrollIndicator={false} ref={scrollRef}>
         {/* Dual-user context tabs */}
         {isDualUser && (
           <View style={styles.dualTabs} testID="account-dual-tabs">
@@ -1092,10 +1164,100 @@ export default function Account() {
             </View>
 
             {/* OFFER */}
-            <View style={styles.card}>
+            <View
+              style={[styles.card, params?.section === 'offer' && styles.cardHighlight]}
+              testID="account-offer-card"
+              onLayout={(e) => { offerCardY.current = e.nativeEvent.layout.y; scrollToOfferIfRequested(); }}
+            >
               <Text style={styles.sectionTitle}>Offer</Text>
               {renderField('Current Offer', offer, setOffer, { multiline: true })}
+              <View testID="special-offer-field">
+                {editing ? (
+                  <View style={styles.fieldGroup}>
+                    <Text style={styles.label}>Special Offer</Text>
+                    <TextInput
+                      style={[styles.input, styles.textArea]}
+                      value={specialOffersText}
+                      onChangeText={setSpecialOffersText}
+                      multiline
+                      placeholder={'One offer per line, e.g.\nFlat 20% off on orders above ₹500\nFree delivery on weekends'}
+                      placeholderTextColor="#999"
+                      testID="account-input-special-offer"
+                    />
+                  </View>
+                ) : (
+                  <View style={styles.fieldGroup}>
+                    <Text style={styles.label}>Special Offer</Text>
+                    {specialOffersText ? (
+                      specialOffersText.split('\n').map((o, i) => (
+                        <Text key={i} style={styles.value} testID={`account-value-special-offer-${i}`}>• {o}</Text>
+                      ))
+                    ) : (
+                      <Text style={styles.value} testID="account-value-special-offer">No special offer added</Text>
+                    )}
+                  </View>
+                )}
+                <Text style={styles.fieldHint}>Shown in the Special Offer section of your shop page for customers.</Text>
+
+                <View style={styles.fieldGroup}>
+                  <Text style={styles.label}>Special Offer Valid Till</Text>
+                  {editing ? (
+                    <TouchableOpacity style={styles.timeBtn} onPress={() => setShowEndDatePicker(true)} testID="account-special-offer-end-date-btn">
+                      <Ionicons name="calendar-outline" size={16} color="#FF8A00" />
+                      <Text style={styles.timeBtnText}>{specialOfferEndDate ? formatYmd(specialOfferEndDate) : 'Select end date'}</Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <Text style={styles.value} testID="account-value-special-offer-end-date">
+                      {specialOfferEndDate ? formatYmd(specialOfferEndDate) : 'No end date'}
+                    </Text>
+                  )}
+                </View>
+
+                {/* Share the special offer (view mode only, when there is one) */}
+                {!editing && specialOfferList.length > 0 && (
+                  <View style={styles.shareRow} testID="offer-share-row">
+                    <TouchableOpacity
+                      style={[styles.shareBtn, styles.shareWhatsApp]}
+                      onPress={() => shareOfferOnWhatsApp(buildOfferShareText(offerShareProps))}
+                      testID="offer-share-whatsapp-btn"
+                    >
+                      <Ionicons name="logo-whatsapp" size={16} color="#FFF" />
+                      <Text style={styles.shareBtnText}>WhatsApp</Text>
+                    </TouchableOpacity>
+                    {Platform.OS !== 'web' && (
+                      <TouchableOpacity
+                        style={[styles.shareBtn, styles.shareImage]}
+                        onPress={() => shareOfferAsImage(offerShareRef)}
+                        testID="offer-share-image-btn"
+                      >
+                        <Ionicons name="image-outline" size={16} color="#FFF" />
+                        <Text style={styles.shareBtnText}>Share Image</Text>
+                      </TouchableOpacity>
+                    )}
+                    <TouchableOpacity
+                      style={[styles.shareBtn, styles.shareMore]}
+                      onPress={() => shareOfferText(buildOfferShareText(offerShareProps))}
+                      testID="offer-share-more-btn"
+                    >
+                      <Ionicons name="share-social-outline" size={16} color="#2E7D32" />
+                      <Text style={[styles.shareBtnText, { color: '#2E7D32' }]}>More</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+
+                {/* Offer analytics — views / taps / customers this week */}
+                {!editing && specialOfferList.length > 0 && (
+                  <OfferAnalyticsCard merchantId={merchantId} refreshKey={specialOffersText} />
+                )}
+              </View>
             </View>
+
+            {/* Off-screen card captured for "Share Image" */}
+            {specialOfferList.length > 0 && (
+              <View style={styles.offscreen} pointerEvents="none">
+                <OfferShareCard ref={offerShareRef} {...offerShareProps} />
+              </View>
+            )}
 
             {/* SAVE BUTTON */}
             {editing && (
@@ -1290,7 +1452,18 @@ export default function Account() {
           </View>
         </View>
       </Modal>
+
+      <DateSpinnerModal
+        visible={showEndDatePicker}
+        title="Special Offer Valid Till"
+        value={specialOfferEndDate}
+        onChange={setSpecialOfferEndDate}
+        onClose={() => setShowEndDatePicker(false)}
+        onClear={() => { setSpecialOfferEndDate(''); setShowEndDatePicker(false); }}
+      />
     </SafeAreaView>
+      )}
+    </>
   );
 }
 
@@ -1339,8 +1512,17 @@ const styles = StyleSheet.create({
   updateButtonDisabled: { backgroundColor: '#F4B183' },
   updateButtonText: { color: '#fff', fontWeight: '700', fontSize: 12 },
   card: { backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 12 },
+  cardHighlight: { borderWidth: 2, borderColor: '#FF8A00' },
+  shareRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
+  shareBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 999 },
+  shareWhatsApp: { backgroundColor: '#25D366' },
+  shareImage: { backgroundColor: '#2E7D32' },
+  shareMore: { backgroundColor: '#E8F5E9' },
+  shareBtnText: { color: '#FFF', fontWeight: '700', fontSize: 13 },
+  offscreen: { position: 'absolute', left: -5000, top: 0, opacity: 0 },
   sectionTitle: { fontSize: 16, fontWeight: '700', color: '#1A1A1A', marginBottom: 12, borderBottomWidth: 1, borderBottomColor: '#F0F0F0', paddingBottom: 8 },
   fieldGroup: { marginBottom: 12 },
+  fieldHint: { fontSize: 11, color: '#999', marginTop: -6, marginBottom: 12 },
   label: { fontSize: 12, color: '#777', marginBottom: 4 },
   value: { fontSize: 15, fontWeight: '600', color: '#1A1A1A' },
   input: { borderWidth: 1, borderColor: '#DDD', borderRadius: 8, padding: 10, fontSize: 15, color: '#1A1A1A' },

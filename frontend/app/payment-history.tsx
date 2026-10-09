@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
+import { LoginRequiredModal } from '../components/LoginRequiredModal';
 import { INTOWN_API_BASE } from '../utils/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -30,8 +31,15 @@ type FilterType = 'all' | 'this_month' | 'this_year';
 
 export default function PaymentHistory() {
   const router = useRouter();
-  const { user } = useAuthStore();
+  const { user, isAuthenticated, isGuest } = useAuthStore();
+  const [showLoginModal, setShowLoginModal] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (isGuest || !isAuthenticated) {
+      setShowLoginModal(true);
+    }
+  }, [isGuest, isAuthenticated]);
   const [refreshing, setRefreshing] = useState(false);
   const [transactions, setTransactions] = useState<ApiTransaction[]>([]);
   const [lifetimeStats, setLifetimeStats] = useState({ totalSpent: 0, totalSaved: 0, totalPaid: 0, count: 0 });
@@ -127,23 +135,37 @@ export default function PaymentHistory() {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton} data-testid="payment-history-back-btn">
-            <Ionicons name="arrow-back" size={24} color="#1A1A1A" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Payment History</Text>
-          <View style={{ width: 40 }} />
-        </View>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#FF8A00" />
-          <Text style={styles.loadingText}>Loading payment history...</Text>
-        </View>
-      </SafeAreaView>
+      <>
+        <LoginRequiredModal
+          isVisible={showLoginModal}
+          onDismiss={() => setShowLoginModal(false)}
+          message="Please log in to view your payment history"
+        />
+        <SafeAreaView style={styles.container}>
+          <View style={styles.header}>
+            <TouchableOpacity onPress={() => router.back()} style={styles.backButton} data-testid="payment-history-back-btn">
+              <Ionicons name="arrow-back" size={24} color="#1A1A1A" />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Payment History</Text>
+            <View style={{ width: 40 }} />
+          </View>
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#FF8A00" />
+            <Text style={styles.loadingText}>Loading payment history...</Text>
+          </View>
+        </SafeAreaView>
+      </>
     );
   }
 
   return (
+    <>
+      <LoginRequiredModal
+        isVisible={showLoginModal}
+        onDismiss={() => setShowLoginModal(false)}
+        message="Please log in to view your payment history"
+      />
+      {isAuthenticated && !isGuest && (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton} data-testid="payment-history-back-btn">
@@ -268,6 +290,8 @@ export default function PaymentHistory() {
         <View style={{ height: 40 }} />
       </ScrollView>
     </SafeAreaView>
+      )}
+    </>
   );
 }
 

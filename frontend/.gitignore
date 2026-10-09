@@ -40,3 +40,6 @@ yarn-error.*
 *.tsbuildinfo
 
 app-example
+
+android/app/src/main/res/mipmap-*/*
+

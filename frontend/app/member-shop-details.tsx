@@ -8,7 +8,10 @@ import { extractImageUrls, INTOWN_API_BASE, getAllProducts } from '../utils/api'
 import { getNavShop } from '../utils/navCache';
 import { useLocationStore } from '../store/locationStore';
 import { useAuthStore } from '../store/authStore';
+import { LoginRequiredModal } from '../components/LoginRequiredModal';
 import { useNotificationStore } from '../store/notificationStore';
+import { getActiveSpecialOffers, formatOfferValidTill } from '../utils/specialOffer';
+import { trackOfferEvent } from '../utils/offerAnalytics';
 import PaymentModal from '../components/PaymentModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { styles } from '../styles/member-shop-details.styles';
@@ -41,6 +44,8 @@ interface ShopData {
   breakEndAt?: string;
   weekOff?: string;
   offer?: string;
+  specialOffers?: string[] | null;
+  specialOfferEndDate?: string | null;
 }
 
 export default function MemberShopDetails() {
@@ -57,7 +62,7 @@ export default function MemberShopDetails() {
 
   const location = useLocationStore((state) => state.location);
   const loadLocationFromStorage = useLocationStore((state) => state.loadFromStorage);
-  const { user } = useAuthStore();
+  const { user, isAuthenticated, isGuest } = useAuthStore();
 
   const redirectTo = source === 'dual' ? '/dual-dashboard' : '/member-dashboard';
   const isUserFlow = source === 'user';
@@ -65,6 +70,11 @@ export default function MemberShopDetails() {
   const [showPayment, setShowPayment] = useState(false);
   const [customerId, setCustomerId] = useState<string | null>(null);
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+
+  // Viewing shop details is allowed for everyone — Pay/Navigate are
+  // account-based actions and require real login, regardless of `source`.
+  const requiresLogin = isGuest || !isAuthenticated;
 
   // ================= ORDER FEATURE STATE =================
   const SUPPORTED_ORDER_CATEGORIES = [
@@ -531,6 +541,12 @@ export default function MemberShopDetails() {
     return badges[key] ?? { bg: '#FFF3E0', color: '#FF8A00', label: category || 'General' };
   };
 
+  // Offer analytics: count a VIEW once the shop (with an active special offer) is shown
+  const hasActiveOffer = getActiveSpecialOffers(shop).length > 0;
+  useEffect(() => {
+    if (shop?.id && hasActiveOffer) trackOfferEvent(shop.id, 'VIEW', 'shop_details');
+  }, [shop?.id, hasActiveOffer]);
+
   // Loading state
   if (isLoading) {
     return (
@@ -579,6 +595,10 @@ export default function MemberShopDetails() {
   const badge = getCategoryBadge(shop.businessCategory);
   // Get logged-in user's phone number
   const userPhone = user?.phone || 'Not available';
+
+  // Special offers from the merchant (My Account → Offer); hidden once the end date has passed
+  const activeSpecialOffers = getActiveSpecialOffers(shop);
+  const specialOfferValidTill = formatOfferValidTill(shop);
 
   const ShopContent = () => (
     <ScrollView
@@ -729,12 +749,21 @@ export default function MemberShopDetails() {
           </View>
         </View>
 
-        {/* Savings Card */}
-        <View style={styles.savingsCard}>
-          <Ionicons name="gift" size={32} color="#4CAF50" />
-          <Text style={styles.savingsTitle}>Special Offer</Text>
-          <Text style={styles.savingsText}>Get INtown Guaranty instant savings on your purchases!</Text>
-        </View>
+        {/* Special Offer — merchant-managed from My Account → Offer; hidden when empty or expired */}
+        {activeSpecialOffers.length > 0 && (
+          <View style={styles.savingsCard} testID="special-offer-card">
+            <Ionicons name="gift" size={32} color="#4CAF50" />
+            <Text style={styles.savingsTitle}>Special Offer</Text>
+            {activeSpecialOffers.map((o, i) => (
+              <Text key={i} style={styles.savingsText} testID={`special-offer-text-${i}`}>
+                {activeSpecialOffers.length > 1 ? `• ${o}` : o}
+              </Text>
+            ))}
+            {!!specialOfferValidTill && (
+              <Text style={styles.savingsValidTill} testID="special-offer-valid-till">Valid till {specialOfferValidTill}</Text>
+            )}
+          </View>
+        )}
       </View>
     </ScrollView>
   );
@@ -755,6 +784,10 @@ export default function MemberShopDetails() {
         <TouchableOpacity
           style={styles.navigateBtn}
           onPress={() => {
+            if (requiresLogin) {
+              setShowLoginModal(true);
+              return;
+            }
             if (isUserFlow) {
               setShowRegistrationModal(true);
               return;
@@ -777,6 +810,10 @@ export default function MemberShopDetails() {
         <TouchableOpacity
           style={styles.payBtn}
           onPress={() => {
+            if (requiresLogin) {
+              setShowLoginModal(true);
+              return;
+            }
             if (isUserFlow) {
               setShowRegistrationModal(true);
               return;
@@ -797,6 +834,12 @@ export default function MemberShopDetails() {
         customerId={customerId ?? ''}
         merchantName={shop.businessName || 'Shop'}
         redirectTo={redirectTo}
+      />
+
+      <LoginRequiredModal
+        isVisible={showLoginModal}
+        onDismiss={() => setShowLoginModal(false)}
+        message="Please login to this shop"
       />
 
       {/* Registration Modal (User Flow Only) */}
@@ -973,7 +1016,7 @@ export default function MemberShopDetails() {
                     <View style={styles.orderProductsEmpty}>
                       <Ionicons name="search" size={24} color="#BBB" />
                       <Text style={styles.orderProductsEmptyText}>
-                        No products match "{productSearch}".
+                        No products match &quot;{productSearch}&quot;.
                       </Text>
                     </View>
                   );

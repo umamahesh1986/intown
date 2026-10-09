@@ -1013,6 +1013,7 @@ export default function RegisterMerchant() {
       phoneNumber,
       pincode: Number(pincode),
       userType: 'IN_MERCHANT',
+      platform:'IOS',
       latitude: location?.latitude ?? null,
       longitude: location?.longitude ?? null,
       address,

@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter
+from fastapi import FastAPI, APIRouter, HTTPException, Query
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -6,9 +6,9 @@ import os
 import logging
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict
-from typing import List
+from typing import List, Optional
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 
 ROOT_DIR = Path(__file__).parent
@@ -36,6 +36,103 @@ class StatusCheck(BaseModel):
 
 class StatusCheckCreate(BaseModel):
     client_name: str
+
+
+# ---------- Special-offer analytics (views / taps per merchant) ----------
+OFFER_EVENT_TYPES = {"VIEW", "TAP"}
+
+
+class OfferEventCreate(BaseModel):
+    merchantId: str
+    eventType: str
+    customerId: Optional[str] = None
+    source: Optional[str] = None
+
+
+class OfferDayStat(BaseModel):
+    date: str
+    views: int
+    taps: int
+
+
+class OfferAnalytics(BaseModel):
+    merchantId: str
+    days: int
+    views: int
+    taps: int
+    uniqueViewers: int
+    byDay: List[OfferDayStat]
+
+
+@api_router.post("/offer-events", status_code=201)
+async def create_offer_event(input: OfferEventCreate):
+    event_type = input.eventType.upper()
+    if event_type not in OFFER_EVENT_TYPES:
+        raise HTTPException(status_code=400, detail="eventType must be VIEW or TAP")
+    now = datetime.now(timezone.utc)
+    doc = {
+        "id": str(uuid.uuid4()),
+        "merchantId": str(input.merchantId),
+        "customerId": str(input.customerId) if input.customerId else None,
+        "eventType": event_type,
+        "source": input.source,
+        "timestamp": now.isoformat(),
+        "day": now.strftime("%Y-%m-%d"),
+    }
+    await db.offer_events.insert_one(doc)
+    return {"ok": True, "id": doc["id"]}
+
+
+@api_router.get("/offer-analytics/trending")
+async def get_trending_offers(merchantIds: str = Query(..., description="comma-separated"), days: int = Query(7, ge=1, le=90)):
+    ids = [m.strip() for m in merchantIds.split(",") if m.strip()]
+    if not ids:
+        return {"days": days, "taps": {}}
+    since_day = (datetime.now(timezone.utc) - timedelta(days=days - 1)).strftime("%Y-%m-%d")
+    pipeline = [
+        {"$match": {"merchantId": {"$in": ids}, "eventType": "TAP", "day": {"$gte": since_day}}},
+        {"$group": {"_id": "$merchantId", "taps": {"$sum": 1}}},
+    ]
+    rows = await db.offer_events.aggregate(pipeline).to_list(len(ids))
+    return {"days": days, "taps": {r["_id"]: r["taps"] for r in rows}}
+
+
+@api_router.get("/offer-analytics/{merchant_id}", response_model=OfferAnalytics)
+async def get_offer_analytics(merchant_id: str, days: int = Query(7, ge=1, le=90)):
+    since = datetime.now(timezone.utc) - timedelta(days=days - 1)
+    since_day = since.strftime("%Y-%m-%d")
+    cursor = db.offer_events.find(
+        {"merchantId": str(merchant_id), "day": {"$gte": since_day}},
+        {"_id": 0, "eventType": 1, "customerId": 1, "day": 1},
+    )
+    events = await cursor.to_list(50000)
+
+    by_day = {}
+    for i in range(days):
+        d = (since + timedelta(days=i)).strftime("%Y-%m-%d")
+        by_day[d] = {"views": 0, "taps": 0}
+    views = taps = 0
+    viewers = set()
+    for e in events:
+        bucket = by_day.setdefault(e["day"], {"views": 0, "taps": 0})
+        if e["eventType"] == "VIEW":
+            views += 1
+            bucket["views"] += 1
+            if e.get("customerId"):
+                viewers.add(e["customerId"])
+        else:
+            taps += 1
+            bucket["taps"] += 1
+
+    return OfferAnalytics(
+        merchantId=str(merchant_id),
+        days=days,
+        views=views,
+        taps=taps,
+        uniqueViewers=len(viewers),
+        byDay=[OfferDayStat(date=d, **v) for d, v in sorted(by_day.items())],
+    )
+
 
 # Add your routes to the router instead of directly to app
 @api_router.get("/")
