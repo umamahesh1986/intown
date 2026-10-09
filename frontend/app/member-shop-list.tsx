@@ -44,6 +44,9 @@ export default function MemberShopList() {
 
   const [shops, setShops] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [dealsOnly, setDealsOnly] = useState(false);
+  const dealsCount = shops.filter((s) => getActiveSpecialOffers(s).length > 0).length;
+  const visibleShops = dealsOnly ? shops.filter((s) => getActiveSpecialOffers(s).length > 0) : shops;
 
   const getFirstImageUrl = (img: unknown): string | null => {
     const urls = extractImageUrls(img);
@@ -288,11 +291,35 @@ export default function MemberShopList() {
         </View>
       ) : (
         <FlatList
-          data={shops}
+          data={visibleShops}
           keyExtractor={(item, index) => String(item?.id ?? item?.merchantId ?? index)}
           contentContainerStyle={styles.listContent}
           ListHeaderComponent={
-            <Text style={styles.sectionTitle}>Stores near you</Text>
+            <View style={styles.listHeaderRow}>
+              <Text style={styles.sectionTitle}>Stores near you</Text>
+              <TouchableOpacity
+                style={[styles.dealsToggle, dealsOnly && styles.dealsToggleOn]}
+                onPress={() => setDealsOnly((v) => !v)}
+                activeOpacity={0.8}
+                testID="deals-only-toggle"
+              >
+                <Ionicons name={dealsOnly ? 'gift' : 'gift-outline'} size={14} color={dealsOnly ? '#FFF' : '#2E7D32'} />
+                <Text style={[styles.dealsToggleText, dealsOnly && styles.dealsToggleTextOn]}>Deals only</Text>
+                <View style={[styles.dealsCount, dealsOnly && styles.dealsCountOn]}>
+                  <Text style={[styles.dealsCountText, dealsOnly && styles.dealsCountTextOn]} testID="deals-count">{dealsCount}</Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+          }
+          ListEmptyComponent={
+            <View style={styles.dealsEmpty} testID="deals-empty">
+              <Ionicons name="pricetags-outline" size={48} color="#A5D6A7" />
+              <Text style={styles.dealsEmptyTitle}>No deals right now</Text>
+              <Text style={styles.dealsEmptyText}>None of the nearby stores are running a special offer at the moment.</Text>
+              <TouchableOpacity style={styles.goBackButton} onPress={() => setDealsOnly(false)} testID="deals-show-all-btn">
+                <Text style={styles.goBackButtonText}>Show all stores</Text>
+              </TouchableOpacity>
+            </View>
           }
           renderItem={({ item }) => {
             try {
@@ -385,6 +412,29 @@ const styles = StyleSheet.create({
     color: '#1A1A1A',
     marginBottom: 16,
   },
+  listHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  dealsToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderWidth: 1.5,
+    borderColor: '#2E7D32',
+    backgroundColor: '#FFF',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    marginBottom: 16,
+  },
+  dealsToggleOn: { backgroundColor: '#2E7D32' },
+  dealsToggleText: { color: '#2E7D32', fontSize: 13, fontWeight: '700' },
+  dealsToggleTextOn: { color: '#FFF' },
+  dealsCount: { backgroundColor: '#E8F5E9', minWidth: 20, height: 20, borderRadius: 10, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5 },
+  dealsCountOn: { backgroundColor: 'rgba(255,255,255,0.25)' },
+  dealsCountText: { color: '#2E7D32', fontSize: 11, fontWeight: '800' },
+  dealsCountTextOn: { color: '#FFF' },
+  dealsEmpty: { alignItems: 'center', paddingVertical: 48, paddingHorizontal: 24 },
+  dealsEmptyTitle: { fontSize: 18, fontWeight: '700', color: '#1A1A1A', marginTop: 12 },
+  dealsEmptyText: { fontSize: 14, color: '#666', textAlign: 'center', marginTop: 6, marginBottom: 18 },
   emptyContainer: {
     flex: 1,
     alignItems: 'center',

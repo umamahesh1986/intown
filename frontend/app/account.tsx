@@ -10,6 +10,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuthStore } from '../store/authStore';
 import { LoginRequiredModal } from '../components/LoginRequiredModal';
 import { DateSpinnerModal, formatYmd } from '../components/DateSpinnerModal';
+import { OfferShareCard, buildOfferShareText, shareOfferOnWhatsApp, shareOfferText, shareOfferAsImage } from '../components/OfferShareCard';
 import { INTOWN_API_BASE, getCategories, getProductsByCategory } from '../utils/api';
 import axios from 'axios';
 
@@ -72,6 +73,14 @@ export default function Account() {
   const [specialOffersText, setSpecialOffersText] = useState(''); // one offer per line → specialOffers[]
   const [specialOfferEndDate, setSpecialOfferEndDate] = useState(''); // 'YYYY-MM-DD'
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
+  const offerShareRef = useRef<View>(null);
+  const specialOfferList = specialOffersText.split('\n').map(s => s.trim()).filter(Boolean);
+  const offerShareProps = {
+    shopName: name || 'Our shop',
+    offers: specialOfferList,
+    validTill: specialOfferEndDate ? formatYmd(specialOfferEndDate) : undefined,
+    currentOffer: offer || undefined,
+  };
   const [shopLat, setShopLat] = useState<number | null>(null);
   const [shopLng, setShopLng] = useState<number | null>(null);
 
@@ -1202,8 +1211,47 @@ export default function Account() {
                     </Text>
                   )}
                 </View>
+
+                {/* Share the special offer (view mode only, when there is one) */}
+                {!editing && specialOfferList.length > 0 && (
+                  <View style={styles.shareRow} testID="offer-share-row">
+                    <TouchableOpacity
+                      style={[styles.shareBtn, styles.shareWhatsApp]}
+                      onPress={() => shareOfferOnWhatsApp(buildOfferShareText(offerShareProps))}
+                      testID="offer-share-whatsapp-btn"
+                    >
+                      <Ionicons name="logo-whatsapp" size={16} color="#FFF" />
+                      <Text style={styles.shareBtnText}>WhatsApp</Text>
+                    </TouchableOpacity>
+                    {Platform.OS !== 'web' && (
+                      <TouchableOpacity
+                        style={[styles.shareBtn, styles.shareImage]}
+                        onPress={() => shareOfferAsImage(offerShareRef)}
+                        testID="offer-share-image-btn"
+                      >
+                        <Ionicons name="image-outline" size={16} color="#FFF" />
+                        <Text style={styles.shareBtnText}>Share Image</Text>
+                      </TouchableOpacity>
+                    )}
+                    <TouchableOpacity
+                      style={[styles.shareBtn, styles.shareMore]}
+                      onPress={() => shareOfferText(buildOfferShareText(offerShareProps))}
+                      testID="offer-share-more-btn"
+                    >
+                      <Ionicons name="share-social-outline" size={16} color="#2E7D32" />
+                      <Text style={[styles.shareBtnText, { color: '#2E7D32' }]}>More</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
               </View>
             </View>
+
+            {/* Off-screen card captured for "Share Image" */}
+            {specialOfferList.length > 0 && (
+              <View style={styles.offscreen} pointerEvents="none">
+                <OfferShareCard ref={offerShareRef} {...offerShareProps} />
+              </View>
+            )}
 
             {/* SAVE BUTTON */}
             {editing && (
@@ -1459,6 +1507,13 @@ const styles = StyleSheet.create({
   updateButtonText: { color: '#fff', fontWeight: '700', fontSize: 12 },
   card: { backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 12 },
   cardHighlight: { borderWidth: 2, borderColor: '#FF8A00' },
+  shareRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
+  shareBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 999 },
+  shareWhatsApp: { backgroundColor: '#25D366' },
+  shareImage: { backgroundColor: '#2E7D32' },
+  shareMore: { backgroundColor: '#E8F5E9' },
+  shareBtnText: { color: '#FFF', fontWeight: '700', fontSize: 13 },
+  offscreen: { position: 'absolute', left: -5000, top: 0, opacity: 0 },
   sectionTitle: { fontSize: 16, fontWeight: '700', color: '#1A1A1A', marginBottom: 12, borderBottomWidth: 1, borderBottomColor: '#F0F0F0', paddingBottom: 8 },
   fieldGroup: { marginBottom: 12 },
   fieldHint: { fontSize: 11, color: '#999', marginTop: -6, marginBottom: 12 },

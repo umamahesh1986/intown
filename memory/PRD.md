@@ -183,6 +183,13 @@
 - `notificationStore.targetRoute` now also allows `'/account'`.
 - Verified: real list data shows the tag only on Vinod Grocery (1/15); reminder fires with mocked end date (+2 days), deep-links & highlights; throttle + dedupe hold across reload.
 
+### Session 18 (Jun 2026) - "Deals only" filter + Offer share (WhatsApp / image / more)
+- `app/member-shop-list.tsx`: header pill **Deals only** with live count (`deals-only-toggle`, `deals-count`); filters to shops with active special offers; empty state "No deals right now" + "Show all stores" (`deals-empty`, `deals-show-all-btn`).
+- `components/OfferShareCard.tsx`: `buildOfferShareText`, `shareOfferOnWhatsApp` (`whatsapp://send` → `wa.me` fallback), `shareOfferText` (native Share / web navigator.share / clipboard), `shareOfferAsImage` (react-native-view-shot `captureRef` → expo-sharing; native only), and the branded green `OfferShareCard` rendered off-screen in `account.tsx`.
+- `app/account.tsx`: share row under Special Offer in view mode when offers exist — WhatsApp / Share Image (hidden on web) / More (`offer-share-whatsapp-btn`, `offer-share-image-btn`, `offer-share-more-btn`).
+- Deps added: `react-native-view-shot@4.0.3`, `expo-sharing@~14.0.8` (reverted the `postinstall` prebuild's android/ changes and removed generated ios/ — native folders are generated locally; local devs run `yarn install` + `npx expo prebuild`).
+- Verified on web: toggle 15 → 1 card; WhatsApp opens `wa.me` with formatted text; share card renders. Image share path needs a device build.
+
 ## Backlog
 
 - P1: Test full end-to-end login with real OTP on mobile device
