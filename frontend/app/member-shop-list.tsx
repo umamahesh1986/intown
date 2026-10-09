@@ -19,6 +19,7 @@ import { formatDistance } from '../utils/formatDistance';
 import axios from 'axios';
 import * as Location from 'expo-location';
 import { getActiveSpecialOffers } from '../utils/specialOffer';
+import { trackOfferEvent } from '../utils/offerAnalytics';
 
 // Normalize param (expo-router can return string | string[] on native)
 const toParam = (v: string | string[] | undefined): string | undefined =>
@@ -245,6 +246,7 @@ export default function MemberShopList() {
       if (!shop) return;
       const shopId = shop?.id ?? shop?.merchantId ?? shop?.merchant_id ?? '';
       if (!shopId) return;
+      if (getActiveSpecialOffers(shop).length > 0) trackOfferEvent(shopId, 'TAP', 'shop_list');
       await setNavShop(shop);
       router.push({
         pathname: '/member-shop-details',

@@ -38,6 +38,8 @@ import {
 } from '../utils/api';
 import { getCustomerProfile, getMerchantImageByShopId, extractImageUrls, INTOWN_API_BASE } from '../utils/api';
 import { setNavShop } from '../utils/navCache';
+import { DealsStrip } from '../components/DealsStrip';
+import { trackOfferEvent } from '../utils/offerAnalytics';
 
 
 import {
@@ -1154,6 +1156,19 @@ export default function MemberDashboard() {
               </View>
             )}
           </View>
+
+          {/* DEALS NEAR YOU — shops running a special offer, visible before picking a category */}
+          <DealsStrip
+            shops={nearbyShops}
+            onPressShop={async (shop) => {
+              trackOfferEvent(shop?.id, 'TAP', 'deals_strip');
+              await setNavShop(shop);
+              router.push({
+                pathname: '/member-shop-details',
+                params: { shopId: String(shop.id), categoryId: '', source: 'member' },
+              });
+            }}
+          />
 
           {/* CATEGORIES */}
           <View style={styles.section}>

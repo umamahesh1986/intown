@@ -97,7 +97,7 @@ const LOCAL_BACKEND =
     ? "http://10.0.2.2:8001"
     : "http://localhost:8001";
 
-const BACKEND_URL =
+export const BACKEND_URL =
   process.env.EXPO_PUBLIC_BACKEND_URL || LOCAL_BACKEND;
 
 const EXTERNAL_API =

@@ -11,6 +11,7 @@ import { useAuthStore } from '../store/authStore';
 import { LoginRequiredModal } from '../components/LoginRequiredModal';
 import { useNotificationStore } from '../store/notificationStore';
 import { getActiveSpecialOffers, formatOfferValidTill } from '../utils/specialOffer';
+import { trackOfferEvent } from '../utils/offerAnalytics';
 import PaymentModal from '../components/PaymentModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { styles } from '../styles/member-shop-details.styles';
@@ -539,6 +540,12 @@ export default function MemberShopDetails() {
     const key = (category ?? '').toLowerCase().split(' ')[0];
     return badges[key] ?? { bg: '#FFF3E0', color: '#FF8A00', label: category || 'General' };
   };
+
+  // Offer analytics: count a VIEW once the shop (with an active special offer) is shown
+  const hasActiveOffer = getActiveSpecialOffers(shop).length > 0;
+  useEffect(() => {
+    if (shop?.id && hasActiveOffer) trackOfferEvent(shop.id, 'VIEW', 'shop_details');
+  }, [shop?.id, hasActiveOffer]);
 
   // Loading state
   if (isLoading) {

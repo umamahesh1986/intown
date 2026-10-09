@@ -190,6 +190,14 @@
 - Deps added: `react-native-view-shot@4.0.3`, `expo-sharing@~14.0.8` (reverted the `postinstall` prebuild's android/ changes and removed generated ios/ — native folders are generated locally; local devs run `yarn install` + `npx expo prebuild`).
 - Verified on web: toggle 15 → 1 card; WhatsApp opens `wa.me` with formatted text; share card renders. Image share path needs a device build.
 
+### Session 19 (Jun 2026) - "Deals near you" strip + Offer analytics
+- `components/DealsStrip.tsx` on `member-dashboard` (above Feature Categories): horizontal cards for nearby shops with active special offers (first offer, shop, distance, "till {date}", "N offers" tag). Uses the already-loaded `nearbyShops` (`getAllNearbyShops`). testIDs `deals-strip`, `deals-strip-count`, `deal-card-{id}`.
+- **Offer analytics (companion FastAPI backend, Mongo `offer_events`)**: `POST /api/offer-events {merchantId, eventType: VIEW|TAP, customerId?, source}` and `GET /api/offer-analytics/{merchantId}?days=7 → {views, taps, uniqueViewers, byDay[]}`.
+  - Client `utils/offerAnalytics.ts` (`trackOfferEvent`, `getOfferAnalytics`) uses `BACKEND_URL` (`EXPO_PUBLIC_BACKEND_URL`, now set in `frontend/.env` for preview; production builds need it in `eas.json` env, or the Java team ports the two endpoints). VIEW de-duped per session.
+  - Events: TAP from deals strip + shop list (cards with an active offer); VIEW when shop details renders with an active offer.
+  - `components/OfferAnalyticsCard.tsx` in My Account → Offer (view mode, when offers exist): Views / Taps / Customers (unique viewers) for last 7 days + 7-day mini bars; "Analytics unavailable" if backend unreachable.
+- Verified end-to-end on preview: strip shows 1 deal → tap (TAP) → shop details (VIEW) → merchant card shows 1/1/1.
+
 ## Backlog
 
 - P1: Test full end-to-end login with real OTP on mobile device

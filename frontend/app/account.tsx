@@ -11,6 +11,7 @@ import { useAuthStore } from '../store/authStore';
 import { LoginRequiredModal } from '../components/LoginRequiredModal';
 import { DateSpinnerModal, formatYmd } from '../components/DateSpinnerModal';
 import { OfferShareCard, buildOfferShareText, shareOfferOnWhatsApp, shareOfferText, shareOfferAsImage } from '../components/OfferShareCard';
+import { OfferAnalyticsCard } from '../components/OfferAnalyticsCard';
 import { INTOWN_API_BASE, getCategories, getProductsByCategory } from '../utils/api';
 import axios from 'axios';
 
@@ -1242,6 +1243,11 @@ export default function Account() {
                       <Text style={[styles.shareBtnText, { color: '#2E7D32' }]}>More</Text>
                     </TouchableOpacity>
                   </View>
+                )}
+
+                {/* Offer analytics — views / taps / customers this week */}
+                {!editing && specialOfferList.length > 0 && (
+                  <OfferAnalyticsCard merchantId={merchantId} refreshKey={specialOffersText} />
                 )}
               </View>
             </View>
