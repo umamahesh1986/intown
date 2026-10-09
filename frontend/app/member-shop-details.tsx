@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, ScrollView, Image, Modal, Dimensions, ActivityIndicator, Alert, Platform, TextInput } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Image, Modal, Dimensions, ActivityIndicator, Alert, Platform, TextInput, Linking } from 'react-native';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -15,6 +15,10 @@ import { trackOfferEvent } from '../utils/offerAnalytics';
 import PaymentModal from '../components/PaymentModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { styles } from '../styles/member-shop-details.styles';
+import { ShopDetailRow } from '../components/ShopDetailRow';
+import { getShopTagline } from '../utils/shopTagline';
+
+const PROMO_HERO = require('../assets/images/promo/promo-3.jpg');
 
 interface ShopData {
   id: number;
@@ -480,7 +484,7 @@ export default function MemberShopDetails() {
 
   const renderShopImageCarousel = () => {
     if (shopImages.length === 0) {
-      return <Ionicons name="storefront" size={100} color="#FF8A00" />;
+      return <Image source={PROMO_HERO} style={styles.promoHero} resizeMode="cover" testID="shop-hero-promo" />;
     }
     return (
       <>
@@ -614,139 +618,141 @@ export default function MemberShopDetails() {
       </View>
 
       <View style={styles.content}>
-        {/* Business Name & Category Badge */}
-        <View style={styles.titleRow}>
-          <Text style={styles.shopName}>{shop.businessName || 'Shop'}</Text>
-          <View style={[styles.badge, { backgroundColor: badge.bg }]}>
-            <Text style={[styles.badgeText, { color: badge.color }]}>
-              {badge.label}
-            </Text>
+        {/* Title card: name + verified tick, category pill, tagline, Pick @ Shop */}
+        <View style={styles.titleCard} testID="shop-title-card">
+          <View style={styles.titleRow}>
+            <View style={styles.nameRow}>
+              <Text style={styles.shopName} numberOfLines={2}>{shop.businessName || 'Shop'}</Text>
+              <Ionicons name="checkmark-circle" size={18} color="#1E88E5" style={styles.verifiedIcon} />
+            </View>
+            <View style={[styles.badge, { backgroundColor: badge.bg }]}>
+              <Text style={[styles.badgeText, { color: badge.color }]}>{badge.label}</Text>
+            </View>
           </View>
-        </View>
+          <Text style={styles.shopTagline} testID="shop-tagline">{getShopTagline(shop.businessCategory)}</Text>
 
-        {/* Order Button — visible only for supported categories */}
-        {isOrderCategorySupported(shop.businessCategory) && (
-          <TouchableOpacity
-            style={styles.orderBtn}
-            onPress={() => {
-              if (isUserFlow) {
-                setShowRegistrationModal(true);
-                return;
-              }
-              openOrderModal();
-            }}
-            testID="open-order-modal-btn"
-          >
-            <Ionicons name="bag-handle-outline" size={20} color="#FFFFFF" />
-            <Text style={styles.orderBtnText}>Pick @ Shop</Text>
-          </TouchableOpacity>
-        )}
+          {/* Order Button — visible only for supported categories */}
+          {isOrderCategorySupported(shop.businessCategory) && (
+            <TouchableOpacity
+              style={styles.orderBtn}
+              onPress={() => {
+                if (isUserFlow) {
+                  setShowRegistrationModal(true);
+                  return;
+                }
+                openOrderModal();
+              }}
+              testID="open-order-modal-btn"
+            >
+              <Ionicons name="bag-handle-outline" size={20} color="#FFFFFF" />
+              <Text style={styles.orderBtnText}>Pick @ Shop</Text>
+            </TouchableOpacity>
+          )}
+        </View>
 
         {/* Description Card */}
         <View style={styles.descriptionCard}>
-          <Text style={styles.descriptionTitle}>Description</Text>
-          <Text style={styles.descriptionText}>
-            {shop.description || 'No description available'}
-          </Text>
+          <Text style={styles.descriptionTitle}>DESCRIPTION</Text>
+          <View style={styles.descriptionCallout}>
+            <View style={styles.descriptionIcon}>
+              <Ionicons name="cash-outline" size={16} color="#1B8A3A" />
+            </View>
+            <Text style={styles.descriptionText}>
+              {shop.description || 'No description available'}
+            </Text>
+          </View>
         </View>
 
         {/* Info Card */}
         <View style={styles.infoCard}>
-          <View style={styles.infoRow}>
-            <Ionicons name="business" size={20} color="#FF8A00" />
-            <Text style={styles.infoLabel}>Business:</Text>
-            <Text style={styles.infoValue}>{shop.businessName || 'N/A'}</Text>
-          </View>
-
-          <View style={styles.infoRow}>
-            <Ionicons name="pricetag" size={20} color="#FF8A00" />
-            <Text style={styles.infoLabel}>Category:</Text>
-            <Text style={styles.infoValue}>{shop.businessCategory || 'General'}</Text>
-          </View>
-
-          <View style={styles.infoRow}>
-            <Ionicons name="person" size={20} color="#FF8A00" />
-            <Text style={styles.infoLabel}>Contact:</Text>
-            <Text style={styles.infoValue}>{shop.contactName || 'N/A'}</Text>
-          </View>
-
-          <View style={styles.infoRow}>
-            <Ionicons name="location" size={20} color="#FF8A00" />
-            <Text style={styles.infoLabel}>Distance:</Text>
-            <Text style={styles.infoValue}>
-              {formatDistance(shop.distance != null ? Number(shop.distance) : null)}
-            </Text>
-          </View>
-
-          <View style={styles.infoRow}>
-            <Ionicons name="call" size={20} color="#FF8A00" />
-            <Text style={styles.infoLabel}>Phone:</Text>
-            <Text style={styles.infoValue}>{shop.phoneNumber || 'N/A'}</Text>
-          </View>
-
-          <View style={styles.infoRow}>
-            <Ionicons name="mail" size={20} color="#FF8A00" />
-            <Text style={styles.infoLabel}>Email:</Text>
-            <Text style={styles.infoValue}>{shop.email || 'N/A'}</Text>
-          </View>
-
-          <View style={styles.infoRow}>
-            <Ionicons name="pin" size={20} color="#FF8A00" />
-            <Text style={styles.infoLabel}>Address:</Text>
-            <Text style={styles.infoValue} numberOfLines={2}>
-              {shop.address || 'Address not available'}
-            </Text>
-          </View>
-
-          <View style={styles.infoRow}>
-            <Ionicons name="keypad" size={20} color="#FF8A00" />
-            <Text style={styles.infoLabel}>Pincode:</Text>
-            <Text style={styles.infoValue}>{shop.pincode || 'N/A'}</Text>
-          </View>
-
-          <View style={styles.infoRow}>
-            <Ionicons name="calendar" size={20} color="#FF8A00" />
-            <Text style={styles.infoLabel}>Years:</Text>
-            <Text style={styles.infoValue}>{shop.fromYears ? `${shop.fromYears} years` : 'N/A'}</Text>
-          </View>
-
-          <View style={styles.infoRow}>
-            <Ionicons name="gift" size={20} color="#FF8A00" />
-            <Text style={styles.infoLabel}>Offers:</Text>
-            <Text style={styles.infoValue}>{shop.offer || 'Guaranty Savings'}</Text>
-          </View>
+          <ShopDetailRow icon="business-outline" tint="#FF8A00" tintBg="#FFF3E0" label="Business" value={shop.businessName || 'N/A'} />
+          <ShopDetailRow icon="pricetag-outline" tint="#F5A623" tintBg="#FFF7E6" label="Category" value={shop.businessCategory || 'General'} />
+          <ShopDetailRow icon="person-outline" tint="#2F80ED" tintBg="#EAF2FF" label="Contact Person" value={shop.contactName || 'N/A'} />
+          <ShopDetailRow
+            icon="location-outline"
+            tint="#E53935"
+            tintBg="#FDECEC"
+            label="Distance"
+            value={formatDistance(shop.distance != null ? Number(shop.distance) : null)}
+            accessory={
+              <View style={styles.liveGpsChip}>
+                <Text style={styles.liveGpsText}>Live GPS</Text>
+              </View>
+            }
+          />
+          <ShopDetailRow
+            icon="call-outline"
+            tint="#2E7D32"
+            tintBg="#E8F5E9"
+            label="Phone"
+            value={shop.phoneNumber || 'N/A'}
+            accessory={
+              shop.phoneNumber ? (
+                <TouchableOpacity
+                  style={styles.callBtn}
+                  onPress={() => Linking.openURL(`tel:${shop.phoneNumber}`)}
+                  testID="shop-call-btn"
+                >
+                  <Ionicons name="call" size={16} color="#2E7D32" />
+                </TouchableOpacity>
+              ) : null
+            }
+          />
+          <ShopDetailRow icon="mail-outline" tint="#1E88E5" tintBg="#E3F2FD" label="Email" value={shop.email || 'N/A'} />
+          <ShopDetailRow icon="bookmark-outline" tint="#B36B00" tintBg="#FFF3E0" label="Address" value={shop.address || 'Address not available'} />
+          <ShopDetailRow icon="reorder-four-outline" tint="#7B1FA2" tintBg="#F3E5F5" label="Pincode" value={shop.pincode ? String(shop.pincode) : 'N/A'} />
+          <ShopDetailRow icon="calendar-outline" tint="#8E24AA" tintBg="#F3E5F5" label="Experience" value={shop.fromYears ? `${shop.fromYears} years` : 'N/A'} />
+          <ShopDetailRow
+            icon="gift-outline"
+            tint="#E53935"
+            tintBg="#FDECEC"
+            label="Ongoing Festive Offer"
+            value={shop.offer || 'Guaranty Savings'}
+            valueColor="#E53935"
+            last
+            testID="shop-festive-offer-row"
+          />
         </View>
 
         {/* Opening Hours */}
         <View style={styles.infoCard}>
-          <Text style={styles.openingHoursTitle}>Opening Hours</Text>
-
-          <View style={styles.hoursRow}>
-            <Ionicons name="time-outline" size={18} color="#4CAF50" />
-            <Text style={styles.hoursLabel}>Open:</Text>
-            <Text style={styles.hoursValue}>{shop.openAt || 'N/A'}</Text>
+          <View style={styles.openingHoursHeader}>
+            <Ionicons name="time-outline" size={18} color="#1A1A1A" />
+            <Text style={styles.openingHoursTitle}>Opening Hours</Text>
           </View>
-
-          <View style={styles.hoursRow}>
-            <Ionicons name="time-outline" size={18} color="#F44336" />
-            <Text style={styles.hoursLabel}>Close:</Text>
-            <Text style={styles.hoursValue}>{shop.closeAt || 'N/A'}</Text>
-          </View>
-
-          <View style={styles.hoursRow}>
-            <Ionicons name="cafe-outline" size={18} color="#FF8A00" />
-            <Text style={styles.hoursLabel}>Break:</Text>
-            <Text style={styles.hoursValue}>
-              {shop.breakStartAt && shop.breakEndAt
-                ? `${shop.breakStartAt} - ${shop.breakEndAt}`
-                : 'No break'}
-            </Text>
-          </View>
-
-          <View style={styles.hoursRow}>
-            <Ionicons name="calendar-outline" size={18} color="#666" />
-            <Text style={styles.hoursLabel}>Week Off:</Text>
-            <Text style={styles.hoursValue}>{shop.weekOff || 'None'}</Text>
+          <View style={styles.hoursGrid}>
+            <View style={styles.hoursTile}>
+              <View style={styles.hoursTileLabelRow}>
+                <View style={[styles.hoursDot, { backgroundColor: '#22C55E' }]} />
+                <Text style={styles.hoursLabel}>Open</Text>
+              </View>
+              <Text style={styles.hoursValue}>{shop.openAt || 'N/A'}</Text>
+            </View>
+            <View style={styles.hoursTile}>
+              <View style={styles.hoursTileLabelRow}>
+                <View style={[styles.hoursDot, { backgroundColor: '#EF4444' }]} />
+                <Text style={styles.hoursLabel}>Close</Text>
+              </View>
+              <Text style={styles.hoursValue}>{shop.closeAt || 'N/A'}</Text>
+            </View>
+            <View style={styles.hoursTile}>
+              <View style={styles.hoursTileLabelRow}>
+                <Ionicons name="cafe-outline" size={14} color="#FF8A00" />
+                <Text style={styles.hoursLabel}>Break</Text>
+              </View>
+              <Text style={styles.hoursValue}>
+                {shop.breakStartAt && shop.breakEndAt
+                  ? `${shop.breakStartAt} - ${shop.breakEndAt}`
+                  : 'No break'}
+              </Text>
+            </View>
+            <View style={styles.hoursTile}>
+              <View style={styles.hoursTileLabelRow}>
+                <Ionicons name="calendar-outline" size={14} color="#7B1FA2" />
+                <Text style={styles.hoursLabel}>Week Off</Text>
+              </View>
+              <Text style={styles.hoursValue}>{shop.weekOff || 'None'}</Text>
+            </View>
           </View>
         </View>
 
@@ -754,18 +760,33 @@ export default function MemberShopDetails() {
         {activeSpecialOffers.length > 0 && (
           <View style={styles.savingsCard} testID="special-offer-card">
             {!!specialOfferImage && (
-              <Image source={{ uri: specialOfferImage }} style={styles.savingsImage} resizeMode="cover" testID="special-offer-image" />
+              <View style={styles.savingsImageWrap}>
+                <Image source={{ uri: specialOfferImage }} style={styles.savingsImage} resizeMode="cover" testID="special-offer-image" />
+                <View style={styles.savingsTag}>
+                  <Text style={styles.savingsTagText}>FESTIVE BONANZA</Text>
+                </View>
+              </View>
             )}
-            <Ionicons name="gift" size={32} color="#4CAF50" />
+            <View style={styles.savingsIconCircle}>
+              <Ionicons name="gift" size={22} color="#FFFFFF" />
+            </View>
             <Text style={styles.savingsTitle}>Special Offer</Text>
             {activeSpecialOffers.map((o, i) => (
               <Text key={i} style={styles.savingsText} testID={`special-offer-text-${i}`}>
                 {activeSpecialOffers.length > 1 ? `• ${o}` : o}
               </Text>
             ))}
-            {!!specialOfferValidTill && (
-              <Text style={styles.savingsValidTill} testID="special-offer-valid-till">Valid till {specialOfferValidTill}</Text>
-            )}
+            <View style={styles.savingsChipsRow}>
+              {!!specialOfferValidTill && (
+                <View style={styles.savingsValidChip} testID="special-offer-valid-till">
+                  <Ionicons name="calendar-outline" size={13} color="#1B5E20" />
+                  <Text style={styles.savingsValidTill}>Valid till {specialOfferValidTill}</Text>
+                </View>
+              )}
+              <View style={styles.savingsCodeChip} testID="special-offer-code">
+                <Text style={styles.savingsCodeText}>CODE: {shop.id}</Text>
+              </View>
+            </View>
           </View>
         )}
       </View>
@@ -779,7 +800,9 @@ export default function MemberShopDetails() {
           <Ionicons name="arrow-back" size={24} color="#1A1A1A" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Shop Details</Text>
-        <View style={{ width: 40 }} />
+        <View style={styles.headerShareBtn} testID="shop-share-icon">
+          <Ionicons name="share-social-outline" size={22} color="#1A1A1A" />
+        </View>
       </View>
 
       <ShopContent />

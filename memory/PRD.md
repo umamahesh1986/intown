@@ -225,6 +225,13 @@
 - `buildOfferShareText` appends "🖼 See the offer: <public S3 url>" so WhatsApp/text shares show the image link preview.
 - Verified on preview: card renders with banner; WhatsApp text includes the link.
 
+### Session 25 (Jun 2026) - Shop Details redesign (reference mockup)
+- `app/member-shop-details.tsx` + `styles/member-shop-details.styles.ts` restyled: page bg `#F3F5F8`, rounded shadowed cards; header share icon (visual only, `shop-share-icon`); hero shows the shop photo carousel when photos exist, else the INtown "500 meters" promo poster (`assets/images/promo/promo-3.jpg`, `shop-hero-promo`).
+- Title card: name + blue verified tick (all shops) + category pill + category-derived tagline (`utils/shopTagline.ts`, `shop-tagline`) + full-width orange "Pick @ Shop".
+- "DESCRIPTION" card with green savings callout; info card uses new `components/ShopDetailRow.tsx` (tinted icon tile, stacked label/value): Business, Category, Contact Person, Distance (+"Live GPS" chip), Phone (+ tap-to-call `shop-call-btn`), Email, Address, Pincode, Experience, Ongoing Festive Offer (red, `shop-festive-offer-row`).
+- Opening Hours as 2×2 tiles (Open/Close dots, Break, Week Off). Special Offer card: green frame, 16:9 banner with "FESTIVE BONANZA" tag, green gift circle, title/offers, "Valid till" chip + `CODE: {shop.id}` chip (`special-offer-code`). Footer: rounded light-blue Navigate / orange Payment Process.
+- All existing logic + testIDs preserved; `tsc`/eslint clean on touched files; verified on web preview via nav-cache-seeded shop.
+
 ## Backlog
 
 - P1: Test full end-to-end login with real OTP on mobile device
