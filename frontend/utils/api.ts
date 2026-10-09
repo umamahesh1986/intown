@@ -3,34 +3,38 @@ import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // ==========================================================================
-// API base URL resolution
 // ==========================================================================
-// Priority:
-//   1. Explicit EXPO_PUBLIC_API_BASE_URL (set at build time via eas.json,
-//      or locally via frontend/.env for `npx expo start`)
-//   2. EXPO_PUBLIC_ENV === 'production' → hit production API
-//   3. Fallback for local dev / preview / undefined → dev API
-// This guarantees the production URL is only ever used by an explicit
-// production build; local dev never accidentally hits production.
+// API ENVIRONMENT RESOLUTION
+//   • Local dev (`expo start`, `expo run:*`) and EAS `development` / `preview`
+//     builds → DEV API (https://devapi.intownlocal.com). `__DEV__` builds can
+//     NEVER hit production, even if a stale env var says otherwise.
+//   • EAS `production` build (EXPO_PUBLIC_ENV=production, release bundle)
+//     → PRODUCTION API (https://api.intownlocal.com).
+//   • EXPO_PUBLIC_API_BASE_URL / EXPO_PUBLIC_OTP_API_BASE_URL may override the
+//     host for non-production builds only (e.g. a local backend).
 // ==========================================================================
 const PROD_BASE = 'https://api.intownlocal.com';
 const DEV_BASE = 'https://devapi.intownlocal.com';
 
-const resolvedBaseUrl = (() => {
-  const explicit = process.env.EXPO_PUBLIC_API_BASE_URL;
-  if (explicit && explicit.trim().length > 0) return explicit.trim();
-  const env = (process.env.EXPO_PUBLIC_ENV || '').toLowerCase();
-  return env === 'production' || env === 'prod' ? PROD_BASE : DEV_BASE;
-})();
+const envName = (process.env.EXPO_PUBLIC_ENV || '').trim().toLowerCase();
+const isDevBundle = typeof __DEV__ !== 'undefined' && __DEV__;
+export const IS_PRODUCTION_API = !isDevBundle && (envName === 'production' || envName === 'prod');
 
-const resolvedOtpBase = (() => {
-  const explicit = process.env.EXPO_PUBLIC_OTP_API_BASE_URL;
-  if (explicit && explicit.trim().length > 0) return explicit.trim();
-  const env = (process.env.EXPO_PUBLIC_ENV || '').toLowerCase();
-  return env === 'production' || env === 'prod'
-    ? `${PROD_BASE}/IN`
-    : `${DEV_BASE}/IN`;
-})();
+const isProdHost = (url: string) => /(^|\/\/)api\.intownlocal\.com/i.test(url);
+
+const nonProdOverride = (value?: string) => {
+  const v = (value || '').trim();
+  // Overrides are honoured only when they don't point at production.
+  return v && !isProdHost(v) ? v.replace(/\/+$/, '') : '';
+};
+
+const resolvedBaseUrl = IS_PRODUCTION_API
+  ? PROD_BASE
+  : nonProdOverride(process.env.EXPO_PUBLIC_API_BASE_URL) || DEV_BASE;
+
+const resolvedOtpBase = IS_PRODUCTION_API
+  ? `${PROD_BASE}/IN`
+  : nonProdOverride(process.env.EXPO_PUBLIC_OTP_API_BASE_URL) || `${DEV_BASE}/IN`;
 
 const BASE_URL = resolvedBaseUrl;
 export const INTOWN_API_BASE = `${BASE_URL}/IN`;
@@ -41,7 +45,7 @@ const OTP_API_BASE = resolvedOtpBase;
 // URL is being used). Safe to strip in production if noisy.
 try {
   // eslint-disable-next-line no-console
-  console.log('[intown-api] Using base URL:', BASE_URL);
+  console.log(`[intown-api] env=${IS_PRODUCTION_API ? 'PRODUCTION' : 'DEV'} (__DEV__=${String(isDevBundle)}, EXPO_PUBLIC_ENV=${envName || 'unset'}) base=${BASE_URL} otp=${OTP_API_BASE}`);
 } catch {}
 
 /* ===============================

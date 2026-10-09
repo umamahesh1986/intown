@@ -209,6 +209,11 @@
 - `DealsStrip`: fetches taps for the deal merchants (`getTrendingTaps`) and sorts by taps desc (ties keep distance order); top card with taps>0 gets an orange border + "Trending" flame tag; cards show "N tapped this week" (falls back to "till {date}").
 - Verified on preview: Uma Grocery (3 taps) ranked before Vinod Grocery (2 taps) with Trending tag; pulse animation running (6 animated wrappers).
 
+### Session 22 (Jun 2026) - API environment hardening (dev vs production)
+- `utils/api.ts`: `IS_PRODUCTION_API = !__DEV__ && EXPO_PUBLIC_ENV in (production|prod)`. Any `__DEV__` bundle (Metro, `expo run:*`, EAS development client) and EAS `preview` always use `https://devapi.intownlocal.com`; only an EAS `production` release uses `https://api.intownlocal.com`. `EXPO_PUBLIC_API_BASE_URL` / `EXPO_PUBLIC_OTP_API_BASE_URL` overrides are honoured only for non-production hosts (e.g. localhost). Startup log prints env/base/otp.
+- `eas.json`: `development` and `preview` profiles now explicitly set dev env vars; `production` unchanged.
+- `frontend/.env` (committed, used by preview) sets `EXPO_PUBLIC_ENV=dev` + dev URLs; added `frontend/.env.example` for local setup.
+
 ## Backlog
 
 - P1: Test full end-to-end login with real OTP on mobile device
