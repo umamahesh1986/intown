@@ -232,6 +232,7 @@
 - Opening Hours as 2×2 tiles (Open/Close dots, Break, Week Off). Special Offer card: green frame, 16:9 banner with "FESTIVE BONANZA" tag, green gift circle, title/offers, "Valid till" chip + `CODE: {shop.id}` chip (`special-offer-code`). Footer: rounded light-blue Navigate / orange Payment Process.
 - All existing logic + testIDs preserved; `tsc`/eslint clean on touched files; verified on web preview via nav-cache-seeded shop.
 - Carousel fix: the horizontal hero `ScrollView` sat in a container with `alignItems:'center'`, so it grew to the full content width (3× screen) and paging/auto-scroll misaligned (two images visible). Now the ScrollView has an explicit measured width (`onLayout` → `heroWidth`), the container no longer centers, `shopContent` is plain JSX (no remount on every state change), and drag-end also syncs the index. Verified: pages snap 0 → 1 → 2 → 0 every 3s.
+- Hero page dots (`shop-hero-dots`, `shop-hero-dot-{i}`; tap to jump; hidden for a single image) and header share icon now opens `ShareModal` (new `subtitle` prop → "Share this shop") with the shop name + category in the message and the Play Store link.
 
 ## Backlog
 

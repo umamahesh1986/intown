@@ -13,6 +13,7 @@ import { useNotificationStore } from '../store/notificationStore';
 import { getActiveSpecialOffers, formatOfferValidTill, getSpecialOfferImageUrl } from '../utils/specialOffer';
 import { trackOfferEvent } from '../utils/offerAnalytics';
 import PaymentModal from '../components/PaymentModal';
+import ShareModal from '../components/ShareModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { styles } from '../styles/member-shop-details.styles';
 import { ShopDetailRow } from '../components/ShopDetailRow';
@@ -75,6 +76,7 @@ export default function MemberShopDetails() {
   const [customerId, setCustomerId] = useState<string | null>(null);
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
 
   // Viewing shop details is allowed for everyone — Pay/Navigate are
   // account-based actions and require real login, regardless of `source`.
@@ -534,6 +536,18 @@ export default function MemberShopDetails() {
             >
               <Ionicons name="chevron-forward" size={22} color="#FFFFFF" />
             </TouchableOpacity>
+            <View style={styles.heroDots} pointerEvents="box-none" testID="shop-hero-dots">
+              {shopImages.map((_, i) => (
+                <TouchableOpacity
+                  key={i}
+                  onPress={() => setShopImageIndex(i)}
+                  hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+                  testID={`shop-hero-dot-${i}`}
+                >
+                  <View style={[styles.heroDot, i === shopImageIndex && styles.heroDotActive]} />
+                </TouchableOpacity>
+              ))}
+            </View>
           </>
         )}
       </>
@@ -814,12 +828,25 @@ export default function MemberShopDetails() {
           <Ionicons name="arrow-back" size={24} color="#1A1A1A" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Shop Details</Text>
-        <View style={styles.headerShareBtn} testID="shop-share-icon">
+        <TouchableOpacity
+          style={styles.headerShareBtn}
+          onPress={() => setShowShareModal(true)}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          testID="shop-share-icon"
+        >
           <Ionicons name="share-social-outline" size={22} color="#1A1A1A" />
-        </View>
+        </TouchableOpacity>
       </View>
 
       {shopContent}
+
+      <ShareModal
+        visible={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        title={shop.businessName || 'Shop'}
+        subtitle="Share this shop"
+        message={`Check out ${shop.businessName || 'this shop'}${shop.businessCategory ? ` (${shop.businessCategory})` : ''} on INtown — shop local & save on every purchase. Get the app:`}
+      />
 
       <View style={styles.bottomButtons}>
         <TouchableOpacity

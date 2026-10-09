@@ -25,6 +25,7 @@ interface ShareModalProps {
   url?: string;
   title?: string;
   message?: string;
+  subtitle?: string;
 }
 
 const composeMessage = (msg: string, url: string) => `${msg} ${url}`;
@@ -52,6 +53,7 @@ export default function ShareModal({
   url = PLAY_STORE_URL,
   title = SHARE_TITLE,
   message = SHARE_TEXT,
+  subtitle = 'Share this app',
 }: ShareModalProps) {
   const [copyStatus, setCopyStatus] = useState<'idle' | 'copied'>('idle');
 
@@ -124,7 +126,7 @@ export default function ShareModal({
             </View>
             <View style={{ flex: 1, marginLeft: 12 }}>
               <Text style={styles.title}>{title}</Text>
-              <Text style={styles.subtitle}>Share this app</Text>
+              <Text style={styles.subtitle}>{subtitle}</Text>
             </View>
             <TouchableOpacity
               onPress={onClose}

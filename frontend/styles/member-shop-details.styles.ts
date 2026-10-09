@@ -48,6 +48,26 @@ export const styles = StyleSheet.create({
   },
   shopArrowLeft: { left: 10 },
   shopArrowRight: { right: 10 },
+  heroDots: {
+    position: 'absolute',
+    bottom: 12,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+  },
+  heroDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255,255,255,0.55)',
+  },
+  heroDotActive: {
+    width: 18,
+    backgroundColor: '#FFFFFF',
+  },
   content: { padding: 14, paddingTop: 16 },
   userFlowPressable: { flex: 1 },
   titleCard: {
