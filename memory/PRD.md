@@ -220,6 +220,11 @@
 - Customer surfaces: `DealsStrip` card image, highlighted `NearbyMerchantCard` hero image (member + dual dashboards), and the Special Offer card on `member-shop-details` (16:9 banner). Falls back to shop image when absent.
 - Verified against real dev API: upload → S3 object `special_offer_100103.jpg` → dashboards render the banner. Note: dev merchant 100103 also has a stray `offer_test.png` from probing (no delete API).
 
+### Session 24 (Jun 2026) - Offer banner inside the share card / WhatsApp text
+- `OfferShareCard` accepts `imageUrl` + `onImageReady`: banner (16:9, full-bleed top, "SPECIAL OFFER" tag) above INtown pill, shop name, offers, validity. `shareOfferAsImage(ref, isImageReady)` waits (≤3s) for the banner to load before `captureRef`.
+- `buildOfferShareText` appends "🖼 See the offer: <public S3 url>" so WhatsApp/text shares show the image link preview.
+- Verified on preview: card renders with banner; WhatsApp text includes the link.
+
 ## Backlog
 
 - P1: Test full end-to-end login with real OTP on mobile device

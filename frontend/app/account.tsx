@@ -79,12 +79,14 @@ export default function Account() {
   const [pendingOfferImageUri, setPendingOfferImageUri] = useState<string | null>(null); // picked, not yet uploaded
   const [isUploadingOfferImage, setIsUploadingOfferImage] = useState(false);
   const offerShareRef = useRef<View>(null);
+  const shareImageReadyRef = useRef(false);
   const specialOfferList = specialOffersText.split('\n').map(s => s.trim()).filter(Boolean);
   const offerShareProps = {
     shopName: name || 'Our shop',
     offers: specialOfferList,
     validTill: specialOfferEndDate ? formatYmd(specialOfferEndDate) : undefined,
     currentOffer: offer || undefined,
+    imageUrl: specialOfferImageUrl,
   };
   const [shopLat, setShopLat] = useState<number | null>(null);
   const [shopLng, setShopLng] = useState<number | null>(null);
@@ -1302,7 +1304,7 @@ export default function Account() {
                     {Platform.OS !== 'web' && (
                       <TouchableOpacity
                         style={[styles.shareBtn, styles.shareImage]}
-                        onPress={() => shareOfferAsImage(offerShareRef)}
+                        onPress={() => shareOfferAsImage(offerShareRef, () => !specialOfferImageUrl || shareImageReadyRef.current)}
                         testID="offer-share-image-btn"
                       >
                         <Ionicons name="image-outline" size={16} color="#FFF" />
@@ -1330,7 +1332,7 @@ export default function Account() {
             {/* Off-screen card captured for "Share Image" */}
             {specialOfferList.length > 0 && (
               <View style={styles.offscreen} pointerEvents="none">
-                <OfferShareCard ref={offerShareRef} {...offerShareProps} />
+                <OfferShareCard ref={offerShareRef} {...offerShareProps} onImageReady={(r) => { shareImageReadyRef.current = r; }} />
               </View>
             )}
 
