@@ -10,7 +10,7 @@ import { useLocationStore } from '../store/locationStore';
 import { useAuthStore } from '../store/authStore';
 import { LoginRequiredModal } from '../components/LoginRequiredModal';
 import { useNotificationStore } from '../store/notificationStore';
-import { getActiveSpecialOffers, formatOfferValidTill } from '../utils/specialOffer';
+import { getActiveSpecialOffers, formatOfferValidTill, getSpecialOfferImageUrl } from '../utils/specialOffer';
 import { trackOfferEvent } from '../utils/offerAnalytics';
 import PaymentModal from '../components/PaymentModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -599,6 +599,7 @@ export default function MemberShopDetails() {
   // Special offers from the merchant (My Account → Offer); hidden once the end date has passed
   const activeSpecialOffers = getActiveSpecialOffers(shop);
   const specialOfferValidTill = formatOfferValidTill(shop);
+  const specialOfferImage = getSpecialOfferImageUrl(shop);
 
   const ShopContent = () => (
     <ScrollView
@@ -752,6 +753,9 @@ export default function MemberShopDetails() {
         {/* Special Offer — merchant-managed from My Account → Offer; hidden when empty or expired */}
         {activeSpecialOffers.length > 0 && (
           <View style={styles.savingsCard} testID="special-offer-card">
+            {!!specialOfferImage && (
+              <Image source={{ uri: specialOfferImage }} style={styles.savingsImage} resizeMode="cover" testID="special-offer-image" />
+            )}
             <Ionicons name="gift" size={32} color="#4CAF50" />
             <Text style={styles.savingsTitle}>Special Offer</Text>
             {activeSpecialOffers.map((o, i) => (

@@ -1,6 +1,7 @@
 import axios from "axios";
 import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { isSpecialOfferImageName, isSpecialOfferImageUrl, specialOfferImageFileName } from "./specialOffer";
 
 // ==========================================================================
 // ==========================================================================
@@ -924,23 +925,53 @@ export const getCustomerProfile = async (customerId: number) => {
    - string: single URL
    - string[]: array of URLs
    - object[]: array of { s3ImageUrl: string, ... } */
+// Shop gallery URLs (excludes the special-offer banner, which is shown in the offer sections instead).
 export const extractImageUrls = (raw: unknown): string[] => {
   if (raw == null) return [];
-  if (typeof raw === 'string') return raw ? [raw] : [];
+  if (typeof raw === 'string') return raw && !isSpecialOfferImageUrl(raw) ? [raw] : [];
   if (Array.isArray(raw)) {
     return raw
       .map((item: unknown) => {
         if (typeof item === 'string') return item;
         if (item && typeof item === 'object' && 's3ImageUrl' in item) {
-          const url = (item as { s3ImageUrl?: unknown }).s3ImageUrl;
+          const o = item as { s3ImageUrl?: unknown; fileName?: string };
+          if (isSpecialOfferImageName(o.fileName)) return null;
+          const url = o.s3ImageUrl;
           return typeof url === 'string' ? url : null;
         }
         return null;
       })
-      .filter((u): u is string => typeof u === 'string');
+      .filter((u): u is string => typeof u === 'string' && !isSpecialOfferImageUrl(u));
   }
   return [];
 };
+
+// Uploads the special-offer banner through the merchant S3 upload API (same one used at registration).
+// Fixed file name → re-uploading replaces the previous banner. Returns the public image URL.
+export const uploadSpecialOfferImage = async (merchantId: string | number, uri: string): Promise<string> => {
+  const fileName = specialOfferImageFileName(merchantId);
+  const formData = new FormData();
+  if (Platform.OS === "web") {
+    const blob = await (await fetch(uri)).blob();
+    formData.append("file", blob, fileName);
+  } else {
+    formData.append("file", { uri, name: fileName, type: "image/jpeg" } as any);
+  }
+  const res = await fetch(`${INTOWN_API_BASE}/s3/upload?userType=IN_MERCHANT&inTownId=${merchantId}`, {
+    method: "POST",
+    headers: { Accept: "application/json" },
+    body: formData,
+  });
+  const raw = await res.text();
+  let parsed: any = raw;
+  try { parsed = raw ? JSON.parse(raw) : raw; } catch {}
+  if (!res.ok) throw new Error(typeof parsed === "string" ? parsed : JSON.stringify(parsed));
+  const first = Array.isArray(parsed) ? parsed[0] : parsed;
+  const url: string | undefined = first?.url || first?.s3ImageUrl;
+  if (!url) throw new Error("Upload succeeded but no image URL was returned");
+  return url;
+};
+
 
 const merchantImageCache = new Map<string, string | null>();
 const merchantImageListCache = new Map<string, string[]>();

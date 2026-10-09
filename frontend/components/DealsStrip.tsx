@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { getActiveSpecialOffers, formatOfferValidTill } from '../utils/specialOffer';
+import { getActiveSpecialOffers, formatOfferValidTill, getSpecialOfferImageUrl } from '../utils/specialOffer';
 import { getTrendingTaps } from '../utils/offerAnalytics';
 
 interface DealsStripProps {
@@ -57,6 +57,7 @@ export const DealsStrip = ({ shops, onPressShop }: DealsStripProps) => {
           const validTill = formatOfferValidTill(shop);
           const shopTaps = taps[String(shop.id)] || 0;
           const trending = idx === 0 && topTaps > 0;
+          const dealImage = getSpecialOfferImageUrl(shop) || (typeof shop.image === 'string' ? shop.image : null);
           return (
             <TouchableOpacity
               key={String(shop.id)}
@@ -66,8 +67,8 @@ export const DealsStrip = ({ shops, onPressShop }: DealsStripProps) => {
               testID={`deal-card-${shop.id}`}
             >
               <View style={styles.imageWrap}>
-                {shop.image ? (
-                  <Image source={{ uri: shop.image }} style={styles.image} resizeMode="cover" />
+                {dealImage ? (
+                  <Image source={{ uri: dealImage }} style={styles.image} resizeMode="cover" testID={`deal-image-${shop.id}`} />
                 ) : (
                   <View style={styles.imagePlaceholder}>
                     <Ionicons name="storefront" size={26} color="#FF8A00" />

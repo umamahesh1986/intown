@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, Animated, Easing, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { extractImageUrls } from '../utils/api';
-import { getActiveSpecialOffers, formatOfferValidTill } from '../utils/specialOffer';
+import { getActiveSpecialOffers, formatOfferValidTill, getSpecialOfferImageUrl } from '../utils/specialOffer';
 
 // Subtle looping glow + breathe used behind special-offer cards.
 const usePulse = (enabled: boolean) => {
@@ -42,6 +42,8 @@ export const NearbyMerchantCard = ({ shop, onPress, testID }: Props) => {
   const category = shop.businessCategory || 'General';
   const offers = getActiveSpecialOffers(shop);
   const special = offers.length > 0;
+  const offerImage = special ? getSpecialOfferImageUrl(shop) : null;
+  const heroUri = offerImage || imageUri;
   const validTill = special ? formatOfferValidTill(shop) : '';
   const offerText = shop.offer || '';
   const pulse = usePulse(special);
@@ -62,8 +64,8 @@ export const NearbyMerchantCard = ({ shop, onPress, testID }: Props) => {
     >
       {special && <View style={styles.topBar} />}
       <View style={styles.imageWrapper}>
-        {imageUri ? (
-          <Image source={{ uri: imageUri }} style={styles.image} resizeMode="cover" />
+        {heroUri ? (
+          <Image source={{ uri: heroUri }} style={styles.image} resizeMode="cover" testID={offerImage ? `nearby-merchant-offer-image-${shop.id}` : undefined} />
         ) : (
           <View style={styles.imagePlaceholder}>
             <Ionicons name="storefront" size={36} color="#FF8A00" />

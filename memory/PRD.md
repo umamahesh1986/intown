@@ -214,6 +214,12 @@
 - `eas.json`: `development` and `preview` profiles now explicitly set dev env vars; `production` unchanged.
 - `frontend/.env` (committed, used by preview) sets `EXPO_PUBLIC_ENV=dev` + dev URLs; added `frontend/.env.example` for local setup.
 
+### Session 23 (Jun 2026) - Special offer image (upload via merchant S3 API, shown to customers)
+- Merchant → My Account → Offer → **Special Offer Image**: pick from gallery / camera (16:9), preview, "Discard"; uploaded on "Save All Changes" via the registration upload API `POST /IN/s3/upload?userType=IN_MERCHANT&inTownId={id}` with fixed file name `special_offer_{merchantId}.jpg` (re-upload replaces). Response `[{fileName, url, status}]` → `url` shown immediately (cache-busted).
+- No merchant field exists for the banner, so it is identified by **file name**: `utils/specialOffer.ts` → `getSpecialOfferImageUrl(shop)` scans `s3ImageUrl` (objects with `fileName`/`s3ImageUrl`, or URLs). `extractImageUrls()` and gallery refreshers now exclude `special_offer*` files so the banner does not appear in shop galleries.
+- Customer surfaces: `DealsStrip` card image, highlighted `NearbyMerchantCard` hero image (member + dual dashboards), and the Special Offer card on `member-shop-details` (16:9 banner). Falls back to shop image when absent.
+- Verified against real dev API: upload → S3 object `special_offer_100103.jpg` → dashboards render the banner. Note: dev merchant 100103 also has a stray `offer_test.png` from probing (no delete API).
+
 ## Backlog
 
 - P1: Test full end-to-end login with real OTP on mobile device
