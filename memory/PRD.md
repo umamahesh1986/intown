@@ -168,6 +168,13 @@
 - Local dev note: run `yarn install` (postinstall runs `patch-whatwg-fetch.js` + `expo prebuild`); in this container use `yarn install --ignore-scripts && node patch-whatwg-fetch.js`.
 - Verified on web build: splash → iOS carousel, merchant new-order bell + Orders tab badge, tap → `/merchant-orders?tab=PLACED` highlighted card.
 
+### Session 16 (Jun 2026) - Merchant-managed Special Offer (IOS_Changes_Vicky)
+- `app/account.tsx` → Offer card now has **Current Offer** (unchanged, `offer`) followed by **Special Offer** (`specialOffer`, multiline, placeholder, "No special offer added" in view mode, hint text). Saved in the same `PATCH /IN/merchant/{id}` payload as `specialOffer` (trimmed) and mirrored into the cached `user_search_response`.
+- `app/member-shop-details.tsx` → Special Offer card renders `shop.specialOffer` and is **hidden entirely** when empty (old hardcoded "INtown Guaranty" placeholder text removed). `ShopData.specialOffer?` added; registration payload sends `specialOffer: ''`.
+- Fixed iOS-branch bug: `/account` "Login Required" modal stayed open after auth loaded (now tracks `isAuthenticated`).
+- **BACKEND DEPENDENCY**: `devapi.intownlocal.com` currently ignores `specialOffer` (probe PATCH returned 200 but GET has no field). Java API must add `specialOffer` (String/TEXT) to the Merchant entity and include it in `PATCH/GET /IN/merchant/{id}`, `GET /IN/search/by-product-names`, and the login search response. Until then the field will not persist across sessions.
+- Verified via Playwright with API interception: edit → PATCH payload contains `specialOffer` → shop page shows card → empty → card hidden. testIDs: `account-input-special-offer`, `account-value-special-offer`, `special-offer-card`, `special-offer-text`.
+
 ## Backlog
 
 - P1: Test full end-to-end login with real OTP on mobile device

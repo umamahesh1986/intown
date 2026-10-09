@@ -328,6 +328,7 @@ export const registerMerchant = async (merchantData: any) => {
       breakEndAt: merchantData.breakEndAt || '',
       weekOff: merchantData.weekOff || '',
       offer: merchantData.offer || '',
+      specialOffer: merchantData.specialOffer || '',
     };
     
     console.log("Merchant registration payload:", payload);

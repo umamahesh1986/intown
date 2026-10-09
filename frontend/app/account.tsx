@@ -19,9 +19,7 @@ export default function Account() {
   const [showLoginModal, setShowLoginModal] = useState(false);
 
   useEffect(() => {
-    if (isGuest || !isAuthenticated) {
-      setShowLoginModal(true);
-    }
+    setShowLoginModal(isGuest || !isAuthenticated);
   }, [isGuest, isAuthenticated]);
 
   const [editing, setEditing] = useState(false);
@@ -47,6 +45,7 @@ export default function Account() {
   const [breakEndAt, setBreakEndAt] = useState('');
   const [weekOff, setWeekOff] = useState('');
   const [offer, setOffer] = useState('');
+  const [specialOffer, setSpecialOffer] = useState('');
   const [shopLat, setShopLat] = useState<number | null>(null);
   const [shopLng, setShopLng] = useState<number | null>(null);
 
@@ -228,6 +227,7 @@ export default function Account() {
         setBreakEndAt(m.breakEndAt || '');
         setWeekOff(m.weekOff || '');
         setOffer(m.offer || '');
+        setSpecialOffer(m.specialOffer || '');
         setShopLat(m.latitude ?? null);
         setShopLng(m.longitude ?? null);
 
@@ -311,6 +311,7 @@ export default function Account() {
           breakEndAt,
           weekOff,
           offer,
+          specialOffer: specialOffer.trim(),
           productNames: customProductsList.filter(p => p.trim()),
         };
         if (shopLat != null && shopLng != null) {
@@ -713,7 +714,12 @@ export default function Account() {
     else setBreakEndAt(val);
   };
 
-  const renderField = (label: string, value: string, setter?: (v: string) => void, opts?: { multiline?: boolean; keyboardType?: string }) => (
+  const renderField = (
+    label: string,
+    value: string,
+    setter?: (v: string) => void,
+    opts?: { multiline?: boolean; keyboardType?: string; placeholder?: string; emptyText?: string },
+  ) => (
     <View style={styles.fieldGroup}>
       <Text style={styles.label}>{label}</Text>
       {editing && setter ? (
@@ -723,10 +729,14 @@ export default function Account() {
           onChangeText={setter}
           multiline={opts?.multiline}
           keyboardType={opts?.keyboardType as any}
+          placeholder={opts?.placeholder}
           placeholderTextColor="#999"
+          testID={`account-input-${label.toLowerCase().replace(/\s+/g, '-')}`}
         />
       ) : (
-        <Text style={styles.value}>{value || 'Not provided'}</Text>
+        <Text style={styles.value} testID={`account-value-${label.toLowerCase().replace(/\s+/g, '-')}`}>
+          {value || opts?.emptyText || 'Not provided'}
+        </Text>
       )}
     </View>
   );
@@ -1110,6 +1120,14 @@ export default function Account() {
             <View style={styles.card}>
               <Text style={styles.sectionTitle}>Offer</Text>
               {renderField('Current Offer', offer, setOffer, { multiline: true })}
+              <View testID="special-offer-field">
+                {renderField('Special Offer', specialOffer, setSpecialOffer, {
+                  multiline: true,
+                  placeholder: 'e.g. Flat 20% off on orders above ₹500 this weekend',
+                  emptyText: 'No special offer added',
+                })}
+                <Text style={styles.fieldHint}>Shown in the Special Offer section of your shop page for customers.</Text>
+              </View>
             </View>
 
             {/* SAVE BUTTON */}
@@ -1358,6 +1376,7 @@ const styles = StyleSheet.create({
   card: { backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 12 },
   sectionTitle: { fontSize: 16, fontWeight: '700', color: '#1A1A1A', marginBottom: 12, borderBottomWidth: 1, borderBottomColor: '#F0F0F0', paddingBottom: 8 },
   fieldGroup: { marginBottom: 12 },
+  fieldHint: { fontSize: 11, color: '#999', marginTop: -6, marginBottom: 12 },
   label: { fontSize: 12, color: '#777', marginBottom: 4 },
   value: { fontSize: 15, fontWeight: '600', color: '#1A1A1A' },
   input: { borderWidth: 1, borderColor: '#DDD', borderRadius: 8, padding: 10, fontSize: 15, color: '#1A1A1A' },

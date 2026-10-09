@@ -42,6 +42,7 @@ interface ShopData {
   breakEndAt?: string;
   weekOff?: string;
   offer?: string;
+  specialOffer?: string;
 }
 
 export default function MemberShopDetails() {
@@ -735,12 +736,14 @@ export default function MemberShopDetails() {
           </View>
         </View>
 
-        {/* Savings Card */}
-        <View style={styles.savingsCard}>
-          <Ionicons name="gift" size={32} color="#4CAF50" />
-          <Text style={styles.savingsTitle}>Special Offer</Text>
-          <Text style={styles.savingsText}>Get INtown Guaranty instant savings on your purchases!</Text>
-        </View>
+        {/* Special Offer — merchant-managed from My Account → Offer; hidden when empty */}
+        {!!shop.specialOffer?.trim() && (
+          <View style={styles.savingsCard} testID="special-offer-card">
+            <Ionicons name="gift" size={32} color="#4CAF50" />
+            <Text style={styles.savingsTitle}>Special Offer</Text>
+            <Text style={styles.savingsText} testID="special-offer-text">{shop.specialOffer.trim()}</Text>
+          </View>
+        )}
       </View>
     </ScrollView>
   );
