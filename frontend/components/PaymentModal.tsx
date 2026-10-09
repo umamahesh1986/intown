@@ -15,7 +15,8 @@ import {
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { INPOINTS_API_BASE, INTOWN_API_BASE } from '../utils/api';
+import { useAuthStore } from '../store/authStore';
+import { INPOINTS_API_BASE, INTOWN_API_BASE, resolveInPointsCustomerId } from '../utils/api';
 
 interface PaymentModalProps {
   visible: boolean;
@@ -39,6 +40,7 @@ export default function PaymentModal({
   redirectTo,
 }: PaymentModalProps) {
   const router = useRouter();
+  const user = useAuthStore((state) => state.user);
   const [amount, setAmount] = useState('');
   const [instantSavingsInput, setInstantSavingsInput] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -146,6 +148,7 @@ export default function PaymentModal({
           const isSuccess = res.ok;
           if (isSuccess) {
             try {
+              const inPointsCustomerId = await resolveInPointsCustomerId(user?.phone ?? '');
               const creditResponse = await fetch(`${INPOINTS_API_BASE}/points/credit`, {
                 method: 'POST',
                 headers: {
@@ -153,7 +156,7 @@ export default function PaymentModal({
                   'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                  customerId: customerIdValue,
+                  customerId: Number(inPointsCustomerId),
                   merchantId: merchantIdValue,
                   totalPrice: amountValue,
                   intownPrice,

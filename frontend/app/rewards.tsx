@@ -17,7 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuthStore } from '../store/authStore';
-import { INPOINTS_API_BASE, INTOWN_API_BASE, searchUserByPhoneAtBase } from '../utils/api';
+import { INPOINTS_API_BASE, INTOWN_API_BASE, resolveInPointsCustomerId } from '../utils/api';
 
 type PointTransaction = {
   id: number;
@@ -95,11 +95,31 @@ export default function RewardsScreen() {
         balanceResponse.json(),
         pointsHistoryResponse.json(),
       ]);
-      const inPoints = balanceData?.inPoints == null ? 0 : Number(balanceData.inPoints);
-      const pointTransactions = pointsHistoryData?.transactions;
+      const balanceValue =
+        balanceData?.inPoints ??
+        balanceData?.currentTotalPoints ??
+        balanceData?.data?.inPoints ??
+        balanceData?.data?.currentTotalPoints ??
+        pointsHistoryData?.totalPoints ??
+        pointsHistoryData?.data?.totalPoints;
+      const inPoints = balanceValue == null ? NaN : Number(balanceValue);
+      const pointTransactions = Array.isArray(pointsHistoryData)
+        ? pointsHistoryData
+        : Array.isArray(pointsHistoryData?.transactions)
+          ? pointsHistoryData.transactions
+          : Array.isArray(pointsHistoryData?.data)
+            ? pointsHistoryData.data
+            : Array.isArray(pointsHistoryData?.data?.transactions)
+              ? pointsHistoryData.data.transactions
+              : null;
 
-      if (!Number.isFinite(inPoints) || !Array.isArray(pointTransactions)) {
-        throw new Error('The INPoints API returned an unexpected response.');
+      if (!Number.isFinite(inPoints)) {
+        console.error('[Rewards] INPoints balance response did not include a recognized balance field.');
+        throw new Error('The INPoints API returned an invalid balance.');
+      }
+      if (!pointTransactions) {
+        console.error('[Rewards] INPoints history response did not include a transaction list.');
+        throw new Error('The INPoints API returned invalid points history.');
       }
 
       const pointActivity: ActivityItem[] = (pointTransactions as PointTransaction[]).map((transaction): ActivityItem => {
@@ -179,19 +199,7 @@ export default function RewardsScreen() {
   }, []);
 
   const resolveCustomerId = useCallback(async (): Promise<string> => {
-    const phoneNumber = user?.phone?.replace(/\D/g, '').slice(-10);
-    if (!phoneNumber || phoneNumber.length !== 10) {
-      throw new Error('A valid signed-in customer phone number is not available.');
-    }
-
-    const customerResponse = await searchUserByPhoneAtBase(phoneNumber, INPOINTS_API_BASE);
-    const customerIdFromApi = customerResponse?.customer?.id;
-    const numericId = Number(customerIdFromApi);
-    if (customerIdFromApi == null || !Number.isSafeInteger(numericId) || numericId <= 0) {
-      throw new Error('The customer lookup API did not return a valid customer ID.');
-    }
-
-    return String(numericId);
+    return resolveInPointsCustomerId(user?.phone ?? '');
   }, [user?.phone]);
 
   const resolvePaymentCustomerId = useCallback(async (): Promise<string | null> => {

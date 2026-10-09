@@ -377,6 +377,22 @@ export const searchUserByPhoneAtBase = async (
   return response.data;
 };
 
+export const resolveInPointsCustomerId = async (phoneNumber: string): Promise<string> => {
+  const normalizedPhone = phoneNumber.replace(/\D/g, '').slice(-10);
+  if (normalizedPhone.length !== 10) {
+    throw new Error('A valid signed-in customer phone number is not available.');
+  }
+
+  const customerResponse = await searchUserByPhoneAtBase(normalizedPhone, INPOINTS_API_BASE);
+  const customerId = customerResponse?.customer?.id;
+  const numericId = Number(customerId);
+  if (customerId == null || !Number.isSafeInteger(numericId) || numericId <= 0) {
+    throw new Error('The INPoints customer lookup did not return a valid customer ID.');
+  }
+
+  return String(numericId);
+};
+
 export const searchUserByPhone = async (phoneNumber: string): Promise<UserSearchResponse> => {
   try {
     // Clean phone number - remove +91 or 91 prefix if present
