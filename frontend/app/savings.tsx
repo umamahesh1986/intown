@@ -14,6 +14,7 @@ interface ApiTransaction {
   totalPrice?: number;
   inTownPrice?: number;
   intownSavings?: number;
+  inTownSavings?: number;
   payablePrice?: number;
   transactionDate: string;
 }
@@ -72,7 +73,7 @@ export default function Savings() {
   // Check if user is a regular 'user' (not member or merchant)
   const isRegularUser = user?.userType === 'user' || user?.userType === null || !user?.userType;
 
-  const fetchSavingsData = async () => {
+  const fetchSavingsData = useCallback(async () => {
     try {
       // Get customer ID from AsyncStorage
       const customerId = await AsyncStorage.getItem('customer_id');
@@ -100,25 +101,38 @@ export default function Savings() {
       }
 
       const data: SavingsApiResponse = await response.json();
+      const currentDate = new Date();
+      const transactions = data.transactions || [];
+      const getSavingsForPeriod = (matchesPeriod: (date: Date) => boolean) =>
+        transactions.reduce((total, transaction) => {
+          const transactionDate = new Date(transaction.transactionDate);
 
-      // Update summary with API data
+          return Number.isNaN(transactionDate.getTime()) || !matchesPeriod(transactionDate)
+            ? total
+            : total + (transaction.intownSavings ?? transaction.inTownSavings ?? 0);
+        }, 0);
+
+      // Calculate period totals from transaction dates to keep each range distinct.
       setSummary({
-        today: data.today?.intownSavings ?? 0,
-        thisMonth: data.thisMonth?.intownSavings ?? 0,
-        thisYear: data.thisYear?.intownSavings ?? 0,
+        today: getSavingsForPeriod((date) =>
+          date.getFullYear() === currentDate.getFullYear() &&
+          date.getMonth() === currentDate.getMonth() &&
+          date.getDate() === currentDate.getDate()
+        ),
+        thisMonth: 0,
+        thisYear: 0,
         lifetime: data.lifetime?.intownSavings ?? 0,
         totalTransactions: data.lifetime?.transactionCount ?? 0,
-        businessName: data.lifetime?.transactionCount ?? 0,
       });
 
       // Transform transactions for display
-      const transformedTransactions: SavingsTransaction[] = (data.transactions || []).map((tx) => ({
+      const transformedTransactions: SavingsTransaction[] = transactions.map((tx) => ({
         id: String(tx.transactionId),
         date: tx.transactionDate,
-        shopName: tx.businessName || tx.merchantName || 'Unknown Shop',
+        businessName: tx.businessName || tx.merchantName || 'Unknown Shop',
         amount: tx.totalPrice ?? 0,
-        savings: tx.intownSavings ?? 0,
-        paidAmount: tx.payablePrice ?? 0,
+        savings: tx.payablePrice ?? 0,
+        paidAmount: tx.intownSavings ?? tx.inTownSavings ?? 0,
       }));
 
       setTransactions(transformedTransactions);
@@ -137,16 +151,16 @@ export default function Savings() {
       setIsLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [user?.id]);
 
   useEffect(() => {
     fetchSavingsData();
-  }, []);
+  }, [fetchSavingsData]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     fetchSavingsData();
-  }, []);
+  }, [fetchSavingsData]);
 
   const formatCurrency = (amount: number) => {
     return `₹${amount.toFixed(2)}`;
