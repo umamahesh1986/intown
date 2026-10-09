@@ -9,8 +9,22 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { useAuthStore } from '../store/authStore';
 import { LoginRequiredModal } from '../components/LoginRequiredModal';
+import { DateSpinnerModal, formatYmd } from '../components/DateSpinnerModal';
 import { INTOWN_API_BASE, getCategories, getProductsByCategory } from '../utils/api';
 import axios from 'axios';
+
+const pad2 = (n: number) => String(n).padStart(2, '0');
+// ISO datetime (backend) → 'YYYY-MM-DD' (local)
+const isoToYmd = (iso?: string | null) => {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return isNaN(d.getTime()) ? '' : `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+};
+// 'YYYY-MM-DD' → ISO at local end-of-day so the offer stays valid for the whole chosen day
+const ymdToIsoEndOfDay = (ymd: string) => {
+  const [y, m, d] = ymd.split('-').map(Number);
+  return new Date(y, m - 1, d, 23, 59, 59).toISOString();
+};
 
 export default function Account() {
   const router = useRouter();
@@ -45,7 +59,9 @@ export default function Account() {
   const [breakEndAt, setBreakEndAt] = useState('');
   const [weekOff, setWeekOff] = useState('');
   const [offer, setOffer] = useState('');
-  const [specialOffer, setSpecialOffer] = useState('');
+  const [specialOffersText, setSpecialOffersText] = useState(''); // one offer per line → specialOffers[]
+  const [specialOfferEndDate, setSpecialOfferEndDate] = useState(''); // 'YYYY-MM-DD'
+  const [showEndDatePicker, setShowEndDatePicker] = useState(false);
   const [shopLat, setShopLat] = useState<number | null>(null);
   const [shopLng, setShopLng] = useState<number | null>(null);
 
@@ -212,9 +228,11 @@ export default function Account() {
       }
 
       // Load merchant fields from search response
+      let resolvedName = '';
       if (merchantUser && parsedSearch?.merchant) {
         const m = parsedSearch.merchant;
-        setName(m.shopName || m.businessName || m.contactName || '');
+        resolvedName = m.shopName || m.businessName || m.contactName || '';
+        setName(resolvedName);
         setContactName(m.contactName || '');
         setEmail(m.email || '');
         setBusinessCategory(m.businessCategory || '');
@@ -227,7 +245,8 @@ export default function Account() {
         setBreakEndAt(m.breakEndAt || '');
         setWeekOff(m.weekOff || '');
         setOffer(m.offer || '');
-        setSpecialOffer(m.specialOffer || '');
+        setSpecialOffersText(Array.isArray(m.specialOffers) ? m.specialOffers.filter(Boolean).join('\n') : '');
+        setSpecialOfferEndDate(isoToYmd(m.specialOfferEndDate));
         setShopLat(m.latitude ?? null);
         setShopLng(m.longitude ?? null);
 
@@ -240,12 +259,13 @@ export default function Account() {
           setCustomProductsList(m.productNames);
         }
       } else if (parsedSearch?.customer) {
-        setName(parsedSearch.customer.contactName || parsedSearch.customer.name || '');
+        resolvedName = parsedSearch.customer.contactName || parsedSearch.customer.name || '';
+        setName(resolvedName);
         setEmail(parsedSearch.customer.email || '');
       }
 
-      // Fallback name from user_data
-      if (parsedUserData && !name) {
+      // Fallback name from user_data (use the just-resolved value — `name` state is stale here)
+      if (parsedUserData && !resolvedName && !name) {
         if (parsedUserData.name) setName(parsedUserData.name);
         if (parsedUserData.email) setEmail(parsedUserData.email);
       }
@@ -311,15 +331,22 @@ export default function Account() {
           breakEndAt,
           weekOff,
           offer,
-          specialOffer: specialOffer.trim(),
+          specialOffers: specialOffersText.split('\n').map(s => s.trim()).filter(Boolean),
           productNames: customProductsList.filter(p => p.trim()),
         };
+        // Backend PATCH ignores null, so only send the end date when one is set
+        if (specialOfferEndDate) edited.specialOfferEndDate = ymdToIsoEndOfDay(specialOfferEndDate);
         if (shopLat != null && shopLng != null) {
           edited.latitude = shopLat;
           edited.longitude = shopLng;
         }
 
         const payload = { ...baseMerchant, ...edited };
+        // Backend PATCH rejects (400) the GET-shaped image array and the "+00:00" date format it
+        // itself returns — images are managed by separate upload flows, and the end date is re-sent
+        // above in ISO "Z" format when set.
+        delete payload.s3ImageUrl;
+        if (!specialOfferEndDate) delete payload.specialOfferEndDate;
 
         // PATCH merchant update API — surface failures in the Alert rather
         // than swallowing them silently.
@@ -1121,12 +1148,46 @@ export default function Account() {
               <Text style={styles.sectionTitle}>Offer</Text>
               {renderField('Current Offer', offer, setOffer, { multiline: true })}
               <View testID="special-offer-field">
-                {renderField('Special Offer', specialOffer, setSpecialOffer, {
-                  multiline: true,
-                  placeholder: 'e.g. Flat 20% off on orders above ₹500 this weekend',
-                  emptyText: 'No special offer added',
-                })}
+                {editing ? (
+                  <View style={styles.fieldGroup}>
+                    <Text style={styles.label}>Special Offer</Text>
+                    <TextInput
+                      style={[styles.input, styles.textArea]}
+                      value={specialOffersText}
+                      onChangeText={setSpecialOffersText}
+                      multiline
+                      placeholder={'One offer per line, e.g.\nFlat 20% off on orders above ₹500\nFree delivery on weekends'}
+                      placeholderTextColor="#999"
+                      testID="account-input-special-offer"
+                    />
+                  </View>
+                ) : (
+                  <View style={styles.fieldGroup}>
+                    <Text style={styles.label}>Special Offer</Text>
+                    {specialOffersText ? (
+                      specialOffersText.split('\n').map((o, i) => (
+                        <Text key={i} style={styles.value} testID={`account-value-special-offer-${i}`}>• {o}</Text>
+                      ))
+                    ) : (
+                      <Text style={styles.value} testID="account-value-special-offer">No special offer added</Text>
+                    )}
+                  </View>
+                )}
                 <Text style={styles.fieldHint}>Shown in the Special Offer section of your shop page for customers.</Text>
+
+                <View style={styles.fieldGroup}>
+                  <Text style={styles.label}>Special Offer Valid Till</Text>
+                  {editing ? (
+                    <TouchableOpacity style={styles.timeBtn} onPress={() => setShowEndDatePicker(true)} testID="account-special-offer-end-date-btn">
+                      <Ionicons name="calendar-outline" size={16} color="#FF8A00" />
+                      <Text style={styles.timeBtnText}>{specialOfferEndDate ? formatYmd(specialOfferEndDate) : 'Select end date'}</Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <Text style={styles.value} testID="account-value-special-offer-end-date">
+                      {specialOfferEndDate ? formatYmd(specialOfferEndDate) : 'No end date'}
+                    </Text>
+                  )}
+                </View>
               </View>
             </View>
 
@@ -1323,6 +1384,15 @@ export default function Account() {
           </View>
         </View>
       </Modal>
+
+      <DateSpinnerModal
+        visible={showEndDatePicker}
+        title="Special Offer Valid Till"
+        value={specialOfferEndDate}
+        onChange={setSpecialOfferEndDate}
+        onClose={() => setShowEndDatePicker(false)}
+        onClear={() => { setSpecialOfferEndDate(''); setShowEndDatePicker(false); }}
+      />
     </SafeAreaView>
       )}
     </>

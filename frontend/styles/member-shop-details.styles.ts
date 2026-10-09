@@ -104,6 +104,7 @@ export const styles = StyleSheet.create({
   },
   savingsTitle: { fontSize: 20, fontWeight: 'bold', color: '#2E7D32', marginTop: 8 },
   savingsText: { fontSize: 14, color: '#2E7D32', textAlign: 'center', marginTop: 8 },
+  savingsValidTill: { fontSize: 12, color: '#558B2F', textAlign: 'center', marginTop: 10, fontWeight: '600' },
   bottomButtons: {
     flexDirection: 'row',
     padding: 16,

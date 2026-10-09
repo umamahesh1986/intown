@@ -42,7 +42,8 @@ interface ShopData {
   breakEndAt?: string;
   weekOff?: string;
   offer?: string;
-  specialOffer?: string;
+  specialOffers?: string[] | null;
+  specialOfferEndDate?: string | null;
 }
 
 export default function MemberShopDetails() {
@@ -587,6 +588,23 @@ export default function MemberShopDetails() {
   // Get logged-in user's phone number
   const userPhone = user?.phone || 'Not available';
 
+  // Special offers from the merchant (My Account → Offer); hidden once the end date has passed
+  const specialOfferExpired = (() => {
+    if (!shop?.specialOfferEndDate) return false;
+    const end = new Date(shop.specialOfferEndDate);
+    return !isNaN(end.getTime()) && end.getTime() < Date.now();
+  })();
+  const activeSpecialOffers = specialOfferExpired
+    ? []
+    : (shop?.specialOffers || []).map((o) => String(o || '').trim()).filter(Boolean);
+  const specialOfferValidTill = (() => {
+    if (!shop?.specialOfferEndDate) return '';
+    const end = new Date(shop.specialOfferEndDate);
+    return isNaN(end.getTime())
+      ? ''
+      : end.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+  })();
+
   const ShopContent = () => (
     <ScrollView
       onScroll={(e) => {
@@ -736,12 +754,19 @@ export default function MemberShopDetails() {
           </View>
         </View>
 
-        {/* Special Offer — merchant-managed from My Account → Offer; hidden when empty */}
-        {!!shop.specialOffer?.trim() && (
+        {/* Special Offer — merchant-managed from My Account → Offer; hidden when empty or expired */}
+        {activeSpecialOffers.length > 0 && (
           <View style={styles.savingsCard} testID="special-offer-card">
             <Ionicons name="gift" size={32} color="#4CAF50" />
             <Text style={styles.savingsTitle}>Special Offer</Text>
-            <Text style={styles.savingsText} testID="special-offer-text">{shop.specialOffer.trim()}</Text>
+            {activeSpecialOffers.map((o, i) => (
+              <Text key={i} style={styles.savingsText} testID={`special-offer-text-${i}`}>
+                {activeSpecialOffers.length > 1 ? `• ${o}` : o}
+              </Text>
+            ))}
+            {!!specialOfferValidTill && (
+              <Text style={styles.savingsValidTill} testID="special-offer-valid-till">Valid till {specialOfferValidTill}</Text>
+            )}
           </View>
         )}
       </View>

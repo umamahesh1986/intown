@@ -169,11 +169,12 @@
 - Verified on web build: splash → iOS carousel, merchant new-order bell + Orders tab badge, tap → `/merchant-orders?tab=PLACED` highlighted card.
 
 ### Session 16 (Jun 2026) - Merchant-managed Special Offer (IOS_Changes_Vicky)
-- `app/account.tsx` → Offer card now has **Current Offer** (unchanged, `offer`) followed by **Special Offer** (`specialOffer`, multiline, placeholder, "No special offer added" in view mode, hint text). Saved in the same `PATCH /IN/merchant/{id}` payload as `specialOffer` (trimmed) and mirrored into the cached `user_search_response`.
-- `app/member-shop-details.tsx` → Special Offer card renders `shop.specialOffer` and is **hidden entirely** when empty (old hardcoded "INtown Guaranty" placeholder text removed). `ShopData.specialOffer?` added; registration payload sends `specialOffer: ''`.
-- Fixed iOS-branch bug: `/account` "Login Required" modal stayed open after auth loaded (now tracks `isAuthenticated`).
-- **BACKEND DEPENDENCY**: `devapi.intownlocal.com` currently ignores `specialOffer` (probe PATCH returned 200 but GET has no field). Java API must add `specialOffer` (String/TEXT) to the Merchant entity and include it in `PATCH/GET /IN/merchant/{id}`, `GET /IN/search/by-product-names`, and the login search response. Until then the field will not persist across sessions.
-- Verified via Playwright with API interception: edit → PATCH payload contains `specialOffer` → shop page shows card → empty → card hidden. testIDs: `account-input-special-offer`, `account-value-special-offer`, `special-offer-card`, `special-offer-text`.
+- Backend contract (confirmed live on devapi): Merchant has `specialOffers: string[]` and `specialOfferEndDate: ISO datetime` — returned by `GET /IN/merchant/{id}` and `GET /IN/search/by-product-names`; saved via `PATCH /IN/merchant/{id}`.
+- `app/account.tsx` → Offer card: **Current Offer** (unchanged) → **Special Offer** (multiline, one offer per line → `specialOffers[]`; view mode shows bullets or "No special offer added") → **Special Offer Valid Till** (new `components/DateSpinnerModal.tsx` Day/Month/Year spinner with Clear; saved as local end-of-day ISO `Z`).
+- PATCH payload hardening (backend returns 400 otherwise): `s3ImageUrl` (GET-shaped object array) is stripped (images use separate upload flows); `specialOfferEndDate` only sent in `Z` format when set (backend ignores null and rejects its own `+00:00` format, so the end date cannot be cleared server-side — card hides anyway when offers list is empty).
+- `app/member-shop-details.tsx` → Special Offer card lists `specialOffers` + "Valid till {date}"; **hidden** when list empty or end date passed (old hardcoded placeholder removed).
+- Fixed iOS-branch bugs: `/account` "Login Required" modal stuck after auth loaded; stale-closure `!name` fallback overwrote the business name with `user_data.name` on save.
+- Verified against the real dev API (Playwright proxying requests): save → DB updated → shop page shows offers + validity; expired date → hidden. testIDs: `account-input-special-offer`, `account-value-special-offer[-i]`, `account-special-offer-end-date-btn`, `date-*`, `special-offer-card`, `special-offer-text-{i}`, `special-offer-valid-till`.
 
 ## Backlog
 
