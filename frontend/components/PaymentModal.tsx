@@ -164,7 +164,12 @@ export default function PaymentModal({
               });
 
               if (!creditResponse.ok) {
-                throw new Error(await creditResponse.text() || `INPoints request failed (${creditResponse.status})`);
+                const errorBody = await creditResponse.text();
+                console.error(
+                  `[Payment] INPoints credit failed (HTTP ${creditResponse.status}):`,
+                  errorBody,
+                );
+                throw new Error(`INPoints credit failed (HTTP ${creditResponse.status}).`);
               }
 
               const pointsCredit: { pointsEarned?: number; currentTotalPoints?: number } =
@@ -182,8 +187,11 @@ export default function PaymentModal({
               }
             } catch (creditError) {
               console.error('Transaction saved but INPoints credit failed:', creditError);
+              const creditFailure = creditError instanceof Error
+                ? creditError.message
+                : 'INPoints credit request failed.';
               setPointsCreditMessage(
-                'Your transaction was saved, but INPoints could not be credited. Please contact support.'
+                `Your transaction was saved, but ${creditFailure} Please contact support.`
               );
             }
             setShowSuccess(true);
