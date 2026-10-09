@@ -15,7 +15,7 @@ import {
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { INTOWN_API_BASE } from '../utils/api';
+import { INPOINTS_API_BASE, INTOWN_API_BASE } from '../utils/api';
 
 interface PaymentModalProps {
   visible: boolean;
@@ -44,6 +44,7 @@ export default function PaymentModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [showPaymentChooser, setShowPaymentChooser] = useState(false);
+  const [pointsCreditMessage, setPointsCreditMessage] = useState<string | null>(null);
 
   // Track if we're waiting for user to return from UPI app
   const waitingForUpiReturn = useRef(false);
@@ -101,6 +102,7 @@ export default function PaymentModal({
     }
 
     setIsSubmitting(true);
+    setPointsCreditMessage(null);
     try {
       const payload = {
         customerId: customerIdValue,
@@ -141,8 +143,46 @@ export default function PaymentModal({
           lastData = await res.json().catch(() => ({}));
           console.log(`Attempt ${attempt} - Status:`, res.status, 'Data:', JSON.stringify(lastData));
 
-          const isSuccess = res.status === 201 || res.status === 200 || lastData?.transactionId;
+          const isSuccess = res.ok;
           if (isSuccess) {
+            try {
+              const creditResponse = await fetch(`${INPOINTS_API_BASE}/points/credit`, {
+                method: 'POST',
+                headers: {
+                  Accept: 'application/json',
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  customerId: customerIdValue,
+                  merchantId: merchantIdValue,
+                  totalPrice: amountValue,
+                  intownPrice,
+                }),
+              });
+
+              if (!creditResponse.ok) {
+                throw new Error(await creditResponse.text() || `INPoints request failed (${creditResponse.status})`);
+              }
+
+              const pointsCredit: { pointsEarned?: number; currentTotalPoints?: number } =
+                await creditResponse.json();
+              if (typeof pointsCredit.pointsEarned === 'number') {
+                setPointsCreditMessage(
+                  `You earned ${pointsCredit.pointsEarned.toLocaleString('en-IN')} INPoints.`
+                );
+              } else if (typeof pointsCredit.currentTotalPoints === 'number') {
+                setPointsCreditMessage(
+                  `Your INPoints balance is ${pointsCredit.currentTotalPoints.toLocaleString('en-IN')}.`
+                );
+              } else {
+                setPointsCreditMessage('INPoints credited successfully.');
+              }
+            } catch (creditError) {
+              console.error('Transaction saved but INPoints credit failed:', creditError);
+              setPointsCreditMessage(
+                'Your transaction was saved, but INPoints could not be credited. Please contact support.'
+              );
+            }
             setShowSuccess(true);
             return; // Payment succeeded — exit
           }
@@ -282,6 +322,9 @@ export default function PaymentModal({
               <Text style={styles.successMessage}>
                 your transaction was processed Successfully !
               </Text>
+              {pointsCreditMessage && (
+                <Text style={styles.pointsCreditMessage}>{pointsCreditMessage}</Text>
+              )}
               <TouchableOpacity style={styles.successButton} onPress={handleSuccessOk}>
                 <Text style={styles.successButtonText}>OK</Text>
               </TouchableOpacity>
@@ -486,6 +529,7 @@ const styles = StyleSheet.create({
   successIconWrap: { marginBottom: 12 },
   successTitle: { fontSize: 22, fontWeight: '700', color: '#1A1A1A', marginBottom: 8 },
   successMessage: { fontSize: 14, color: '#555', textAlign: 'center', marginBottom: 20 },
+  pointsCreditMessage: { fontSize: 13, color: '#2E7D32', textAlign: 'center', marginBottom: 16 },
   successButton: {
     backgroundColor: '#FF8A00',
     borderRadius: 12,

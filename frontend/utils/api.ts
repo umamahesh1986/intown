@@ -3,6 +3,9 @@ import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 const BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://api.intownlocal.com';
 export const INTOWN_API_BASE = `${BASE_URL}/IN`;
+const INPOINTS_API_BASE_URL =
+  process.env.EXPO_PUBLIC_INPOINTS_API_BASE_URL || 'https://devapi.intownlocal.com';
+export const INPOINTS_API_BASE = `${INPOINTS_API_BASE_URL}/IN`;
 
 const OTP_API_BASE = process.env.EXPO_PUBLIC_OTP_API_BASE_URL || 'https://api.intownlocal.com/IN';
 
@@ -355,6 +358,25 @@ export interface UserSearchResponse {
   [key: string]: any;
 }
 
+export const searchUserByPhoneAtBase = async (
+  phoneNumber: string,
+  apiBase: string,
+): Promise<UserSearchResponse> => {
+  const cleanPhone = phoneNumber.replace(/\D/g, "").replace(/^91(?=\d{10}$)/, "");
+  if (cleanPhone.length !== 10) {
+    throw new Error("A valid 10-digit phone number is required for customer lookup.");
+  }
+
+  const response = await axios.get(`${apiBase}/search/${cleanPhone}`, {
+    timeout: 30000,
+    headers: {
+      "Content-Type": "application/json",
+      "Accept": "application/json",
+    },
+  });
+  return response.data;
+};
+
 export const searchUserByPhone = async (phoneNumber: string): Promise<UserSearchResponse> => {
   try {
     // Clean phone number - remove +91 or 91 prefix if present
@@ -369,18 +391,11 @@ export const searchUserByPhone = async (phoneNumber: string): Promise<UserSearch
     console.log("API URL:", apiUrl);
     console.log("Platform:", Platform.OS);
     
-    const response = await axios.get(apiUrl, {
-      timeout: 30000, // Increased timeout for mobile networks
-      headers: {
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-      },
-    });
+    const data = await searchUserByPhoneAtBase(phoneNumber, INTOWN_API_BASE);
     
     console.log("=== API SUCCESS ===");
-    console.log("Status:", response.status);
-    console.log("User search response:", JSON.stringify(response.data, null, 2));
-    return response.data;
+    console.log("User search response:", JSON.stringify(data, null, 2));
+    return data;
   } catch (error: any) {
     console.error("=== API ERROR ===");
     console.error("Error name:", error.name);

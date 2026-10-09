@@ -1364,9 +1364,7 @@ export default function DualDashboard() {
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.actionButton}
-                  onPress={() => {
-                    contentScrollRef.current?.scrollTo({ y: 0, animated: true });
-                  }}
+                  onPress={() => router.push('/rewards')}
                 >
                   <Ionicons name="gift" size={24} color="#FF8A00" />
                   <Text style={styles.actionText}>My Rewards</Text>

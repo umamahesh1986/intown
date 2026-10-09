@@ -128,6 +128,7 @@ export default function RootLayout() {
     '/account',
     '/payment',
     '/member-card',
+    '/rewards',
     '/near-by',
     '/savings',
     '/plans',
@@ -185,6 +186,7 @@ export default function RootLayout() {
         <Stack.Screen name="plans" />
         <Stack.Screen name="checkout" />
         <Stack.Screen name="payment-history" />
+        <Stack.Screen name="rewards" />
         <Stack.Screen name="my-orders" />
         <Stack.Screen name="merchant-orders" />
       </Stack>
