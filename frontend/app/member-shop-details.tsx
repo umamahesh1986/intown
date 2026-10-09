@@ -141,7 +141,9 @@ export default function MemberShopDetails() {
   const [shopImageIndex, setShopImageIndex] = useState(0);
   const shopImageScrollRef = useRef<ScrollView | null>(null);
   const shopImageTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const SHOP_IMAGE_WIDTH = Dimensions.get('window').width;
+  // Measured width of the hero container (window width can differ from the rendered width on web / rotation)
+  const [heroWidth, setHeroWidth] = useState(Dimensions.get('window').width);
+  const SHOP_IMAGE_WIDTH = heroWidth;
   const isCarouselVisible = useRef(true);
 
   // Fetch shop details from API
@@ -265,10 +267,10 @@ export default function MemberShopDetails() {
   }, [shopImages]);
 
   useEffect(() => {
-    if (!shopImageScrollRef.current || shopImages.length === 0 || !isCarouselVisible.current) return;
+    if (!shopImageScrollRef.current || shopImages.length === 0) return;
     shopImageScrollRef.current.scrollTo({
       x: shopImageIndex * SHOP_IMAGE_WIDTH,
-      animated: true,
+      animated: isCarouselVisible.current,
     });
   }, [shopImageIndex, shopImages.length, SHOP_IMAGE_WIDTH]);
 
@@ -492,11 +494,16 @@ export default function MemberShopDetails() {
           ref={shopImageScrollRef}
           horizontal
           pagingEnabled
+          style={{ width: SHOP_IMAGE_WIDTH, height: 250 }}
           showsHorizontalScrollIndicator={false}
           nestedScrollEnabled={true}
           onMomentumScrollEnd={(e) => {
             const index = Math.round(e.nativeEvent.contentOffset.x / SHOP_IMAGE_WIDTH);
-            setShopImageIndex(index);
+            setShopImageIndex(Math.max(0, Math.min(index, shopImages.length - 1)));
+          }}
+          onScrollEndDrag={(e) => {
+            const index = Math.round(e.nativeEvent.contentOffset.x / SHOP_IMAGE_WIDTH);
+            setShopImageIndex(Math.max(0, Math.min(index, shopImages.length - 1)));
           }}
         >
           {shopImages.map((img, index) => (
@@ -504,6 +511,7 @@ export default function MemberShopDetails() {
               key={`${img}-${index}`}
               activeOpacity={0.9}
               onPress={() => setFullscreenImage(img)}
+              style={{ width: SHOP_IMAGE_WIDTH }}
             >
               <Image
                 source={{ uri: img }}
@@ -605,7 +613,7 @@ export default function MemberShopDetails() {
   const specialOfferValidTill = formatOfferValidTill(shop);
   const specialOfferImage = getSpecialOfferImageUrl(shop);
 
-  const ShopContent = () => (
+  const shopContent = (
     <ScrollView
       onScroll={(e) => {
         const offsetY = e.nativeEvent.contentOffset.y;
@@ -613,7 +621,13 @@ export default function MemberShopDetails() {
       }}
       scrollEventThrottle={100}
     >
-      <View style={styles.shopImage}>
+      <View
+        style={styles.shopImage}
+        onLayout={(e) => {
+          const w = Math.round(e.nativeEvent.layout.width);
+          if (w > 0 && w !== heroWidth) setHeroWidth(w);
+        }}
+      >
         {renderShopImageCarousel()}
       </View>
 
@@ -805,7 +819,7 @@ export default function MemberShopDetails() {
         </View>
       </View>
 
-      <ShopContent />
+      {shopContent}
 
       <View style={styles.bottomButtons}>
         <TouchableOpacity
