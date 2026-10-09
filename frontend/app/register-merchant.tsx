@@ -18,7 +18,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { registerMerchant } from '../utils/api';
+import { registerMerchant, extractImageUrls } from '../utils/api';
 import { useAuthStore } from '../store/authStore';
 import * as Location from 'expo-location';
 import { useFocusEffect } from '@react-navigation/native';
@@ -151,7 +151,7 @@ export default function RegisterMerchant() {
       throw new Error(`Image fetch failed: ${res.status}`);
     }
     const data = await res.json();
-    const images = Array.isArray(data?.s3ImageUrl) ? data.s3ImageUrl : [];
+    const images = extractImageUrls(data?.s3ImageUrl);
     if (!images.length) return;
     await AsyncStorage.setItem('merchant_profile_image', images[0]);
     await AsyncStorage.setItem('merchant_shop_images', JSON.stringify(images));

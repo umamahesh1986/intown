@@ -12,7 +12,8 @@ import { LoginRequiredModal } from '../components/LoginRequiredModal';
 import { DateSpinnerModal, formatYmd } from '../components/DateSpinnerModal';
 import { OfferShareCard, buildOfferShareText, shareOfferOnWhatsApp, shareOfferText, shareOfferAsImage } from '../components/OfferShareCard';
 import { OfferAnalyticsCard } from '../components/OfferAnalyticsCard';
-import { INTOWN_API_BASE, getCategories, getProductsByCategory } from '../utils/api';
+import { getSpecialOfferImageUrl, isSpecialOfferImageUrl } from '../utils/specialOffer';
+import { INTOWN_API_BASE, getCategories, getProductsByCategory, uploadSpecialOfferImage } from '../utils/api';
 import axios from 'axios';
 
 const pad2 = (n: number) => String(n).padStart(2, '0');
@@ -74,13 +75,18 @@ export default function Account() {
   const [specialOffersText, setSpecialOffersText] = useState(''); // one offer per line → specialOffers[]
   const [specialOfferEndDate, setSpecialOfferEndDate] = useState(''); // 'YYYY-MM-DD'
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
+  const [specialOfferImageUrl, setSpecialOfferImageUrl] = useState<string | null>(null); // saved banner
+  const [pendingOfferImageUri, setPendingOfferImageUri] = useState<string | null>(null); // picked, not yet uploaded
+  const [isUploadingOfferImage, setIsUploadingOfferImage] = useState(false);
   const offerShareRef = useRef<View>(null);
+  const shareImageReadyRef = useRef(false);
   const specialOfferList = specialOffersText.split('\n').map(s => s.trim()).filter(Boolean);
   const offerShareProps = {
     shopName: name || 'Our shop',
     offers: specialOfferList,
     validTill: specialOfferEndDate ? formatYmd(specialOfferEndDate) : undefined,
     currentOffer: offer || undefined,
+    imageUrl: specialOfferImageUrl,
   };
   const [shopLat, setShopLat] = useState<number | null>(null);
   const [shopLng, setShopLng] = useState<number | null>(null);
@@ -266,6 +272,7 @@ export default function Account() {
         setWeekOff(m.weekOff || '');
         setOffer(m.offer || '');
         setSpecialOffersText(Array.isArray(m.specialOffers) ? m.specialOffers.filter(Boolean).join('\n') : '');
+        setSpecialOfferImageUrl(getSpecialOfferImageUrl(m));
         setSpecialOfferEndDate(isoToYmd(m.specialOfferEndDate));
         setShopLat(m.latitude ?? null);
         setShopLng(m.longitude ?? null);
@@ -321,6 +328,21 @@ export default function Account() {
         ((await AsyncStorage.getItem('merchant_id')) || '').trim();
 
       if (isMerchant && resolvedMerchantId) {
+        // Upload the special-offer banner first (merchant registration S3 upload API)
+        if (pendingOfferImageUri) {
+          setIsUploadingOfferImage(true);
+          try {
+            const url = await uploadSpecialOfferImage(resolvedMerchantId, pendingOfferImageUri);
+            setSpecialOfferImageUrl(`${url}${url.includes('?') ? '&' : '?'}v=${Date.now()}`);
+            setPendingOfferImageUri(null);
+          } catch (e: any) {
+            console.warn('[Account] special offer image upload failed', e?.message || e);
+            Alert.alert('Image Upload Failed', 'Could not upload the special offer image. Your other changes were not saved — please try again.');
+            return;
+          } finally {
+            setIsUploadingOfferImage(false);
+          }
+        }
         // Start from the cached merchant object (sent back as the WHOLE object)
         // and overlay all edited fields on top.
         const searchResp = await AsyncStorage.getItem('user_search_response');
@@ -552,7 +574,7 @@ export default function Account() {
           const listData = await listRes.json();
           const imgs: any = listData?.s3ImageUrl;
           if (Array.isArray(imgs) && imgs.length > 0) {
-            const clean = imgs.filter((u: any) => typeof u === 'string' && u.length > 0);
+            const clean = imgs.filter((u: any) => typeof u === 'string' && u.length > 0 && !isSpecialOfferImageUrl(u));
             setShopImages(clean);
             await AsyncStorage.setItem('merchant_shop_images', JSON.stringify(clean));
           }
@@ -1172,6 +1194,61 @@ export default function Account() {
               <Text style={styles.sectionTitle}>Offer</Text>
               {renderField('Current Offer', offer, setOffer, { multiline: true })}
               <View testID="special-offer-field">
+                {/* Special offer banner image (shown to customers on dashboards & shop page) */}
+                <View style={styles.fieldGroup}>
+                  <Text style={styles.label}>Special Offer Image</Text>
+                  {(pendingOfferImageUri || specialOfferImageUrl) ? (
+                    <Image
+                      source={{ uri: pendingOfferImageUri || specialOfferImageUrl || '' }}
+                      style={styles.offerImagePreview}
+                      resizeMode="cover"
+                      testID="special-offer-image-preview"
+                    />
+                  ) : (
+                    !editing && <Text style={styles.value}>No image added</Text>
+                  )}
+                  {editing && (
+                    <View style={styles.offerImageActions}>
+                      <TouchableOpacity
+                        style={styles.offerImageBtn}
+                        disabled={isUploadingOfferImage}
+                        onPress={async () => {
+                          const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+                          if (!perm.granted) { Alert.alert('Permission needed', 'Allow photo access to pick an offer image.'); return; }
+                          const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: Platform.OS !== 'web', aspect: [16, 9], quality: 0.8 });
+                          if (!result.canceled && result.assets?.[0]?.uri) setPendingOfferImageUri(result.assets[0].uri);
+                        }}
+                        testID="special-offer-image-pick-btn"
+                      >
+                        <Ionicons name="image-outline" size={16} color="#FF8A00" />
+                        <Text style={styles.offerImageBtnText}>{specialOfferImageUrl || pendingOfferImageUri ? 'Change image' : 'Add image'}</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.offerImageBtn}
+                        disabled={isUploadingOfferImage}
+                        onPress={async () => {
+                          const perm = await ImagePicker.requestCameraPermissionsAsync();
+                          if (!perm.granted) { Alert.alert('Permission needed', 'Allow camera access to take an offer photo.'); return; }
+                          const result = await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], allowsEditing: Platform.OS !== 'web', aspect: [16, 9], quality: 0.8 });
+                          if (!result.canceled && result.assets?.[0]?.uri) setPendingOfferImageUri(result.assets[0].uri);
+                        }}
+                        testID="special-offer-image-camera-btn"
+                      >
+                        <Ionicons name="camera-outline" size={16} color="#FF8A00" />
+                        <Text style={styles.offerImageBtnText}>Camera</Text>
+                      </TouchableOpacity>
+                      {pendingOfferImageUri && (
+                        <TouchableOpacity style={styles.offerImageBtn} onPress={() => setPendingOfferImageUri(null)} testID="special-offer-image-discard-btn">
+                          <Ionicons name="close-circle-outline" size={16} color="#D32F2F" />
+                          <Text style={[styles.offerImageBtnText, { color: '#D32F2F' }]}>Discard</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  )}
+                  {editing && pendingOfferImageUri && (
+                    <Text style={styles.fieldHint}>New image will be uploaded when you tap &quot;Save All Changes&quot;.</Text>
+                  )}
+                </View>
                 {editing ? (
                   <View style={styles.fieldGroup}>
                     <Text style={styles.label}>Special Offer</Text>
@@ -1227,7 +1304,7 @@ export default function Account() {
                     {Platform.OS !== 'web' && (
                       <TouchableOpacity
                         style={[styles.shareBtn, styles.shareImage]}
-                        onPress={() => shareOfferAsImage(offerShareRef)}
+                        onPress={() => shareOfferAsImage(offerShareRef, () => !specialOfferImageUrl || shareImageReadyRef.current)}
                         testID="offer-share-image-btn"
                       >
                         <Ionicons name="image-outline" size={16} color="#FFF" />
@@ -1255,7 +1332,7 @@ export default function Account() {
             {/* Off-screen card captured for "Share Image" */}
             {specialOfferList.length > 0 && (
               <View style={styles.offscreen} pointerEvents="none">
-                <OfferShareCard ref={offerShareRef} {...offerShareProps} />
+                <OfferShareCard ref={offerShareRef} {...offerShareProps} onImageReady={(r) => { shareImageReadyRef.current = r; }} />
               </View>
             )}
 
@@ -1520,6 +1597,10 @@ const styles = StyleSheet.create({
   shareMore: { backgroundColor: '#E8F5E9' },
   shareBtnText: { color: '#FFF', fontWeight: '700', fontSize: 13 },
   offscreen: { position: 'absolute', left: -5000, top: 0, opacity: 0 },
+  offerImagePreview: { width: '100%', aspectRatio: 16 / 9, borderRadius: 10, backgroundColor: '#F1F8E9', marginBottom: 8 },
+  offerImageActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  offerImageBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderColor: '#FFD8A8', backgroundColor: '#FFF7EE', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999 },
+  offerImageBtnText: { color: '#FF8A00', fontWeight: '700', fontSize: 12 },
   sectionTitle: { fontSize: 16, fontWeight: '700', color: '#1A1A1A', marginBottom: 12, borderBottomWidth: 1, borderBottomColor: '#F0F0F0', paddingBottom: 8 },
   fieldGroup: { marginBottom: 12 },
   fieldHint: { fontSize: 11, color: '#999', marginTop: -6, marginBottom: 12 },
