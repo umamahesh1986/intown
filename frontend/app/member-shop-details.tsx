@@ -10,6 +10,7 @@ import { useLocationStore } from '../store/locationStore';
 import { useAuthStore } from '../store/authStore';
 import { LoginRequiredModal } from '../components/LoginRequiredModal';
 import { useNotificationStore } from '../store/notificationStore';
+import { getActiveSpecialOffers, formatOfferValidTill } from '../utils/specialOffer';
 import PaymentModal from '../components/PaymentModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { styles } from '../styles/member-shop-details.styles';
@@ -589,21 +590,8 @@ export default function MemberShopDetails() {
   const userPhone = user?.phone || 'Not available';
 
   // Special offers from the merchant (My Account → Offer); hidden once the end date has passed
-  const specialOfferExpired = (() => {
-    if (!shop?.specialOfferEndDate) return false;
-    const end = new Date(shop.specialOfferEndDate);
-    return !isNaN(end.getTime()) && end.getTime() < Date.now();
-  })();
-  const activeSpecialOffers = specialOfferExpired
-    ? []
-    : (shop?.specialOffers || []).map((o) => String(o || '').trim()).filter(Boolean);
-  const specialOfferValidTill = (() => {
-    if (!shop?.specialOfferEndDate) return '';
-    const end = new Date(shop.specialOfferEndDate);
-    return isNaN(end.getTime())
-      ? ''
-      : end.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-  })();
+  const activeSpecialOffers = getActiveSpecialOffers(shop);
+  const specialOfferValidTill = formatOfferValidTill(shop);
 
   const ShopContent = () => (
     <ScrollView

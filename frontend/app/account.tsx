@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, Alert, Platform, ScrollView, ActivityIndicator, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { useCallback } from 'react';
 import { Ionicons } from '@expo/vector-icons';
@@ -28,7 +28,17 @@ const ymdToIsoEndOfDay = (ymd: string) => {
 
 export default function Account() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ from?: string }>();
+  const params = useLocalSearchParams<{ from?: string; section?: string }>();
+  // Scroll to the Offer card when opened from the "offer expiring" notification
+  const scrollRef = useRef<ScrollView>(null);
+  const offerCardY = useRef<number | null>(null);
+  const scrolledToOffer = useRef(false);
+  const scrollToOfferIfRequested = () => {
+    if (params?.section === 'offer' && offerCardY.current != null && !scrolledToOffer.current) {
+      scrolledToOffer.current = true;
+      setTimeout(() => scrollRef.current?.scrollTo({ y: Math.max(0, offerCardY.current! - 12), animated: true }), 250);
+    }
+  };
   const { user, updateProfile, isAuthenticated, isGuest } = useAuthStore();
   const [showLoginModal, setShowLoginModal] = useState(false);
 
@@ -801,7 +811,7 @@ export default function Account() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView showsVerticalScrollIndicator={false} ref={scrollRef}>
         {/* Dual-user context tabs */}
         {isDualUser && (
           <View style={styles.dualTabs} testID="account-dual-tabs">
@@ -1144,7 +1154,11 @@ export default function Account() {
             </View>
 
             {/* OFFER */}
-            <View style={styles.card}>
+            <View
+              style={[styles.card, params?.section === 'offer' && styles.cardHighlight]}
+              testID="account-offer-card"
+              onLayout={(e) => { offerCardY.current = e.nativeEvent.layout.y; scrollToOfferIfRequested(); }}
+            >
               <Text style={styles.sectionTitle}>Offer</Text>
               {renderField('Current Offer', offer, setOffer, { multiline: true })}
               <View testID="special-offer-field">
@@ -1444,6 +1458,7 @@ const styles = StyleSheet.create({
   updateButtonDisabled: { backgroundColor: '#F4B183' },
   updateButtonText: { color: '#fff', fontWeight: '700', fontSize: 12 },
   card: { backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 12 },
+  cardHighlight: { borderWidth: 2, borderColor: '#FF8A00' },
   sectionTitle: { fontSize: 16, fontWeight: '700', color: '#1A1A1A', marginBottom: 12, borderBottomWidth: 1, borderBottomColor: '#F0F0F0', paddingBottom: 8 },
   fieldGroup: { marginBottom: 12 },
   fieldHint: { fontSize: 11, color: '#999', marginTop: -6, marginBottom: 12 },

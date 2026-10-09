@@ -176,6 +176,13 @@
 - Fixed iOS-branch bugs: `/account` "Login Required" modal stuck after auth loaded; stale-closure `!name` fallback overwrote the business name with `user_data.name` on save.
 - Verified against the real dev API (Playwright proxying requests): save → DB updated → shop page shows offers + validity; expired date → hidden. testIDs: `account-input-special-offer`, `account-value-special-offer[-i]`, `account-special-offer-end-date-btn`, `date-*`, `special-offer-card`, `special-offer-text-{i}`, `special-offer-valid-till`.
 
+### Session 17 (Jun 2026) - Offer badge on shop list + expiring-offer reminder
+- `utils/specialOffer.ts`: shared helpers `getActiveSpecialOffers`, `isSpecialOfferExpired`, `formatOfferValidTill`, `daysUntilOfferEnds` (calendar days). Shop details now uses these.
+- `app/member-shop-list.tsx`: green "Special Offer" tag (top-right of hero image) + first offer line ("+N more") under distance — only when the shop has active, non-expired `specialOffers`. testIDs `shop-card-{id}`, `shop-offer-badge-{id}`, `shop-offer-text-{id}`.
+- `OrderNotificationPoller.checkMerchantOfferExpiry`: every 6h (AsyncStorage stamp `offer_expiry_check_at_{merchantId}`) fetches `GET /IN/merchant/{id}`; if active offers end within 2 calendar days → bell notification kind `OFFER_EXPIRING_MERCHANT` ("ends today / tomorrow / in 2 days"), deduped per end date (`pickup_id = offer-YYYY-MM-DD`). Tap → `/account?from=merchant&section=offer`; account page highlights (orange border) and scrolls to the Offer card.
+- `notificationStore.targetRoute` now also allows `'/account'`.
+- Verified: real list data shows the tag only on Vinod Grocery (1/15); reminder fires with mocked end date (+2 days), deep-links & highlights; throttle + dedupe hold across reload.
+
 ## Backlog
 
 - P1: Test full end-to-end login with real OTP on mobile device

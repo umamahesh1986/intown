@@ -52,6 +52,10 @@ export const NotificationBell: React.FC<Props> = ({
   const handleTap = (n: NotificationItem) => {
     markRead(n.id);
     setOpen(false);
+    if (n.kind === 'OFFER_EXPIRING_MERCHANT') {
+      router.push({ pathname: '/account', params: { from: 'merchant', section: 'offer' } });
+      return;
+    }
     // Route to my-orders / merchant-orders with tab + highlight
     router.push({
       pathname: n.targetRoute,
@@ -105,7 +109,7 @@ export const NotificationBell: React.FC<Props> = ({
                 <Ionicons name="notifications-off-outline" size={40} color="#CCC" />
                 <Text style={styles.emptyText}>No notifications yet</Text>
                 <Text style={styles.emptySubText}>
-                  We'll let you know when you place an order or when a new one comes in.
+                  We&apos;ll let you know when you place an order or when a new one comes in.
                 </Text>
               </View>
             ) : (
@@ -124,7 +128,9 @@ export const NotificationBell: React.FC<Props> = ({
                         name={
                           item.kind === 'ORDER_RECEIVED_MERCHANT'
                             ? 'storefront'
-                            : item.kind === 'ORDER_PICKED_UP_MERCHANT'
+                            : item.kind === 'OFFER_EXPIRING_MERCHANT'
+                              ? 'pricetag-outline'
+                              : item.kind === 'ORDER_PICKED_UP_MERCHANT'
                               ? 'hand-left-outline'
                               : item.kind === 'ORDER_STATUS_CUSTOMER'
                                 ? 'time-outline'

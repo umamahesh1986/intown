@@ -2,9 +2,13 @@ import { useEffect, useRef } from 'react';
 import { usePathname } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNotificationStore, NotificationItem } from '../store/notificationStore';
-import { getMerchantPickupOrders, getCustomerPickupOrders, PickupOrder } from '../utils/api';
+import { getMerchantPickupOrders, getCustomerPickupOrders, PickupOrder, INTOWN_API_BASE } from '../utils/api';
 import { presentLocalNotification, isPushRegistered } from '../utils/pushNotifications';
 import { playNotificationFeedback } from '../utils/notificationFeedback';
+import { getActiveSpecialOffers, daysUntilOfferEnds, formatOfferValidTill } from '../utils/specialOffer';
+
+const OFFER_EXPIRY_CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000;
+const OFFER_EXPIRY_WARN_DAYS = 2;
 
 const POLL_INTERVAL_MS = 15000;
 // Once the backend has accepted our Expo push token, pushes are the primary channel — poll far less often.
@@ -136,6 +140,32 @@ export const pollCustomerOrders = async (customerId: string): Promise<PickupOrde
   return list;
 };
 
+// Reminds the merchant when their special offer ends within OFFER_EXPIRY_WARN_DAYS (checked every 6h).
+export const checkMerchantOfferExpiry = async (merchantId: string, force = false) => {
+  const stampKey = `offer_expiry_check_at_${merchantId}`;
+  const last = Number((await AsyncStorage.getItem(stampKey)) || 0);
+  if (!force && Date.now() - last < OFFER_EXPIRY_CHECK_INTERVAL_MS) return;
+  await AsyncStorage.setItem(stampKey, String(Date.now()));
+
+  const res = await fetch(`${INTOWN_API_BASE}/merchant/${merchantId}`, { headers: { Accept: 'application/json' } });
+  if (!res.ok) return;
+  const merchant = await res.json();
+  const offers = getActiveSpecialOffers(merchant);
+  const daysLeft = daysUntilOfferEnds(merchant);
+  if (offers.length === 0 || daysLeft === null || daysLeft < 0 || daysLeft > OFFER_EXPIRY_WARN_DAYS) return;
+
+  const validTill = formatOfferValidTill(merchant);
+  const when = daysLeft <= 0 ? 'ends today' : daysLeft === 1 ? 'ends tomorrow' : `ends in ${daysLeft} days`;
+  notify({
+    kind: 'OFFER_EXPIRING_MERCHANT',
+    title: 'Special offer expiring soon',
+    body: `Your special offer "${offers[0]}" ${when} (${validTill}). Tap to extend or update it.`,
+    targetRoute: '/account',
+    targetTab: 'offer',
+    pickup_id: `offer-${String(merchant.specialOfferEndDate).slice(0, 10)}`,
+  });
+};
+
 export default function OrderNotificationPoller() {
   const pathname = usePathname();
   const busyRef = useRef(false);
@@ -161,6 +191,7 @@ export default function OrderNotificationPoller() {
         await Promise.all([
           merchantId && !skipMerchant ? pollMerchantOrders(merchantId).catch((e) => console.warn('[OrderPoller] merchant', e)) : null,
           customerId && !skipCustomer ? pollCustomerOrders(customerId).catch((e) => console.warn('[OrderPoller] customer', e)) : null,
+          merchantId ? checkMerchantOfferExpiry(merchantId).catch((e) => console.warn('[OrderPoller] offer expiry', e)) : null,
         ]);
       } finally {
         busyRef.current = false;

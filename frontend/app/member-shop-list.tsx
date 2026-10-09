@@ -18,6 +18,7 @@ import { useLocationStore } from '../store/locationStore';
 import { formatDistance } from '../utils/formatDistance';
 import axios from 'axios';
 import * as Location from 'expo-location';
+import { getActiveSpecialOffers } from '../utils/specialOffer';
 
 // Normalize param (expo-router can return string | string[] on native)
 const toParam = (v: string | string[] | undefined): string | undefined =>
@@ -300,9 +301,10 @@ export default function MemberShopList() {
               const shopName = item?.businessName || item?.shopName || item?.name || item?.contactName || 'Shop';
               const categoryText = item?.businessCategory || item?.category || 'General';
               const contactName = item?.contactName;
+              const specialOffers = getActiveSpecialOffers(item);
 
               return (
-                <TouchableOpacity style={styles.shopCard} onPress={() => handleViewShop(item)} activeOpacity={0.9}>
+                <TouchableOpacity style={styles.shopCard} onPress={() => handleViewShop(item)} activeOpacity={0.9} testID={`shop-card-${item?.id ?? ''}`}>
                   {/* Hero Image */}
                   <View style={styles.imageWrapper}>
                     {imageUri ? (
@@ -316,6 +318,13 @@ export default function MemberShopList() {
                     <View style={styles.categoryBadge}>
                       <Text style={styles.categoryBadgeText}>{categoryText}</Text>
                     </View>
+                    {/* Special Offer tag — only when the merchant has an active (non-expired) special offer */}
+                    {specialOffers.length > 0 && (
+                      <View style={styles.offerBadge} testID={`shop-offer-badge-${item?.id ?? ''}`}>
+                        <Ionicons name="gift" size={12} color="#FFF" />
+                        <Text style={styles.offerBadgeText}>Special Offer</Text>
+                      </View>
+                    )}
                   </View>
 
                   {/* Card Content */}
@@ -327,6 +336,15 @@ export default function MemberShopList() {
                           <Ionicons name="location-outline" size={14} color="#FF8A00" />
                           <Text style={styles.distanceText}>{formatDistance(item?.distance)}</Text>
                         </View>
+                        {specialOffers.length > 0 && (
+                          <View style={styles.offerLine}>
+                            <Ionicons name="pricetag" size={13} color="#2E7D32" />
+                            <Text style={styles.offerLineText} numberOfLines={1} testID={`shop-offer-text-${item?.id ?? ''}`}>
+                              {specialOffers[0]}
+                              {specialOffers.length > 1 ? `  +${specialOffers.length - 1} more` : ''}
+                            </Text>
+                          </View>
+                        )}
                       </View>
                     </View>
                     <TouchableOpacity style={styles.viewButton} onPress={() => handleViewShop(item)}>
@@ -432,6 +450,42 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontSize: 12,
     fontWeight: '600',
+  },
+  offerBadge: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(46, 125, 50, 0.95)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  offerBadgeText: {
+    color: '#FFF',
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
+  offerLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 6,
+    backgroundColor: '#E8F5E9',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    maxWidth: '100%',
+  },
+  offerLineText: {
+    color: '#2E7D32',
+    fontSize: 12,
+    fontWeight: '600',
+    flexShrink: 1,
   },
   cardContent: {
     padding: 14,
