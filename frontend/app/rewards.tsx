@@ -15,8 +15,9 @@ import Animated, { FadeInDown, LinearTransition } from 'react-native-reanimated'
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuthStore } from '../store/authStore';
-import { INPOINTS_API_BASE, searchUserByPhoneAtBase } from '../utils/api';
+import { INPOINTS_API_BASE, INTOWN_API_BASE, searchUserByPhoneAtBase } from '../utils/api';
 
 type PointTransaction = {
   id: number;
@@ -54,6 +55,7 @@ export default function RewardsScreen() {
   const { width } = useWindowDimensions();
   const { user } = useAuthStore();
   const [customerId, setCustomerId] = useState<string | null>(null);
+  const [paymentCustomerId, setPaymentCustomerId] = useState<string | null>(null);
   const [balance, setBalance] = useState<number | null>(null);
   const [activity, setActivity] = useState<ActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -63,6 +65,7 @@ export default function RewardsScreen() {
 
   const fetchData = useCallback(async (
     resolvedCustomerId: string,
+    resolvedPaymentCustomerId: string | null,
     isCurrent: () => boolean = () => true,
   ) => {
     try {
@@ -73,12 +76,14 @@ export default function RewardsScreen() {
         fetch(`${INPOINTS_API_BASE}/points/customers/${encodeURIComponent(resolvedCustomerId)}/history`, {
           headers: { Accept: 'application/json' },
         }),
-        fetch(`${INPOINTS_API_BASE}/transactions/customers/${encodeURIComponent(resolvedCustomerId)}`, {
-          headers: { Accept: 'application/json' },
-        }).catch((paymentRequestError) => {
-          console.error('[Rewards] Failed to request purchase history:', paymentRequestError);
-          return null;
-        }),
+        resolvedPaymentCustomerId
+          ? fetch(`${INTOWN_API_BASE}/transactions/customers/${encodeURIComponent(resolvedPaymentCustomerId)}`, {
+              headers: { Accept: 'application/json' },
+            }).catch((paymentRequestError) => {
+              console.error('[Rewards] Failed to request purchase history:', paymentRequestError);
+              return null;
+            })
+          : Promise.resolve(null),
       ]);
 
       if (!balanceResponse.ok || !pointsHistoryResponse.ok) {
@@ -173,7 +178,7 @@ export default function RewardsScreen() {
     }
   }, []);
 
-  const resolveCustomerId = useCallback(async (): Promise<string | null> => {
+  const resolveCustomerId = useCallback(async (): Promise<string> => {
     const phoneNumber = user?.phone?.replace(/\D/g, '').slice(-10);
     if (!phoneNumber || phoneNumber.length !== 10) {
       throw new Error('A valid signed-in customer phone number is not available.');
@@ -189,25 +194,39 @@ export default function RewardsScreen() {
     return String(numericId);
   }, [user?.phone]);
 
+  const resolvePaymentCustomerId = useCallback(async (): Promise<string | null> => {
+    const storedCustomerId = await AsyncStorage.getItem('customer_id');
+    const candidate = storedCustomerId || user?.id;
+    if (!candidate) return null;
+
+    const numericId = Number(candidate);
+    if (!Number.isSafeInteger(numericId) || numericId <= 0) {
+      throw new Error('The payment history customer ID is invalid.');
+    }
+    return String(numericId);
+  }, [user?.id]);
+
   useFocusEffect(
     useCallback(() => {
       let isActive = true;
       setLoading(true);
       setError(null);
       setCustomerId(null);
+      setPaymentCustomerId(null);
       setBalance(null);
       setActivity([]);
 
       const loadCustomerPoints = async () => {
         try {
-          const resolvedCustomerId = await resolveCustomerId();
-          if (!resolvedCustomerId) {
-            throw new Error('A valid customer ID is not available.');
-          }
+          const [resolvedCustomerId, resolvedPaymentCustomerId] = await Promise.all([
+            resolveCustomerId(),
+            resolvePaymentCustomerId(),
+          ]);
 
           if (!isActive) return;
           setCustomerId(resolvedCustomerId);
-          await fetchData(resolvedCustomerId, () => isActive);
+          setPaymentCustomerId(resolvedPaymentCustomerId);
+          await fetchData(resolvedCustomerId, resolvedPaymentCustomerId, () => isActive);
         } catch (loadError) {
           console.error('[Rewards] Failed to resolve customer ID:', loadError);
           if (isActive) {
@@ -221,15 +240,15 @@ export default function RewardsScreen() {
       return () => {
         isActive = false;
       };
-    }, [fetchData, resolveCustomerId]),
+    }, [fetchData, resolveCustomerId, resolvePaymentCustomerId]),
   );
 
   const onRefresh = useCallback(() => {
     if (!customerId) return;
     setRefreshing(true);
     setError(null);
-    void fetchData(customerId);
-  }, [customerId, fetchData]);
+    void fetchData(customerId, paymentCustomerId);
+  }, [customerId, fetchData, paymentCustomerId]);
 
 
   const pointActivity = activity.filter((item) => item.kind === 'POINTS');
