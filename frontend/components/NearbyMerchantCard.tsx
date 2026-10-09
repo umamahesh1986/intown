@@ -52,7 +52,7 @@ export const NearbyMerchantCard = ({ shop, onPress, testID }: Props) => {
   return (
     <Animated.View style={[styles.wrap, special && { transform: [{ scale: cardScale }] }]} testID={special ? `nearby-merchant-pulse-${shop.id}` : undefined}>
       {special && (
-        <Animated.View pointerEvents="none" style={[styles.glow, { opacity: glowOpacity, transform: [{ scale: glowScale }] }]} />
+        <Animated.View pointerEvents="none"  />
       )}
     <TouchableOpacity
       style={[styles.card, special && styles.cardSpecial]}
@@ -118,7 +118,7 @@ export const NearbyMerchantCard = ({ shop, onPress, testID }: Props) => {
   );
 };
 
-const GREEN = '#2E7D32';
+const GREEN = '#FF8A00';
 const ORANGE = '#FF8A00';
 
 const styles = StyleSheet.create({
@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: '#66BB6A',
     backgroundColor: 'rgba(102, 187, 106, 0.10)',
-    shadowColor: '#2E7D32',
+    shadowColor: '#FF8A00',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.9,
     shadowRadius: 14,
@@ -219,7 +219,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     marginTop: 4,
   },
-  offerText: { fontSize: 11, color: '#2E7D32', fontWeight: '600' },
+  offerText: { fontSize: 11, color: '#FF8A00', fontWeight: '600' },
   specialBox: {
     marginTop: 6,
     backgroundColor: '#F1F8E9',

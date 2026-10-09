@@ -44,7 +44,7 @@ export const DealsStrip = ({ shops, onPressShop }: DealsStripProps) => {
     <View style={styles.section} testID="deals-strip">
       <View style={styles.header}>
         <View style={styles.titleRow}>
-          <Ionicons name="gift" size={18} color="#2E7D32" />
+          <Ionicons name="gift" size={18} color="#FF8A00" />
           <Text style={styles.title}>Deals near you</Text>
         </View>
         <View style={styles.countPill}>
@@ -109,12 +109,12 @@ export const DealsStrip = ({ shops, onPressShop }: DealsStripProps) => {
 };
 
 const styles = StyleSheet.create({
-  section: { marginBottom: 24 },
+  section: { marginBottom: 24, padding: 16, borderRadius: 16 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   title: { fontSize: 16, fontWeight: '700', color: '#1A1A1A' },
   countPill: { backgroundColor: '#E8F5E9', paddingHorizontal: 10, paddingVertical: 3, borderRadius: 999 },
-  countText: { color: '#2E7D32', fontWeight: '800', fontSize: 12 },
+  countText: { color: '#FF8A00', fontWeight: '800', fontSize: 12 },
   row: { gap: 12, paddingRight: 16 },
   card: {
     width: 220,
@@ -161,7 +161,7 @@ const styles = StyleSheet.create({
   },
   tagText: { color: '#FFF', fontSize: 10, fontWeight: '800' },
   body: { padding: 12, gap: 4 },
-  offer: { fontSize: 14, fontWeight: '800', color: '#2E7D32', lineHeight: 19, minHeight: 38 },
+  offer: { fontSize: 14, fontWeight: '800', color: '#FF8A00', lineHeight: 19, minHeight: 38 },
   shop: { fontSize: 13, fontWeight: '600', color: '#1A1A1A' },
   metaRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 2 },
   meta: { fontSize: 11, color: '#888' },
