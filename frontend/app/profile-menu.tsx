@@ -27,6 +27,22 @@ export default function ProfileMenu() {
 
       <TouchableOpacity
   style={styles.item}
+  onPress={() => router.push("/rewards")}
+>
+  <Ionicons name="gift-outline" size={22} color="#FF8A00" />
+  <Text style={styles.text}>My Rewards</Text>
+</TouchableOpacity>
+
+      <TouchableOpacity
+  style={styles.item}
+  onPress={() => router.push("/savings")}
+>
+  <Ionicons name="wallet-outline" size={22} color="#FF8A00" />
+  <Text style={styles.text}>My Savings</Text>
+</TouchableOpacity>
+
+      <TouchableOpacity
+  style={styles.item}
   onPress={() => router.push("/account")}
 >
   <Ionicons name="person-outline" size={22} color="#FF8A00" />

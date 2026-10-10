@@ -58,9 +58,8 @@ export default function PaymentModal({
   };
 
   const amountValue = parseAmount(amount);
-  const intownPrice = parseAmount(instantSavingsInput);
-  const intownSavings = amountValue - intownPrice;
-  const finalPaidAmount = intownPrice;
+  const savingsAmount = parseAmount(instantSavingsInput);
+  const finalPaidAmount = amountValue - savingsAmount;
 
   // Listen for app returning to foreground after UPI app
   useEffect(() => {
@@ -84,8 +83,8 @@ export default function PaymentModal({
       Alert.alert('Invalid Amount', 'Please enter a valid amount');
       return;
     }
-    if (!Number.isFinite(intownPrice) || intownPrice < 0 || intownPrice > amountValue) {
-      Alert.alert('Invalid Intown Price', 'Intown Price must be between 0 and Total Price');
+    if (!Number.isFinite(savingsAmount) || savingsAmount < 0 || savingsAmount > amountValue) {
+      Alert.alert('Invalid Savings', 'Savings must be between 0 and Total Price');
       return;
     }
     if (!Number.isFinite(finalPaidAmount) || finalPaidAmount < 0) {
@@ -110,8 +109,8 @@ export default function PaymentModal({
         customerId: customerIdValue,
         merchantId: merchantIdValue,
         totalPrice: amountValue,
-        inTownPrice: intownPrice,
-        inTownSavings: intownSavings > 0 ? intownSavings : 0,
+        inTownPrice: finalPaidAmount,
+        inTownSavings: savingsAmount,
         payablePrice: finalPaidAmount,
       };
 
@@ -159,7 +158,7 @@ export default function PaymentModal({
                   customerId: Number(inPointsCustomerId),
                   merchantId: merchantIdValue,
                   totalPrice: amountValue,
-                  intownPrice,
+                  intownPrice: finalPaidAmount,
                 }),
               });
 
@@ -183,7 +182,9 @@ export default function PaymentModal({
                   `Your INPoints balance is ${pointsCredit.currentTotalPoints.toLocaleString('en-IN')}.`
                 );
               } else {
-                setPointsCreditMessage('INPoints credited successfully.');
+                setPointsCreditMessage(
+                  'Your transaction was saved, but the INPoints service did not confirm the credit. Please refresh Rewards or contact support.'
+                );
               }
             } catch (creditError) {
               console.error('Transaction saved but INPoints credit failed:', creditError);
@@ -245,7 +246,7 @@ export default function PaymentModal({
   /* Handle UPI payment selection */
   const handleUpiPayment = async () => {
     const savedAmount = amountValue;
-    const savedSavings = intownSavings > 0 ? intownSavings : 0;
+    const savedSavings = savingsAmount;
 
     onSuccess(savedAmount, savedSavings, 'UPI');
     setAmount('');
@@ -300,7 +301,7 @@ export default function PaymentModal({
   /* Handle Cash payment selection */
   const handleCashPayment = () => {
     const savedAmount = amountValue;
-    const savedSavings = intownSavings > 0 ? intownSavings : 0;
+    const savedSavings = savingsAmount;
 
     onSuccess(savedAmount, savedSavings, 'Cash');
     setAmount('');
@@ -411,26 +412,26 @@ export default function PaymentModal({
                 </View>
               </View>
               <View style={styles.amountSection}>
-                <Text style={styles.label}>Intown Price</Text>
+                <Text style={styles.label}>INtown Savings</Text>
                 <View style={styles.amountInputWrapper}>
                   <Text style={styles.amountPrefix}>&#8377;</Text>
                   <TextInput
                     style={styles.amountInput}
                     value={instantSavingsInput}
                     onChangeText={setInstantSavingsInput}
-                    placeholder="Enter intown price"
+                    placeholder="Enter savings amount"
                     keyboardType="numeric"
                     placeholderTextColor="#999"
                   />
                 </View>
               </View>
 
-              {amountValue > 0 && intownPrice > 0 && intownSavings > 0 ? (
+              {amountValue > 0 && savingsAmount > 0 ? (
                 <View style={styles.savingsSection}>
                   <View style={styles.savingsRow}>
                     <Text style={styles.savingsLabel}>Intown Savings</Text>
                     <Text style={styles.savingsValue}>
-                      &#8377;{intownSavings.toFixed(2)}
+                      &#8377;{savingsAmount.toFixed(2)}
                     </Text>
                   </View>
                 </View>

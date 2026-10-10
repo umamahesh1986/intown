@@ -52,6 +52,7 @@ import Footer from '../components/Footer'
 import { CATEGORY_ICON_MAP } from '../utils/categoryIconMap';
 import { FontStylesWithFallback } from '../utils/fonts';
 import { formatDistance } from '../utils/formatDistance';
+import { getSavingsPeriodTotals } from '../utils/savingsTotals';
 import CommonBottomTabs from "../components/CommonBottomTabs";
 
 
@@ -111,6 +112,11 @@ interface Category {
 }
 interface ApiTransaction {
   transactionId: number;
+  status?: string | null;
+  transactionStatus?: string | null;
+  paymentStatus?: string | null;
+  transaction_status?: string | null;
+  payment_status?: string | null;
   businessName?: string;
   merchantName?: string;
   totalPrice?: number;
@@ -522,12 +528,14 @@ export default function MemberDashboard() {
           throw new Error(`Transactions fetch failed: ${res.status}`);
         }
         const data = await res.json();
-        setTransactions(data?.transactions ?? []);
+        const transactionData = Array.isArray(data?.transactions) ? data.transactions : [];
+        const savingsTotals = getSavingsPeriodTotals(transactionData);
+        setTransactions(transactionData);
         setLifetimeTotals(data?.lifetime ?? null);
         setPeriodTotals({
-          today: data?.today ?? null,
-          thisMonth: data?.thisMonth ?? null,
-          thisYear: data?.thisYear ?? null,
+          today: { intownSavings: savingsTotals.today },
+          thisMonth: { intownSavings: savingsTotals.thisMonth },
+          thisYear: { intownSavings: savingsTotals.thisYear },
         });
       } catch (error) {
         console.error('Error loading transactions:', error);
@@ -1128,6 +1136,18 @@ export default function MemberDashboard() {
 
           
 
+          <TouchableOpacity
+            style={styles.rewardsButton}
+            onPress={() => router.push('/rewards')}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel="Open My Rewards"
+          >
+            <Ionicons name="gift-outline" size={22} color="#FFFFFF" />
+            <Text style={styles.rewardsButtonText}>My Rewards</Text>
+            <Ionicons name="chevron-forward" size={20} color="#FFFFFF" />
+          </TouchableOpacity>
+
           {/* Recent Transactions */}
           <View style={styles.transactionsSection}>
             <View style={styles.sectionHeader}>
@@ -1468,6 +1488,17 @@ export default function MemberDashboard() {
             >
               <Ionicons name="receipt-outline" size={22} color="#FF8C00" />
               <Text style={styles.userPanelText}>My Orders</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.userPanelItem}
+              onPress={() => {
+                closeDropdown();
+                router.push('/rewards');
+              }}
+            >
+              <Ionicons name="gift-outline" size={22} color="#FF8C00" />
+              <Text style={styles.userPanelText}>My Rewards</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -1872,6 +1903,25 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
     elevation: 4,
+  },
+  rewardsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FF8C00',
+    marginHorizontal: 16,
+    marginTop: 20,
+    marginBottom: 20,
+    paddingHorizontal: 18,
+    paddingVertical: 15,
+    borderRadius: 14,
+  },
+  rewardsButtonText: {
+    flex: 1,
+    marginLeft: 12,
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
   sectionHeader: {
     flexDirection: "row",

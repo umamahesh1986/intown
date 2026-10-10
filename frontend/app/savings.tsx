@@ -5,14 +5,21 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
 import { INTOWN_API_BASE } from '../utils/api';
+import { getSavingsPeriodTotals, getTransactionSavings, isSavedTransaction } from '../utils/savingsTotals';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface ApiTransaction {
   transactionId: number;
+  status?: string | null;
+  transactionStatus?: string | null;
+  paymentStatus?: string | null;
+  transaction_status?: string | null;
+  payment_status?: string | null;
   businessName?: string;
   merchantName?: string;
   totalPrice?: number;
   inTownPrice?: number;
+  intownPrice?: number;
   intownSavings?: number;
   inTownSavings?: number;
   payablePrice?: number;
@@ -23,6 +30,7 @@ interface ApiPeriodData {
   totalPrice?: number;
   intownPrice?: number;
   intownSavings?: number;
+  inTownSavings?: number;
   totalPayablePrice?: number;
   transactionCount?: number;
 }
@@ -73,7 +81,7 @@ export default function Savings() {
   // Check if user is a regular 'user' (not member or merchant)
   const isRegularUser = user?.userType === 'user' || user?.userType === null || !user?.userType;
 
-  const fetchSavingsData = useCallback(async () => {
+  const fetchSavingsData = async () => {
     try {
       // Get customer ID from AsyncStorage
       const customerId = await AsyncStorage.getItem('customer_id');
@@ -101,38 +109,23 @@ export default function Savings() {
       }
 
       const data: SavingsApiResponse = await response.json();
-      const currentDate = new Date();
-      const transactions = data.transactions || [];
-      const getSavingsForPeriod = (matchesPeriod: (date: Date) => boolean) =>
-        transactions.reduce((total, transaction) => {
-          const transactionDate = new Date(transaction.transactionDate);
+      const transactionData = Array.isArray(data.transactions) ? data.transactions : [];
+      const periodTotals = getSavingsPeriodTotals(transactionData);
 
-          return Number.isNaN(transactionDate.getTime()) || !matchesPeriod(transactionDate)
-            ? total
-            : total + (transaction.intownSavings ?? transaction.inTownSavings ?? 0);
-        }, 0);
-
-      // Calculate period totals from transaction dates to keep each range distinct.
       setSummary({
-        today: getSavingsForPeriod((date) =>
-          date.getFullYear() === currentDate.getFullYear() &&
-          date.getMonth() === currentDate.getMonth() &&
-          date.getDate() === currentDate.getDate()
-        ),
-        thisMonth: 0,
-        thisYear: 0,
-        lifetime: data.lifetime?.intownSavings ?? 0,
-        totalTransactions: data.lifetime?.transactionCount ?? 0,
+        ...periodTotals,
+        lifetime: transactionData.reduce((total, transaction) => total + getTransactionSavings(transaction), 0),
+        totalTransactions: transactionData.filter(isSavedTransaction).length,
       });
 
-      // Transform transactions for display
-      const transformedTransactions: SavingsTransaction[] = transactions.map((tx) => ({
+      const transformedTransactions: SavingsTransaction[] = transactionData.map((tx) => ({
         id: String(tx.transactionId),
         date: tx.transactionDate,
         businessName: tx.businessName || tx.merchantName || 'Unknown Shop',
         amount: tx.totalPrice ?? 0,
-        savings: tx.payablePrice ?? 0,
-        paidAmount: tx.intownSavings ?? tx.inTownSavings ?? 0,
+        savings: getTransactionSavings(tx),
+        paidAmount: tx.payablePrice ?? tx.inTownPrice ?? tx.intownPrice
+          ?? Math.max((tx.totalPrice ?? 0) - getTransactionSavings(tx), 0),
       }));
 
       setTransactions(transformedTransactions);
@@ -151,16 +144,16 @@ export default function Savings() {
       setIsLoading(false);
       setRefreshing(false);
     }
-  }, [user?.id]);
+  };
 
   useEffect(() => {
     fetchSavingsData();
-  }, [fetchSavingsData]);
+  }, []);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     fetchSavingsData();
-  }, [fetchSavingsData]);
+  }, []);
 
   const formatCurrency = (amount: number) => {
     return `₹${amount.toFixed(2)}`;
@@ -453,6 +446,18 @@ export default function Savings() {
         <View style={{ width: 40 }} />
       </View>
 
+      <TouchableOpacity
+        style={styles.rewardsButton}
+        onPress={() => router.push('/rewards')}
+        activeOpacity={0.8}
+        accessibilityRole="button"
+        accessibilityLabel="Open My Rewards"
+      >
+        <Ionicons name="gift-outline" size={20} color="#FF8A00" />
+        <Text style={styles.rewardsButtonText}>My Rewards</Text>
+        <Ionicons name="chevron-forward" size={18} color="#999" />
+      </TouchableOpacity>
+
       {isRegularUser ? <SavingsCalculator /> : <FullSavingsView />}
     </SafeAreaView>
   );
@@ -471,6 +476,24 @@ const styles = StyleSheet.create({
   },
   backButton: { width: 40, height: 40, justifyContent: 'center' },
   headerTitle: { fontSize: 18, fontWeight: '600', color: '#1A1A1A' },
+  rewardsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF',
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 4,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  rewardsButtonText: {
+    flex: 1,
+    marginLeft: 10,
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1A1A1A',
+  },
   loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   loadingText: { marginTop: 12, fontSize: 16, color: '#666' },
   content: { flex: 1 },

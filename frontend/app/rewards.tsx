@@ -34,6 +34,7 @@ type PaymentTransaction = {
   inTownPrice?: number | null;
   intownPrice?: number | null;
   intownSavings?: number | null;
+  inTownSavings?: number | null;
   payablePrice?: number | null;
   transactionDate?: string | null;
 };
@@ -360,7 +361,6 @@ export default function RewardsScreen() {
                   <Text style={[styles.balanceValue, isCompact && styles.balanceValueCompact]}>
                     {balance === null ? '--' : balance.toLocaleString()} <Text style={styles.ptsUnit}>POINTS</Text>
                   </Text>
-                  <Text style={styles.cardFootnote}>INPoints are credited automatically for eligible purchases.</Text>
                 </View>
               </LinearGradient>
             </Animated.View>
@@ -485,7 +485,7 @@ export default function RewardsScreen() {
             <Text style={styles.emptyText}>
               {activeFilter === 'PAYMENTS'
                 ? 'Your eligible purchase history will appear here.'
-                : 'Earn INPoints on eligible purchases at participating INtown merchants.'}
+                : 'Completed reward credits will appear here.'}
             </Text>
           </View>
         ) : null}
@@ -686,11 +686,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     letterSpacing: 1.2,
-  },
-  cardFootnote: {
-    marginTop: 9,
-    color: '#FFE5C5',
-    fontSize: 12,
   },
   balanceCreditButton: {
     minHeight: 48,
