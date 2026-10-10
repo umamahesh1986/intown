@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, Text, StyleSheet, Animated, Easing } from 'react-native';
 
 interface StatItem {
   label: string;
@@ -11,24 +11,47 @@ interface SavingsStatCardsProps {
   testIDPrefix?: string;
 }
 
+const COUNT_DURATION = 1100;
+
+const useCountUp = (target: number) => {
+  const anim = useRef(new Animated.Value(0)).current;
+  const [display, setDisplay] = useState(0);
+  useEffect(() => {
+    const id = anim.addListener(({ value }) => setDisplay(Math.round(value)));
+    Animated.timing(anim, {
+      toValue: Math.round(target ?? 0),
+      duration: COUNT_DURATION,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }).start();
+    return () => anim.removeListener(id);
+  }, [target, anim]);
+  return display;
+};
+
+const StatCard = ({ item, testIDPrefix }: { item: StatItem; testIDPrefix: string }) => {
+  const key = item.label.toLowerCase();
+  const display = useCountUp(item.value);
+  return (
+    <View style={cardStyles.card} testID={`${testIDPrefix}-card-${key}`}>
+      <View style={cardStyles.glowTop} />
+      <View style={cardStyles.glowBottom} />
+      <Text style={cardStyles.label}>{item.label.toUpperCase()}</Text>
+      <View style={cardStyles.valueRow}>
+        <Text style={cardStyles.rupee}>₹</Text>
+        <Text style={cardStyles.value} testID={`${testIDPrefix}-value-${key}`}>
+          {display.toLocaleString('en-IN')}
+        </Text>
+      </View>
+    </View>
+  );
+};
+
 export const SavingsStatCards = ({ items, testIDPrefix = 'stat' }: SavingsStatCardsProps) => (
   <View style={cardStyles.row} testID={`${testIDPrefix}-cards`}>
-    {items.map((item) => {
-      const key = item.label.toLowerCase();
-      return (
-        <View key={key} style={cardStyles.card} testID={`${testIDPrefix}-card-${key}`}>
-          <View style={cardStyles.glowTop} />
-          <View style={cardStyles.glowBottom} />
-          <Text style={cardStyles.label}>{item.label.toUpperCase()}</Text>
-          <View style={cardStyles.valueRow}>
-            <Text style={cardStyles.rupee}>₹</Text>
-            <Text style={cardStyles.value} testID={`${testIDPrefix}-value-${key}`}>
-              {Math.round(item.value ?? 0)}
-            </Text>
-          </View>
-        </View>
-      );
-    })}
+    {items.map((item) => (
+      <StatCard key={item.label.toLowerCase()} item={item} testIDPrefix={testIDPrefix} />
+    ))}
   </View>
 );
 

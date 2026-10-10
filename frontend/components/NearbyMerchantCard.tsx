@@ -52,13 +52,17 @@ export const NearbyMerchantCard = ({ shop, onPress, testID }: Props) => {
   const cardScale = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.012] });
 
   return (
-    <Animated.View style={styles.wrap} testID={special ? `nearby-merchant-pulse-${shop.id}` : undefined}>
+    <Animated.View style={[styles.wrap, special && { transform: [{ scale: cardScale }] }]} testID={special ? `nearby-merchant-pulse-${shop.id}` : undefined}>
+      {special && (
+        <Animated.View pointerEvents="none" style={[styles.glow, { opacity: glowOpacity, transform: [{ scale: glowScale }] }]} />
+      )}
     <TouchableOpacity
       style={[styles.card, special && styles.cardSpecial]}
       activeOpacity={0.9}
       onPress={() => onPress(shop)}
       testID={testID ?? `nearby-merchant-${shop.id}`}
     >
+      {special && <View style={styles.topBar} />}
       <View style={styles.imageWrapper}>
         {heroUri ? (
           <Image source={{ uri: heroUri }} style={styles.image} resizeMode="cover" testID={offerImage ? `nearby-merchant-offer-image-${shop.id}` : undefined} />
@@ -106,8 +110,8 @@ export const NearbyMerchantCard = ({ shop, onPress, testID }: Props) => {
           </View>
         ) : offerText ? (
           <View style={styles.offerBadge}>
-            <Ionicons name="pricetag" size={12} color="#4CAF50" />
-            <Text style={styles.offerText} numberOfLines={1}>{offerText}</Text>
+            <Ionicons name="pricetag" size={12} color="#4CAF50" style={styles.offerIcon} />
+            <Text style={styles.offerText} numberOfLines={2}>{offerText}</Text>
           </View>
         ) : null}
       </View>
@@ -116,7 +120,7 @@ export const NearbyMerchantCard = ({ shop, onPress, testID }: Props) => {
   );
 };
 
-const GREEN = '#FF8A00';
+const GREEN = '#2E7D32';
 const ORANGE = '#FF8A00';
 
 const styles = StyleSheet.create({
@@ -131,7 +135,7 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: '#66BB6A',
     backgroundColor: 'rgba(102, 187, 106, 0.10)',
-    shadowColor: '#FF8A00',
+    shadowColor: '#2E7D32',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.9,
     shadowRadius: 14,
@@ -208,16 +212,17 @@ const styles = StyleSheet.create({
   infoText: { fontSize: 12, color: '#888', flex: 1 },
   offerBadge: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
+    alignItems: 'flex-start',
+    gap: 5,
     backgroundColor: '#E8F5E9',
     paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingVertical: 5,
     borderRadius: 8,
-    alignSelf: 'flex-start',
+    alignSelf: 'stretch',
     marginTop: 4,
   },
-  offerText: { fontSize: 11, color: '#FF8A00', fontWeight: '600' },
+  offerIcon: { marginTop: 2 },
+  offerText: { flex: 1, fontSize: 11, color: '#2E7D32', fontWeight: '600', lineHeight: 15 },
   specialBox: {
     marginTop: 6,
     backgroundColor: '#F1F8E9',
@@ -229,6 +234,6 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   specialRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 6 },
-  specialText: { flex: 1, fontSize: 10, fontWeight: '600', color: GREEN, lineHeight: 17 },
-  specialValid: { fontSize: 10, color: '#558B2F', fontWeight: '600', marginLeft: 20 },
+  specialText: { flex: 1, fontSize: 12.5, fontWeight: '800', color: GREEN, lineHeight: 17 },
+  specialValid: { fontSize: 10.5, color: '#558B2F', fontWeight: '600', marginLeft: 20 },
 });
