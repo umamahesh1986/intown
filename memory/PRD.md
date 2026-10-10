@@ -235,6 +235,7 @@
 - Hero page dots (`shop-hero-dots`, `shop-hero-dot-{i}`; tap to jump; hidden for a single image) and header share icon now opens `ShareModal` (new `subtitle` prop → "Share this shop") with the shop name + category in the message and the Play Store link.
 - New shared `components/SavingsStatCards.tsx` (orange rounded cards, uppercase TODAY/MONTH/YEAR, ₹ + bold value, soft glow circles) replaces the stat rows on member-dashboard (INtown Savings), dual-dashboard (Savings/Business per tab) and merchant-dashboard (INtown Business). testIDs `{prefix}-cards`, `{prefix}-card-{today|month|year}`, `{prefix}-value-*` with prefixes `member-savings`, `dual-savings`, `dual-business`, `merchant-business`.
 - `NearbyMerchantCard` offer badge: no longer overflows the card — badge stretches to card width, icon top-aligned, text wraps to 2 lines (`flex:1`, ellipsis after).
+- `SavingsStatCards` count-up: each value animates 0 → target (1.1s, ease-out cubic, RN `Animated` listener) whenever the target changes (i.e. when totals load), formatted `en-IN` (e.g. 3,12,400). Applies to all three dashboards.
 
 ## Backlog
 
