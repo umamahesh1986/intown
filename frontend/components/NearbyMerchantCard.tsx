@@ -52,17 +52,13 @@ export const NearbyMerchantCard = ({ shop, onPress, testID }: Props) => {
   const cardScale = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.012] });
 
   return (
-    <Animated.View style={[styles.wrap, special && { transform: [{ scale: cardScale }] }]} testID={special ? `nearby-merchant-pulse-${shop.id}` : undefined}>
-      {special && (
-        <Animated.View pointerEvents="none" style={[styles.glow, { opacity: glowOpacity, transform: [{ scale: glowScale }] }]} />
-      )}
+    <Animated.View style={styles.wrap} testID={special ? `nearby-merchant-pulse-${shop.id}` : undefined}>
     <TouchableOpacity
       style={[styles.card, special && styles.cardSpecial]}
       activeOpacity={0.9}
       onPress={() => onPress(shop)}
       testID={testID ?? `nearby-merchant-${shop.id}`}
     >
-      {special && <View style={styles.topBar} />}
       <View style={styles.imageWrapper}>
         {heroUri ? (
           <Image source={{ uri: heroUri }} style={styles.image} resizeMode="cover" testID={offerImage ? `nearby-merchant-offer-image-${shop.id}` : undefined} />
@@ -125,22 +121,6 @@ const ORANGE = '#FF8A00';
 
 const styles = StyleSheet.create({
   wrap: { width: 220, position: 'relative' },
-  glow: {
-    position: 'absolute',
-    top: -4,
-    left: -4,
-    right: -4,
-    bottom: -4,
-    borderRadius: 18,
-    borderWidth: 3,
-    borderColor: '#66BB6A',
-    backgroundColor: 'rgba(102, 187, 106, 0.10)',
-    shadowColor: '#2E7D32',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.9,
-    shadowRadius: 14,
-    elevation: 8,
-  },
   card: {
     width: 220,
     backgroundColor: '#FFF',
@@ -153,9 +133,9 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   cardSpecial: {
-    borderWidth: 2,
-    borderColor: GREEN,
-    shadowColor: GREEN,
+    borderWidth: 0.5,
+    borderColor: '#FF8A00',
+    shadowColor: '#FF8A00',
     shadowOpacity: 0.28,
     shadowRadius: 10,
     elevation: 6,
@@ -188,7 +168,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: GREEN,
+    backgroundColor: '#FF8A00',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 999,
@@ -203,7 +183,7 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     borderRadius: 8,
   },
-  categoryBadgeSpecial: { backgroundColor: 'rgba(27, 94, 32, 0.9)' },
+  categoryBadgeSpecial: { backgroundColor: 'rgba(255, 138, 0, 0.92)' },
   categoryText: { color: '#FFF', fontSize: 10, fontWeight: '700' },
   content: { padding: 12, gap: 4 },
   name: { fontSize: 15, fontWeight: '700', color: '#1A1A1A' },
@@ -234,6 +214,6 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   specialRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 6 },
-  specialText: { flex: 1, fontSize: 12.5, fontWeight: '800', color: GREEN, lineHeight: 17 },
+  specialText: { flex: 1, fontSize: 12, fontWeight: '700', color: GREEN, lineHeight: 17 },
   specialValid: { fontSize: 10.5, color: '#558B2F', fontWeight: '600', marginLeft: 20 },
 });

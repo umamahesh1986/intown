@@ -13,7 +13,6 @@ import { useNotificationStore } from '../store/notificationStore';
 import { getActiveSpecialOffers, formatOfferValidTill, getSpecialOfferImageUrl } from '../utils/specialOffer';
 import { trackOfferEvent } from '../utils/offerAnalytics';
 import PaymentModal from '../components/PaymentModal';
-import ShareModal from '../components/ShareModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { styles } from '../styles/member-shop-details.styles';
 import { ShopDetailRow } from '../components/ShopDetailRow';
@@ -76,7 +75,6 @@ export default function MemberShopDetails() {
   const [customerId, setCustomerId] = useState<string | null>(null);
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
-  const [showShareModal, setShowShareModal] = useState(false);
 
   // Viewing shop details is allowed for everyone — Pay/Navigate are
   // account-based actions and require real login, regardless of `source`.
@@ -143,9 +141,7 @@ export default function MemberShopDetails() {
   const [shopImageIndex, setShopImageIndex] = useState(0);
   const shopImageScrollRef = useRef<ScrollView | null>(null);
   const shopImageTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  // Measured width of the hero container (window width can differ from the rendered width on web / rotation)
-  const [heroWidth, setHeroWidth] = useState(Dimensions.get('window').width);
-  const SHOP_IMAGE_WIDTH = heroWidth;
+  const SHOP_IMAGE_WIDTH = Dimensions.get('window').width;
   const isCarouselVisible = useRef(true);
 
   // Fetch shop details from API
@@ -269,10 +265,10 @@ export default function MemberShopDetails() {
   }, [shopImages]);
 
   useEffect(() => {
-    if (!shopImageScrollRef.current || shopImages.length === 0) return;
+    if (!shopImageScrollRef.current || shopImages.length === 0 || !isCarouselVisible.current) return;
     shopImageScrollRef.current.scrollTo({
       x: shopImageIndex * SHOP_IMAGE_WIDTH,
-      animated: isCarouselVisible.current,
+      animated: true,
     });
   }, [shopImageIndex, shopImages.length, SHOP_IMAGE_WIDTH]);
 
@@ -496,16 +492,11 @@ export default function MemberShopDetails() {
           ref={shopImageScrollRef}
           horizontal
           pagingEnabled
-          style={{ width: SHOP_IMAGE_WIDTH, height: 250 }}
           showsHorizontalScrollIndicator={false}
           nestedScrollEnabled={true}
           onMomentumScrollEnd={(e) => {
             const index = Math.round(e.nativeEvent.contentOffset.x / SHOP_IMAGE_WIDTH);
-            setShopImageIndex(Math.max(0, Math.min(index, shopImages.length - 1)));
-          }}
-          onScrollEndDrag={(e) => {
-            const index = Math.round(e.nativeEvent.contentOffset.x / SHOP_IMAGE_WIDTH);
-            setShopImageIndex(Math.max(0, Math.min(index, shopImages.length - 1)));
+            setShopImageIndex(index);
           }}
         >
           {shopImages.map((img, index) => (
@@ -513,7 +504,6 @@ export default function MemberShopDetails() {
               key={`${img}-${index}`}
               activeOpacity={0.9}
               onPress={() => setFullscreenImage(img)}
-              style={{ width: SHOP_IMAGE_WIDTH }}
             >
               <Image
                 source={{ uri: img }}
@@ -536,18 +526,6 @@ export default function MemberShopDetails() {
             >
               <Ionicons name="chevron-forward" size={22} color="#FFFFFF" />
             </TouchableOpacity>
-            <View style={styles.heroDots} pointerEvents="box-none" testID="shop-hero-dots">
-              {shopImages.map((_, i) => (
-                <TouchableOpacity
-                  key={i}
-                  onPress={() => setShopImageIndex(i)}
-                  hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
-                  testID={`shop-hero-dot-${i}`}
-                >
-                  <View style={[styles.heroDot, i === shopImageIndex && styles.heroDotActive]} />
-                </TouchableOpacity>
-              ))}
-            </View>
           </>
         )}
       </>
@@ -627,7 +605,7 @@ export default function MemberShopDetails() {
   const specialOfferValidTill = formatOfferValidTill(shop);
   const specialOfferImage = getSpecialOfferImageUrl(shop);
 
-  const shopContent = (
+  const ShopContent = () => (
     <ScrollView
       onScroll={(e) => {
         const offsetY = e.nativeEvent.contentOffset.y;
@@ -635,13 +613,7 @@ export default function MemberShopDetails() {
       }}
       scrollEventThrottle={100}
     >
-      <View
-        style={styles.shopImage}
-        onLayout={(e) => {
-          const w = Math.round(e.nativeEvent.layout.width);
-          if (w > 0 && w !== heroWidth) setHeroWidth(w);
-        }}
-      >
+      <View style={styles.shopImage}>
         {renderShopImageCarousel()}
       </View>
 
@@ -683,7 +655,7 @@ export default function MemberShopDetails() {
           <Text style={styles.descriptionTitle}>DESCRIPTION</Text>
           <View style={styles.descriptionCallout}>
             <View style={styles.descriptionIcon}>
-              <Ionicons name="cash-outline" size={16} color="#1B8A3A" />
+              <Ionicons name="cash-outline" size={16} color="#FF8A00" />
             </View>
             <Text style={styles.descriptionText}>
               {shop.description || 'No description available'}
@@ -732,11 +704,11 @@ export default function MemberShopDetails() {
           <ShopDetailRow icon="calendar-outline" tint="#8E24AA" tintBg="#F3E5F5" label="Experience" value={shop.fromYears ? `${shop.fromYears} years` : 'N/A'} />
           <ShopDetailRow
             icon="gift-outline"
-            tint="#E53935"
+            tint="#1A1A1A"
             tintBg="#FDECEC"
             label="Ongoing Festive Offer"
             value={shop.offer || 'Guaranty Savings'}
-            valueColor="#E53935"
+            valueColor="#1A1A1A"
             last
             testID="shop-festive-offer-row"
           />
@@ -828,25 +800,12 @@ export default function MemberShopDetails() {
           <Ionicons name="arrow-back" size={24} color="#1A1A1A" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Shop Details</Text>
-        <TouchableOpacity
-          style={styles.headerShareBtn}
-          onPress={() => setShowShareModal(true)}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          testID="shop-share-icon"
-        >
+        <View style={styles.headerShareBtn} testID="shop-share-icon">
           <Ionicons name="share-social-outline" size={22} color="#1A1A1A" />
-        </TouchableOpacity>
+        </View>
       </View>
 
-      {shopContent}
-
-      <ShareModal
-        visible={showShareModal}
-        onClose={() => setShowShareModal(false)}
-        title={shop.businessName || 'Shop'}
-        subtitle="Share this shop"
-        message={`Check out ${shop.businessName || 'this shop'}${shop.businessCategory ? ` (${shop.businessCategory})` : ''} on INtown — shop local & save on every purchase. Get the app:`}
-      />
+      <ShopContent />
 
       <View style={styles.bottomButtons}>
         <TouchableOpacity
