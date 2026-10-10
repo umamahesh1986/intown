@@ -39,6 +39,7 @@ import {
 import { getCustomerProfile, getMerchantImageByShopId, extractImageUrls, INTOWN_API_BASE } from '../utils/api';
 import { setNavShop } from '../utils/navCache';
 import { DealsStrip } from '../components/DealsStrip';
+import { SavingsStatCards } from '../components/SavingsStatCards';
 import { NearbyMerchantCard, sortSpecialOffersFirst, hasSpecialOffer } from '../components/NearbyMerchantCard';
 import { trackOfferEvent } from '../utils/offerAnalytics';
 
@@ -1110,24 +1111,14 @@ export default function MemberDashboard() {
           <View style={{ paddingHorizontal: 16, marginTop: 10 }}>
             <Text style={[styles.sectionTitle, { margin: 0, fontSize: 18 }]}>INtown Savings</Text>
           </View>
-          <View style={styles.summarySection}>
-            {/* <Text style={styles.sectionTitle}>Savings History </Text> */}
-            {/* <Text style={styles.normalText}>(Depends on Participating at Stores):</Text> */}
-            <View style={styles.summaryRow}>
-              <View style={styles.summaryItem}>
-                <Text style={styles.summaryLabel}>Today </Text>
-                <Text style={styles.summaryValue}>{(todaySavedAmount ?? 0).toFixed(0)}</Text>
-              </View>
-              <View style={styles.summaryItem}>
-                <Text style={styles.summaryLabel}>Month</Text>
-                <Text style={styles.summaryValue}>{(monthSavedAmount ?? 0).toFixed(0)}</Text>
-              </View>
-              <View style={styles.summaryItem}>
-                <Text style={styles.summaryLabel}>Year</Text>
-                <Text style={styles.summaryValue}>{(yearSavedAmount ?? 0).toFixed(0)}</Text>
-              </View>
-            </View>
-          </View>
+          <SavingsStatCards
+            testIDPrefix="member-savings"
+            items={[
+              { label: 'Today', value: todaySavedAmount ?? 0 },
+              { label: 'Month', value: monthSavedAmount ?? 0 },
+              { label: 'Year', value: yearSavedAmount ?? 0 },
+            ]}
+          />
 
           
 
