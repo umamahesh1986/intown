@@ -110,8 +110,8 @@ export const NearbyMerchantCard = ({ shop, onPress, testID }: Props) => {
           </View>
         ) : offerText ? (
           <View style={styles.offerBadge}>
-            <Ionicons name="pricetag" size={12} color="#4CAF50" />
-            <Text style={styles.offerText} numberOfLines={1}>{offerText}</Text>
+            <Ionicons name="pricetag" size={12} color="#4CAF50" style={styles.offerIcon} />
+            <Text style={styles.offerText} numberOfLines={2}>{offerText}</Text>
           </View>
         ) : null}
       </View>
@@ -212,16 +212,17 @@ const styles = StyleSheet.create({
   infoText: { fontSize: 12, color: '#888', flex: 1 },
   offerBadge: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
+    alignItems: 'flex-start',
+    gap: 5,
     backgroundColor: '#E8F5E9',
     paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingVertical: 5,
     borderRadius: 8,
-    alignSelf: 'flex-start',
+    alignSelf: 'stretch',
     marginTop: 4,
   },
-  offerText: { fontSize: 11, color: '#2E7D32', fontWeight: '600' },
+  offerIcon: { marginTop: 2 },
+  offerText: { flex: 1, fontSize: 11, color: '#2E7D32', fontWeight: '600', lineHeight: 15 },
   specialBox: {
     marginTop: 6,
     backgroundColor: '#F1F8E9',
