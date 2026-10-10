@@ -33,6 +33,7 @@ import { INTOWN_API_BASE } from '../utils/api';
 import Footer from '../components/Footer'
 import { useFocusEffect } from '@react-navigation/native';
 import { ErrorBoundary } from '../components/ErrorBoundary';
+import { SavingsStatCards } from '../components/SavingsStatCards';
 
 // ===== MERCHANT CAROUSEL CONFIG (SAME AS MEMBER) =====
 const { width } = Dimensions.get('window');
@@ -795,30 +796,14 @@ export default function MerchantDashboard() {
         <View style={{ paddingHorizontal: 16, marginTop: 10 }}>
           <Text style={[styles.sectionTitle, { margin: 0, fontSize: 18 }]}>INtown Business</Text>
         </View>
-        <View style={styles.statsContainer}>
-        
-          <View style={styles.statCard}>
-            <Text style={styles.statTitle}>Today</Text>
-            <Text style={styles.statValue}>
-              {(periodTotals.today?.totalSalesValue ?? 0).toFixed(0)}
-            </Text>
-          </View>
-
-          <View style={styles.statCard}>
-            <Text style={styles.statTitle}>Month</Text>
-            <Text style={styles.statValue}>
-              {(periodTotals.thisMonth?.totalSalesValue ?? 0).toFixed(0)}
-            </Text>
-          </View>
-
-          <View style={styles.statCard}>
-            <Text style={styles.statTitle}>Year</Text>
-            <Text style={styles.statValue}>
-              {(periodTotals.thisYear?.totalSalesValue ?? 0).toFixed(0)}
-            </Text>
-          </View>
-
-        </View>
+        <SavingsStatCards
+          testIDPrefix="merchant-business"
+          items={[
+            { label: 'Today', value: periodTotals.today?.totalSalesValue ?? 0 },
+            { label: 'Month', value: periodTotals.thisMonth?.totalSalesValue ?? 0 },
+            { label: 'Year', value: periodTotals.thisYear?.totalSalesValue ?? 0 },
+          ]}
+        />
 
         {/* Payments List */}
         <View style={styles.transactionsCard}>

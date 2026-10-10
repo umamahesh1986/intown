@@ -31,6 +31,7 @@ import Footer from '../components/Footer';
 import { getAllNearbyShops, getCategories, getMerchantImageByShopId, extractImageUrls, INTOWN_API_BASE } from '../utils/api';
 import { setNavShop } from '../utils/navCache';
 import { DealsStrip } from '../components/DealsStrip';
+import { SavingsStatCards } from '../components/SavingsStatCards';
 import { NearbyMerchantCard, sortSpecialOffersFirst, hasSpecialOffer } from '../components/NearbyMerchantCard';
 import { trackOfferEvent } from '../utils/offerAnalytics';
 import {
@@ -1217,49 +1218,22 @@ export default function DualDashboard() {
           <Text style={[styles.sectionTitle, { margin: 0, fontSize: 18 }]}>{activeTab === 'customer' ? "INtown Savings" : "INtown Business"}</Text>
           
         </View>
-        <View style={styles.statsContainer}>
-        
-          <View style={styles.statCard}>
-          <Text style={styles.statLabel}>
-              {activeTab === 'customer' ? "Today" : "Today"}
-            </Text>
-            <Text style={styles.statValue}>
-
-              {activeTab === 'customer'
-                ? (customerTodaySaved ?? 0).toFixed(0)
-                : (merchantTodaySales ?? 0).toFixed(0)}
-            </Text>
-            
-          </View>
-          <View style={styles.statCard}>
-          <Text style={styles.statLabel}>
-              {activeTab === 'customer'
-                ? "Month"
-                : "Month"}
-            </Text>
-            <Text style={styles.statValue}>
-
-              {activeTab === 'customer'
-                ? (customerMonthSaved ?? 0).toFixed(0)
-                : (merchantMonthSales ?? 0).toFixed(0)}
-            </Text>
-            
-          </View>
-          <View style={styles.statCard}>
-          <Text style={styles.statLabel}>
-              {activeTab === 'customer'
-                ? "Year"
-                : "Year"}
-            </Text>
-            <Text style={styles.statValue}>
-
-              {activeTab === 'customer'
-                ? (customerYearSaved ?? 0).toFixed(0)
-                : (merchantYearSales ?? 0).toFixed(0)}
-            </Text>
-            
-          </View>
-        </View>
+        <SavingsStatCards
+          testIDPrefix={activeTab === 'customer' ? 'dual-savings' : 'dual-business'}
+          items={
+            activeTab === 'customer'
+              ? [
+                  { label: 'Today', value: customerTodaySaved ?? 0 },
+                  { label: 'Month', value: customerMonthSaved ?? 0 },
+                  { label: 'Year', value: customerYearSaved ?? 0 },
+                ]
+              : [
+                  { label: 'Today', value: merchantTodaySales ?? 0 },
+                  { label: 'Month', value: merchantMonthSales ?? 0 },
+                  { label: 'Year', value: merchantYearSales ?? 0 },
+                ]
+          }
+        />
 
         
 
