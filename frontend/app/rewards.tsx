@@ -14,7 +14,7 @@ import {
 import Animated, { FadeInDown, LinearTransition } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuthStore } from '../store/authStore';
 import { INPOINTS_API_BASE, INTOWN_API_BASE, resolveInPointsCustomerId } from '../utils/api';
@@ -53,6 +53,8 @@ type ActivityFilter = 'ALL' | 'POINTS' | 'PAYMENTS';
 
 export default function RewardsScreen() {
   const router = useRouter();
+  const { historyOnly: historyOnlyParam } = useLocalSearchParams<{ historyOnly?: string }>();
+  const historyOnly = historyOnlyParam === 'true';
   const { width } = useWindowDimensions();
   const { user } = useAuthStore();
   const [customerId, setCustomerId] = useState<string | null>(null);
@@ -71,13 +73,15 @@ export default function RewardsScreen() {
   ) => {
     try {
       const [balanceResponse, pointsHistoryResponse, paymentHistoryResponse] = await Promise.all([
-        fetch(`${INPOINTS_API_BASE}/points/customers/${encodeURIComponent(resolvedCustomerId)}`, {
-          headers: { Accept: 'application/json' },
-        }),
+        historyOnly
+          ? Promise.resolve(null)
+          : fetch(`${INPOINTS_API_BASE}/points/customers/${encodeURIComponent(resolvedCustomerId)}`, {
+              headers: { Accept: 'application/json' },
+            }),
         fetch(`${INPOINTS_API_BASE}/points/customers/${encodeURIComponent(resolvedCustomerId)}/history`, {
           headers: { Accept: 'application/json' },
         }),
-        resolvedPaymentCustomerId
+        !historyOnly && resolvedPaymentCustomerId
           ? fetch(`${INTOWN_API_BASE}/transactions/customers/${encodeURIComponent(resolvedPaymentCustomerId)}`, {
               headers: { Accept: 'application/json' },
             }).catch((paymentRequestError) => {
@@ -87,13 +91,15 @@ export default function RewardsScreen() {
           : Promise.resolve(null),
       ]);
 
-      if (!balanceResponse.ok || !pointsHistoryResponse.ok) {
-        const failedStatus = !balanceResponse.ok ? balanceResponse.status : pointsHistoryResponse.status;
+      if (!pointsHistoryResponse.ok || (balanceResponse && !balanceResponse.ok)) {
+        const failedStatus = balanceResponse && !balanceResponse.ok
+          ? balanceResponse.status
+          : pointsHistoryResponse.status;
         throw new Error(`Failed to load INPoints (HTTP ${failedStatus}).`);
       }
 
       const [balanceData, pointsHistoryData] = await Promise.all([
-        balanceResponse.json(),
+        balanceResponse ? balanceResponse.json() : Promise.resolve(null),
         pointsHistoryResponse.json(),
       ]);
       const balanceValue =
@@ -114,7 +120,7 @@ export default function RewardsScreen() {
               ? pointsHistoryData.data.transactions
               : null;
 
-      if (!Number.isFinite(inPoints)) {
+      if (!historyOnly && !Number.isFinite(inPoints)) {
         console.error('[Rewards] INPoints balance response did not include a recognized balance field.');
         throw new Error('The INPoints API returned an invalid balance.');
       }
@@ -176,20 +182,24 @@ export default function RewardsScreen() {
           console.error('[Rewards] Failed to parse purchase history:', paymentLoadError);
           paymentError = 'Purchase history could not be loaded.';
         }
-      } else {
+      } else if (!historyOnly) {
         paymentError = paymentHistoryResponse
           ? `Purchase history could not be loaded (HTTP ${paymentHistoryResponse.status}).`
           : 'Purchase history is temporarily unavailable.';
       }
 
       if (!isCurrent()) return;
-      setBalance(inPoints);
+      if (!historyOnly) setBalance(inPoints);
       setActivity([...pointActivity, ...paymentActivity].sort((a, b) => b.sortDate - a.sortDate));
       setError(paymentError);
     } catch (error) {
       console.error('[Rewards] Failed to fetch INPoints:', error);
       if (isCurrent()) {
-        setError('Rewards are temporarily unavailable. Pull down to try again.');
+        setError(
+          historyOnly
+            ? 'INPoints history is temporarily unavailable. Pull down to try again.'
+            : 'Rewards are temporarily unavailable. Pull down to try again.',
+        );
       }
     } finally {
       if (isCurrent()) {
@@ -197,7 +207,7 @@ export default function RewardsScreen() {
         setRefreshing(false);
       }
     }
-  }, []);
+  }, [historyOnly]);
 
   const resolveCustomerId = useCallback(async (): Promise<string> => {
     return resolveInPointsCustomerId(user?.phone ?? '');
@@ -229,7 +239,7 @@ export default function RewardsScreen() {
         try {
           const [resolvedCustomerId, resolvedPaymentCustomerId] = await Promise.all([
             resolveCustomerId(),
-            resolvePaymentCustomerId(),
+            historyOnly ? Promise.resolve(null) : resolvePaymentCustomerId(),
           ]);
 
           if (!isActive) return;
@@ -239,7 +249,11 @@ export default function RewardsScreen() {
         } catch (loadError) {
           console.error('[Rewards] Failed to resolve customer ID:', loadError);
           if (isActive) {
-            setError('We could not find your rewards account. Please sign in again.');
+            setError(
+              historyOnly
+                ? 'We could not find your INPoints account. Please sign in again.'
+                : 'We could not find your rewards account. Please sign in again.',
+            );
             setLoading(false);
           }
         }
@@ -249,7 +263,7 @@ export default function RewardsScreen() {
       return () => {
         isActive = false;
       };
-    }, [fetchData, resolveCustomerId, resolvePaymentCustomerId]),
+    }, [fetchData, historyOnly, resolveCustomerId, resolvePaymentCustomerId]),
   );
 
   const onRefresh = useCallback(() => {
@@ -262,11 +276,13 @@ export default function RewardsScreen() {
 
   const pointActivity = activity.filter((item) => item.kind === 'POINTS');
   const paymentActivity = activity.filter((item) => item.kind === 'PAYMENT');
-  const filteredActivity = activeFilter === 'ALL'
-    ? activity
-    : activeFilter === 'POINTS'
-      ? pointActivity
-      : paymentActivity;
+  const filteredActivity = historyOnly
+    ? pointActivity
+    : activeFilter === 'ALL'
+      ? activity
+      : activeFilter === 'POINTS'
+        ? pointActivity
+        : paymentActivity;
   const totalEarned = pointActivity.reduce((sum, item) => sum + Math.max(0, item.value ?? 0), 0);
   const averagePoints = pointActivity.length ? Math.round(totalEarned / pointActivity.length) : 0;
   const isCompact = width < 380;
@@ -299,19 +315,30 @@ export default function RewardsScreen() {
             isDesktop && styles.headerContentDesktop,
           ]}
         >
-          <View style={styles.headerCopy}>
-            <Text style={styles.headerEyebrow}>INPOINTS REWARDS</Text>
-            <Text style={styles.headerTitle}>Rewards</Text>
-            <Text style={styles.headerSubtitle}>A little more value in every visit.</Text>
-          </View>
           <TouchableOpacity
-            onPress={onRefresh}
+            onPress={() => {
+              if (router.canGoBack()) {
+                router.back();
+              } else {
+                router.replace('/member-dashboard');
+              }
+            }}
             style={styles.iconBtn}
             accessibilityRole="button"
-            accessibilityLabel="Refresh rewards"
+            accessibilityLabel="Back"
           >
-            <Ionicons name="refresh-outline" size={20} color="#FFFFFF" />
+            <Ionicons name="arrow-back" size={20} color="#FFFFFF" />
           </TouchableOpacity>
+          <View style={styles.headerCopy}>
+            <Text style={styles.headerEyebrow}>{historyOnly ? 'INPOINTS' : 'INPOINTS REWARDS'}</Text>
+            <Text style={styles.headerTitle}>{historyOnly ? 'INPoints History' : 'Rewards'}</Text>
+            {!historyOnly && (
+              <Text style={styles.headerSubtitle}>A little more value in every visit.</Text>
+            )}
+          </View>
+          <View style={styles.headerLogo} accessibilityLabel="Rewards">
+            <Ionicons name="gift" size={23} color="#FFFFFF" />
+          </View>
         </View>
       </LinearGradient>
 
@@ -335,58 +362,61 @@ export default function RewardsScreen() {
         }
         ListHeaderComponent={
           <>
-            {/* Balance Card */}
-            <Animated.View
-              entering={FadeInDown.duration(650).springify()}
-              layout={LinearTransition.springify()}
-              style={styles.cardWrapper}
-            >
-              <LinearGradient
-                colors={['#FFAD3B', '#F47A00', '#DF5D00']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={[styles.card, isCompact && styles.cardCompact]}
-              >
-                <View style={styles.cardGlow} />
-                <View style={styles.cardTop}>
-                  <View style={styles.badge}>
-                    <Ionicons name="ribbon-outline" size={16} color="#FFF" />
-                    <Text style={styles.badgeText}>INPOINTS REWARDS</Text>
-                  </View>
-                  <Ionicons name="sparkles" size={21} color="#FFFFFF" />
-                </View>
+            {!historyOnly && (
+              <>
+                <Animated.View
+                  entering={FadeInDown.duration(650).springify()}
+                  layout={LinearTransition.springify()}
+                  style={styles.cardWrapper}
+                >
+                  <LinearGradient
+                    colors={['#FFAD3B', '#F47A00', '#DF5D00']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={[styles.card, isCompact && styles.cardCompact]}
+                  >
+                    <View style={styles.cardGlow} />
+                    <View style={styles.cardTop}>
+                      <View style={styles.badge}>
+                        <Ionicons name="ribbon-outline" size={16} color="#FFF" />
+                        <Text style={styles.badgeText}>INPOINTS REWARDS</Text>
+                      </View>
+                      <Ionicons name="sparkles" size={21} color="#FFFFFF" />
+                    </View>
 
-                <View style={[styles.balanceContainer, isCompact && styles.balanceContainerCompact]}>
-                  <Text style={styles.balanceLabel}>YOUR AVAILABLE BALANCE</Text>
-                  <Text style={[styles.balanceValue, isCompact && styles.balanceValueCompact]}>
-                    {balance === null ? '--' : balance.toLocaleString()} <Text style={styles.ptsUnit}>POINTS</Text>
-                  </Text>
-                </View>
-              </LinearGradient>
-            </Animated.View>
+                    <View style={[styles.balanceContainer, isCompact && styles.balanceContainerCompact]}>
+                      <Text style={styles.balanceLabel}>YOUR AVAILABLE BALANCE</Text>
+                      <Text style={[styles.balanceValue, isCompact && styles.balanceValueCompact]}>
+                        {balance === null ? '--' : balance.toLocaleString()} <Text style={styles.ptsUnit}>POINTS</Text>
+                      </Text>
+                    </View>
+                  </LinearGradient>
+                </Animated.View>
 
-            <View style={styles.statsRow}>
-              <Animated.View entering={FadeInDown.delay(100).duration(550).springify()} layout={LinearTransition.springify()} style={[styles.statCard, isCompact && styles.statCardCompact]}>
-                <Ionicons name="trending-up-outline" size={18} color="#FF9B24" />
-                <Text style={[styles.statValue, isCompact && styles.statCardCompactValue]}>{totalEarned.toLocaleString()}</Text>
-                <Text style={[styles.statLabel, isCompact && styles.statCardCompactLabel]}>Total earned</Text>
-              </Animated.View>
-              <Animated.View entering={FadeInDown.delay(180).duration(550).springify()} layout={LinearTransition.springify()} style={[styles.statCard, isCompact && styles.statCardCompact]}>
-                <Ionicons name="receipt-outline" size={18} color="#FF9B24" />
-                <Text style={[styles.statValue, isCompact && styles.statCardCompactValue]}>{pointActivity.length}</Text>
-                <Text style={[styles.statLabel, isCompact && styles.statCardCompactLabel]}>Transactions</Text>
-              </Animated.View>
-              <Animated.View entering={FadeInDown.delay(260).duration(550).springify()} layout={LinearTransition.springify()} style={[styles.statCard, isCompact && styles.statCardCompact]}>
-                <Ionicons name="sparkles-outline" size={18} color="#FF9B24" />
-                <Text style={[styles.statValue, isCompact && styles.statCardCompactValue]}>{averagePoints.toLocaleString()}</Text>
-                <Text style={[styles.statLabel, isCompact && styles.statCardCompactLabel]}>Avg. points</Text>
-              </Animated.View>
-            </View>
+                <View style={styles.statsRow}>
+                  <Animated.View entering={FadeInDown.delay(100).duration(550).springify()} layout={LinearTransition.springify()} style={[styles.statCard, isCompact && styles.statCardCompact]}>
+                    <Ionicons name="trending-up-outline" size={18} color="#FF9B24" />
+                    <Text style={[styles.statValue, isCompact && styles.statCardCompactValue]}>{totalEarned.toLocaleString()}</Text>
+                    <Text style={[styles.statLabel, isCompact && styles.statCardCompactLabel]}>Total earned</Text>
+                  </Animated.View>
+                  <Animated.View entering={FadeInDown.delay(180).duration(550).springify()} layout={LinearTransition.springify()} style={[styles.statCard, isCompact && styles.statCardCompact]}>
+                    <Ionicons name="receipt-outline" size={18} color="#FF9B24" />
+                    <Text style={[styles.statValue, isCompact && styles.statCardCompactValue]}>{pointActivity.length}</Text>
+                    <Text style={[styles.statLabel, isCompact && styles.statCardCompactLabel]}>Transactions</Text>
+                  </Animated.View>
+                  <Animated.View entering={FadeInDown.delay(260).duration(550).springify()} layout={LinearTransition.springify()} style={[styles.statCard, isCompact && styles.statCardCompact]}>
+                    <Ionicons name="sparkles-outline" size={18} color="#FF9B24" />
+                    <Text style={[styles.statValue, isCompact && styles.statCardCompactValue]}>{averagePoints.toLocaleString()}</Text>
+                    <Text style={[styles.statLabel, isCompact && styles.statCardCompactLabel]}>Avg. points</Text>
+                  </Animated.View>
+                </View>
+              </>
+            )}
 
             <View style={styles.historyHeading}>
               <View>
-                <Text style={styles.sectionEyebrow}>YOUR ACTIVITY</Text>
-                <Text style={styles.sectionTitle}>Transaction history</Text>
+                <Text style={styles.sectionEyebrow}>{historyOnly ? 'YOUR REWARDS' : 'YOUR ACTIVITY'}</Text>
+                <Text style={styles.sectionTitle}>{historyOnly ? 'INPoints history' : 'Transaction history'}</Text>
               </View>
               <View style={styles.historyCount}>
                 <Text style={styles.historyCountText}>{filteredActivity.length}</Text>
@@ -399,36 +429,38 @@ export default function RewardsScreen() {
                 <Ionicons name="refresh-outline" size={17} color="#FF8A00" />
               </TouchableOpacity>
             ) : null}
-            <View style={styles.filterRow}>
-              {([
-                { key: 'ALL', label: 'All activity' },
-                { key: 'POINTS', label: 'INPoints' },
-                { key: 'PAYMENT_HISTORY', label: 'Payment history' },
-              ] as const).map((filter) => (
-                <TouchableOpacity
-                  key={filter.key}
-                  onPress={() => {
-                    if (filter.key === 'PAYMENT_HISTORY') {
-                      router.push('/payment-history');
-                      return;
-                    }
-                    setActiveFilter(filter.key);
-                  }}
-                  style={[
-                    styles.filterButton,
-                    filter.key !== 'PAYMENT_HISTORY' && activeFilter === filter.key && styles.filterButtonActive,
-                  ]}
-                  activeOpacity={0.68}
-                >
-                  <Text
+            {!historyOnly && (
+              <View style={styles.filterRow}>
+                {([
+                  { key: 'ALL', label: 'All activity' },
+                  { key: 'POINTS', label: 'INPoints' },
+                  { key: 'PAYMENT_HISTORY', label: 'Payment history' },
+                ] as const).map((filter) => (
+                  <TouchableOpacity
+                    key={filter.key}
+                    onPress={() => {
+                      if (filter.key === 'PAYMENT_HISTORY') {
+                        router.push('/payment-history');
+                        return;
+                      }
+                      setActiveFilter(filter.key);
+                    }}
                     style={[
-                      styles.filterText,
-                      filter.key !== 'PAYMENT_HISTORY' && activeFilter === filter.key && styles.filterTextActive,
+                      styles.filterButton,
+                      filter.key !== 'PAYMENT_HISTORY' && activeFilter === filter.key && styles.filterButtonActive,
                     ]}
-                  >{filter.label}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+                    activeOpacity={0.68}
+                  >
+                    <Text
+                      style={[
+                        styles.filterText,
+                        filter.key !== 'PAYMENT_HISTORY' && activeFilter === filter.key && styles.filterTextActive,
+                      ]}
+                    >{filter.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
           </>
         }
         renderItem={({ item, index }) => (
@@ -480,12 +512,18 @@ export default function RewardsScreen() {
               />
             </View>
             <Text style={styles.emptyTitle}>
-              {activeFilter === 'PAYMENTS' ? 'No payments to show yet' : 'Your rewards journey starts here'}
+              {historyOnly
+                ? 'No INPoints history yet'
+                : activeFilter === 'PAYMENTS'
+                  ? 'No payments to show yet'
+                  : 'Your rewards journey starts here'}
             </Text>
             <Text style={styles.emptyText}>
-              {activeFilter === 'PAYMENTS'
-                ? 'Your eligible purchase history will appear here.'
-                : 'Completed reward credits will appear here.'}
+              {historyOnly
+                ? 'Your earned INPoints will appear here.'
+                : activeFilter === 'PAYMENTS'
+                  ? 'Your eligible purchase history will appear here.'
+                  : 'Completed reward credits will appear here.'}
             </Text>
           </View>
         ) : null}
@@ -541,7 +579,6 @@ const styles = StyleSheet.create({
   headerContent: {
     width: '100%',
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 5,
   },
@@ -553,7 +590,8 @@ const styles = StyleSheet.create({
   },
   headerCopy: {
     flex: 1,
-    paddingRight: 12,
+    alignItems: 'center',
+    paddingHorizontal: 8,
   },
   headerEyebrow: {
     color: '#FFE4C8',
@@ -579,6 +617,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 21,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.5)',
+    backgroundColor: 'rgba(255,255,255,0.16)',
+  },
+  headerLogo: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 22,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.5)',
     backgroundColor: 'rgba(255,255,255,0.16)',

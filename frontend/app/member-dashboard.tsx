@@ -35,8 +35,13 @@ import {
   getCategories,
   getAllNearbyShops,
   getNearbyShopsByCategory,
+  getCustomerProfile,
+  getMerchantImageByShopId,
+  extractImageUrls,
+  INPOINTS_API_BASE,
+  INTOWN_API_BASE,
+  resolveInPointsCustomerId,
 } from '../utils/api';
-import { getCustomerProfile, getMerchantImageByShopId, extractImageUrls, INTOWN_API_BASE } from '../utils/api';
 import { setNavShop } from '../utils/navCache';
 
 
@@ -216,6 +221,13 @@ export default function MemberDashboard() {
     thisYear: null,
   });
   const [isTransactionsLoading, setIsTransactionsLoading] = useState(false);
+  const [inPointsStats, setInPointsStats] = useState<{
+    totalEarned: number;
+    transactionCount: number;
+    averagePoints: number;
+  } | null>(null);
+  const [isInPointsLoading, setIsInPointsLoading] = useState(true);
+  const [inPointsError, setInPointsError] = useState(false);
   const [customerId, setCustomerId] = useState<string | null>(null);
   const normalizeId = (value?: string | number | null) => {
     if (value == null) return null;
@@ -265,6 +277,73 @@ export default function MemberDashboard() {
 
   // ===== MEMBER CAROUSEL STATE =====
   const [carouselIndex, setCarouselIndex] = useState(0);
+
+  useFocusEffect(
+    useCallback(() => {
+      let isActive = true;
+
+      const fetchInPointsStats = async () => {
+        setIsInPointsLoading(true);
+        setInPointsError(false);
+        try {
+          const inPointsCustomerId = await resolveInPointsCustomerId(user?.phone ?? '');
+          const historyResponse = await fetch(
+            `${INPOINTS_API_BASE}/points/customers/${encodeURIComponent(inPointsCustomerId)}/history`,
+            { headers: { Accept: 'application/json' } },
+          );
+          if (!historyResponse.ok) {
+            throw new Error(`INPoints history fetch failed: ${historyResponse.status}`);
+          }
+
+          const historyData = await historyResponse.json();
+
+          const pointTransactions = Array.isArray(historyData)
+            ? historyData
+            : Array.isArray(historyData?.transactions)
+              ? historyData.transactions
+              : Array.isArray(historyData?.data)
+                ? historyData.data
+                : Array.isArray(historyData?.data?.transactions)
+                  ? historyData.data.transactions
+                  : null;
+          if (!pointTransactions) {
+            throw new Error('The INPoints API returned invalid points history.');
+          }
+
+          const pointValues = pointTransactions.map((transaction: { id: number; points: number | string }) => {
+            const points = Number(transaction.points);
+            if (!Number.isSafeInteger(transaction.id) || !Number.isFinite(points)) {
+              throw new Error('The INPoints API returned an invalid transaction.');
+            }
+            return points;
+          });
+          const totalEarned = pointValues.reduce((total, points) => total + Math.max(0, points), 0);
+          const transactionCount = pointValues.length;
+
+          if (isActive) {
+            setInPointsStats({
+              totalEarned,
+              transactionCount,
+              averagePoints: transactionCount ? Math.round(totalEarned / transactionCount) : 0,
+            });
+          }
+        } catch (error) {
+          console.error('[MemberDashboard] Failed to load INPoints history:', error);
+          if (isActive) {
+            setInPointsStats(null);
+            setInPointsError(true);
+          }
+        } finally {
+          if (isActive) setIsInPointsLoading(false);
+        }
+      };
+
+      void fetchInPointsStats();
+      return () => {
+        isActive = false;
+      };
+    }, [user?.phone]),
+  );
   const carouselRef = useRef<ScrollView | null>(null);
   const categoriesScrollRef = useRef<ScrollView | null>(null);
   const nearbyScrollRef = useRef<ScrollView | null>(null);
@@ -1136,17 +1215,61 @@ export default function MemberDashboard() {
 
           
 
-          <TouchableOpacity
-            style={styles.rewardsButton}
-            onPress={() => router.push('/rewards')}
-            activeOpacity={0.8}
-            accessibilityRole="button"
-            accessibilityLabel="Open My Rewards"
-          >
-            <Ionicons name="gift-outline" size={22} color="#FFFFFF" />
-            <Text style={styles.rewardsButtonText}>My Rewards</Text>
-            <Ionicons name="chevron-forward" size={20} color="#FFFFFF" />
-          </TouchableOpacity>
+          <View style={styles.rewardsSection}>
+            <TouchableOpacity
+              style={styles.rewardsHeaderLink}
+              onPress={() => router.push('/rewards')}
+              activeOpacity={0.75}
+              accessibilityRole="button"
+              accessibilityLabel="Open My Rewards"
+            >
+              <Text style={styles.rewardsTitle}>My Rewards</Text>
+              <Ionicons name="chevron-forward" size={20} color="#888888" />
+            </TouchableOpacity>
+            <View style={styles.rewardsMetricsRow}>
+              {[
+                {
+                  label: 'Total earned',
+                  value: inPointsStats?.totalEarned,
+                  icon: 'trending-up-outline' as const,
+                },
+                {
+                  label: 'Transactions',
+                  value: inPointsStats?.transactionCount,
+                  icon: 'receipt-outline' as const,
+                },
+                {
+                  label: 'Avg. points',
+                  value: inPointsStats?.averagePoints,
+                  icon: 'sparkles-outline' as const,
+                },
+              ].map((stat) => (
+                <View key={stat.label} style={styles.rewardsMetricCard}>
+                  <Ionicons name={stat.icon} size={18} color="#FF8C00" />
+                  <Text style={styles.rewardsMetricValue}>
+                    {isInPointsLoading
+                      ? '...'
+                      : inPointsError
+                        ? '--'
+                        : (stat.value ?? 0).toLocaleString('en-IN')}
+                  </Text>
+                  <Text style={styles.rewardsMetricLabel} numberOfLines={1}>{stat.label}</Text>
+                </View>
+              ))}
+            </View>
+            <TouchableOpacity
+              style={styles.rewardsHistoryLink}
+              onPress={() => router.push('/rewards?historyOnly=true')}
+              activeOpacity={0.75}
+              accessibilityRole="button"
+              accessibilityLabel="Open INPoints history"
+            >
+              <View>
+                <Text style={styles.rewardsHistoryTitle}>INPoints History</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="#888888" />
+            </TouchableOpacity>
+          </View>
 
           {/* Recent Transactions */}
           <View style={styles.transactionsSection}>
@@ -1904,24 +2027,70 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     elevation: 4,
   },
-  rewardsButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#FF8C00',
+  rewardsSection: {
+    backgroundColor: '#FFFFFF',
     marginHorizontal: 16,
     marginTop: 20,
     marginBottom: 20,
-    paddingHorizontal: 18,
-    paddingVertical: 15,
+    padding: 18,
+    borderRadius: 18,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+  },
+  rewardsTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1A1A1A',
+  },
+  rewardsHeaderLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+  },
+  rewardsMetricsRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  rewardsMetricCard: {
+    flex: 1,
+    minWidth: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFF8F1',
+    paddingHorizontal: 6,
+    paddingVertical: 12,
     borderRadius: 14,
   },
-  rewardsButtonText: {
-    flex: 1,
-    marginLeft: 12,
-    fontSize: 16,
+  rewardsMetricValue: {
+    marginTop: 7,
+    fontSize: 18,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#28221C',
+  },
+  rewardsMetricLabel: {
+    marginTop: 4,
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#777777',
+    textAlign: 'center',
+  },
+  rewardsHistoryLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 16,
+    paddingTop: 14,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#E9E2DA',
+  },
+  rewardsHistoryTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#26211C',
   },
   sectionHeader: {
     flexDirection: "row",
