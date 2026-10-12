@@ -153,6 +153,89 @@
 - `notificationStore.add` now returns `boolean`; new `markReadByPickup()`.
 - Verified on web with API interception: bell=2 & Orders tab badge=2 after new order + pickup confirmation; tapping picked-up alert → Ready tab, card highlighted, tab badge → 1.
 - **Notification Sound** (`utils/notificationFeedback.ts`): generated `assets/sounds/order-chime.wav` (two-tone chime); `playNotificationFeedback()` vibrates (`Vibration` native / `navigator.vibrate` web) and plays the chime via expo-av whenever a genuinely new notification is added in-app (poller `notify()` and foreground push receive). Verified on web: chime asset fetched + played when a new order arrived.
+### Session 10 (Aug 2026) - Reset to IOS_Changes_Vicky + Delete Account Confirmation Modal
+- Pulled `IOS_Changes_Vicky` branch (hard reset from `main`) to bring in iOS deployment work (iOS icons, iOS carousel assets, `LoginRequiredModal`, `ShopImageCarousel`, iOS metro/patch configs, `authStore` updates, etc.).
+- **New feature (`components/Footer.tsx`)**: Added a confirmation modal for the "Delete Account" footer link.
+  - Tap link → opens a centered card with a red ⚠️ icon, "Delete Account?" title, warning body, and two buttons.
+  - **Cancel** → closes the modal, stays in app.
+  - **Confirm** → calls `Linking.openURL('https://www.intownlocal.com/delete-account')` (opens INtown website's delete page in device browser / new tab).
+  - Testable via `data-testid`s: `footer-delete-account-btn`, `delete-confirm-cancel-btn`, `delete-confirm-confirm-btn`.
+- Verified end-to-end: user-dashboard footer → Delete Account link → modal appears → Cancel closes cleanly, Confirm fires the external URL. Web bundle rebuilt.
+### Session 15 (Jun 2026) - Switched to `IOS_Changes_Vicky` + merged pick-at-store from `main`
+- Checked out `IOS_Changes_Vicky` (tracking `origin/IOS_Changes_Vicky`) and merged `origin/main` into it (commits `eec5658`, `7b785fb`). The branch now has all pick-at-store work: customer ordering (`member-shop-details`), `/my-orders`, `/merchant-orders`, Payment Modal, Notification Bell + global poller, Expo push client, pickup alert, tab badges, chime, Merchant Growth Pack (START/LAUNCH) fee, promo assets, etc.
+- Conflict resolution — kept iOS versions of `checkout.tsx`, `plans.tsx`, `index.tsx` (iOS: no Razorpay for plans, splash `ShopImageCarousel`), `package.json` scripts (`main: index.js`, `postinstall` fetch patch + prebuild); combined `CommonBottomTabs.tsx` (guest/login modal + unread badge) and `member-shop-details.tsx` imports; kept both PRD sections; took main's `build.gradle` version (42 / 1.3.2).
+- Fixes after merge: re-added `expo-notifications` / `expo-device` deps (lost with `--ours` package.json), restored `utils/profileImage.ts` (used by iOS `index.tsx`), widened `authStore` `userType` to include `'dual'`.
+- Local dev note: run `yarn install` (postinstall runs `patch-whatwg-fetch.js` + `expo prebuild`); in this container use `yarn install --ignore-scripts && node patch-whatwg-fetch.js`.
+- Verified on web build: splash → iOS carousel, merchant new-order bell + Orders tab badge, tap → `/merchant-orders?tab=PLACED` highlighted card.
+
+### Session 16 (Jun 2026) - Merchant-managed Special Offer (IOS_Changes_Vicky)
+- Backend contract (confirmed live on devapi): Merchant has `specialOffers: string[]` and `specialOfferEndDate: ISO datetime` — returned by `GET /IN/merchant/{id}` and `GET /IN/search/by-product-names`; saved via `PATCH /IN/merchant/{id}`.
+- `app/account.tsx` → Offer card: **Current Offer** (unchanged) → **Special Offer** (multiline, one offer per line → `specialOffers[]`; view mode shows bullets or "No special offer added") → **Special Offer Valid Till** (new `components/DateSpinnerModal.tsx` Day/Month/Year spinner with Clear; saved as local end-of-day ISO `Z`).
+- PATCH payload hardening (backend returns 400 otherwise): `s3ImageUrl` (GET-shaped object array) is stripped (images use separate upload flows); `specialOfferEndDate` only sent in `Z` format when set (backend ignores null and rejects its own `+00:00` format, so the end date cannot be cleared server-side — card hides anyway when offers list is empty).
+- `app/member-shop-details.tsx` → Special Offer card lists `specialOffers` + "Valid till {date}"; **hidden** when list empty or end date passed (old hardcoded placeholder removed).
+- Fixed iOS-branch bugs: `/account` "Login Required" modal stuck after auth loaded; stale-closure `!name` fallback overwrote the business name with `user_data.name` on save.
+- Verified against the real dev API (Playwright proxying requests): save → DB updated → shop page shows offers + validity; expired date → hidden. testIDs: `account-input-special-offer`, `account-value-special-offer[-i]`, `account-special-offer-end-date-btn`, `date-*`, `special-offer-card`, `special-offer-text-{i}`, `special-offer-valid-till`.
+
+### Session 17 (Jun 2026) - Offer badge on shop list + expiring-offer reminder
+- `utils/specialOffer.ts`: shared helpers `getActiveSpecialOffers`, `isSpecialOfferExpired`, `formatOfferValidTill`, `daysUntilOfferEnds` (calendar days). Shop details now uses these.
+- `app/member-shop-list.tsx`: green "Special Offer" tag (top-right of hero image) + first offer line ("+N more") under distance — only when the shop has active, non-expired `specialOffers`. testIDs `shop-card-{id}`, `shop-offer-badge-{id}`, `shop-offer-text-{id}`.
+- `OrderNotificationPoller.checkMerchantOfferExpiry`: every 6h (AsyncStorage stamp `offer_expiry_check_at_{merchantId}`) fetches `GET /IN/merchant/{id}`; if active offers end within 2 calendar days → bell notification kind `OFFER_EXPIRING_MERCHANT` ("ends today / tomorrow / in 2 days"), deduped per end date (`pickup_id = offer-YYYY-MM-DD`). Tap → `/account?from=merchant&section=offer`; account page highlights (orange border) and scrolls to the Offer card.
+- `notificationStore.targetRoute` now also allows `'/account'`.
+- Verified: real list data shows the tag only on Vinod Grocery (1/15); reminder fires with mocked end date (+2 days), deep-links & highlights; throttle + dedupe hold across reload.
+
+### Session 18 (Jun 2026) - "Deals only" filter + Offer share (WhatsApp / image / more)
+- `app/member-shop-list.tsx`: header pill **Deals only** with live count (`deals-only-toggle`, `deals-count`); filters to shops with active special offers; empty state "No deals right now" + "Show all stores" (`deals-empty`, `deals-show-all-btn`).
+- `components/OfferShareCard.tsx`: `buildOfferShareText`, `shareOfferOnWhatsApp` (`whatsapp://send` → `wa.me` fallback), `shareOfferText` (native Share / web navigator.share / clipboard), `shareOfferAsImage` (react-native-view-shot `captureRef` → expo-sharing; native only), and the branded green `OfferShareCard` rendered off-screen in `account.tsx`.
+- `app/account.tsx`: share row under Special Offer in view mode when offers exist — WhatsApp / Share Image (hidden on web) / More (`offer-share-whatsapp-btn`, `offer-share-image-btn`, `offer-share-more-btn`).
+- Deps added: `react-native-view-shot@4.0.3`, `expo-sharing@~14.0.8` (reverted the `postinstall` prebuild's android/ changes and removed generated ios/ — native folders are generated locally; local devs run `yarn install` + `npx expo prebuild`).
+- Verified on web: toggle 15 → 1 card; WhatsApp opens `wa.me` with formatted text; share card renders. Image share path needs a device build.
+
+### Session 19 (Jun 2026) - "Deals near you" strip + Offer analytics
+- `components/DealsStrip.tsx` on `member-dashboard` (above Feature Categories): horizontal cards for nearby shops with active special offers (first offer, shop, distance, "till {date}", "N offers" tag). Uses the already-loaded `nearbyShops` (`getAllNearbyShops`). testIDs `deals-strip`, `deals-strip-count`, `deal-card-{id}`.
+- **Offer analytics (companion FastAPI backend, Mongo `offer_events`)**: `POST /api/offer-events {merchantId, eventType: VIEW|TAP, customerId?, source}` and `GET /api/offer-analytics/{merchantId}?days=7 → {views, taps, uniqueViewers, byDay[]}`.
+  - Client `utils/offerAnalytics.ts` (`trackOfferEvent`, `getOfferAnalytics`) uses `BACKEND_URL` (`EXPO_PUBLIC_BACKEND_URL`, now set in `frontend/.env` for preview; production builds need it in `eas.json` env, or the Java team ports the two endpoints). VIEW de-duped per session.
+  - Events: TAP from deals strip + shop list (cards with an active offer); VIEW when shop details renders with an active offer.
+  - `components/OfferAnalyticsCard.tsx` in My Account → Offer (view mode, when offers exist): Views / Taps / Customers (unique viewers) for last 7 days + 7-day mini bars; "Analytics unavailable" if backend unreachable.
+- Verified end-to-end on preview: strip shows 1 deal → tap (TAP) → shop details (VIEW) → merchant card shows 1/1/1.
+
+### Session 20 (Jun 2026) - Remove Recent Transactions (customer) + highlighted special-offer merchant cards
+- Removed "Recent Transactions" from `member-dashboard` and from the **customer tab** of `dual-dashboard` (merchant tab keeps it). Dual dashboard customer tab now also shows the `DealsStrip`.
+- New shared `components/NearbyMerchantCard.tsx` (replaces duplicated card JSX in both dashboards): special-offer merchants get an orange "SPECIAL OFFER" ribbon, green frame + glow, "Deal / N deals" pill, tinted image, green category badge, and an offer box (first offer + "Valid till"). Regular cards unchanged. `sortSpecialOffersFirst()` puts offer merchants first in the auto-scrolling list; taps on them record `TAP` (`shop_list`). testIDs `nearby-merchant-{id}-{i}`, `nearby-merchant-ribbon-{id}`.
+- Verified on preview with live data (2 merchants with offers highlighted & first).
+
+### Session 21 (Jun 2026) - Pulse glow on offer cards + trending sort for Deals strip
+- `NearbyMerchantCard`: special-offer cards wrapped in an `Animated.View` with a looping (2.2s) glow layer (opacity 0.15→0.75, scale 1→1.035) and a subtle card breathe (1→1.012); RN `Animated` with native driver on device. testID `nearby-merchant-pulse-{id}`.
+- Backend `GET /api/offer-analytics/trending?merchantIds=a,b&days=7 → {taps: {id: n}}` (Mongo aggregate on `offer_events`).
+- `DealsStrip`: fetches taps for the deal merchants (`getTrendingTaps`) and sorts by taps desc (ties keep distance order); top card with taps>0 gets an orange border + "Trending" flame tag; cards show "N tapped this week" (falls back to "till {date}").
+- Verified on preview: Uma Grocery (3 taps) ranked before Vinod Grocery (2 taps) with Trending tag; pulse animation running (6 animated wrappers).
+
+### Session 22 (Jun 2026) - API environment hardening (dev vs production)
+- `utils/api.ts`: `IS_PRODUCTION_API = !__DEV__ && EXPO_PUBLIC_ENV in (production|prod)`. Any `__DEV__` bundle (Metro, `expo run:*`, EAS development client) and EAS `preview` always use `https://devapi.intownlocal.com`; only an EAS `production` release uses `https://api.intownlocal.com`. `EXPO_PUBLIC_API_BASE_URL` / `EXPO_PUBLIC_OTP_API_BASE_URL` overrides are honoured only for non-production hosts (e.g. localhost). Startup log prints env/base/otp.
+- `eas.json`: `development` and `preview` profiles now explicitly set dev env vars; `production` unchanged.
+- `frontend/.env` (committed, used by preview) sets `EXPO_PUBLIC_ENV=dev` + dev URLs; added `frontend/.env.example` for local setup.
+
+### Session 23 (Jun 2026) - Special offer image (upload via merchant S3 API, shown to customers)
+- Merchant → My Account → Offer → **Special Offer Image**: pick from gallery / camera (16:9), preview, "Discard"; uploaded on "Save All Changes" via the registration upload API `POST /IN/s3/upload?userType=IN_MERCHANT&inTownId={id}` with fixed file name `special_offer_{merchantId}.jpg` (re-upload replaces). Response `[{fileName, url, status}]` → `url` shown immediately (cache-busted).
+- No merchant field exists for the banner, so it is identified by **file name**: `utils/specialOffer.ts` → `getSpecialOfferImageUrl(shop)` scans `s3ImageUrl` (objects with `fileName`/`s3ImageUrl`, or URLs). `extractImageUrls()` and gallery refreshers now exclude `special_offer*` files so the banner does not appear in shop galleries.
+- Customer surfaces: `DealsStrip` card image, highlighted `NearbyMerchantCard` hero image (member + dual dashboards), and the Special Offer card on `member-shop-details` (16:9 banner). Falls back to shop image when absent.
+- Verified against real dev API: upload → S3 object `special_offer_100103.jpg` → dashboards render the banner. Note: dev merchant 100103 also has a stray `offer_test.png` from probing (no delete API).
+
+### Session 24 (Jun 2026) - Offer banner inside the share card / WhatsApp text
+- `OfferShareCard` accepts `imageUrl` + `onImageReady`: banner (16:9, full-bleed top, "SPECIAL OFFER" tag) above INtown pill, shop name, offers, validity. `shareOfferAsImage(ref, isImageReady)` waits (≤3s) for the banner to load before `captureRef`.
+- `buildOfferShareText` appends "🖼 See the offer: <public S3 url>" so WhatsApp/text shares show the image link preview.
+- Verified on preview: card renders with banner; WhatsApp text includes the link.
+
+### Session 25 (Jun 2026) - Shop Details redesign (reference mockup)
+- `app/member-shop-details.tsx` + `styles/member-shop-details.styles.ts` restyled: page bg `#F3F5F8`, rounded shadowed cards; header share icon (visual only, `shop-share-icon`); hero shows the shop photo carousel when photos exist, else the INtown "500 meters" promo poster (`assets/images/promo/promo-3.jpg`, `shop-hero-promo`).
+- Title card: name + blue verified tick (all shops) + category pill + category-derived tagline (`utils/shopTagline.ts`, `shop-tagline`) + full-width orange "Pick @ Shop".
+- "DESCRIPTION" card with green savings callout; info card uses new `components/ShopDetailRow.tsx` (tinted icon tile, stacked label/value): Business, Category, Contact Person, Distance (+"Live GPS" chip), Phone (+ tap-to-call `shop-call-btn`), Email, Address, Pincode, Experience, Ongoing Festive Offer (red, `shop-festive-offer-row`).
+- Opening Hours as 2×2 tiles (Open/Close dots, Break, Week Off). Special Offer card: green frame, 16:9 banner with "FESTIVE BONANZA" tag, green gift circle, title/offers, "Valid till" chip + `CODE: {shop.id}` chip (`special-offer-code`). Footer: rounded light-blue Navigate / orange Payment Process.
+- All existing logic + testIDs preserved; `tsc`/eslint clean on touched files; verified on web preview via nav-cache-seeded shop.
+- Carousel fix: the horizontal hero `ScrollView` sat in a container with `alignItems:'center'`, so it grew to the full content width (3× screen) and paging/auto-scroll misaligned (two images visible). Now the ScrollView has an explicit measured width (`onLayout` → `heroWidth`), the container no longer centers, `shopContent` is plain JSX (no remount on every state change), and drag-end also syncs the index. Verified: pages snap 0 → 1 → 2 → 0 every 3s.
+- Hero page dots (`shop-hero-dots`, `shop-hero-dot-{i}`; tap to jump; hidden for a single image) and header share icon now opens `ShareModal` (new `subtitle` prop → "Share this shop") with the shop name + category in the message and the Play Store link.
+- New shared `components/SavingsStatCards.tsx` (orange rounded cards, uppercase TODAY/MONTH/YEAR, ₹ + bold value, soft glow circles) replaces the stat rows on member-dashboard (INtown Savings), dual-dashboard (Savings/Business per tab) and merchant-dashboard (INtown Business). testIDs `{prefix}-cards`, `{prefix}-card-{today|month|year}`, `{prefix}-value-*` with prefixes `member-savings`, `dual-savings`, `dual-business`, `merchant-business`.
+- `NearbyMerchantCard` offer badge: no longer overflows the card — badge stretches to card width, icon top-aligned, text wraps to 2 lines (`flex:1`, ellipsis after).
+- `SavingsStatCards` count-up: each value animates 0 → target (1.1s, ease-out cubic, RN `Animated` listener) whenever the target changes (i.e. when totals load), formatted `en-IN` (e.g. 3,12,400). Applies to all three dashboards.
 
 ## Backlog
 

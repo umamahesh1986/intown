@@ -233,6 +233,12 @@ export default function Footer({ dashboardType }: FooterProps) {
   const [currentHtml, setCurrentHtml] = useState('');
   const [modalTitle, setModalTitle] = useState('');
   const [showShareModal, setShowShareModal] = useState(false);
+  const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
+
+  const handleDeleteAccountConfirm = () => {
+    setDeleteConfirmVisible(false);
+    openExternalURL('https://www.intownlocal.com/delete-account');
+  };
 
   const openInApp = (htmlContent: string, title: string) => {
     setCurrentHtml(htmlContent);
@@ -313,9 +319,8 @@ Local Stores. Real Savings.
           <Text style={styles.dot}></Text>
 
           <TouchableOpacity
-            onPress={() =>
-              openExternalURL('https://www.intownlocal.com/delete-account')
-            }
+            onPress={() => setDeleteConfirmVisible(true)}
+            testID="footer-delete-account-btn"
           >
             <Text style={styles.linkText}>Delete Account</Text>
           </TouchableOpacity>
@@ -391,6 +396,52 @@ Local Stores. Real Savings.
         visible={showShareModal}
         onClose={() => setShowShareModal(false)}
       />
+
+      {/* Delete Account Confirmation Modal */}
+      <Modal
+        animationType="fade"
+        transparent
+        visible={deleteConfirmVisible}
+        onRequestClose={() => setDeleteConfirmVisible(false)}
+      >
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => setDeleteConfirmVisible(false)}
+          testID="delete-confirm-overlay"
+        >
+          <Pressable
+            style={styles.deleteConfirmCard}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View style={styles.deleteIconWrap}>
+              <Ionicons name="warning" size={36} color="#D32F2F" />
+            </View>
+            <Text style={styles.deleteConfirmTitle}>Delete Account?</Text>
+            <Text style={styles.deleteConfirmBody}>
+              This will take you to the INtown website to permanently delete your account.
+              This action cannot be undone.
+            </Text>
+
+            <View style={styles.deleteConfirmActions}>
+              <TouchableOpacity
+                style={[styles.deleteConfirmBtn, styles.deleteCancelBtn]}
+                onPress={() => setDeleteConfirmVisible(false)}
+                testID="delete-confirm-cancel-btn"
+              >
+                <Text style={styles.deleteCancelBtnText}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.deleteConfirmBtn, styles.deleteConfirmPrimaryBtn]}
+                onPress={handleDeleteAccountConfirm}
+                testID="delete-confirm-confirm-btn"
+              >
+                <Text style={styles.deleteConfirmPrimaryBtnText}>Confirm</Text>
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -539,5 +590,75 @@ const styles = StyleSheet.create({
   deleteText: {
     fontSize: 16,
     color: '#7A8A9A',
+  },
+
+  // Delete-account confirmation modal
+  deleteConfirmCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    paddingTop: 24,
+    paddingBottom: 20,
+    paddingHorizontal: 24,
+    width: '86%',
+    maxWidth: 380,
+    alignItems: 'center',
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.15, shadowRadius: 12 },
+      android: { elevation: 12 },
+      web: { shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.15, shadowRadius: 12 },
+    }),
+  },
+  deleteIconWrap: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#FDECEA',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
+  },
+  deleteConfirmTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#1A1A1A',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  deleteConfirmBody: {
+    fontSize: 14,
+    color: '#555',
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 20,
+  },
+  deleteConfirmActions: {
+    flexDirection: 'row',
+    gap: 12,
+    width: '100%',
+  },
+  deleteConfirmBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deleteCancelBtn: {
+    backgroundColor: '#F1F3F5',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  deleteCancelBtnText: {
+    color: '#333',
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  deleteConfirmPrimaryBtn: {
+    backgroundColor: '#D32F2F',
+  },
+  deleteConfirmPrimaryBtnText: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+    fontSize: 14,
   },
 });

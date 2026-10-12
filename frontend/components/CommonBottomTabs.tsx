@@ -6,6 +6,7 @@ import { useAuthStore } from '../store/authStore';
 import { useNotificationStore } from '../store/notificationStore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LoginRequiredModal } from './LoginRequiredModal';
 
 const INTOWN_ORANGE = '#FF8A00'; 
 
@@ -42,10 +43,11 @@ const LAST_DASHBOARD_KEY = 'last_visited_dashboard';
 export default function CommonBottomTabs({ tabs }: CommonBottomTabsProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const { user } = useAuthStore();
+  const { user, isAuthenticated, isGuest } = useAuthStore();
   const notifItems = useNotificationStore((s) => s.items);
   const unreadFor = (link: string) => notifItems.filter((n) => !n.read && n.targetRoute === link).length;
   const [lastDashboard, setLastDashboard] = useState<string | null>(null);
+  const [showLoginModal, setShowLoginModal] = useState(false);
   const insets = useSafeAreaInsets();
 
   // Load last visited dashboard on mount
@@ -107,6 +109,10 @@ export default function CommonBottomTabs({ tabs }: CommonBottomTabsProps) {
   const isOnDashboard = DASHBOARD_PATHS.includes(pathname);
 
   const handleTabPress = (tab: TabItem) => {
+    if (tab.name === 'Profile' && (isGuest || !isAuthenticated)) {
+      setShowLoginModal(true);
+      return;
+    }
     if (tab.name === 'Home') {
       // For Home tab, route based on user type
       const homeRoute = getHomeRoute();
@@ -129,6 +135,11 @@ export default function CommonBottomTabs({ tabs }: CommonBottomTabsProps) {
 
   return (
     <View style={[styles.footerContainer, { paddingBottom: bottomPadding, height: 56 + bottomPadding }]}>
+      <LoginRequiredModal
+        isVisible={showLoginModal}
+        onDismiss={() => setShowLoginModal(false)}
+        message="Please log in to view your profile"
+      />
       {tabs.map((tab: TabItem) => {
         const isActive = isTabActive(tab);
         

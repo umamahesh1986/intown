@@ -7,11 +7,12 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
+import { LoginRequiredModal } from '../components/LoginRequiredModal';
 import { processPayment } from '../utils/api';
 
 const PAYMENT_METHODS = [
@@ -24,8 +25,15 @@ const PAYMENT_METHODS = [
 export default function PaymentScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const { user } = useAuthStore();
-  
+  const { user, isAuthenticated, isGuest } = useAuthStore();
+  const [showLoginModal, setShowLoginModal] = useState(false);
+
+  useEffect(() => {
+    if (isGuest || !isAuthenticated) {
+      setShowLoginModal(true);
+    }
+  }, [isGuest, isAuthenticated]);
+
   const shopId = params.shopId as string | undefined;
   const planId = params.planId as string | undefined;
   const amount = parseFloat(params.amount as string);
@@ -77,6 +85,13 @@ export default function PaymentScreen() {
   };
 
   return (
+    <>
+      <LoginRequiredModal
+        isVisible={showLoginModal}
+        onDismiss={() => setShowLoginModal(false)}
+        message="Please log in to make a payment"
+      />
+      {isAuthenticated && !isGuest && (
     <SafeAreaView style={styles.container}>
       <ScrollView>
         {/* Header */}
@@ -173,6 +188,8 @@ export default function PaymentScreen() {
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
+      )}
+    </>
   );
 }
 

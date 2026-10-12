@@ -30,6 +30,10 @@ import { MaterialIcons } from '@expo/vector-icons';
 import Footer from '../components/Footer';
 import { getAllNearbyShops, getCategories, getMerchantImageByShopId, extractImageUrls, INTOWN_API_BASE } from '../utils/api';
 import { setNavShop } from '../utils/navCache';
+import { DealsStrip } from '../components/DealsStrip';
+import { SavingsStatCards } from '../components/SavingsStatCards';
+import { NearbyMerchantCard, sortSpecialOffersFirst, hasSpecialOffer } from '../components/NearbyMerchantCard';
+import { trackOfferEvent } from '../utils/offerAnalytics';
 import {
   CATEGORY_IMAGE_LIST,
   FALLBACK_CATEGORY_IMAGE,
@@ -1214,53 +1218,27 @@ export default function DualDashboard() {
           <Text style={[styles.sectionTitle, { margin: 0, fontSize: 18 }]}>{activeTab === 'customer' ? "INtown Savings" : "INtown Business"}</Text>
           
         </View>
-        <View style={styles.statsContainer}>
-        
-          <View style={styles.statCard}>
-          <Text style={styles.statLabel}>
-              {activeTab === 'customer' ? "Today" : "Today"}
-            </Text>
-            <Text style={styles.statValue}>
-
-              {activeTab === 'customer'
-                ? (customerTodaySaved ?? 0).toFixed(0)
-                : (merchantTodaySales ?? 0).toFixed(0)}
-            </Text>
-            
-          </View>
-          <View style={styles.statCard}>
-          <Text style={styles.statLabel}>
-              {activeTab === 'customer'
-                ? "Month"
-                : "Month"}
-            </Text>
-            <Text style={styles.statValue}>
-
-              {activeTab === 'customer'
-                ? (customerMonthSaved ?? 0).toFixed(0)
-                : (merchantMonthSales ?? 0).toFixed(0)}
-            </Text>
-            
-          </View>
-          <View style={styles.statCard}>
-          <Text style={styles.statLabel}>
-              {activeTab === 'customer'
-                ? "Year"
-                : "Year"}
-            </Text>
-            <Text style={styles.statValue}>
-
-              {activeTab === 'customer'
-                ? (customerYearSaved ?? 0).toFixed(0)
-                : (merchantYearSales ?? 0).toFixed(0)}
-            </Text>
-            
-          </View>
-        </View>
+        <SavingsStatCards
+          testIDPrefix={activeTab === 'customer' ? 'dual-savings' : 'dual-business'}
+          items={
+            activeTab === 'customer'
+              ? [
+                  { label: 'Today', value: customerTodaySaved ?? 0 },
+                  { label: 'Month', value: customerMonthSaved ?? 0 },
+                  { label: 'Year', value: customerYearSaved ?? 0 },
+                ]
+              : [
+                  { label: 'Today', value: merchantTodaySales ?? 0 },
+                  { label: 'Month', value: merchantMonthSales ?? 0 },
+                  { label: 'Year', value: merchantYearSales ?? 0 },
+                ]
+          }
+        />
 
         
 
-        {/* Transactions Section */}
+        {/* Transactions Section (merchant tab only — customers see deals instead) */}
+        {activeTab === 'merchant' && (
         <View style={styles.transactionsSection}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Recent Transactions</Text>
@@ -1270,11 +1248,7 @@ export default function DualDashboard() {
             </TouchableOpacity>
           </View>
 
-          {activeTab === 'customer' && isCustomerLoading ? (
-            <View style={styles.emptyState}>
-              <ActivityIndicator size="small" color="#FF8A00" />
-            </View>
-          ) : activeTab === 'merchant' && isMerchantLoading ? (
+          {isMerchantLoading ? (
             <View style={styles.emptyState}>
               <ActivityIndicator size="small" color="#FF8A00" />
             </View>
@@ -1289,6 +1263,22 @@ export default function DualDashboard() {
             </View>
           )}
         </View>
+        )}
+
+        {/* DEALS NEAR YOU (Customer Only) */}
+        {activeTab === 'customer' && (
+          <DealsStrip
+            shops={nearbyShops}
+            onPressShop={async (shop) => {
+              trackOfferEvent(shop?.id, 'TAP', 'deals_strip');
+              await setNavShop(shop);
+              router.push({
+                pathname: '/member-shop-details',
+                params: { shopId: String(shop.id), categoryId: '', source: 'dual' },
+              });
+            }}
+          />
+        )}
         {/* Popular Categories (Customer Only) */}
         {activeTab === 'customer' && (
           <View style={styles.section}>
@@ -1455,64 +1445,22 @@ export default function DualDashboard() {
                 nearbyScrollPos.current = e.nativeEvent.contentOffset.x;
               }}
             >
-              {/* Render shops 3x for seamless infinite loop */}
-              {[...nearbyShops, ...nearbyShops, ...nearbyShops].map((shop, index) => {
-                const urls = extractImageUrls(shop.image ?? shop.s3ImageUrl);
-                const imageUri = urls[0] ?? (typeof shop.image === 'string' ? shop.image : null);
-                const shopName = shop.businessName || shop.shopName || shop.contactName || 'Shop';
-                const category = shop.businessCategory || 'General';
-                const offerText = shop.offer || '';
-
-                return (
-                  <TouchableOpacity
-                    key={`merchant-${shop.id}-${index}`}
-                    style={styles.nbMerchantCard}
-                    activeOpacity={0.9}
-                    onPress={async () => {
-                      await setNavShop(shop);
-                      router.push({
-                        pathname: '/member-shop-details',
-                        params: {
-                          shopId: String(shop.id),
-                          categoryId: '',
-                          source: 'dual',
-                        },
-                      });
-                    }}
-                  >
-                    <View style={styles.nbMerchantImageWrapper}>
-                      {imageUri ? (
-                        <Image source={{ uri: imageUri }} style={styles.nbMerchantImage} resizeMode="cover" />
-                      ) : (
-                        <View style={styles.nbMerchantImagePlaceholder}>
-                          <Ionicons name="storefront" size={36} color="#FF8A00" />
-                        </View>
-                      )}
-                      <View style={styles.nbMerchantCategoryBadge}>
-                        <Text style={styles.nbMerchantCategoryText}>{category}</Text>
-                      </View>
-                    </View>
-                    <View style={styles.nbMerchantCardContent}>
-                      <Text style={styles.nbMerchantName} numberOfLines={1}>{shopName}</Text>
-                      {shop.contactName && shop.contactName !== shopName && (
-                        <Text style={styles.nbMerchantContact} numberOfLines={1}>{shop.contactName}</Text>
-                      )}
-                      {shop.address ? (
-                        <View style={styles.nbMerchantInfoRow}>
-                          <Ionicons name="location-outline" size={13} color="#888" />
-                          <Text style={styles.nbMerchantInfoText} numberOfLines={1}>{shop.address}</Text>
-                        </View>
-                      ) : null}
-                      {offerText ? (
-                        <View style={styles.nbMerchantOfferBadge}>
-                          <Ionicons name="pricetag" size={12} color="#4CAF50" />
-                          <Text style={styles.nbMerchantOfferText} numberOfLines={1}>{offerText}</Text>
-                        </View>
-                      ) : null}
-                    </View>
-                  </TouchableOpacity>
-                );
-              })}
+              {/* Render shops 3x for seamless infinite loop — special-offer merchants first */}
+              {(() => { const ordered = sortSpecialOffersFirst(nearbyShops); return [...ordered, ...ordered, ...ordered]; })().map((shop, index) => (
+                <NearbyMerchantCard
+                  key={`merchant-${shop.id}-${index}`}
+                  shop={shop}
+                  testID={`nearby-merchant-${shop.id}-${index}`}
+                  onPress={async (s) => {
+                    if (hasSpecialOffer(s)) trackOfferEvent(s.id, 'TAP', 'shop_list');
+                    await setNavShop(s);
+                    router.push({
+                      pathname: '/member-shop-details',
+                      params: { shopId: String(s.id), categoryId: '', source: 'dual' },
+                    });
+                  }}
+                />
+              ))}
             </ScrollView>
           </View>
         )}

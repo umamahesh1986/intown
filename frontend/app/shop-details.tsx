@@ -488,17 +488,17 @@ const styles = StyleSheet.create({
   },
   savingsTitle: {
     fontSize: 14,
-    color: '#2E7D32',
+    color: '#FF8A00',
     marginBottom: 4,
   },
   savingsAmount: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#2E7D32',
+    color: '#FF8A00',
   },
   savingsDescription: {
     fontSize: 14,
-    color: '#2E7D32',
+    color: '#FF8A00',
     lineHeight: 20,
   },
   featuresSection: {

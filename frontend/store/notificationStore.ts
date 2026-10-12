@@ -8,7 +8,8 @@ export type NotificationKind =
   | 'ORDER_PLACED_CUSTOMER'
   | 'ORDER_RECEIVED_MERCHANT'
   | 'ORDER_STATUS_CUSTOMER'
-  | 'ORDER_PICKED_UP_MERCHANT';
+  | 'ORDER_PICKED_UP_MERCHANT'
+  | 'OFFER_EXPIRING_MERCHANT';
 
 export interface NotificationItem {
   id: string;
@@ -17,7 +18,7 @@ export interface NotificationItem {
   body: string;
   timestamp: number;
   read: boolean;
-  targetRoute: '/my-orders' | '/merchant-orders';
+  targetRoute: '/my-orders' | '/merchant-orders' | '/account';
   targetTab: string;      // e.g. 'PLACED'
   pickup_id: string;
 }

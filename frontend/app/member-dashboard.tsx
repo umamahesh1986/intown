@@ -43,6 +43,10 @@ import {
   resolveInPointsCustomerId,
 } from '../utils/api';
 import { setNavShop } from '../utils/navCache';
+import { DealsStrip } from '../components/DealsStrip';
+import { SavingsStatCards } from '../components/SavingsStatCards';
+import { NearbyMerchantCard, sortSpecialOffersFirst, hasSpecialOffer } from '../components/NearbyMerchantCard';
+import { trackOfferEvent } from '../utils/offerAnalytics';
 
 
 import {
@@ -1194,27 +1198,18 @@ export default function MemberDashboard() {
           <View style={{ paddingHorizontal: 16, marginTop: 10 }}>
             <Text style={[styles.sectionTitle, { margin: 0, fontSize: 18 }]}>INtown Savings</Text>
           </View>
-          <View style={styles.summarySection}>
-            {/* <Text style={styles.sectionTitle}>Savings History </Text> */}
-            {/* <Text style={styles.normalText}>(Depends on Participating at Stores):</Text> */}
-            <View style={styles.summaryRow}>
-              <View style={styles.summaryItem}>
-                <Text style={styles.summaryLabel}>Today </Text>
-                <Text style={styles.summaryValue}>{(todaySavedAmount ?? 0).toFixed(0)}</Text>
-              </View>
-              <View style={styles.summaryItem}>
-                <Text style={styles.summaryLabel}>Month</Text>
-                <Text style={styles.summaryValue}>{(monthSavedAmount ?? 0).toFixed(0)}</Text>
-              </View>
-              <View style={styles.summaryItem}>
-                <Text style={styles.summaryLabel}>Year</Text>
-                <Text style={styles.summaryValue}>{(yearSavedAmount ?? 0).toFixed(0)}</Text>
-              </View>
-            </View>
-          </View>
+          <SavingsStatCards
+            testIDPrefix="member-savings"
+            items={[
+              { label: 'Today', value: todaySavedAmount ?? 0 },
+              { label: 'Month', value: monthSavedAmount ?? 0 },
+              { label: 'Year', value: yearSavedAmount ?? 0 },
+            ]}
+          />
 
           
 
+<<<<<<< HEAD
           <View style={styles.rewardsSection}>
             <TouchableOpacity
               style={styles.rewardsHeaderLink}
@@ -1297,6 +1292,20 @@ export default function MemberDashboard() {
               </View>
             )}
           </View>
+=======
+          {/* DEALS NEAR YOU — shops running a special offer, visible before picking a category */}
+          <DealsStrip
+            shops={nearbyShops}
+            onPressShop={async (shop) => {
+              trackOfferEvent(shop?.id, 'TAP', 'deals_strip');
+              await setNavShop(shop);
+              router.push({
+                pathname: '/member-shop-details',
+                params: { shopId: String(shop.id), categoryId: '', source: 'member' },
+              });
+            }}
+          />
+>>>>>>> origin/main
 
           {/* CATEGORIES */}
           <View style={styles.section}>
@@ -1413,64 +1422,22 @@ export default function MemberDashboard() {
                   nearbyScrollPos.current = e.nativeEvent.contentOffset.x;
                 }}
               >
-                {/* Render shops 3x for seamless infinite loop */}
-                {[...nearbyShops, ...nearbyShops, ...nearbyShops].map((shop, index) => {
-                  const urls = extractImageUrls(shop.image ?? shop.s3ImageUrl);
-                  const imageUri = urls[0] ?? (typeof shop.image === 'string' ? shop.image : null);
-                  const shopName = shop.businessName || shop.shopName || shop.contactName || 'Shop';
-                  const category = shop.businessCategory || 'General';
-                  const offerText = shop.offer || '';
-
-                  return (
-                    <TouchableOpacity
-                      key={`merchant-${shop.id}-${index}`}
-                      style={styles.merchantCard}
-                      activeOpacity={0.9}
-                      onPress={async () => {
-                        await setNavShop(shop);
-                        router.push({
-                          pathname: '/member-shop-details',
-                          params: {
-                            shopId: String(shop.id),
-                            categoryId: '',
-                            source: 'member',
-                          },
-                        });
-                      }}
-                    >
-                      <View style={styles.merchantImageWrapper}>
-                        {imageUri ? (
-                          <Image source={{ uri: imageUri }} style={styles.merchantImage} resizeMode="cover" />
-                        ) : (
-                          <View style={styles.merchantImagePlaceholder}>
-                            <Ionicons name="storefront" size={36} color="#FF8A00" />
-                          </View>
-                        )}
-                        <View style={styles.merchantCategoryBadge}>
-                          <Text style={styles.merchantCategoryText}>{category}</Text>
-                        </View>
-                      </View>
-                      <View style={styles.merchantCardContent}>
-                        <Text style={styles.merchantName} numberOfLines={1}>{shopName}</Text>
-                        {shop.contactName && shop.contactName !== shopName && (
-                          <Text style={styles.merchantContact} numberOfLines={1}>{shop.contactName}</Text>
-                        )}
-                        {shop.address ? (
-                          <View style={styles.merchantInfoRow}>
-                            <Ionicons name="location-outline" size={13} color="#888" />
-                            <Text style={styles.merchantInfoText} numberOfLines={1}>{shop.address}</Text>
-                          </View>
-                        ) : null}
-                        {offerText ? (
-                          <View style={styles.merchantOfferBadge}>
-                            <Ionicons name="pricetag" size={12} color="#4CAF50" />
-                            <Text style={styles.merchantOfferText} numberOfLines={1}>{offerText}</Text>
-                          </View>
-                        ) : null}
-                      </View>
-                    </TouchableOpacity>
-                  );
-                })}
+                {/* Render shops 3x for seamless infinite loop — special-offer merchants first */}
+                {(() => { const ordered = sortSpecialOffersFirst(nearbyShops); return [...ordered, ...ordered, ...ordered]; })().map((shop, index) => (
+                  <NearbyMerchantCard
+                    key={`merchant-${shop.id}-${index}`}
+                    shop={shop}
+                    testID={`nearby-merchant-${shop.id}-${index}`}
+                    onPress={async (s) => {
+                      if (hasSpecialOffer(s)) trackOfferEvent(s.id, 'TAP', 'shop_list');
+                      await setNavShop(s);
+                      router.push({
+                        pathname: '/member-shop-details',
+                        params: { shopId: String(s.id), categoryId: '', source: 'member' },
+                      });
+                    }}
+                  />
+                ))}
               </ScrollView>
             </View>
           )}
