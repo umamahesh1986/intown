@@ -12,7 +12,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { getMerchantImageByShopId, extractImageUrls, INTOWN_API_BASE } from '../utils/api';
+import { getMerchantImageByShopId, extractImageUrls, INTOWN_API_BASE, enrichShopsWithMerchantDetails } from '../utils/api';
 import { setNavShop } from '../utils/navCache';
 import { useLocationStore } from '../store/locationStore';
 import { formatDistance } from '../utils/formatDistance';
@@ -219,25 +219,11 @@ export default function MemberShopList() {
     }
   };
 
-  // Background image enrichment — does NOT block shop display
+  // Background enrichment (offers + images from /IN/merchant/{id}) — does NOT block shop display
   const enrichImagesInBackground = async (shopList: any[]) => {
     try {
-      const enriched = [...shopList];
-      let updated = false;
-      for (let i = 0; i < enriched.length; i++) {
-        try {
-          const shopId = enriched[i]?.id;
-          if (!shopId) continue;
-          const image = await getMerchantImageByShopId(shopId);
-          if (image) {
-            enriched[i] = { ...enriched[i], image: getFirstImageUrl(image) || enriched[i].image };
-            updated = true;
-          }
-        } catch {}
-      }
-      if (updated) {
-        setShops([...enriched]);
-      }
+      const enriched = await enrichShopsWithMerchantDetails(shopList);
+      setShops(enriched);
     } catch {}
   };
 

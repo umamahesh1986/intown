@@ -1073,6 +1073,52 @@ const persistMerchantImageListCache = async () => {
   }
 };
 
+// The nearby-search API omits specialOffers / specialOfferEndDate / s3ImageUrl; GET /IN/merchant/{id} has them.
+const merchantDetailsCache = new Map<string, { at: number; data: any | null }>();
+const MERCHANT_DETAILS_TTL_MS = 5 * 60 * 1000;
+
+export const getMerchantDetailsById = async (shopId?: string | number | null): Promise<any | null> => {
+  if (shopId == null) return null;
+  const key = String(shopId);
+  const hit = merchantDetailsCache.get(key);
+  if (hit && Date.now() - hit.at < MERCHANT_DETAILS_TTL_MS) return hit.data;
+  try {
+    const res = await fetch(`${INTOWN_API_BASE}/merchant/${key}`);
+    const data = res.ok ? await res.json() : null;
+    const valid = data && typeof data === 'object' && data.id != null ? data : null;
+    merchantDetailsCache.set(key, { at: Date.now(), data: valid });
+    return valid;
+  } catch {
+    merchantDetailsCache.set(key, { at: Date.now(), data: null });
+    return null;
+  }
+};
+
+// Merges offer fields + gallery (and a first `image`) from /IN/merchant/{id} into each nearby shop.
+export const enrichShopsWithMerchantDetails = async (shops: any[]): Promise<any[]> => {
+  const list = Array.isArray(shops) ? shops : [];
+  const out: any[] = new Array(list.length);
+  const BATCH = 6;
+  for (let i = 0; i < list.length; i += BATCH) {
+    await Promise.all(
+      list.slice(i, i + BATCH).map(async (shop: any, j: number) => {
+        const shopId = shop?.id ?? shop?.merchantId ?? shop?.merchant_id;
+        const details = await getMerchantDetailsById(shopId);
+        const gallery = details?.s3ImageUrl ?? shop?.s3ImageUrl;
+        const urls = extractImageUrls(gallery);
+        out[i + j] = {
+          ...shop,
+          specialOffers: details?.specialOffers ?? shop?.specialOffers ?? null,
+          specialOfferEndDate: details?.specialOfferEndDate ?? shop?.specialOfferEndDate ?? null,
+          s3ImageUrl: gallery ?? null,
+          image: urls[0] ?? shop?.image ?? null,
+        };
+      }),
+    );
+  }
+  return out;
+};
+
 export const getMerchantImageByShopId = async (
   shopId?: string | number | null
 ): Promise<string | null> => {

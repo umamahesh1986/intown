@@ -240,6 +240,7 @@
 - Added remote `github` → https://github.com/umamahesh1986/intown; fast-forwarded workspace to `main` @ `cf6e5e4 rewardspoints` (user's INpoints Rewards feature: `app/rewards.tsx`, `utils/rewardsApi.ts`, `utils/savingsTotals.ts`, "My Rewards" card on dashboards, `expo-linear-gradient` dep). Workspace branch name is still `IOS_Changes_Vicky` but its content == GitHub `main`.
 - `yarn install` done; postinstall prebuild output under `android/`/`ios/` reverted (never commit those). Web export rebuilt and verified (dual/member dashboards + /rewards render).
 - Junk files on GitHub main to delete: `page·git push -u origin rewards`, `tatus` (accidental shell redirects).
+- Deals-strip fix: `/IN/search/by-product-names` omits `specialOffers`/`specialOfferEndDate`/`s3ImageUrl`, so no nearby shop ever qualified. Added `getMerchantDetailsById` (GET `/IN/merchant/{id}`, 5-min in-memory cache) + `enrichShopsWithMerchantDetails` (batches of 6) in `utils/api.ts`; used by member/dual/user dashboards and member-shop-list to merge offer fields + gallery/first image. Verified against real devapi (Vinod Grocery 100103 appears in "Deals near you"). Long-term: backend should return those fields in the nearby search response.
 
 ## Backlog
 

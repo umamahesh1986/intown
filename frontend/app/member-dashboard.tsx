@@ -37,6 +37,7 @@ import {
   getNearbyShopsByCategory,
   getCustomerProfile,
   getMerchantImageByShopId,
+  enrichShopsWithMerchantDetails,
   extractImageUrls,
   INPOINTS_API_BASE,
   INTOWN_API_BASE,
@@ -838,15 +839,7 @@ const fetchInPointsStats = async () => {
 
 
       const list = Array.isArray(response) ? response : [];
-      const enriched = await Promise.all(
-        list.map(async (shop: any) => {
-          const shopId = shop?.id ?? shop?.merchantId ?? shop?.merchant_id;
-          const image = await getMerchantImageByShopId(shopId);
-          const img = image ?? shop?.image ?? shop?.s3ImageUrl;
-          const urls = extractImageUrls(img);
-          return { ...shop, image: urls[0] ?? null };
-        })
-      );
+      const enriched = await enrichShopsWithMerchantDetails(list);
       setNearbyShops(enriched);
 
     } catch (error) {

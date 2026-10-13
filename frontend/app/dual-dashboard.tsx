@@ -28,7 +28,7 @@ import { useLocationStore } from '../store/locationStore';
 import { useFocusEffect } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import Footer from '../components/Footer';
-import { getAllNearbyShops, getCategories, getMerchantImageByShopId, extractImageUrls, INTOWN_API_BASE } from '../utils/api';
+import { getAllNearbyShops, getCategories, getMerchantImageByShopId, extractImageUrls, INTOWN_API_BASE, enrichShopsWithMerchantDetails } from '../utils/api';
 import { setNavShop } from '../utils/navCache';
 import { DealsStrip } from '../components/DealsStrip';
 import { SavingsStatCards } from '../components/SavingsStatCards';
@@ -516,15 +516,7 @@ export default function DualDashboard() {
         location.longitude,
       );
       const list = Array.isArray(response) ? response : [];
-      const enriched = await Promise.all(
-        list.map(async (shop: any) => {
-          const shopId = shop?.id ?? shop?.merchantId ?? shop?.merchant_id;
-          const image = await getMerchantImageByShopId(shopId);
-          const img = image ?? shop?.image ?? shop?.s3ImageUrl;
-          const urls = extractImageUrls(img);
-          return { ...shop, image: urls[0] ?? null };
-        })
-      );
+      const enriched = await enrichShopsWithMerchantDetails(list);
       setNearbyShops(enriched);
     } catch (error) {
       console.error('Failed to load nearby shops:', error);

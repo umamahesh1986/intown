@@ -36,7 +36,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useAuthStore } from '../store/authStore';
 import { LoginRequiredModal } from '../components/LoginRequiredModal';
 import { useLocationStore, LocationDetails } from '../store/locationStore';
-import { getPlans, getCategories, getAllNearbyShops, getMerchantImageByShopId, extractImageUrls } from '../utils/api';
+import { getPlans, getCategories, getAllNearbyShops, getMerchantImageByShopId, extractImageUrls, enrichShopsWithMerchantDetails } from '../utils/api';
 import { setNavShop } from '../utils/navCache';
 
 import {
@@ -476,15 +476,7 @@ export default function UserDashboard() {
 
       // backend returns ARRAY, not { data: [] }
       const list = Array.isArray(response) ? response : [];
-      const enriched = await Promise.all(
-        list.map(async (shop: any) => {
-          const shopId = shop?.id ?? shop?.merchantId ?? shop?.merchant_id;
-          const image = await getMerchantImageByShopId(shopId);
-          const img = image ?? shop?.image ?? shop?.s3ImageUrl;
-          const urls = extractImageUrls(img);
-          return { ...shop, image: urls[0] ?? null };
-        })
-      );
+      const enriched = await enrichShopsWithMerchantDetails(list);
       setNearbyShops(enriched);
     } catch (error) {
       console.error('Failed to load nearby shops', error);
