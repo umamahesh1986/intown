@@ -248,6 +248,7 @@
 - Root cause of "member dashboard/search not working on main": main's `utils/api.ts` forced every `__DEV__` bundle to `devapi.intownlocal.com`, where the user's customer `100195` doesn't exist (profile/transactions → 404). The `search` branch defaulted to `api.intownlocal.com`.
 - New resolution: `EXPO_PUBLIC_ENV=dev|development` → devapi; `production|prod` or **unset** → api (prod); `EXPO_PUBLIC_API_BASE_URL`/`EXPO_PUBLIC_OTP_API_BASE_URL` override when set; INPoints base follows the same host unless `EXPO_PUBLIC_INPOINTS_API_BASE_URL` set. `.env` is untracked (only `.env.example`), so a plain local `expo start` now hits prod like the search branch; eas.json dev/preview profiles still pin devapi. Workspace preview `.env` = dev.
 - Gotcha: `.metro-cache` (persistent FileStore) caches inlined `EXPO_PUBLIC_*` values — after changing env, run `expo start -c` / `expo export -c` (and delete `.metro-cache`).
+- **Reverted per user (same session):** rule is now strictly: production build (`EXPO_PUBLIC_ENV=production`, non-`__DEV__`) → `https://api.intownlocal.com`; everything else (local `expo start`/`run:*`, EAS dev/preview, unset env) → `https://devapi.intownlocal.com`. Overrides only honoured for non-prod hosts. INPoints follows the same host. Verified by exporting bundles with production / unset env.
 
 ## Backlog
 
