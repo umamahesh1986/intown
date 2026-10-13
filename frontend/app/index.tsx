@@ -170,6 +170,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     padding: 24,
+    paddingBottom: 60,
     alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.35)',
   },

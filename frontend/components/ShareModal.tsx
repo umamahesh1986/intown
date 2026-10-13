@@ -16,7 +16,7 @@ const PLAY_STORE_URL =
   'https://play.google.com/store/apps/details?id=com.intown.andriod';
 const SHARE_TITLE = 'INtown';
 const SHARE_TEXT =
-  'Download INtown and win a chance to get INcoins :';
+  'Download INtown and win a chance to get INcoins  ';
 
 interface ShareModalProps {
   visible: boolean;
