@@ -8,7 +8,7 @@ import { ShopImageCarousel } from '../components/ShopImageCarousel';
 
 export default function SplashScreen() {
   const router = useRouter();
-  const { isAuthenticated, user, loadAuth, logout, setUserType, setGuest } = useAuthStore();
+  const { isAuthenticated, user, loadAuth, logout, setUserType } = useAuthStore();
   const [isLoading, setIsLoading] = useState(true);
   const [showCarousel, setShowCarousel] = useState(false);
 
@@ -102,9 +102,8 @@ export default function SplashScreen() {
     router.replace('/login');
   };
 
-  const handleBrowse = async () => {
-    await setGuest(true);
-    router.replace('/user-dashboard');
+  const handleBrowse = () => {
+    router.replace('/login');
   };
 
   if (showCarousel) {
@@ -116,7 +115,7 @@ export default function SplashScreen() {
           <Pressable style={styles.continueButton} onPress={handleContinue}>
             <Text style={styles.continueButtonText}>Get Started</Text>
           </Pressable>
-          <Pressable style={styles.browseButton} onPress={handleBrowse}>
+          <Pressable style={styles.browseButton} onPress={handleBrowse} testID="start-explore-btn">
             <Text style={styles.browseButtonText}>Explore</Text>
           </Pressable>
         </View>
