@@ -1188,16 +1188,15 @@ export const getMerchantImagesByShopId = async (
 
 
 export const searchProducts = async (text: string) => {
-  const res = await fetch(
-    `${INTOWN_API_BASE}/products/all-products-grouping`
-  );
+  // Catalogue-wide suggestions: GET /IN/products/ (flat list of {id, name, s3ImageUrl}).
+  // all-products-grouping requires a merchantId and 400s without one.
+  const res = await fetch(`${INTOWN_API_BASE}/products/`);
 
   if (!res.ok) {
     throw new Error('Products API failed');
   }
 
   const raw = await res.json();
-  // Handles both grouped and flat responses (see flattenGroupedProducts)
   const flat = flattenGroupedProducts(raw);
   const q = (text || '').toLowerCase();
   if (!q) return flat;

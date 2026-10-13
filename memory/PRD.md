@@ -249,6 +249,7 @@
 - New resolution: `EXPO_PUBLIC_ENV=dev|development` → devapi; `production|prod` or **unset** → api (prod); `EXPO_PUBLIC_API_BASE_URL`/`EXPO_PUBLIC_OTP_API_BASE_URL` override when set; INPoints base follows the same host unless `EXPO_PUBLIC_INPOINTS_API_BASE_URL` set. `.env` is untracked (only `.env.example`), so a plain local `expo start` now hits prod like the search branch; eas.json dev/preview profiles still pin devapi. Workspace preview `.env` = dev.
 - Gotcha: `.metro-cache` (persistent FileStore) caches inlined `EXPO_PUBLIC_*` values — after changing env, run `expo start -c` / `expo export -c` (and delete `.metro-cache`).
 - **Reverted per user (same session):** rule is now strictly: production build (`EXPO_PUBLIC_ENV=production`, non-`__DEV__`) → `https://api.intownlocal.com`; everything else (local `expo start`/`run:*`, EAS dev/preview, unset env) → `https://devapi.intownlocal.com`. Overrides only honoured for non-prod hosts. INPoints follows the same host. Verified by exporting bundles with production / unset env.
+- Search fix: `searchProducts` used `/IN/products/all-products-grouping` which 400s without `merchantId` → no suggestions on main. Now `GET /IN/products/` (flat list, as in `search` branch). Flow verified: suggestions → member-shop-list → `search/by-product-names?productNames=…&customerLatitude&customerLongitude` on the env-resolved host (devapi locally, api in prod).
 
 ## Backlog
 
