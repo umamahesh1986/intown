@@ -243,6 +243,11 @@
 - Deals-strip fix: `/IN/search/by-product-names` omits `specialOffers`/`specialOfferEndDate`/`s3ImageUrl`, so no nearby shop ever qualified. Added `getMerchantDetailsById` (GET `/IN/merchant/{id}`, 5-min in-memory cache) + `enrichShopsWithMerchantDetails` (batches of 6) in `utils/api.ts`; used by member/dual/user dashboards and member-shop-list to merge offer fields + gallery/first image. Verified against real devapi (Vinod Grocery 100103 appears in "Deals near you"). Long-term: backend should return those fields in the nearby search response.
 - Startup carousel "Explore" button (`app/index.tsx`, `start-explore-btn`) now routes to `/login` instead of guest mode → user-dashboard.
 - Shop details hero now hydrates gallery + offer fields from `GET /IN/merchant/{id}` after loading the shop from nav cache/param/search (nearby payloads lack `s3ImageUrl`). Merchants with uploaded images show their own photos; only merchants with an empty gallery fall back to the promo poster. (As of now only 100090, 100102, 100103, 100104, 100106 have images on devapi.)
+### Session 27 (Jun 2026) - API env routing fixed (main vs search branch)
+- Merged GitHub `main` (rewards changes, dual-dashboard) into workspace (clean).
+- Root cause of "member dashboard/search not working on main": main's `utils/api.ts` forced every `__DEV__` bundle to `devapi.intownlocal.com`, where the user's customer `100195` doesn't exist (profile/transactions → 404). The `search` branch defaulted to `api.intownlocal.com`.
+- New resolution: `EXPO_PUBLIC_ENV=dev|development` → devapi; `production|prod` or **unset** → api (prod); `EXPO_PUBLIC_API_BASE_URL`/`EXPO_PUBLIC_OTP_API_BASE_URL` override when set; INPoints base follows the same host unless `EXPO_PUBLIC_INPOINTS_API_BASE_URL` set. `.env` is untracked (only `.env.example`), so a plain local `expo start` now hits prod like the search branch; eas.json dev/preview profiles still pin devapi. Workspace preview `.env` = dev.
+- Gotcha: `.metro-cache` (persistent FileStore) caches inlined `EXPO_PUBLIC_*` values — after changing env, run `expo start -c` / `expo export -c` (and delete `.metro-cache`).
 
 ## Backlog
 

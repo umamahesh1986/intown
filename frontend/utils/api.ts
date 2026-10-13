@@ -6,41 +6,30 @@ import { isSpecialOfferImageName, isSpecialOfferImageUrl, specialOfferImageFileN
 // ==========================================================================
 // ==========================================================================
 // API ENVIRONMENT RESOLUTION
-//   • Local dev (`expo start`, `expo run:*`) and EAS `development` / `preview`
-//     builds → DEV API (https://devapi.intownlocal.com). `__DEV__` builds can
-//     NEVER hit production, even if a stale env var says otherwise.
-//   • EAS `production` build (EXPO_PUBLIC_ENV=production, release bundle)
-//     → PRODUCTION API (https://api.intownlocal.com).
-//   • EXPO_PUBLIC_API_BASE_URL / EXPO_PUBLIC_OTP_API_BASE_URL may override the
-//     host for non-production builds only (e.g. a local backend).
+//   • EXPO_PUBLIC_ENV=dev|development → DEV API (https://devapi.intownlocal.com)
+//     (EAS `development` / `preview` profiles set this in eas.json).
+//   • EXPO_PUBLIC_ENV=production|prod → PRODUCTION API (https://api.intownlocal.com).
+//   • Not set (plain `expo start` / `expo run:*` without a .env) → PRODUCTION API,
+//     so local runs see real customer/merchant data (matches the `search` branch).
+//   • EXPO_PUBLIC_API_BASE_URL / EXPO_PUBLIC_OTP_API_BASE_URL override the host
+//     when set (e.g. a local backend). Copy .env.example → .env to pin dev.
 // ==========================================================================
 const PROD_BASE = 'https://api.intownlocal.com';
 const DEV_BASE = 'https://devapi.intownlocal.com';
 
 const envName = (process.env.EXPO_PUBLIC_ENV || '').trim().toLowerCase();
-const isDevBundle = typeof __DEV__ !== 'undefined' && __DEV__;
-export const IS_PRODUCTION_API = !isDevBundle && (envName === 'production' || envName === 'prod');
+const isDevEnv = envName === 'dev' || envName === 'development';
+const defaultBase = isDevEnv ? DEV_BASE : PROD_BASE;
+export const IS_PRODUCTION_API = defaultBase === PROD_BASE;
 
-const isProdHost = (url: string) => /(^|\/\/)api\.intownlocal\.com/i.test(url);
+const trimUrl = (value?: string) => (value || '').trim().replace(/\/+$/, '');
 
-const nonProdOverride = (value?: string) => {
-  const v = (value || '').trim();
-  // Overrides are honoured only when they don't point at production.
-  return v && !isProdHost(v) ? v.replace(/\/+$/, '') : '';
-};
-
-const resolvedBaseUrl = IS_PRODUCTION_API
-  ? PROD_BASE
-  : nonProdOverride(process.env.EXPO_PUBLIC_API_BASE_URL) || DEV_BASE;
-
-const resolvedOtpBase = IS_PRODUCTION_API
-  ? `${PROD_BASE}/IN`
-  : nonProdOverride(process.env.EXPO_PUBLIC_OTP_API_BASE_URL) || `${DEV_BASE}/IN`;
+const resolvedBaseUrl = trimUrl(process.env.EXPO_PUBLIC_API_BASE_URL) || defaultBase;
+const resolvedOtpBase = trimUrl(process.env.EXPO_PUBLIC_OTP_API_BASE_URL) || `${defaultBase}/IN`;
 
 const BASE_URL = resolvedBaseUrl;
 export const INTOWN_API_BASE = `${BASE_URL}/IN`;
-const INPOINTS_API_BASE_URL =
-  process.env.EXPO_PUBLIC_INPOINTS_API_BASE_URL || 'https://devapi.intownlocal.com';
+const INPOINTS_API_BASE_URL = trimUrl(process.env.EXPO_PUBLIC_INPOINTS_API_BASE_URL) || BASE_URL;
 export const INPOINTS_API_BASE = `${INPOINTS_API_BASE_URL}/IN`;
 
 const OTP_API_BASE = resolvedOtpBase;
@@ -49,7 +38,7 @@ const OTP_API_BASE = resolvedOtpBase;
 // URL is being used). Safe to strip in production if noisy.
 try {
   // eslint-disable-next-line no-console
-  console.log(`[intown-api] env=${IS_PRODUCTION_API ? 'PRODUCTION' : 'DEV'} (__DEV__=${String(isDevBundle)}, EXPO_PUBLIC_ENV=${envName || 'unset'}) base=${BASE_URL} otp=${OTP_API_BASE}`);
+  console.log(`[intown-api] env=${IS_PRODUCTION_API ? 'PRODUCTION' : 'DEV'} (EXPO_PUBLIC_ENV=${envName || 'unset'}) base=${BASE_URL} otp=${OTP_API_BASE}`);
 } catch {}
 
 /* ===============================
