@@ -81,6 +81,9 @@ export default function Account() {
   const offerShareRef = useRef<View>(null);
   const shareImageReadyRef = useRef(false);
   const specialOfferList = specialOffersText.split('\n').map(s => s.trim()).filter(Boolean);
+  // End date already passed → customers no longer see the offer (Deals strip / shop page hide it)
+  const isOfferExpired =
+    !!specialOfferEndDate && specialOfferList.length > 0 && new Date(ymdToIsoEndOfDay(specialOfferEndDate)).getTime() < Date.now();
   const offerShareProps = {
     shopName: name || 'Our shop',
     offers: specialOfferList,
@@ -1284,11 +1287,19 @@ export default function Account() {
                       <Text style={styles.timeBtnText}>{specialOfferEndDate ? formatYmd(specialOfferEndDate) : 'Select end date'}</Text>
                     </TouchableOpacity>
                   ) : (
-                    <Text style={styles.value} testID="account-value-special-offer-end-date">
+                    <Text style={[styles.value, isOfferExpired && styles.expiredValue]} testID="account-value-special-offer-end-date">
                       {specialOfferEndDate ? formatYmd(specialOfferEndDate) : 'No end date'}
                     </Text>
                   )}
                 </View>
+                {isOfferExpired && (
+                  <View style={styles.expiredBanner} testID="account-offer-expired-banner">
+                    <Ionicons name="alert-circle" size={16} color="#C62828" />
+                    <Text style={styles.expiredBannerText}>
+                      This offer expired on {formatYmd(specialOfferEndDate)} — customers can't see it in "Deals near you" or on your shop page. Tap Edit and pick a new end date to make it live again.
+                    </Text>
+                  </View>
+                )}
 
                 {/* Share the special offer (view mode only, when there is one) */}
                 {!editing && specialOfferList.length > 0 && (
@@ -1613,6 +1624,19 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 16, fontWeight: '700', color: '#1A1A1A', marginBottom: 12, borderBottomWidth: 1, borderBottomColor: '#F0F0F0', paddingBottom: 8 },
   fieldGroup: { marginBottom: 12 },
   fieldHint: { fontSize: 11, color: '#999', marginTop: -6, marginBottom: 12 },
+  expiredValue: { color: '#C62828' },
+  expiredBanner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: '#FDECEC',
+    borderWidth: 1,
+    borderColor: '#F5C2C2',
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 12,
+  },
+  expiredBannerText: { flex: 1, fontSize: 12, color: '#B71C1C', lineHeight: 17, fontWeight: '600' },
   label: { fontSize: 12, color: '#777', marginBottom: 4 },
   value: { fontSize: 15, fontWeight: '600', color: '#1A1A1A' },
   input: { borderWidth: 1, borderColor: '#DDD', borderRadius: 8, padding: 10, fontSize: 15, color: '#1A1A1A' },
