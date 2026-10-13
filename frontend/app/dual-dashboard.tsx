@@ -46,6 +46,11 @@ import {
 } from '../utils/location';
 import { formatDistance } from '../utils/formatDistance';
 import CommonBottomTabs from "../components/CommonBottomTabs";
+import {
+  
+  INPOINTS_API_BASE,
+  resolveInPointsCustomerId,
+} from '../utils/api';
 
 const { width } = Dimensions.get('window');
 
@@ -369,6 +374,158 @@ const [inPointsError, setInPointsError] = useState(false);
   for (let i = 0; i < categories.length; i += 2) {
     categoryColumns.push(categories.slice(i, i + 2));
   }
+
+  
+useFocusEffect(
+  useCallback(() => {
+    let isActive = true;
+
+    const fetchInPointsStats = async () => {
+      setIsInPointsLoading(true);
+      setInPointsError(false);
+
+      try {
+        const phone = String(user?.phone ?? '').trim();
+
+        if (!phone) {
+          throw new Error('Logged-in user phone number is missing.');
+        }
+
+        const inPointsCustomerId =
+          await resolveInPointsCustomerId(phone);
+
+        if (
+          inPointsCustomerId == null ||
+          String(inPointsCustomerId).trim() === ''
+        ) {
+          throw new Error('INPoints customer ID not found.');
+        }
+
+        const url =
+          `${INPOINTS_API_BASE}/points/customers/` +
+          `${encodeURIComponent(String(inPointsCustomerId))}/history`;
+
+        console.log('[DualDashboard INPoints] Customer ID:', inPointsCustomerId);
+        console.log('[DualDashboard INPoints] URL:', url);
+
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            Accept: 'application/json',
+          },
+        });
+
+        const responseText = await response.text();
+
+        console.log('[DualDashboard INPoints] Status:', response.status);
+        console.log('[DualDashboard INPoints] Response:', responseText);
+
+        if (!response.ok) {
+          throw new Error(
+            `INPoints API failed: ${response.status} ${responseText}`
+          );
+        }
+
+        const result: unknown = responseText
+          ? JSON.parse(responseText)
+          : null;
+
+        const payload = result as {
+          transactions?: unknown;
+          data?: unknown;
+          totalPoints?: number | string;
+        } | null;
+
+        let transactions: unknown[] | null = null;
+
+        if (Array.isArray(result)) {
+          transactions = result;
+        } else if (Array.isArray(payload?.transactions)) {
+          transactions = payload.transactions;
+        } else if (Array.isArray(payload?.data)) {
+          transactions = payload.data;
+        } else if (
+          payload?.data &&
+          typeof payload.data === 'object' &&
+          'transactions' in payload.data &&
+          Array.isArray(payload.data.transactions)
+        ) {
+          transactions = payload.data.transactions;
+        }
+
+        if (!transactions) {
+          throw new Error(
+            'Transactions array is missing from the INPoints API response.'
+          );
+        }
+
+        const points = transactions.map((item: unknown) => {
+          if (!item || typeof item !== 'object') {
+            return 0;
+          }
+
+          const transaction = item as {
+            points?: number | string;
+            pointsEarned?: number | string;
+            earnedPoints?: number | string;
+          };
+
+          const rawPoints =
+            transaction.points ??
+            transaction.pointsEarned ??
+            transaction.earnedPoints;
+
+          const value = Number(rawPoints);
+
+          return rawPoints == null ||
+            rawPoints === '' ||
+            !Number.isFinite(value)
+            ? 0
+            : Math.max(0, value);
+        });
+
+        const totalEarned = points.reduce(
+          (sum, value) => sum + value,
+          0
+        );
+
+        const transactionCount = transactions.length;
+
+        if (isActive) {
+          setInPointsStats({
+            totalEarned,
+            transactionCount,
+            averagePoints: transactionCount
+              ? Math.round(totalEarned / transactionCount)
+              : 0,
+          });
+
+          setInPointsError(false);
+        }
+      } catch (error) {
+        console.error(
+          '[DualDashboard] Failed to fetch INPoints:',
+          error
+        );
+
+        if (isActive) {
+          setInPointsStats(null);
+          setInPointsError(true);
+        }
+      } finally {
+        if (isActive) {
+          setIsInPointsLoading(false);
+        }
+      }
+    };
+
+    void fetchInPointsStats();
+
+    return () => {
+      isActive = false;
+    };
+  }, [user?.phone])
+);
 
   /* ===============================
      LOAD USER DATA
