@@ -286,61 +286,126 @@ export default function MemberDashboard() {
     useCallback(() => {
       let isActive = true;
 
-      const fetchInPointsStats = async () => {
-        setIsInPointsLoading(true);
-        setInPointsError(false);
-        try {
-          const inPointsCustomerId = await resolveInPointsCustomerId(user?.phone ?? '');
-          const historyResponse = await fetch(
-            `${INPOINTS_API_BASE}/points/customers/${encodeURIComponent(inPointsCustomerId)}/history`,
-            { headers: { Accept: 'application/json' } },
+     
+const fetchInPointsStats = async () => {
+  setIsInPointsLoading(true);
+  setInPointsError(false);
+
+  try {
+    const inPointsCustomerId = await resolveInPointsCustomerId(
+      user?.phone ?? ''
+    );
+
+    const historyResponse = await fetch(
+      `${INPOINTS_API_BASE}/points/customers/${encodeURIComponent(
+        String(inPointsCustomerId)
+      )}/history`,
+      {
+        headers: {
+          Accept: 'application/json',
+        },
+      }
+    );
+
+    if (!historyResponse.ok) {
+      throw new Error(
+        `INPoints history fetch failed: ${historyResponse.status}`
+      );
+    }
+
+    const historyData: unknown = await historyResponse.json();
+
+    const data = historyData as {
+      transactions?: unknown;
+      data?: {
+        transactions?: unknown;
+      } | unknown[];
+    };
+
+    const pointTransactions: unknown[] | null = Array.isArray(historyData)
+      ? historyData
+      : Array.isArray(data?.transactions)
+        ? data.transactions
+        : Array.isArray(data?.data)
+          ? data.data
+          : data?.data &&
+              typeof data.data === 'object' &&
+              'transactions' in data.data &&
+              Array.isArray(data.data.transactions)
+            ? data.data.transactions
+            : null;
+
+    if (!pointTransactions) {
+      throw new Error(
+        'The INPoints API returned invalid points history.'
+      );
+    }
+
+    const pointValues: number[] = pointTransactions.map(
+      (item: unknown) => {
+        if (!item || typeof item !== 'object') {
+          throw new Error(
+            'The INPoints API returned an invalid transaction.'
           );
-          if (!historyResponse.ok) {
-            throw new Error(`INPoints history fetch failed: ${historyResponse.status}`);
-          }
-
-          const historyData = await historyResponse.json();
-
-          const pointTransactions = Array.isArray(historyData)
-            ? historyData
-            : Array.isArray(historyData?.transactions)
-              ? historyData.transactions
-              : Array.isArray(historyData?.data)
-                ? historyData.data
-                : Array.isArray(historyData?.data?.transactions)
-                  ? historyData.data.transactions
-                  : null;
-          if (!pointTransactions) {
-            throw new Error('The INPoints API returned invalid points history.');
-          }
-
-          const pointValues = pointTransactions.map((transaction: { id: number; points: number | string }) => {
-            const points = Number(transaction.points);
-            if (!Number.isSafeInteger(transaction.id) || !Number.isFinite(points)) {
-              throw new Error('The INPoints API returned an invalid transaction.');
-            }
-            return points;
-          });
-          const totalEarned = pointValues.reduce((total, points) => total + Math.max(0, points), 0);
-          const transactionCount = pointValues.length;
-
-          if (isActive) {
-            setInPointsStats({
-              totalEarned,
-              transactionCount,
-              averagePoints: transactionCount ? Math.round(totalEarned / transactionCount) : 0,
-            });
-          }
-        } catch (error) {
-          console.error('[MemberDashboard] Failed to load INPoints history:', error);
-          if (isActive) {
-            setInPointsStats(null);
-            setInPointsError(true);
-          }
-        } finally {
-          if (isActive) setIsInPointsLoading(false);
         }
-      };
+
+        const transaction = item as {
+          id?: number | string;
+          points?: number | string;
+        };
+
+        const points = Number(transaction.points);
+        const transactionId = Number(transaction.id);
+
+        if (
+          transaction.id == null ||
+          !Number.isSafeInteger(transactionId) ||
+          transaction.points == null ||
+          transaction.points === '' ||
+          !Number.isFinite(points)
+        ) {
+          throw new Error(
+            'The INPoints API returned an invalid transaction.'
+          );
+        }
+
+        return points;
+      }
+    );
+
+    const totalEarned = pointValues.reduce<number>(
+      (total, points) => total + Math.max(0, points),
+      0
+    );
+
+    const transactionCount = pointValues.length;
+
+    if (isActive) {
+      setInPointsStats({
+        totalEarned,
+        transactionCount,
+        averagePoints: transactionCount
+          ? Math.round(totalEarned / transactionCount)
+          : 0,
+      });
+    }
+  } catch (error: unknown) {
+    console.error(
+      '[MemberDashboard] Failed to load INPoints history:',
+      error
+    );
+
+    if (isActive) {
+      setInPointsStats(null);
+      setInPointsError(true);
+    }
+  } finally {
+    if (isActive) {
+      setIsInPointsLoading(false);
+    }
+  }
+};
+
 
       void fetchInPointsStats();
       return () => {
@@ -1209,7 +1274,7 @@ export default function MemberDashboard() {
 
           
 
-<<<<<<< HEAD
+             {/* REWARDS SECTION */}
           <View style={styles.rewardsSection}>
             <TouchableOpacity
               style={styles.rewardsHeaderLink}
@@ -1266,33 +1331,8 @@ export default function MemberDashboard() {
             </TouchableOpacity>
           </View>
 
-          {/* Recent Transactions */}
-          <View style={styles.transactionsSection}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Recent Transactions</Text>
-              <TouchableOpacity onPress={() => setShowAllTransactions(true)}>
-                <Text style={styles.viewAllText}>View All</Text>
-              </TouchableOpacity>
-            </View>
-            {isTransactionsLoading ? (
-              <View style={styles.emptyState}>
-                <ActivityIndicator size="small" color="#FF8C00" />
-              </View>
-            ) : transactions.length > 0 ? (
-              transactions.slice(0, 3).map((transaction) => (
-                <TransactionRow
-                  key={transaction.transactionId}
-                  transaction={transaction}
-                />
-              ))
-            ) : (
-              <View style={styles.emptyState}>
-                <Ionicons name="receipt-outline" size={48} color="#CCCCCC" />
-                <Text style={styles.emptyText}>No transactions yet</Text>
-              </View>
-            )}
-          </View>
-=======
+         
+
           {/* DEALS NEAR YOU — shops running a special offer, visible before picking a category */}
           <DealsStrip
             shops={nearbyShops}
@@ -1305,7 +1345,7 @@ export default function MemberDashboard() {
               });
             }}
           />
->>>>>>> origin/main
+
 
           {/* CATEGORIES */}
           <View style={styles.section}>
