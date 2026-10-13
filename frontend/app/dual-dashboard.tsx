@@ -46,6 +46,11 @@ import {
 } from '../utils/location';
 import { formatDistance } from '../utils/formatDistance';
 import CommonBottomTabs from "../components/CommonBottomTabs";
+import {
+  
+  INPOINTS_API_BASE,
+  resolveInPointsCustomerId,
+} from '../utils/api';
 
 const { width } = Dimensions.get('window');
 
@@ -248,6 +253,10 @@ const getCategoryImage = (category: any, index: number) => {
   return CATEGORY_IMAGE_LIST[index] ?? FALLBACK_CATEGORY_IMAGE;
 };
 
+
+
+
+
 /* ===============================
    MAIN COMPONENT
 ================================ */
@@ -321,6 +330,15 @@ export default function DualDashboard() {
   const [showAllTransactions, setShowAllTransactions] = useState(false);
   const CARD_WIDTH = 172;
 
+  const [inPointsStats, setInPointsStats] = useState<{
+  totalEarned: number;
+  transactionCount: number;
+  averagePoints: number;
+} | null>(null);
+
+const [isInPointsLoading, setIsInPointsLoading] = useState(true);
+const [inPointsError, setInPointsError] = useState(false);
+
   const startNearbyAutoScroll = () => {
     if (nearbyAutoScrollRef.current) clearInterval(nearbyAutoScrollRef.current);
     nearbyAutoScrollRef.current = setInterval(() => {
@@ -356,6 +374,158 @@ export default function DualDashboard() {
   for (let i = 0; i < categories.length; i += 2) {
     categoryColumns.push(categories.slice(i, i + 2));
   }
+
+  
+useFocusEffect(
+  useCallback(() => {
+    let isActive = true;
+
+    const fetchInPointsStats = async () => {
+      setIsInPointsLoading(true);
+      setInPointsError(false);
+
+      try {
+        const phone = String(user?.phone ?? '').trim();
+
+        if (!phone) {
+          throw new Error('Logged-in user phone number is missing.');
+        }
+
+        const inPointsCustomerId =
+          await resolveInPointsCustomerId(phone);
+
+        if (
+          inPointsCustomerId == null ||
+          String(inPointsCustomerId).trim() === ''
+        ) {
+          throw new Error('INPoints customer ID not found.');
+        }
+
+        const url =
+          `${INPOINTS_API_BASE}/points/customers/` +
+          `${encodeURIComponent(String(inPointsCustomerId))}/history`;
+
+        console.log('[DualDashboard INPoints] Customer ID:', inPointsCustomerId);
+        console.log('[DualDashboard INPoints] URL:', url);
+
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            Accept: 'application/json',
+          },
+        });
+
+        const responseText = await response.text();
+
+        console.log('[DualDashboard INPoints] Status:', response.status);
+        console.log('[DualDashboard INPoints] Response:', responseText);
+
+        if (!response.ok) {
+          throw new Error(
+            `INPoints API failed: ${response.status} ${responseText}`
+          );
+        }
+
+        const result: unknown = responseText
+          ? JSON.parse(responseText)
+          : null;
+
+        const payload = result as {
+          transactions?: unknown;
+          data?: unknown;
+          totalPoints?: number | string;
+        } | null;
+
+        let transactions: unknown[] | null = null;
+
+        if (Array.isArray(result)) {
+          transactions = result;
+        } else if (Array.isArray(payload?.transactions)) {
+          transactions = payload.transactions;
+        } else if (Array.isArray(payload?.data)) {
+          transactions = payload.data;
+        } else if (
+          payload?.data &&
+          typeof payload.data === 'object' &&
+          'transactions' in payload.data &&
+          Array.isArray(payload.data.transactions)
+        ) {
+          transactions = payload.data.transactions;
+        }
+
+        if (!transactions) {
+          throw new Error(
+            'Transactions array is missing from the INPoints API response.'
+          );
+        }
+
+        const points = transactions.map((item: unknown) => {
+          if (!item || typeof item !== 'object') {
+            return 0;
+          }
+
+          const transaction = item as {
+            points?: number | string;
+            pointsEarned?: number | string;
+            earnedPoints?: number | string;
+          };
+
+          const rawPoints =
+            transaction.points ??
+            transaction.pointsEarned ??
+            transaction.earnedPoints;
+
+          const value = Number(rawPoints);
+
+          return rawPoints == null ||
+            rawPoints === '' ||
+            !Number.isFinite(value)
+            ? 0
+            : Math.max(0, value);
+        });
+
+        const totalEarned = points.reduce(
+          (sum, value) => sum + value,
+          0
+        );
+
+        const transactionCount = transactions.length;
+
+        if (isActive) {
+          setInPointsStats({
+            totalEarned,
+            transactionCount,
+            averagePoints: transactionCount
+              ? Math.round(totalEarned / transactionCount)
+              : 0,
+          });
+
+          setInPointsError(false);
+        }
+      } catch (error) {
+        console.error(
+          '[DualDashboard] Failed to fetch INPoints:',
+          error
+        );
+
+        if (isActive) {
+          setInPointsStats(null);
+          setInPointsError(true);
+        }
+      } finally {
+        if (isActive) {
+          setIsInPointsLoading(false);
+        }
+      }
+    };
+
+    void fetchInPointsStats();
+
+    return () => {
+      isActive = false;
+    };
+  }, [user?.phone])
+);
 
   /* ===============================
      LOAD USER DATA
@@ -1228,6 +1398,69 @@ export default function DualDashboard() {
         />
 
         
+{/* REWARDS SECTION — SAME AS MEMBER DASHBOARD */}
+{activeTab === 'customer' && (
+  <View style={styles.rewardsSection}>
+    <TouchableOpacity
+      style={styles.rewardsHeaderLink}
+      onPress={() => router.push('/rewards')}
+      activeOpacity={0.75}
+      accessibilityRole="button"
+      accessibilityLabel="Open My Rewards"
+    >
+      <Text style={styles.rewardsTitle}>My Rewards</Text>
+      <Ionicons name="chevron-forward" size={20} color="#888888" />
+    </TouchableOpacity>
+
+    <View style={styles.rewardsMetricsRow}>
+      {[
+        {
+          label: 'Total earned',
+          value: inPointsStats?.totalEarned,
+          icon: 'trending-up-outline' as const,
+        },
+        {
+          label: 'Transactions',
+          value: inPointsStats?.transactionCount,
+          icon: 'receipt-outline' as const,
+        },
+        {
+          label: 'Avg. points',
+          value: inPointsStats?.averagePoints,
+          icon: 'sparkles-outline' as const,
+        },
+      ].map((stat) => (
+        <View key={stat.label} style={styles.rewardsMetricCard}>
+          <Ionicons name={stat.icon} size={18} color="#FF8C00" />
+
+          <Text style={styles.rewardsMetricValue}>
+            {isInPointsLoading
+              ? '...'
+              : inPointsError
+                ? '--'
+                : (stat.value ?? 0).toLocaleString('en-IN')}
+          </Text>
+
+          <Text style={styles.rewardsMetricLabel} numberOfLines={1}>
+            {stat.label}
+          </Text>
+        </View>
+      ))}
+    </View>
+
+    <TouchableOpacity
+      style={styles.rewardsHistoryLink}
+      onPress={() => router.push('/rewards?historyOnly=true')}
+      activeOpacity={0.75}
+      accessibilityRole="button"
+      accessibilityLabel="Open INPoints history"
+    >
+      <Text style={styles.rewardsHistoryTitle}>INPoints History</Text>
+      <Ionicons name="chevron-forward" size={20} color="#888888" />
+    </TouchableOpacity>
+  </View>
+)}
+
 
         {/* Transactions Section (merchant tab only — customers see deals instead) */}
         {activeTab === 'merchant' && (
@@ -2599,4 +2832,80 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
+  // 🎁 Rewards Section
+rewardsSection: {
+  backgroundColor: '#FFFFFF',
+  marginHorizontal: 16,
+  marginTop: 20,
+  marginBottom: 20,
+  padding: 18,
+  borderRadius: 18,
+  shadowColor: '#000000',
+  shadowOpacity: 0.08,
+  shadowRadius: 10,
+  shadowOffset: { width: 0, height: 4 },
+  elevation: 4,
+},
+
+rewardsHeaderLink: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  marginBottom: 14,
+},
+
+rewardsTitle: {
+  fontSize: 18,
+  fontWeight: '700',
+  color: '#1A1A1A',
+},
+
+rewardsMetricsRow: {
+  flexDirection: 'row',
+  gap: 10,
+},
+
+rewardsMetricCard: {
+  flex: 1,
+  minWidth: 0,
+  alignItems: 'center',
+  justifyContent: 'center',
+  backgroundColor: '#FFF8F1',
+  paddingHorizontal: 6,
+  paddingVertical: 14,
+  borderRadius: 14,
+  borderWidth: 1,
+  borderColor: '#FFE8D2',
+},
+
+rewardsMetricValue: {
+  marginTop: 7,
+  fontSize: 18,
+  fontWeight: '700',
+  color: '#28221C',
+},
+
+rewardsMetricLabel: {
+  marginTop: 4,
+  fontSize: 10,
+  fontWeight: '600',
+  color: '#777777',
+  textAlign: 'center',
+},
+
+rewardsHistoryLink: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  marginTop: 16,
+  paddingTop: 14,
+  borderTopWidth: StyleSheet.hairlineWidth,
+  borderTopColor: '#E9E2DA',
+},
+
+rewardsHistoryTitle: {
+  fontSize: 15,
+  fontWeight: '700',
+  color: '#26211C',
+},
 });
