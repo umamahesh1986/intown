@@ -4,7 +4,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistance } from '../utils/formatDistance';
-import { extractImageUrls, INTOWN_API_BASE, getAllProducts } from '../utils/api';
+import { extractImageUrls, INTOWN_API_BASE, getAllProducts, getMerchantDetailsById } from '../utils/api';
 import { getNavShop } from '../utils/navCache';
 import { useLocationStore } from '../store/locationStore';
 import { useAuthStore } from '../store/authStore';
@@ -230,6 +230,30 @@ export default function MemberShopDetails() {
       fetchShopDetails();
     }
   }, [shopId, categoryId]);
+
+  // Nearby-search payloads omit gallery/offer fields — hydrate them from GET /IN/merchant/{id}
+  useEffect(() => {
+    if (!shop?.id) return;
+    let cancelled = false;
+    getMerchantDetailsById(shop.id).then((details) => {
+      if (cancelled || !details) return;
+      const images = extractImageUrls(details.s3ImageUrl);
+      if (images.length > 0) setShopImages(images);
+      setShop((prev: any) =>
+        prev
+          ? {
+              ...prev,
+              s3ImageUrl: details.s3ImageUrl ?? prev.s3ImageUrl,
+              specialOffers: details.specialOffers ?? prev.specialOffers,
+              specialOfferEndDate: details.specialOfferEndDate ?? prev.specialOfferEndDate,
+            }
+          : prev,
+      );
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [shop?.id]);
 
   // Load customer ID on mount
   useEffect(() => {

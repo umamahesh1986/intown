@@ -242,6 +242,7 @@
 - Junk files on GitHub main to delete: `page·git push -u origin rewards`, `tatus` (accidental shell redirects).
 - Deals-strip fix: `/IN/search/by-product-names` omits `specialOffers`/`specialOfferEndDate`/`s3ImageUrl`, so no nearby shop ever qualified. Added `getMerchantDetailsById` (GET `/IN/merchant/{id}`, 5-min in-memory cache) + `enrichShopsWithMerchantDetails` (batches of 6) in `utils/api.ts`; used by member/dual/user dashboards and member-shop-list to merge offer fields + gallery/first image. Verified against real devapi (Vinod Grocery 100103 appears in "Deals near you"). Long-term: backend should return those fields in the nearby search response.
 - Startup carousel "Explore" button (`app/index.tsx`, `start-explore-btn`) now routes to `/login` instead of guest mode → user-dashboard.
+- Shop details hero now hydrates gallery + offer fields from `GET /IN/merchant/{id}` after loading the shop from nav cache/param/search (nearby payloads lack `s3ImageUrl`). Merchants with uploaded images show their own photos; only merchants with an empty gallery fall back to the promo poster. (As of now only 100090, 100102, 100103, 100104, 100106 have images on devapi.)
 
 ## Backlog
 
