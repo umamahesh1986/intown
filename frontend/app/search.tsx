@@ -22,12 +22,15 @@ import {
 } from 'expo-speech-recognition';
 import { searchProducts } from '../utils/api';
 import { useLocationStore } from '../store/locationStore';
+import { addRecentSearch, clearRecentSearches, loadRecentSearches } from '../utils/recentSearches';
+import { RecentSearches } from '../components/RecentSearches';
 
 const VOICE_LANG_STORAGE_KEY = 'voice_search_lang';
 
 
 type SearchResult = {
-  id?: string;
+  id?: string | number;
+  name?: string;
   productName?: string;
 };
 
@@ -62,7 +65,30 @@ export default function Search() {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const inputRef = useRef<TextInput>(null);
+
+  useEffect(() => {
+    loadRecentSearches().then(setRecentSearches);
+  }, []);
+
+  // Remembers the term (last 5) and opens the shop list for it
+  const goToResults = (term: string) => {
+    const query = term.trim();
+    if (!query) return;
+    setShowSuggestions(false);
+    addRecentSearch(query).then(setRecentSearches);
+    const loc = useLocationStore.getState().location;
+    router.push({
+      pathname: '/member-shop-list',
+      params: {
+        query,
+        source,
+        lat: loc?.latitude ? String(loc.latitude) : '',
+        lng: loc?.longitude ? String(loc.longitude) : '',
+      },
+    });
+  };
 
   // ✅ DEBOUNCE
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -180,18 +206,7 @@ export default function Search() {
     if (event?.isFinal) {
       const finalText = transcript.trim();
       if (finalText.length > 0) {
-        setTimeout(() => {
-          const loc = useLocationStore.getState().location;
-          router.push({
-            pathname: '/member-shop-list',
-            params: {
-              query: finalText,
-              source,
-              lat: loc?.latitude ? String(loc.latitude) : '',
-              lng: loc?.longitude ? String(loc.longitude) : '',
-            },
-          });
-        }, 250);
+        setTimeout(() => goToResults(finalText), 250);
       }
     }
   });
@@ -316,21 +331,8 @@ export default function Search() {
                   fetchSearchResults(text);
                 }, 500);
               }}
-              onSubmitEditing={() => {
-                if (!searchText.trim()) return;
-
-                setShowSuggestions(false);
-
-                router.push({
-                  pathname: '/member-shop-list',
-                  params: {
-                    query: searchText,
-                    source,
-                    lat: useLocationStore.getState().location?.latitude ? String(useLocationStore.getState().location!.latitude) : '',
-                    lng: useLocationStore.getState().location?.longitude ? String(useLocationStore.getState().location!.longitude) : '',
-                  },
-                });
-              }}
+              onSubmitEditing={() => goToResults(searchText)}
+              testID="search-input"
             />
             {/* Language quick-switcher */}
             <TouchableOpacity
@@ -440,19 +442,9 @@ export default function Search() {
                       '';
 
                     setSearchText(value);
-                    setShowSuggestions(false);
-
-                    router.push({
-                      pathname: '/member-shop-list',
-                      params: {
-                        query: value,
-                        source,
-                        lat: useLocationStore.getState().location?.latitude ? String(useLocationStore.getState().location!.latitude) : '',
-                        lng: useLocationStore.getState().location?.longitude ? String(useLocationStore.getState().location!.longitude) : '',
-                      },
-                    });
+                    goToResults(value);
                   }}
-
+                  testID={`search-suggestion-${index}`}
                 >
                   <Ionicons name="search" size={16} color="#666" />
                   <Text style={styles.suggestionText}>
@@ -477,6 +469,21 @@ export default function Search() {
             </TouchableOpacity>
           ))}
         </View> */}
+
+        {/* RECENT SEARCHES — only while the box is empty */}
+        {!searchText.trim() && !isListening && (
+          <RecentSearches
+            items={recentSearches}
+            onSelect={(term) => {
+              setSearchText(term);
+              goToResults(term);
+            }}
+            onClear={() => {
+              clearRecentSearches();
+              setRecentSearches([]);
+            }}
+          />
+        )}
 
         {/* LOADING */}
         {loading && (

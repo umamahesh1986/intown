@@ -250,6 +250,7 @@
 - Gotcha: `.metro-cache` (persistent FileStore) caches inlined `EXPO_PUBLIC_*` values — after changing env, run `expo start -c` / `expo export -c` (and delete `.metro-cache`).
 - **Reverted per user (same session):** rule is now strictly: production build (`EXPO_PUBLIC_ENV=production`, non-`__DEV__`) → `https://api.intownlocal.com`; everything else (local `expo start`/`run:*`, EAS dev/preview, unset env) → `https://devapi.intownlocal.com`. Overrides only honoured for non-prod hosts. INPoints follows the same host. Verified by exporting bundles with production / unset env.
 - Search fix: `searchProducts` used `/IN/products/all-products-grouping` which 400s without `merchantId` → no suggestions on main. Now `GET /IN/products/` (flat list, as in `search` branch). Flow verified: suggestions → member-shop-list → `search/by-product-names?productNames=…&customerLatitude&customerLongitude` on the env-resolved host (devapi locally, api in prod).
+- Recent searches: `utils/recentSearches.ts` (AsyncStorage `recent_searches_v1`, max 5, case-insensitive dedupe, most-recent-first) + `components/RecentSearches.tsx` chips shown on `search.tsx` when the box is empty (hidden while typing/listening); submit, suggestion tap and voice-final all go through `goToResults()` which records the term. testIDs: `search-input`, `search-suggestion-{i}`, `recent-searches`, `recent-search-chip-{i}`, `recent-searches-clear`.
 
 ## Backlog
 
