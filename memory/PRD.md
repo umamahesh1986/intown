@@ -236,6 +236,10 @@
 - New shared `components/SavingsStatCards.tsx` (orange rounded cards, uppercase TODAY/MONTH/YEAR, ₹ + bold value, soft glow circles) replaces the stat rows on member-dashboard (INtown Savings), dual-dashboard (Savings/Business per tab) and merchant-dashboard (INtown Business). testIDs `{prefix}-cards`, `{prefix}-card-{today|month|year}`, `{prefix}-value-*` with prefixes `member-savings`, `dual-savings`, `dual-business`, `merchant-business`.
 - `NearbyMerchantCard` offer badge: no longer overflows the card — badge stretches to card width, icon top-aligned, text wraps to 2 lines (`flex:1`, ellipsis after).
 - `SavingsStatCards` count-up: each value animates 0 → target (1.1s, ease-out cubic, RN `Animated` listener) whenever the target changes (i.e. when totals load), formatted `en-IN` (e.g. 3,12,400). Applies to all three dashboards.
+### Session 26 (Jun 2026) - Synced with GitHub main
+- Added remote `github` → https://github.com/umamahesh1986/intown; fast-forwarded workspace to `main` @ `cf6e5e4 rewardspoints` (user's INpoints Rewards feature: `app/rewards.tsx`, `utils/rewardsApi.ts`, `utils/savingsTotals.ts`, "My Rewards" card on dashboards, `expo-linear-gradient` dep). Workspace branch name is still `IOS_Changes_Vicky` but its content == GitHub `main`.
+- `yarn install` done; postinstall prebuild output under `android/`/`ios/` reverted (never commit those). Web export rebuilt and verified (dual/member dashboards + /rewards render).
+- Junk files on GitHub main to delete: `page·git push -u origin rewards`, `tatus` (accidental shell redirects).
 
 ## Backlog
 
