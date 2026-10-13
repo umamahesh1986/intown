@@ -241,6 +241,7 @@
 - `yarn install` done; postinstall prebuild output under `android/`/`ios/` reverted (never commit those). Web export rebuilt and verified (dual/member dashboards + /rewards render).
 - Junk files on GitHub main to delete: `page·git push -u origin rewards`, `tatus` (accidental shell redirects).
 - Deals-strip fix: `/IN/search/by-product-names` omits `specialOffers`/`specialOfferEndDate`/`s3ImageUrl`, so no nearby shop ever qualified. Added `getMerchantDetailsById` (GET `/IN/merchant/{id}`, 5-min in-memory cache) + `enrichShopsWithMerchantDetails` (batches of 6) in `utils/api.ts`; used by member/dual/user dashboards and member-shop-list to merge offer fields + gallery/first image. Verified against real devapi (Vinod Grocery 100103 appears in "Deals near you"). Long-term: backend should return those fields in the nearby search response.
+- Startup carousel "Explore" button (`app/index.tsx`, `start-explore-btn`) now routes to `/login` instead of guest mode → user-dashboard.
 
 ## Backlog
 
