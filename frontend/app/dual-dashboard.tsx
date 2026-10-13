@@ -248,6 +248,10 @@ const getCategoryImage = (category: any, index: number) => {
   return CATEGORY_IMAGE_LIST[index] ?? FALLBACK_CATEGORY_IMAGE;
 };
 
+
+
+
+
 /* ===============================
    MAIN COMPONENT
 ================================ */
@@ -320,6 +324,15 @@ export default function DualDashboard() {
   const [showOffersModal, setShowOffersModal] = useState(false);
   const [showAllTransactions, setShowAllTransactions] = useState(false);
   const CARD_WIDTH = 172;
+
+  const [inPointsStats, setInPointsStats] = useState<{
+  totalEarned: number;
+  transactionCount: number;
+  averagePoints: number;
+} | null>(null);
+
+const [isInPointsLoading, setIsInPointsLoading] = useState(true);
+const [inPointsError, setInPointsError] = useState(false);
 
   const startNearbyAutoScroll = () => {
     if (nearbyAutoScrollRef.current) clearInterval(nearbyAutoScrollRef.current);
@@ -1228,6 +1241,69 @@ export default function DualDashboard() {
         />
 
         
+{/* REWARDS SECTION — SAME AS MEMBER DASHBOARD */}
+{activeTab === 'customer' && (
+  <View style={styles.rewardsSection}>
+    <TouchableOpacity
+      style={styles.rewardsHeaderLink}
+      onPress={() => router.push('/rewards')}
+      activeOpacity={0.75}
+      accessibilityRole="button"
+      accessibilityLabel="Open My Rewards"
+    >
+      <Text style={styles.rewardsTitle}>My Rewards</Text>
+      <Ionicons name="chevron-forward" size={20} color="#888888" />
+    </TouchableOpacity>
+
+    <View style={styles.rewardsMetricsRow}>
+      {[
+        {
+          label: 'Total earned',
+          value: inPointsStats?.totalEarned,
+          icon: 'trending-up-outline' as const,
+        },
+        {
+          label: 'Transactions',
+          value: inPointsStats?.transactionCount,
+          icon: 'receipt-outline' as const,
+        },
+        {
+          label: 'Avg. points',
+          value: inPointsStats?.averagePoints,
+          icon: 'sparkles-outline' as const,
+        },
+      ].map((stat) => (
+        <View key={stat.label} style={styles.rewardsMetricCard}>
+          <Ionicons name={stat.icon} size={18} color="#FF8C00" />
+
+          <Text style={styles.rewardsMetricValue}>
+            {isInPointsLoading
+              ? '...'
+              : inPointsError
+                ? '--'
+                : (stat.value ?? 0).toLocaleString('en-IN')}
+          </Text>
+
+          <Text style={styles.rewardsMetricLabel} numberOfLines={1}>
+            {stat.label}
+          </Text>
+        </View>
+      ))}
+    </View>
+
+    <TouchableOpacity
+      style={styles.rewardsHistoryLink}
+      onPress={() => router.push('/rewards?historyOnly=true')}
+      activeOpacity={0.75}
+      accessibilityRole="button"
+      accessibilityLabel="Open INPoints history"
+    >
+      <Text style={styles.rewardsHistoryTitle}>INPoints History</Text>
+      <Ionicons name="chevron-forward" size={20} color="#888888" />
+    </TouchableOpacity>
+  </View>
+)}
+
 
         {/* Transactions Section (merchant tab only — customers see deals instead) */}
         {activeTab === 'merchant' && (
@@ -2599,4 +2675,80 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
+  // 🎁 Rewards Section
+rewardsSection: {
+  backgroundColor: '#FFFFFF',
+  marginHorizontal: 16,
+  marginTop: 20,
+  marginBottom: 20,
+  padding: 18,
+  borderRadius: 18,
+  shadowColor: '#000000',
+  shadowOpacity: 0.08,
+  shadowRadius: 10,
+  shadowOffset: { width: 0, height: 4 },
+  elevation: 4,
+},
+
+rewardsHeaderLink: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  marginBottom: 14,
+},
+
+rewardsTitle: {
+  fontSize: 18,
+  fontWeight: '700',
+  color: '#1A1A1A',
+},
+
+rewardsMetricsRow: {
+  flexDirection: 'row',
+  gap: 10,
+},
+
+rewardsMetricCard: {
+  flex: 1,
+  minWidth: 0,
+  alignItems: 'center',
+  justifyContent: 'center',
+  backgroundColor: '#FFF8F1',
+  paddingHorizontal: 6,
+  paddingVertical: 14,
+  borderRadius: 14,
+  borderWidth: 1,
+  borderColor: '#FFE8D2',
+},
+
+rewardsMetricValue: {
+  marginTop: 7,
+  fontSize: 18,
+  fontWeight: '700',
+  color: '#28221C',
+},
+
+rewardsMetricLabel: {
+  marginTop: 4,
+  fontSize: 10,
+  fontWeight: '600',
+  color: '#777777',
+  textAlign: 'center',
+},
+
+rewardsHistoryLink: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  marginTop: 16,
+  paddingTop: 14,
+  borderTopWidth: StyleSheet.hairlineWidth,
+  borderTopColor: '#E9E2DA',
+},
+
+rewardsHistoryTitle: {
+  fontSize: 15,
+  fontWeight: '700',
+  color: '#26211C',
+},
 });
