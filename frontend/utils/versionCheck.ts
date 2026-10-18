@@ -1,5 +1,5 @@
 import { Platform } from 'react-native';
-import * as Application from 'expo-application';
+import Constants from 'expo-constants';
 import axios from 'axios';
 
 /**
@@ -40,7 +40,11 @@ const compareVersion = (a: string, b: string): number => {
 };
 
 const getInstalledVersion = (): string | null => {
-  return Application.nativeApplicationVersion ?? null;
+  // Prefer the native binary version (already provided by expo-constants).
+  // Do not import expo-application here — a mismatched SDK version of that
+  // package throws "Cannot find native module 'ExpoApplication'" at launch.
+  const native = (Constants as { nativeAppVersion?: string | null }).nativeAppVersion;
+  return native || Constants.expoConfig?.version || null;
 };
 
 /** Scrapes the Play Store HTML to find the latest published version */
