@@ -17,7 +17,7 @@ const MERCHANT_SNAP_KEY = 'notif_snap_merchant_v1';
 const CUSTOMER_SNAP_KEY = 'notif_snap_customer_v1';
 const SKIP_PATHS = ['/', '/index', '/login', '/otp', '/promo-carousel', '/location'];
 
-type MerchantSnap = { merchantId: string; placedIds: string[]; pickedUpIds?: string[] };
+type MerchantSnap = { merchantId: string; placedIds: string[]; pickedUpIds?: string[]; cancelledIds?: string[] };
 type CustomerSnap = { customerId: string; statusMap: Record<string, string> };
 type NewNotification = Omit<NotificationItem, 'id' | 'timestamp' | 'read'>;
 
@@ -75,6 +75,10 @@ export const pollMerchantOrders = async (merchantId: string): Promise<PickupOrde
   const placedIds = placed.map((o) => o.pickup_id);
   const pickedUp = list.filter((o) => !!o.customerReceivedAt);
   const pickedUpIds = pickedUp.map((o) => o.pickup_id);
+  const cancelled = list.filter(
+    (o) => String(o.status).toUpperCase() === 'ENDED' && String(o.endReason || '').toUpperCase() === 'CANCELLED_BY_CUSTOMER',
+  );
+  const cancelledIds = cancelled.map((o) => o.pickup_id);
   const snap = await readJson<MerchantSnap>(MERCHANT_SNAP_KEY);
 
   if (snap && snap.merchantId === merchantId) {
@@ -108,8 +112,23 @@ export const pollMerchantOrders = async (merchantId: string): Promise<PickupOrde
           }),
         );
     }
+    if (snap.cancelledIds) {
+      const knownCancelled = new Set(snap.cancelledIds);
+      cancelled
+        .filter((o) => !knownCancelled.has(o.pickup_id))
+        .forEach((o) =>
+          notify({
+            kind: 'ORDER_CANCELLED_MERCHANT',
+            title: 'Order cancelled',
+            body: `${customerLabel(o)} cancelled order ${o.pickup_id}.`,
+            targetRoute: '/merchant-orders',
+            targetTab: 'ENDED',
+            pickup_id: o.pickup_id,
+          }),
+        );
+    }
   }
-  await writeJson(MERCHANT_SNAP_KEY, { merchantId, placedIds, pickedUpIds } as MerchantSnap);
+  await writeJson(MERCHANT_SNAP_KEY, { merchantId, placedIds, pickedUpIds, cancelledIds } as MerchantSnap);
   return list;
 };
 

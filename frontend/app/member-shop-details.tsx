@@ -10,6 +10,7 @@ import { useLocationStore } from '../store/locationStore';
 import { useAuthStore } from '../store/authStore';
 import { LoginRequiredModal } from '../components/LoginRequiredModal';
 import { useNotificationStore } from '../store/notificationStore';
+import { pushOrderPlaced } from '../utils/orderPush';
 import { getActiveSpecialOffers, formatOfferValidTill, getSpecialOfferImageUrl } from '../utils/specialOffer';
 import { trackOfferEvent } from '../utils/offerAnalytics';
 import PaymentModal from '../components/PaymentModal';
@@ -482,6 +483,7 @@ export default function MemberShopDetails() {
         // Push a notification the customer can tap later to open /my-orders on PLACED tab
         const pickupId = String(data?.pickup_id ?? data?.pickupId ?? data?.id ?? '');
         if (pickupId) {
+          pushOrderPlaced(shop.id, pickupId, items.length);
           useNotificationStore.getState().add({
             kind: 'ORDER_PLACED_CUSTOMER',
             title: 'Order placed',

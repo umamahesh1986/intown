@@ -9,6 +9,7 @@ export type NotificationKind =
   | 'ORDER_RECEIVED_MERCHANT'
   | 'ORDER_STATUS_CUSTOMER'
   | 'ORDER_PICKED_UP_MERCHANT'
+  | 'ORDER_CANCELLED_MERCHANT'
   | 'OFFER_EXPIRING_MERCHANT';
 
 export interface NotificationItem {

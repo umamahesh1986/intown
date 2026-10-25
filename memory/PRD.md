@@ -262,6 +262,12 @@
 - `components/MerchantPlanCard.tsx` + `components/MerchantPlansView.tsx`: Privilege page (`/plans`) renders "Merchant Packs" for merchant/dual users (`user_type` contains merchant/dual or `merchant_id` set): current pack ACTIVE, "Upgrade to LAUNCH" CTA, lower pack shows "Included in your pack"; testIDs `merchant-plans-view`, `merchant-current-plan`, `merchant-plan-cta-{START|LAUNCH}`, `merchant-plan-active-*`, `merchant-plan-upgrade-banner|top-banner`.
 - My Account → Business Details: "INtown Pack" row (`account-value-merchant-plan`) + "Upgrade to LAUNCH" button (`account-upgrade-plan-btn`) → `/plans`.
 - Backend spec to persist packs server-side (recommended): add `merchantPlan` enum (START, LAUNCH) + `merchantPlanUpdatedAt` to MerchantRequestDto/MerchantResponseDto; app should PATCH it after verify and read it on load.
+### Session 30 - Real push for Pick @ store (both sides)
+- Backend relay in `backend/server.py` (Mongo `push_tokens`, `push_events`): `PUT /api/push/tokens` {role, userId, expoPushToken, platform}, `DELETE /api/push/tokens`, `POST /api/push/notify` {toRole,toUserId,title,body,data,fromRole,fromUserId} → Expo Push API (`exp.host/--/api/v2/push/send`, channel `orders`, high priority); prunes `DeviceNotRegistered` tokens. INtown API has no push endpoints (checked Swagger).
+- `utils/pushNotifications.ts` registers the Expo token with the relay per role (merchant/customer) and best-effort to the INtown contract; `PUSH_REGISTERED_KEY` now reflects relay success (poller slows to 60s).
+- `utils/orderPush.ts`: `pushOrderPlaced` (customer→merchant on place), `pushMerchantOrderEvent` ACCEPTED / PICKUP_READY / REJECTED / COMPLETED (merchant→customer), `pushCustomerPickedUp` + `pushCustomerCancelled` (customer→merchant). Wired in member-shop-details (place), merchant-orders (accept/ready/deliver/reject), my-orders (picked up).
+- Poller also detects CANCELLED_BY_CUSTOMER for merchants (`ORDER_CANCELLED_MERCHANT` kind added). Push taps still route via `notificationFromPushData` → /merchant-orders or /my-orders tab.
+- Verified relay via curl (token upsert/validation, notify → Expo 200, stale prune, role validation). Real device delivery needs the dev-client/EAS build (expo-notifications), not web.
 
 ## Backlog
 

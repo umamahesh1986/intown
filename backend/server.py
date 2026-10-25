@@ -8,6 +8,7 @@ from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional
 import uuid
+import httpx
 from datetime import datetime, timezone, timedelta
 
 
@@ -135,6 +136,110 @@ async def get_offer_analytics(merchant_id: str, days: int = Query(7, ge=1, le=90
 
 
 # Add your routes to the router instead of directly to app
+
+# ---------- Push notification relay (Expo Push API) ----------
+# Pick @ store events are pushed device→relay→Expo→device; tokens are keyed by role + user id.
+EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send"
+PUSH_ROLES = {"merchant", "customer"}
+push_logger = logging.getLogger("push")
+
+
+class PushTokenUpsert(BaseModel):
+    role: str
+    userId: str
+    expoPushToken: str
+    platform: Optional[str] = None
+
+
+class PushNotifyRequest(BaseModel):
+    toRole: str
+    toUserId: str
+    title: str
+    body: str
+    data: Optional[dict] = None
+    fromRole: Optional[str] = None
+    fromUserId: Optional[str] = None
+
+
+def _valid_role(role: str) -> str:
+    r = (role or "").strip().lower()
+    if r not in PUSH_ROLES:
+        raise HTTPException(status_code=400, detail="role must be merchant or customer")
+    return r
+
+
+@api_router.put("/push/tokens", status_code=200)
+async def upsert_push_token(payload: PushTokenUpsert):
+    role = _valid_role(payload.role)
+    token = payload.expoPushToken.strip()
+    if not token.startswith("ExponentPushToken[") and not token.startswith("ExpoPushToken["):
+        raise HTTPException(status_code=400, detail="invalid Expo push token")
+    now = datetime.now(timezone.utc).isoformat()
+    await db.push_tokens.update_one(
+        {"role": role, "userId": str(payload.userId), "token": token},
+        {"$set": {"platform": payload.platform, "updatedAt": now}, "$setOnInsert": {"createdAt": now}},
+        upsert=True,
+    )
+    return {"ok": True}
+
+
+@api_router.delete("/push/tokens", status_code=200)
+async def delete_push_token(role: str = Query(...), userId: str = Query(...), token: str = Query(...)):
+    await db.push_tokens.delete_one({"role": _valid_role(role), "userId": userId, "token": token})
+    return {"ok": True}
+
+
+@api_router.post("/push/notify", status_code=200)
+async def push_notify(payload: PushNotifyRequest):
+    role = _valid_role(payload.toRole)
+    docs = await db.push_tokens.find({"role": role, "userId": str(payload.toUserId)}).to_list(50)
+    tokens = [d["token"] for d in docs]
+    event = {
+        "toRole": role,
+        "toUserId": str(payload.toUserId),
+        "fromRole": payload.fromRole,
+        "fromUserId": payload.fromUserId,
+        "title": payload.title,
+        "body": payload.body,
+        "data": payload.data or {},
+        "tokens": len(tokens),
+        "createdAt": datetime.now(timezone.utc).isoformat(),
+    }
+    if not tokens:
+        await db.push_events.insert_one({**event, "sent": 0, "reason": "no_tokens"})
+        return {"sent": 0, "tokens": 0}
+
+    messages = [
+        {
+            "to": t,
+            "title": payload.title,
+            "body": payload.body,
+            "data": payload.data or {},
+            "sound": "default",
+            "priority": "high",
+            "channelId": "orders",
+        }
+        for t in tokens
+    ]
+    sent = 0
+    stale: List[str] = []
+    try:
+        async with httpx.AsyncClient(timeout=15) as http:
+            res = await http.post(EXPO_PUSH_URL, json=messages, headers={"Accept": "application/json", "Content-Type": "application/json"})
+            tickets = (res.json() or {}).get("data", []) if res.status_code == 200 else []
+            for t, ticket in zip(tokens, tickets):
+                if ticket.get("status") == "ok":
+                    sent += 1
+                elif (ticket.get("details") or {}).get("error") == "DeviceNotRegistered":
+                    stale.append(t)
+    except Exception as e:  # network / Expo outage — the in-app poller still delivers the update
+        push_logger.warning("expo push failed: %s", e)
+    if stale:
+        await db.push_tokens.delete_many({"token": {"$in": stale}})
+    await db.push_events.insert_one({**event, "sent": sent})
+    return {"sent": sent, "tokens": len(tokens)}
+
+
 @api_router.get("/")
 async def root():
     return {"message": "Hello World"}
