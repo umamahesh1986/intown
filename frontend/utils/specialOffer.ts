@@ -65,3 +65,16 @@ export const daysUntilOfferEnds = (shop?: SpecialOfferSource | null, now = Date.
   const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
   return Math.round((startOfDay(end) - startOfDay(new Date(now))) / 86400000);
 };
+
+// Customer-facing countdown: "Ends today" / "Ends tomorrow" / "5 days left" / "till 30 Oct 2026". urgent ≤ 2 days.
+export const formatOfferTimeLeft = (
+  shop?: SpecialOfferSource | null,
+  now = Date.now(),
+): { label: string; urgent: boolean } | null => {
+  const days = daysUntilOfferEnds(shop, now);
+  if (days == null || days < 0) return null;
+  if (days === 0) return { label: 'Ends today', urgent: true };
+  if (days === 1) return { label: 'Ends tomorrow', urgent: true };
+  if (days <= 7) return { label: `${days} days left`, urgent: days <= 2 };
+  return { label: `till ${formatOfferValidTill(shop)}`, urgent: false };
+};

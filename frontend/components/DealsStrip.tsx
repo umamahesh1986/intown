@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { getActiveSpecialOffers, formatOfferValidTill, getSpecialOfferImageUrl } from '../utils/specialOffer';
+import { getActiveSpecialOffers, formatOfferTimeLeft, getSpecialOfferImageUrl } from '../utils/specialOffer';
 import { getTrendingTaps } from '../utils/offerAnalytics';
 
 interface DealsStripProps {
@@ -54,7 +54,7 @@ export const DealsStrip = ({ shops, onPressShop }: DealsStripProps) => {
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
         {deals.map(({ shop, offers }, idx) => {
           const name = shop.businessName || shop.shopName || shop.name || 'Shop';
-          const validTill = formatOfferValidTill(shop);
+          const timeLeft = formatOfferTimeLeft(shop);
           const shopTaps = taps[String(shop.id)] || 0;
           const trending = idx === 0 && topTaps > 0;
           const dealImage = getSpecialOfferImageUrl(shop) || (typeof shop.image === 'string' ? shop.image : null);
@@ -94,12 +94,16 @@ export const DealsStrip = ({ shops, onPressShop }: DealsStripProps) => {
                       <Ionicons name="location-outline" size={11} color="#888" /> {formatKm(shop.distance)}
                     </Text>
                   )}
-                  {shopTaps > 0 ? (
-                    <Text style={styles.metaTaps} testID={`deal-taps-${shop.id}`}>{shopTaps} tapped this week</Text>
-                  ) : (
-                    !!validTill && <Text style={styles.metaValid}>till {validTill}</Text>
+                  {timeLeft && (
+                    <View style={[styles.expiryPill, timeLeft.urgent && styles.expiryPillUrgent]} testID={`deal-expiry-${shop.id}`}>
+                      <Ionicons name={timeLeft.urgent ? 'alarm-outline' : 'time-outline'} size={10} color={timeLeft.urgent ? '#C62828' : '#2E7D32'} />
+                      <Text style={[styles.expiryText, timeLeft.urgent && styles.expiryTextUrgent]}>{timeLeft.label}</Text>
+                    </View>
                   )}
                 </View>
+                {shopTaps > 0 && (
+                  <Text style={styles.metaTaps} testID={`deal-taps-${shop.id}`}>{shopTaps} tapped this week</Text>
+                )}
               </View>
             </TouchableOpacity>
           );
@@ -144,7 +148,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   trendingText: { color: '#FFF', fontSize: 10, fontWeight: '800' },
-  metaTaps: { fontSize: 11, color: '#FF6D00', fontWeight: '700' },
+  metaTaps: { fontSize: 11, color: '#FF6D00', fontWeight: '700', marginTop: 4 },
   imageWrap: { height: 96, backgroundColor: '#F1F8E9', position: 'relative' },
   image: { width: '100%', height: '100%' },
   imagePlaceholder: { flex: 1, alignItems: 'center', justifyContent: 'center' },
@@ -167,4 +171,16 @@ const styles = StyleSheet.create({
   metaRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 2 },
   meta: { fontSize: 11, color: '#888' },
   metaValid: { fontSize: 11, color: '#558B2F', fontWeight: '600' },
+  expiryPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: '#E8F5E9',
+    borderRadius: 999,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+  },
+  expiryPillUrgent: { backgroundColor: '#FDECEC' },
+  expiryText: { fontSize: 10, fontWeight: '800', color: '#2E7D32' },
+  expiryTextUrgent: { color: '#C62828' },
 });

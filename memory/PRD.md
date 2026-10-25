@@ -252,6 +252,10 @@
 - Search fix: `searchProducts` used `/IN/products/all-products-grouping` which 400s without `merchantId` → no suggestions on main. Now `GET /IN/products/` (flat list, as in `search` branch). Flow verified: suggestions → member-shop-list → `search/by-product-names?productNames=…&customerLatitude&customerLongitude` on the env-resolved host (devapi locally, api in prod).
 - Recent searches: `utils/recentSearches.ts` (AsyncStorage `recent_searches_v1`, max 5, case-insensitive dedupe, most-recent-first) + `components/RecentSearches.tsx` chips shown on `search.tsx` when the box is empty (hidden while typing/listening); submit, suggestion tap and voice-final all go through `goToResults()` which records the term. testIDs: `search-input`, `search-suggestion-{i}`, `recent-searches`, `recent-search-chip-{i}`, `recent-searches-clear`.
 - Deals-near-you "missing offer" (100106 Uma Grocery): offer end date was `2025-10-30` (past) → correctly hidden as expired. Verified backend PATCH round-trips dates correctly; set 100106's dev end date to 2026-10-30 to confirm it then appears. Added red "This offer expired on … " banner (`account-offer-expired-banner`) in My Account → Offer so merchants know why customers can't see it.
+### Session 28 - Shop name search + offer expiry badges
+- Merged GitHub main `43edb7c` (eas preview apk, index padding, share text).
+- Search: loads nearby shops (`getAllNearbyShops` with stored location) and shows up to 5 name matches under "SHOPS NEAR YOU" (`search-shops-header`, `search-shop-suggestion-{i}`) above "PRODUCTS"; tap → `setNavShop` + `/member-shop-details`, also recorded in recent searches.
+- `formatOfferTimeLeft()` in `utils/specialOffer.ts` → "Ends today" / "Ends tomorrow" / "N days left" (≤7) / "till <date>"; urgent (≤2 days) styled red. Shown as a pill on Deals-strip cards (`deal-expiry-{id}`) and under the special-offer box on nearby cards (`nearby-merchant-expiry-{id}`).
 
 ## Backlog
 

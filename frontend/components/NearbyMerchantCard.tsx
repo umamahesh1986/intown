@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, Animated, Easing, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { extractImageUrls } from '../utils/api';
-import { getActiveSpecialOffers, formatOfferValidTill, getSpecialOfferImageUrl } from '../utils/specialOffer';
+import { getActiveSpecialOffers, formatOfferValidTill, formatOfferTimeLeft, getSpecialOfferImageUrl } from '../utils/specialOffer';
 
 // Subtle looping glow + breathe used behind special-offer cards.
 const usePulse = (enabled: boolean) => {
@@ -45,6 +45,7 @@ export const NearbyMerchantCard = ({ shop, onPress, testID }: Props) => {
   const offerImage = special ? getSpecialOfferImageUrl(shop) : null;
   const heroUri = offerImage || imageUri;
   const validTill = special ? formatOfferValidTill(shop) : '';
+  const timeLeft = special ? formatOfferTimeLeft(shop) : null;
   const offerText = shop.offer || '';
   const pulse = usePulse(special);
   const glowOpacity = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.15, 0.75] });
@@ -102,7 +103,16 @@ export const NearbyMerchantCard = ({ shop, onPress, testID }: Props) => {
               <Ionicons name="sparkles" size={14} color="#FF8A00" />
               <Text style={styles.specialText} numberOfLines={2}>{offers[0]}</Text>
             </View>
-            {!!validTill && <Text style={styles.specialValid}>Valid till {validTill}</Text>}
+            {!!validTill && (
+              <View style={styles.specialMetaRow}>
+                <Text style={styles.specialValid}>Valid till {validTill}</Text>
+                {timeLeft && (
+                  <Text style={[styles.specialTimeLeft, timeLeft.urgent && styles.specialTimeLeftUrgent]} testID={`nearby-merchant-expiry-${shop.id}`}>
+                    {timeLeft.label}
+                  </Text>
+                )}
+              </View>
+            )}
           </View>
         ) : offerText ? (
           <View style={styles.offerBadge}>
@@ -215,5 +225,8 @@ const styles = StyleSheet.create({
   },
   specialRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 6 },
   specialText: { flex: 1, fontSize: 12, fontWeight: '700', color: GREEN, lineHeight: 17 },
-  specialValid: { fontSize: 10.5, color: '#558B2F', fontWeight: '600', marginLeft: 20 },
+  specialValid: { fontSize: 10.5, color: '#558B2F', fontWeight: '600' },
+  specialMetaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginLeft: 20, gap: 6 },
+  specialTimeLeft: { fontSize: 10.5, fontWeight: '800', color: '#2E7D32' },
+  specialTimeLeftUrgent: { color: '#C62828' },
 });
