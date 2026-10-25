@@ -256,6 +256,12 @@
 - Merged GitHub main `43edb7c` (eas preview apk, index padding, share text).
 - Search: loads nearby shops (`getAllNearbyShops` with stored location) and shows up to 5 name matches under "SHOPS NEAR YOU" (`search-shops-header`, `search-shop-suggestion-{i}`) above "PRODUCTS"; tap → `setNavShop` + `/member-shop-details`, also recorded in recent searches.
 - `formatOfferTimeLeft()` in `utils/specialOffer.ts` → "Ends today" / "Ends tomorrow" / "N days left" (≤7) / "till <date>"; urgent (≤2 days) styled red. Shown as a pill on Deals-strip cards (`deal-expiry-{id}`) and under the special-offer box on nearby cards (`nearby-merchant-expiry-{id}`).
+### Session 29 - Merchant packs on Privilege page (START ₹499 / LAUNCH ₹999)
+- `utils/merchantPlans.ts`: single source of truth for merchant packs (used by register-merchant too), GST helpers, on-device active pack storage (`merchant_plan_{id}` + generic `merchant_plan`) — **backend has no plan field** (MerchantRequestDto rejects unknown fields); registration now saves the chosen pack after success.
+- `utils/razorpayWeb.ts` (shared web checkout helpers), `utils/merchantPlanPayment.ts` (`payForMerchantPlan`: create-order by mobileNumber → Razorpay → verify; full LAUNCH price ₹999 + 18% GST = ₹1,178.82).
+- `components/MerchantPlanCard.tsx` + `components/MerchantPlansView.tsx`: Privilege page (`/plans`) renders "Merchant Packs" for merchant/dual users (`user_type` contains merchant/dual or `merchant_id` set): current pack ACTIVE, "Upgrade to LAUNCH" CTA, lower pack shows "Included in your pack"; testIDs `merchant-plans-view`, `merchant-current-plan`, `merchant-plan-cta-{START|LAUNCH}`, `merchant-plan-active-*`, `merchant-plan-upgrade-banner|top-banner`.
+- My Account → Business Details: "INtown Pack" row (`account-value-merchant-plan`) + "Upgrade to LAUNCH" button (`account-upgrade-plan-btn`) → `/plans`.
+- Backend spec to persist packs server-side (recommended): add `merchantPlan` enum (START, LAUNCH) + `merchantPlanUpdatedAt` to MerchantRequestDto/MerchantResponseDto; app should PATCH it after verify and read it on load.
 
 ## Backlog
 

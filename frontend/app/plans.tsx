@@ -7,6 +7,7 @@ import { useAuthStore } from '../store/authStore';
 import { LoginRequiredModal } from '../components/LoginRequiredModal';
 import { getPlans } from '../utils/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { MerchantPlansView } from '../components/MerchantPlansView';
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -52,6 +53,8 @@ export default function Plans() {
   const [selectedPlan, setSelectedPlan] = useState<number | null>(null);
   const [activePlanId, setActivePlanId] = useState<number | null>(null);
   const [isRegularUser, setIsRegularUser] = useState(false);
+  // Merchants & dual users see the merchant packs (START / LAUNCH) instead of customer plans
+  const [isMerchantView, setIsMerchantView] = useState<boolean | null>(null);
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
 
   const toggleFaq = (index: number) => {
@@ -67,6 +70,8 @@ export default function Plans() {
       if (lower === 'user' || lower === 'new_user' || lower === 'new' || lower === '') {
         setIsRegularUser(true);
       }
+      const merchantId = (await AsyncStorage.getItem('merchant_id')) || '';
+      setIsMerchantView(lower.includes('merchant') || lower.includes('dual') || !!merchantId.trim());
     };
     checkUserType();
   }, [user]);
@@ -253,7 +258,22 @@ export default function Plans() {
     });
   };
 
-  if (isLoading) {
+  if (isMerchantView) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton} testID="plans-back-btn">
+            <Ionicons name="arrow-back" size={24} color="#1A1A1A" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Merchant Packs</Text>
+          <View style={{ width: 40 }} />
+        </View>
+        <MerchantPlansView />
+      </SafeAreaView>
+    );
+  }
+
+  if (isLoading || isMerchantView === null) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>

@@ -14,6 +14,7 @@ import { OfferShareCard, buildOfferShareText, shareOfferOnWhatsApp, shareOfferTe
 import { OfferAnalyticsCard } from '../components/OfferAnalyticsCard';
 import { getSpecialOfferImageUrl, isSpecialOfferImageUrl } from '../utils/specialOffer';
 import { INTOWN_API_BASE, getCategories, getProductsByCategory, uploadSpecialOfferImage } from '../utils/api';
+import { getMerchantPlan, getMerchantPlanById, MerchantPlanId } from '../utils/merchantPlans';
 import axios from 'axios';
 
 const pad2 = (n: number) => String(n).padStart(2, '0');
@@ -53,6 +54,14 @@ export default function Account() {
   const [isSaving, setIsSaving] = useState(false);
   const [userType, setUserType] = useState<string | null>(null);
   const [merchantId, setMerchantId] = useState<string | null>(null);
+  const [merchantPlan, setMerchantPlanState] = useState<MerchantPlanId | null>(null);
+
+  // Current INtown pack (kept on-device until the merchant API exposes it); refresh on focus after upgrades
+  useFocusEffect(
+    useCallback(() => {
+      getMerchantPlan(merchantId).then(setMerchantPlanState);
+    }, [merchantId]),
+  );
   const [isMerchant, setIsMerchant] = useState(false);
   const [isDualUser, setIsDualUser] = useState(false);
 
@@ -948,6 +957,25 @@ export default function Account() {
             <View style={styles.card}>
               <Text style={styles.sectionTitle}>Business Details</Text>
 
+              {/* INtown pack (START / LAUNCH) with upgrade shortcut to the Privilege page */}
+              <View style={styles.fieldGroup}>
+                <Text style={styles.label}>INtown Pack</Text>
+                <View style={styles.planRow}>
+                  <View style={[styles.planPill, merchantPlan === 'LAUNCH' && styles.planPillTop]}>
+                    <Ionicons name={merchantPlan === 'LAUNCH' ? 'rocket' : 'storefront'} size={13} color={merchantPlan === 'LAUNCH' ? '#2E7D32' : '#FF8A00'} />
+                    <Text style={[styles.planPillText, merchantPlan === 'LAUNCH' && styles.planPillTextTop]} testID="account-value-merchant-plan">
+                      {merchantPlan ? `${merchantPlan} · ₹${getMerchantPlanById(merchantPlan)?.basePrice}/-` : 'Not recorded'}
+                    </Text>
+                  </View>
+                  {merchantPlan !== 'LAUNCH' && (
+                    <TouchableOpacity style={styles.planUpgradeBtn} onPress={() => router.push('/plans')} testID="account-upgrade-plan-btn">
+                      <Text style={styles.planUpgradeText}>{merchantPlan ? 'Upgrade to LAUNCH' : 'Choose pack'}</Text>
+                      <Ionicons name="chevron-forward" size={14} color="#FFF" />
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </View>
+
               {renderField('Contact Name', contactName, setContactName)}
 
               {/* Business Category */}
@@ -1624,6 +1652,29 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 16, fontWeight: '700', color: '#1A1A1A', marginBottom: 12, borderBottomWidth: 1, borderBottomColor: '#F0F0F0', paddingBottom: 8 },
   fieldGroup: { marginBottom: 12 },
   fieldHint: { fontSize: 11, color: '#999', marginTop: -6, marginBottom: 12 },
+  planRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' },
+  planPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#FFF3E0',
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  planPillTop: { backgroundColor: '#E8F5E9' },
+  planPillText: { fontSize: 13, fontWeight: '800', color: '#B36B00' },
+  planPillTextTop: { color: '#2E7D32' },
+  planUpgradeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#FF8A00',
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+  planUpgradeText: { color: '#FFF', fontSize: 12, fontWeight: '800' },
   expiredValue: { color: '#C62828' },
   expiredBanner: {
     flexDirection: 'row',
