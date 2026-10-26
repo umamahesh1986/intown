@@ -32,6 +32,7 @@ import { getAllNearbyShops, getCategories, getMerchantImageByShopId, extractImag
 import { setNavShop } from '../utils/navCache';
 import { DealsStrip } from '../components/DealsStrip';
 import { SavingsStatCards } from '../components/SavingsStatCards';
+import { MerchantPackBanner } from '../components/MerchantPackBanner';
 import { NearbyMerchantCard, sortSpecialOffersFirst, hasSpecialOffer } from '../components/NearbyMerchantCard';
 import { trackOfferEvent } from '../utils/offerAnalytics';
 import {
@@ -1396,6 +1397,9 @@ useFocusEffect(
                 ]
           }
         />
+
+        {/* MERCHANT PACK — current START/LAUNCH pack with Choose/Upgrade → Privilege page (Razorpay) */}
+        {activeTab === 'merchant' && <MerchantPackBanner />}
 
         
 {/* REWARDS SECTION — SAME AS MEMBER DASHBOARD */}

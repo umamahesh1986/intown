@@ -15,6 +15,7 @@ import { OfferAnalyticsCard } from '../components/OfferAnalyticsCard';
 import { getSpecialOfferImageUrl, isSpecialOfferImageUrl } from '../utils/specialOffer';
 import { INTOWN_API_BASE, getCategories, getProductsByCategory, uploadSpecialOfferImage } from '../utils/api';
 import { getMerchantPlan, getMerchantPlanById, MerchantPlanId } from '../utils/merchantPlans';
+import { MerchantPlansSection } from '../components/MerchantPlansSection';
 import axios from 'axios';
 
 const pad2 = (n: number) => String(n).padStart(2, '0');
@@ -1425,6 +1426,14 @@ export default function Account() {
         </View>
         )}
 
+        {/* MERCHANT PACKS — choose / upgrade with Razorpay (18% GST included) */}
+        {isMerchant && (
+          <View style={styles.packsSection} testID="account-merchant-packs">
+            <Text style={styles.sectionTitle}>INtown Packs</Text>
+            <MerchantPlansSection showHero={false} onPlanChanged={setMerchantPlanState} />
+          </View>
+        )}
+
         <View style={{ height: 40 }} />
       </ScrollView>
 
@@ -1652,6 +1661,7 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 16, fontWeight: '700', color: '#1A1A1A', marginBottom: 12, borderBottomWidth: 1, borderBottomColor: '#F0F0F0', paddingBottom: 8 },
   fieldGroup: { marginBottom: 12 },
   fieldHint: { fontSize: 11, color: '#999', marginTop: -6, marginBottom: 12 },
+  packsSection: { marginHorizontal: 16, marginTop: 8 },
   planRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' },
   planPill: {
     flexDirection: 'row',
