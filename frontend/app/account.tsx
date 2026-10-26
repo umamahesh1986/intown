@@ -64,6 +64,7 @@ export default function Account() {
     }, [merchantId]),
   );
   const [isMerchant, setIsMerchant] = useState(false);
+  const [hasMerchantIdentity, setHasMerchantIdentity] = useState(false);
   const [isDualUser, setIsDualUser] = useState(false);
 
   // Basic fields
@@ -238,6 +239,10 @@ export default function Account() {
       }
 
       setIsMerchant(merchantUser);
+      // Any merchant identity (even when viewing the customer profile as a dual user) → no customer INPoints rewards link
+      setHasMerchantIdentity(
+        merchantUser || !!storedMerchantId || hasMerchantData || lowerType.includes('merchant') || lowerType === 'dual' || lowerRole.includes('merchant'),
+      );
 
       // Profile image — pick context-specific cache so dual users don't see
       // the other side's image. Falls back to the generic `user_profile_image`.
@@ -1396,15 +1401,19 @@ export default function Account() {
             </View>
             <Ionicons name="chevron-forward" size={18} color="#CCC" />
           </TouchableOpacity>
-          <View style={styles.menuDivider} />
-          <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/rewards')}>
-            <View style={styles.menuIconWrap}><Ionicons name="gift-outline" size={20} color="#FF8A00" /></View>
-            <View style={styles.menuTextWrap}>
-              <Text style={styles.menuTitle}>My Rewards</Text>
-              <Text style={styles.menuSubtitle}>View your INPoints balance and activity</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color="#CCC" />
-          </TouchableOpacity>
+          {!hasMerchantIdentity && (
+            <>
+              <View style={styles.menuDivider} />
+              <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/rewards')} testID="account-my-rewards-link">
+                <View style={styles.menuIconWrap}><Ionicons name="gift-outline" size={20} color="#FF8A00" /></View>
+                <View style={styles.menuTextWrap}>
+                  <Text style={styles.menuTitle}>My Rewards</Text>
+                  <Text style={styles.menuSubtitle}>View your INPoints balance and activity</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color="#CCC" />
+              </TouchableOpacity>
+            </>
+          )}
           <View style={styles.menuDivider} />
           <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/plans')}>
             <View style={[styles.menuIconWrap, { backgroundColor: '#E8F5E9' }]}><Ionicons name="diamond-outline" size={20} color="#4CAF50" /></View>

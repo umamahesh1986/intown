@@ -269,6 +269,7 @@
 - Poller also detects CANCELLED_BY_CUSTOMER for merchants (`ORDER_CANCELLED_MERCHANT` kind added). Push taps still route via `notificationFromPushData` → /merchant-orders or /my-orders tab.
 - Verified relay via curl (token upsert/validation, notify → Expo 200, stale prune, role validation). Real device delivery needs the dev-client/EAS build (expo-notifications), not web.
 - Session 29b: extracted `components/MerchantPlansSection.tsx` (cards + Razorpay buy logic, robust mobile resolution from merchant API / `user_data.phone`); `MerchantPlansView` wraps it for `/plans`. My Account (merchant) now has an "INtown Packs" section at the bottom (`account-merchant-packs`) with Choose pack / Upgrade → Razorpay (₹588.82 / ₹1,178.82 incl. GST). Dual dashboard merchant tab shows `MerchantPackBanner` (`merchant-pack-banner`) → `/plans`.
+- My Account: "My Rewards" quick link hidden for anyone with a merchant identity (`hasMerchantIdentity`: merchant view, merchant_id, merchant search data, user_type merchant/dual), still shown for pure customers (`account-my-rewards-link`).
 
 ## Backlog
 
