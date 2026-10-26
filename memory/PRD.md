@@ -271,6 +271,7 @@
 - Session 29b: extracted `components/MerchantPlansSection.tsx` (cards + Razorpay buy logic, robust mobile resolution from merchant API / `user_data.phone`); `MerchantPlansView` wraps it for `/plans`. My Account (merchant) now has an "INtown Packs" section at the bottom (`account-merchant-packs`) with Choose pack / Upgrade → Razorpay (₹588.82 / ₹1,178.82 incl. GST). Dual dashboard merchant tab shows `MerchantPackBanner` (`merchant-pack-banner`) → `/plans`.
 - My Account: "My Rewards" quick link hidden for anyone with a merchant identity (`hasMerchantIdentity`: merchant view, merchant_id, merchant search data, user_type merchant/dual), still shown for pure customers (`account-my-rewards-link`).
 - Dashboards: "INtown Savings" cards + "My Rewards" block moved to the bottom (just above Footer) on member-dashboard and dual-dashboard customer tab; merchant tab keeps "INtown Business" on top.
+- New `components/RewardsCard.tsx` (tier pill, gradient AVAILABLE BALANCE + Redeem, Total earned w/ month delta, Avg. points, tier goal progress, INPoints History w/ "+N pts yesterday") replaces the old rewards block on member & dual (customer tab) dashboards. `utils/rewardsInsights.ts`: `computeRewardsInsights(transactions)` (this/last month, yesterday from createdAt/transactionDate/date), `REWARD_TIERS` Bronze 0 / Silver 25 / Gold 50 / Platinum 100 / Diamond 250, `tierFor()`. Balance = totalEarned unless a `balance` is supplied. testIDs `{member|dual}-rewards-card|balance|tier|goal|redeem|history|open`.
 
 ## Backlog
 

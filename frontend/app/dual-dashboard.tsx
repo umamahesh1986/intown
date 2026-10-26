@@ -32,6 +32,8 @@ import { getAllNearbyShops, getCategories, getMerchantImageByShopId, extractImag
 import { setNavShop } from '../utils/navCache';
 import { DealsStrip } from '../components/DealsStrip';
 import { SavingsStatCards } from '../components/SavingsStatCards';
+import { RewardsCard, RewardsCardStats } from '../components/RewardsCard';
+import { computeRewardsInsights } from '../utils/rewardsInsights';
 import { MerchantPackBanner } from '../components/MerchantPackBanner';
 import { NearbyMerchantCard, sortSpecialOffersFirst, hasSpecialOffer } from '../components/NearbyMerchantCard';
 import { trackOfferEvent } from '../utils/offerAnalytics';
@@ -331,11 +333,7 @@ export default function DualDashboard() {
   const [showAllTransactions, setShowAllTransactions] = useState(false);
   const CARD_WIDTH = 172;
 
-  const [inPointsStats, setInPointsStats] = useState<{
-  totalEarned: number;
-  transactionCount: number;
-  averagePoints: number;
-} | null>(null);
+  const [inPointsStats, setInPointsStats] = useState<RewardsCardStats | null>(null);
 
 const [isInPointsLoading, setIsInPointsLoading] = useState(true);
 const [inPointsError, setInPointsError] = useState(false);
@@ -494,6 +492,7 @@ useFocusEffect(
 
         if (isActive) {
           setInPointsStats({
+            ...computeRewardsInsights(transactions),
             totalEarned,
             transactionCount,
             averagePoints: transactionCount
@@ -1638,47 +1637,15 @@ useFocusEffect(
                 { label: 'Year', value: customerYearSaved ?? 0 },
               ]}
             />
-            <View style={styles.rewardsSection} testID="dual-rewards-section">
-              <TouchableOpacity
-                style={styles.rewardsHeaderLink}
-                onPress={() => router.push('/rewards')}
-                activeOpacity={0.75}
-                accessibilityRole="button"
-                accessibilityLabel="Open My Rewards"
-              >
-                <Text style={styles.rewardsTitle}>My Rewards</Text>
-                <Ionicons name="chevron-forward" size={20} color="#888888" />
-              </TouchableOpacity>
-
-              <View style={styles.rewardsMetricsRow}>
-                {[
-                  { label: 'Total earned', value: inPointsStats?.totalEarned, icon: 'trending-up-outline' as const },
-                  { label: 'Transactions', value: inPointsStats?.transactionCount, icon: 'receipt-outline' as const },
-                  { label: 'Avg. points', value: inPointsStats?.averagePoints, icon: 'sparkles-outline' as const },
-                ].map((stat) => (
-                  <View key={stat.label} style={styles.rewardsMetricCard}>
-                    <Ionicons name={stat.icon} size={18} color="#FF8C00" />
-                    <Text style={styles.rewardsMetricValue}>
-                      {isInPointsLoading ? '...' : inPointsError ? '--' : (stat.value ?? 0).toLocaleString('en-IN')}
-                    </Text>
-                    <Text style={styles.rewardsMetricLabel} numberOfLines={1}>
-                      {stat.label}
-                    </Text>
-                  </View>
-                ))}
-              </View>
-
-              <TouchableOpacity
-                style={styles.rewardsHistoryLink}
-                onPress={() => router.push('/rewards?historyOnly=true')}
-                activeOpacity={0.75}
-                accessibilityRole="button"
-                accessibilityLabel="Open INPoints history"
-              >
-                <Text style={styles.rewardsHistoryTitle}>INPoints History</Text>
-                <Ionicons name="chevron-forward" size={20} color="#888888" />
-              </TouchableOpacity>
-            </View>
+            <RewardsCard
+              stats={inPointsStats}
+              loading={isInPointsLoading}
+              error={inPointsError}
+              onOpen={() => router.push('/rewards')}
+              onHistory={() => router.push('/rewards?historyOnly=true')}
+              onRedeem={() => router.push('/rewards')}
+              testIDPrefix="dual-rewards"
+            />
           </>
         )}
 

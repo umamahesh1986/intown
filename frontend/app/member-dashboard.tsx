@@ -46,6 +46,8 @@ import {
 import { setNavShop } from '../utils/navCache';
 import { DealsStrip } from '../components/DealsStrip';
 import { SavingsStatCards } from '../components/SavingsStatCards';
+import { RewardsCard, RewardsCardStats } from '../components/RewardsCard';
+import { computeRewardsInsights } from '../utils/rewardsInsights';
 import { NearbyMerchantCard, sortSpecialOffersFirst, hasSpecialOffer } from '../components/NearbyMerchantCard';
 import { trackOfferEvent } from '../utils/offerAnalytics';
 
@@ -226,11 +228,7 @@ export default function MemberDashboard() {
     thisYear: null,
   });
   const [isTransactionsLoading, setIsTransactionsLoading] = useState(false);
-  const [inPointsStats, setInPointsStats] = useState<{
-    totalEarned: number;
-    transactionCount: number;
-    averagePoints: number;
-  } | null>(null);
+  const [inPointsStats, setInPointsStats] = useState<RewardsCardStats | null>(null);
   const [isInPointsLoading, setIsInPointsLoading] = useState(true);
   const [inPointsError, setInPointsError] = useState(false);
   const [customerId, setCustomerId] = useState<string | null>(null);
@@ -383,6 +381,7 @@ const fetchInPointsStats = async () => {
 
     if (isActive) {
       setInPointsStats({
+        ...computeRewardsInsights(pointTransactions),
         totalEarned,
         transactionCount,
         averagePoints: transactionCount
@@ -1419,61 +1418,15 @@ const fetchInPointsStats = async () => {
           
 
              {/* REWARDS SECTION */}
-          <View style={styles.rewardsSection}>
-            <TouchableOpacity
-              style={styles.rewardsHeaderLink}
-              onPress={() => router.push('/rewards')}
-              activeOpacity={0.75}
-              accessibilityRole="button"
-              accessibilityLabel="Open My Rewards"
-            >
-              <Text style={styles.rewardsTitle}>My Rewards</Text>
-              <Ionicons name="chevron-forward" size={20} color="#888888" />
-            </TouchableOpacity>
-            <View style={styles.rewardsMetricsRow}>
-              {[
-                {
-                  label: 'Total earned',
-                  value: inPointsStats?.totalEarned,
-                  icon: 'trending-up-outline' as const,
-                },
-                {
-                  label: 'Transactions',
-                  value: inPointsStats?.transactionCount,
-                  icon: 'receipt-outline' as const,
-                },
-                {
-                  label: 'Avg. points',
-                  value: inPointsStats?.averagePoints,
-                  icon: 'sparkles-outline' as const,
-                },
-              ].map((stat) => (
-                <View key={stat.label} style={styles.rewardsMetricCard}>
-                  <Ionicons name={stat.icon} size={18} color="#FF8C00" />
-                  <Text style={styles.rewardsMetricValue}>
-                    {isInPointsLoading
-                      ? '...'
-                      : inPointsError
-                        ? '--'
-                        : (stat.value ?? 0).toLocaleString('en-IN')}
-                  </Text>
-                  <Text style={styles.rewardsMetricLabel} numberOfLines={1}>{stat.label}</Text>
-                </View>
-              ))}
-            </View>
-            <TouchableOpacity
-              style={styles.rewardsHistoryLink}
-              onPress={() => router.push('/rewards?historyOnly=true')}
-              activeOpacity={0.75}
-              accessibilityRole="button"
-              accessibilityLabel="Open INPoints history"
-            >
-              <View>
-                <Text style={styles.rewardsHistoryTitle}>INPoints History</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color="#888888" />
-            </TouchableOpacity>
-          </View>
+          <RewardsCard
+            stats={inPointsStats}
+            loading={isInPointsLoading}
+            error={inPointsError}
+            onOpen={() => router.push('/rewards')}
+            onHistory={() => router.push('/rewards?historyOnly=true')}
+            onRedeem={() => router.push('/rewards')}
+            testIDPrefix="member-rewards"
+          />
 
           <Footer dashboardType="member" />
         </ScrollView>
