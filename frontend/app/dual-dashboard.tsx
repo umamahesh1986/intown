@@ -1376,95 +1376,25 @@ useFocusEffect(
             </View>
           </View>
         )}
-        {/* Quick Stats */}
-        <View style={{ paddingHorizontal: 16, marginTop: 10 }}>
-          <Text style={[styles.sectionTitle, { margin: 0, fontSize: 18 }]}>{activeTab === 'customer' ? "INtown Savings" : "INtown Business"}</Text>
-          
-        </View>
-        <SavingsStatCards
-          testIDPrefix={activeTab === 'customer' ? 'dual-savings' : 'dual-business'}
-          items={
-            activeTab === 'customer'
-              ? [
-                  { label: 'Today', value: customerTodaySaved ?? 0 },
-                  { label: 'Month', value: customerMonthSaved ?? 0 },
-                  { label: 'Year', value: customerYearSaved ?? 0 },
-                ]
-              : [
-                  { label: 'Today', value: merchantTodaySales ?? 0 },
-                  { label: 'Month', value: merchantMonthSales ?? 0 },
-                  { label: 'Year', value: merchantYearSales ?? 0 },
-                ]
-          }
-        />
+        {/* Quick Stats — merchant tab keeps INtown Business on top; customer savings + rewards moved above the footer */}
+        {activeTab === 'merchant' && (
+          <>
+            <View style={{ paddingHorizontal: 16, marginTop: 10 }}>
+              <Text style={[styles.sectionTitle, { margin: 0, fontSize: 18 }]}>INtown Business</Text>
+            </View>
+            <SavingsStatCards
+              testIDPrefix="dual-business"
+              items={[
+                { label: 'Today', value: merchantTodaySales ?? 0 },
+                { label: 'Month', value: merchantMonthSales ?? 0 },
+                { label: 'Year', value: merchantYearSales ?? 0 },
+              ]}
+            />
+          </>
+        )}
 
         {/* MERCHANT PACK — current START/LAUNCH pack with Choose/Upgrade → Privilege page (Razorpay) */}
         {activeTab === 'merchant' && <MerchantPackBanner />}
-
-        
-{/* REWARDS SECTION — SAME AS MEMBER DASHBOARD */}
-{activeTab === 'customer' && (
-  <View style={styles.rewardsSection}>
-    <TouchableOpacity
-      style={styles.rewardsHeaderLink}
-      onPress={() => router.push('/rewards')}
-      activeOpacity={0.75}
-      accessibilityRole="button"
-      accessibilityLabel="Open My Rewards"
-    >
-      <Text style={styles.rewardsTitle}>My Rewards</Text>
-      <Ionicons name="chevron-forward" size={20} color="#888888" />
-    </TouchableOpacity>
-
-    <View style={styles.rewardsMetricsRow}>
-      {[
-        {
-          label: 'Total earned',
-          value: inPointsStats?.totalEarned,
-          icon: 'trending-up-outline' as const,
-        },
-        {
-          label: 'Transactions',
-          value: inPointsStats?.transactionCount,
-          icon: 'receipt-outline' as const,
-        },
-        {
-          label: 'Avg. points',
-          value: inPointsStats?.averagePoints,
-          icon: 'sparkles-outline' as const,
-        },
-      ].map((stat) => (
-        <View key={stat.label} style={styles.rewardsMetricCard}>
-          <Ionicons name={stat.icon} size={18} color="#FF8C00" />
-
-          <Text style={styles.rewardsMetricValue}>
-            {isInPointsLoading
-              ? '...'
-              : inPointsError
-                ? '--'
-                : (stat.value ?? 0).toLocaleString('en-IN')}
-          </Text>
-
-          <Text style={styles.rewardsMetricLabel} numberOfLines={1}>
-            {stat.label}
-          </Text>
-        </View>
-      ))}
-    </View>
-
-    <TouchableOpacity
-      style={styles.rewardsHistoryLink}
-      onPress={() => router.push('/rewards?historyOnly=true')}
-      activeOpacity={0.75}
-      accessibilityRole="button"
-      accessibilityLabel="Open INPoints history"
-    >
-      <Text style={styles.rewardsHistoryTitle}>INPoints History</Text>
-      <Ionicons name="chevron-forward" size={20} color="#888888" />
-    </TouchableOpacity>
-  </View>
-)}
-
 
         {/* Transactions Section (merchant tab only — customers see deals instead) */}
         {activeTab === 'merchant' && (
@@ -1693,6 +1623,65 @@ useFocusEffect(
             </ScrollView>
           </View>
         )}
+
+        {/* INTOWN SAVINGS + MY REWARDS (customer tab) — placed just above the footer */}
+        {activeTab === 'customer' && (
+          <>
+            <View style={{ paddingHorizontal: 16, marginTop: 10 }}>
+              <Text style={[styles.sectionTitle, { margin: 0, fontSize: 18 }]}>INtown Savings</Text>
+            </View>
+            <SavingsStatCards
+              testIDPrefix="dual-savings"
+              items={[
+                { label: 'Today', value: customerTodaySaved ?? 0 },
+                { label: 'Month', value: customerMonthSaved ?? 0 },
+                { label: 'Year', value: customerYearSaved ?? 0 },
+              ]}
+            />
+            <View style={styles.rewardsSection} testID="dual-rewards-section">
+              <TouchableOpacity
+                style={styles.rewardsHeaderLink}
+                onPress={() => router.push('/rewards')}
+                activeOpacity={0.75}
+                accessibilityRole="button"
+                accessibilityLabel="Open My Rewards"
+              >
+                <Text style={styles.rewardsTitle}>My Rewards</Text>
+                <Ionicons name="chevron-forward" size={20} color="#888888" />
+              </TouchableOpacity>
+
+              <View style={styles.rewardsMetricsRow}>
+                {[
+                  { label: 'Total earned', value: inPointsStats?.totalEarned, icon: 'trending-up-outline' as const },
+                  { label: 'Transactions', value: inPointsStats?.transactionCount, icon: 'receipt-outline' as const },
+                  { label: 'Avg. points', value: inPointsStats?.averagePoints, icon: 'sparkles-outline' as const },
+                ].map((stat) => (
+                  <View key={stat.label} style={styles.rewardsMetricCard}>
+                    <Ionicons name={stat.icon} size={18} color="#FF8C00" />
+                    <Text style={styles.rewardsMetricValue}>
+                      {isInPointsLoading ? '...' : inPointsError ? '--' : (stat.value ?? 0).toLocaleString('en-IN')}
+                    </Text>
+                    <Text style={styles.rewardsMetricLabel} numberOfLines={1}>
+                      {stat.label}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+
+              <TouchableOpacity
+                style={styles.rewardsHistoryLink}
+                onPress={() => router.push('/rewards?historyOnly=true')}
+                activeOpacity={0.75}
+                accessibilityRole="button"
+                accessibilityLabel="Open INPoints history"
+              >
+                <Text style={styles.rewardsHistoryTitle}>INPoints History</Text>
+                <Ionicons name="chevron-forward" size={20} color="#888888" />
+              </TouchableOpacity>
+            </View>
+          </>
+        )}
+
         <Footer dashboardType={activeTab === 'customer' ? 'member' : 'merchant'} />
       </ScrollView>
 
