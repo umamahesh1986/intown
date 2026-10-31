@@ -113,7 +113,7 @@ export default function PaymentModal({
   }, [router]);
 
   /**
-   * Credit INPoints using the backend API.
+   * Credit INcoins using the backend API.
    *
    * Backend calculates 10% (configurable) of totalPrice.
    * Do not calculate points again in the frontend.
@@ -123,13 +123,13 @@ export default function PaymentModal({
 
     if (!transaction) {
       throw new Error(
-        'Transaction details are unavailable for INPoints credit.'
+        'Transaction details are unavailable for INcoins credit.'
       );
     }
 
     // Prevent this component from crediting the same transaction twice.
     if (transaction.pointsCredited) {
-      console.log('INPoints already credited for this transaction.');
+      console.log('INcoins already credited for this transaction.');
       return {};
     }
 
@@ -160,15 +160,15 @@ export default function PaymentModal({
       .json()
       .catch(() => ({}));
 
-    console.log('INPoints status:', response.status);
-    console.log('INPoints response:', JSON.stringify(data));
+    console.log('INcoins status:', response.status);
+    console.log('INcoins response:', JSON.stringify(data));
 
     if (!response.ok) {
       throw new Error(
         data.message ||
           (response.status === 404
             ? 'Customer or merchant not found. Verify the backend IDs.'
-            : `INPoints credit failed with status ${response.status}.`)
+            : `INcoins credit failed with status ${response.status}.`)
       );
     }
 
@@ -396,7 +396,7 @@ export default function PaymentModal({
       };
 
       /*
-       * Credit INPoints after the transaction API succeeds.
+       * Credit INcoins after the transaction API succeeds.
        * The backend calculates the 10% points.
        */
       try {
@@ -404,7 +404,7 @@ export default function PaymentModal({
 
         if (pointsResponse.pointsEarned !== undefined) {
           Alert.alert(
-            'INPoints Earned',
+            'INcoins Earned',
             `You earned ${pointsResponse.pointsEarned} points!` +
               (pointsResponse.currentTotalPoints !== undefined
                 ? `\nAvailable points: ${pointsResponse.currentTotalPoints}`
@@ -413,12 +413,12 @@ export default function PaymentModal({
         }
       } catch (pointsError: any) {
         console.error(
-          'INPoints credit error:',
+          'INcoins credit error:',
           pointsError?.message
         );
 
         Alert.alert(
-          'INPoints Not Credited',
+          'INcoins Not Credited',
           `${pointsError?.message || 'Unable to credit points.'}\n\nYour transaction was created, but points need to be verified. Do not retry payment just to get points.`
         );
       }

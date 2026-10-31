@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { tierFor, RewardsInsights } from '../utils/rewardsInsights';
+import { AnimatedNumber, useAnimatedNumber } from './AnimatedNumber';
 
 export interface RewardsCardStats extends Partial<RewardsInsights> {
   totalEarned: number;
@@ -21,7 +22,6 @@ interface RewardsCardProps {
   testIDPrefix?: string;
 }
 
-const fmt = (n: number | null | undefined) => (n == null ? '--' : Math.round(n).toLocaleString('en-IN'));
 
 export const RewardsCard = ({ stats, loading, error, onOpen, onHistory, onRedeem, testIDPrefix = 'rewards' }: RewardsCardProps) => {
   const total = stats?.totalEarned ?? 0;
@@ -30,6 +30,7 @@ export const RewardsCard = ({ stats, loading, error, onOpen, onHistory, onRedeem
   const progress = next ? Math.min(1, Math.max(0, (total - current.min) / (next.min - current.min))) : 1;
   const toGo = next ? Math.max(0, next.min - total) : 0;
   const unavailable = loading || error || !stats;
+  const animatedProgress = useAnimatedNumber(unavailable ? 0 : progress * 100);
 
   const monthDelta =
     stats?.thisMonthEarned != null && stats?.lastMonthEarned != null && stats.lastMonthEarned > 0
@@ -61,10 +62,10 @@ export const RewardsCard = ({ stats, loading, error, onOpen, onHistory, onRedeem
             <View style={styles.liveDot} />
           </View>
           <View style={styles.balanceRow}>
-            <Text style={styles.balanceValue} testID={`${testIDPrefix}-balance`}>{loading ? '…' : error ? '--' : fmt(balance)}</Text>
-            <Text style={styles.balanceUnit}>INPoints</Text>
+            <AnimatedNumber value={unavailable ? null : balance} placeholder={loading ? '…' : '--'} style={styles.balanceValue} testID={`${testIDPrefix}-balance`} />
+            <Text style={styles.balanceUnit}>INcoins</Text>
           </View>
-          <Text style={styles.balanceSub}>≈ ₹{unavailable ? '--' : balance.toFixed(2)} Cashback Value</Text>
+          <Text style={styles.balanceSub}>≈ ₹<AnimatedNumber value={unavailable ? null : balance} precision={2} format={value => value.toFixed(2)} /> Cashback Value</Text>
         </View>
         <TouchableOpacity style={styles.redeemBtn} onPress={onRedeem} disabled={unavailable} activeOpacity={0.85} testID={`${testIDPrefix}-redeem`}>
           <Text style={styles.redeemText}>Redeem</Text>
@@ -77,17 +78,17 @@ export const RewardsCard = ({ stats, loading, error, onOpen, onHistory, onRedeem
           <View style={styles.metricIcon}>
             <Ionicons name="trending-up-outline" size={18} color="#FF8C00" />
           </View>
-          <Text style={styles.metricValue}>{unavailable ? '--' : fmt(total)}</Text>
+          <AnimatedNumber value={unavailable ? null : total} style={styles.metricValue} />
           <Text style={styles.metricLabel}>Total earned</Text>
           <Text style={[styles.metricHint, monthDelta != null && monthDelta < 0 && styles.metricHintNeg]}>
-            {monthDelta == null ? `${fmt(stats?.transactionCount)} transactions` : `${monthDelta >= 0 ? '+' : ''}${monthDelta}% mo`}
+            {monthDelta == null ? <AnimatedNumber value={unavailable ? null : stats?.transactionCount} suffix=" transactions" /> : <AnimatedNumber value={unavailable ? null : monthDelta} prefix={monthDelta >= 0 ? '+' : ''} suffix="% mo" />}
           </Text>
         </View>
         <View style={styles.metric}>
           <View style={styles.metricIcon}>
             <Ionicons name="sparkles-outline" size={18} color="#FF8C00" />
           </View>
-          <Text style={styles.metricValue}>{unavailable ? '--' : fmt(stats?.averagePoints)}</Text>
+          <AnimatedNumber value={unavailable ? null : stats?.averagePoints} style={styles.metricValue} />
           <Text style={styles.metricLabel}>Avg. points</Text>
           <Text style={[styles.metricHint, styles.metricHintOrange]}>Per spend</Text>
         </View>
@@ -98,28 +99,28 @@ export const RewardsCard = ({ stats, loading, error, onOpen, onHistory, onRedeem
           <Text style={styles.goalLabel}>
             Goal: <Text style={styles.goalTier}>{next ? `${next.name} Tier` : 'Top tier reached'}</Text>
           </Text>
-          <Text style={styles.goalToGo}>{next ? `${toGo} pts to go` : '🎉'}</Text>
+          <Text style={styles.goalToGo}>{next ? <AnimatedNumber value={unavailable ? null : toGo} suffix=" pts to go" /> : '🎉'}</Text>
         </View>
         <View style={styles.track}>
-          <View style={[styles.fill, { width: `${Math.round(progress * 100)}%` }]} />
+          <View style={[styles.fill, { width: `${Math.round(animatedProgress)}%` }]} />
         </View>
         <View style={styles.goalRow}>
-          <Text style={styles.goalMeta}>{fmt(total)} earned</Text>
-          {next && <Text style={styles.goalMeta}>{next.min} pts target</Text>}
+          <AnimatedNumber value={unavailable ? null : total} suffix=" earned" style={styles.goalMeta} />
+          {next && <AnimatedNumber value={unavailable ? null : next.min} suffix=" pts target" style={styles.goalMeta} />}
         </View>
       </View>
 
-      <TouchableOpacity style={styles.history} onPress={onHistory} activeOpacity={0.75} accessibilityRole="button" accessibilityLabel="Open INPoints history" testID={`${testIDPrefix}-history`}>
+      <TouchableOpacity style={styles.history} onPress={onHistory} activeOpacity={0.75} accessibilityRole="button" accessibilityLabel="Open INcoins history" testID={`${testIDPrefix}-history`}>
         <View style={styles.historyIcon}>
           <Ionicons name="time-outline" size={18} color="#FF8C00" />
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={styles.historyTitle}>INPoints History</Text>
+          <Text style={styles.historyTitle}>INcoins History</Text>
           <Text style={styles.historySub}>View points earned & claimed</Text>
         </View>
         {yesterday != null && yesterday > 0 && (
           <View style={styles.yesterdayPill}>
-            <Text style={styles.yesterdayText}>+{fmt(yesterday)} pts yesterday</Text>
+            <AnimatedNumber value={yesterday} prefix="+" suffix=" pts yesterday" style={styles.yesterdayText} />
           </View>
         )}
         <Ionicons name="chevron-forward" size={18} color="#9AA3B2" />

@@ -1,5 +1,5 @@
 export interface SpecialOfferSource {
-  specialOffers?: (string | null)[] | null;
+  specialOffers?: (string | null)[] | string | null;
   specialOfferEndDate?: string | null;
   s3ImageUrl?: unknown;
 }
@@ -38,7 +38,7 @@ export const getSpecialOfferImageUrl = (shop?: SpecialOfferSource | null): strin
 
 const parseEnd = (iso?: string | null): Date | null => {
   if (!iso) return null;
-  const d = new Date(iso);
+  const d = /^\d{4}-\d{2}-\d{2}$/.test(iso) ? new Date(`${iso}T23:59:59.999`) : new Date(iso);
   return isNaN(d.getTime()) ? null : d;
 };
 
@@ -50,7 +50,9 @@ export const isSpecialOfferExpired = (shop?: SpecialOfferSource | null, now = Da
 // Trimmed, non-empty offers — empty when the merchant has none or the end date has passed.
 export const getActiveSpecialOffers = (shop?: SpecialOfferSource | null, now = Date.now()): string[] => {
   if (!shop || isSpecialOfferExpired(shop, now)) return [];
-  return (shop.specialOffers || []).map((o) => String(o || '').trim()).filter(Boolean);
+  const raw = shop.specialOffers;
+  const offers = Array.isArray(raw) ? raw : typeof raw === 'string' ? raw.split('\n') : [];
+  return offers.map((o) => String(o || '').trim()).filter(Boolean);
 };
 
 export const formatOfferValidTill = (shop?: SpecialOfferSource | null) => {

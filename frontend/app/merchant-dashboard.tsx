@@ -18,6 +18,8 @@ import {
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { MerchantOfferSummary } from '../components/MerchantOfferSummary';
+import { merchantRecord } from '../utils/merchantProfile';
 import { Ionicons } from '@expo/vector-icons';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
@@ -76,6 +78,8 @@ interface ApiSummary {
 }
 
 interface MerchantDetails {
+  specialOffers?: string[];
+  specialOfferEndDate?: string;
   id: number;
   businessName: string;
   contactName: string;
@@ -507,8 +511,8 @@ export default function MerchantDashboard() {
     fetchSales();
   }, [merchantId, token]);
 
-  // Fetch merchant details from API
-  useEffect(() => {
+  // Refresh offer status after returning from Account.
+  useFocusEffect(useCallback(() => {
     if (!merchantId) return;
 
     const fetchMerchantDetails = async () => {
@@ -525,7 +529,8 @@ export default function MerchantDashboard() {
         if (!res.ok) {
           throw new Error(`Merchant details fetch failed: ${res.status}`);
         }
-        const data: MerchantDetails = await res.json();
+        const data = merchantRecord(await res.json()) as MerchantDetails | null;
+        if (!data) throw new Error('Invalid merchant details response');
         setMerchantDetails(data);
 
         // Update shop name and description from API
@@ -546,6 +551,7 @@ export default function MerchantDashboard() {
           if (searchResp) { try { parsed = JSON.parse(searchResp); } catch {} }
           parsed.merchant = {
             ...parsed.merchant,
+            ...data,
             id: data.id ?? merchantId,
             contactName: data.contactName ?? '',
             email: data.email ?? '',
@@ -590,7 +596,7 @@ export default function MerchantDashboard() {
     };
 
     fetchMerchantDetails();
-  }, [merchantId]);
+  }, [merchantId]));
 
   const handleLogout = async () => {
     try {
@@ -646,9 +652,9 @@ export default function MerchantDashboard() {
             <MaterialIcons name="location-on" size={24} color="#FF8C00" />
             </View>
 
-            <View>
+            <View style={styles.locationCopy}>
               <Text style={styles.locationLabel}>YOUR LOCATION</Text>
-              <Text style={styles.locationName}>
+              <Text style={styles.locationName} numberOfLines={1}>
                 {getLocationDisplayText()}
               </Text>
             </View>
@@ -792,6 +798,7 @@ export default function MerchantDashboard() {
           </View>
         </View> */}
 
+        <MerchantOfferSummary merchant={merchantDetails} from="merchant" />
         {/* Total Summary Section */}
         <View style={{ paddingHorizontal: 16, marginTop: 10 }}>
           <Text style={[styles.sectionTitle, { margin: 0, fontSize: 18 }]}>INtown Business</Text>
@@ -924,6 +931,18 @@ export default function MerchantDashboard() {
           >
             <Ionicons name="person-outline" size={22} color="#FF8A00" />
             <Text style={styles.userPanelText}>My Account</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.userPanelItem}
+            onPress={() => {
+              closeDropdown();
+              router.push({ pathname: '/member-card', params: { from: 'merchant' } });
+            }}
+            testID="merchant-menu-privilege-pass"
+          >
+            <Ionicons name="card-outline" size={22} color="#FF8A00" />
+            <Text style={styles.userPanelText}>Privilege Pass</Text>
           </TouchableOpacity>
 
           {/* CUSTOMER ORDERS (merchant view) */}
@@ -1706,9 +1725,14 @@ const styles = StyleSheet.create({
   locationSection: {
     flexDirection: "row",
     alignItems: "center",
+    flex: 1,
+    minWidth: 0,
+    marginRight: 12,
   },
+  locationCopy: { flex: 1, minWidth: 0 },
 
   locationIconBox: {
+    flexShrink: 0,
     width: 40,
     height: 40,
     borderRadius: 20,
@@ -1720,18 +1744,20 @@ const styles = StyleSheet.create({
 
   locationLabel: {
     fontSize: 11,
+    lineHeight: 15,
     color: "#999",
     fontWeight: "600",
   },
 
   locationName: {
     fontSize: 14,
+    lineHeight: 21,
     fontWeight: "700",
     color: "#0F172A",
-    maxWidth: 200,
   },
 
   headerIcons: {
+    flexShrink: 0,
     flexDirection: "row",
     alignItems: "center",
   },

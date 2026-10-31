@@ -13,7 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 
 const PLAY_STORE_URL =
-  'https://play.google.com/store/apps/details?id=com.intown.andriod';
+  'https://www.intownlocal.com/download';
 const SHARE_TITLE = 'INtown';
 const SHARE_TEXT =
   'Download INtown and win a chance to get INcoins  ';

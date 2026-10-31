@@ -12,8 +12,11 @@ import { LoginRequiredModal } from '../components/LoginRequiredModal';
 import { DateSpinnerModal, formatYmd } from '../components/DateSpinnerModal';
 import { OfferShareCard, buildOfferShareText, shareOfferOnWhatsApp, shareOfferText, shareOfferAsImage } from '../components/OfferShareCard';
 import { OfferAnalyticsCard } from '../components/OfferAnalyticsCard';
-import { getSpecialOfferImageUrl, isSpecialOfferImageUrl } from '../utils/specialOffer';
-import { INTOWN_API_BASE, getCategories, getProductsByCategory, uploadSpecialOfferImage } from '../utils/api';
+import { getSpecialOfferImageUrl, isSpecialOfferImageUrl, isSpecialOfferExpired } from '../utils/specialOffer';
+import { INTOWN_API_BASE, getCategories, getProductsByCategory, uploadSpecialOfferImage, searchUserByPhoneAtBase, invalidateMerchantDetails } from '../utils/api';
+import { loadMerchantProfile } from '../utils/merchantProfile';
+import { merchantUpdatePayload } from '../utils/merchantUpdate';
+import { getProfileImage, setProfileImage as saveProfileImage } from '../utils/profileImage';
 import { getMerchantPlan, getMerchantPlanById, MerchantPlanId } from '../utils/merchantPlans';
 import { MerchantPlansSection } from '../components/MerchantPlansSection';
 import axios from 'axios';
@@ -53,6 +56,8 @@ export default function Account() {
 
   const [editing, setEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isProfileLoading, setIsProfileLoading] = useState(true);
+  const [profileError, setProfileError] = useState<string | null>(null);
   const [userType, setUserType] = useState<string | null>(null);
   const [merchantId, setMerchantId] = useState<string | null>(null);
   const [merchantPlan, setMerchantPlanState] = useState<MerchantPlanId | null>(null);
@@ -85,6 +90,7 @@ export default function Account() {
   const [offer, setOffer] = useState('');
   const [specialOffersText, setSpecialOffersText] = useState(''); // one offer per line → specialOffers[]
   const [specialOfferEndDate, setSpecialOfferEndDate] = useState(''); // 'YYYY-MM-DD'
+  const [savedOfferEndIso, setSavedOfferEndIso] = useState('');
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
   const [specialOfferImageUrl, setSpecialOfferImageUrl] = useState<string | null>(null); // saved banner
   const [pendingOfferImageUri, setPendingOfferImageUri] = useState<string | null>(null); // picked, not yet uploaded
@@ -93,8 +99,9 @@ export default function Account() {
   const shareImageReadyRef = useRef(false);
   const specialOfferList = specialOffersText.split('\n').map(s => s.trim()).filter(Boolean);
   // End date already passed → customers no longer see the offer (Deals strip / shop page hide it)
-  const isOfferExpired =
-    !!specialOfferEndDate && specialOfferList.length > 0 && new Date(ymdToIsoEndOfDay(specialOfferEndDate)).getTime() < Date.now();
+  const effectiveOfferEnd = savedOfferEndIso && isoToYmd(savedOfferEndIso) === specialOfferEndDate
+    ? savedOfferEndIso : specialOfferEndDate ? ymdToIsoEndOfDay(specialOfferEndDate) : null;
+  const isOfferExpired = isSpecialOfferExpired({ specialOfferEndDate: effectiveOfferEnd });
   const offerShareProps = {
     shopName: name || 'Our shop',
     offers: specialOfferList,
@@ -135,9 +142,19 @@ export default function Account() {
   const [newProductInput, setNewProductInput] = useState('');
 
   useEffect(() => {
-    loadProfileData();
     loadCategories();
   }, []);
+
+  const editingRef = useRef(editing);
+  const selectedMerchantContext = useRef<boolean | undefined>(undefined);
+  const profileLoadId = useRef(0);
+  editingRef.current = editing;
+  useFocusEffect(
+    useCallback(() => {
+      // Keep unsaved edits when returning from a picker.
+      if (!editingRef.current) void loadProfileData(selectedMerchantContext.current);
+    }, [params?.from])
+  );
 
   // When returning from /location-picker, pick up the freshly chosen shop coords
   // (location-picker writes them to AsyncStorage key `location_picker_account`).
@@ -173,12 +190,15 @@ export default function Account() {
     } catch (e) {}
   };
 
-  const loadProfileData = async () => {
+  const loadProfileData = async (merchantContext?: boolean) => {
+    const loadId = ++profileLoadId.current;
+    setIsProfileLoading(true);
+    setProfileError(null);
     try {
       const [storedImage, storedMerchantImage, storedCustomerImage, storedUserType, storedMerchantId, storedUserRole, storedUserData, searchResp, storedShopImagesRaw] = await Promise.all([
         AsyncStorage.getItem('user_profile_image'),
-        AsyncStorage.getItem('merchant_profile_image'),
-        AsyncStorage.getItem('customer_profile_image'),
+        getProfileImage('merchant'),
+        getProfileImage('customer'),
         AsyncStorage.getItem('user_type'),
         AsyncStorage.getItem('merchant_id'),
         AsyncStorage.getItem('user_role'),
@@ -238,8 +258,40 @@ export default function Account() {
           (parsedUserData?.userType === 'merchant');
       }
 
+      merchantUser = merchantContext ?? merchantUser;
+      // Login search data can contain only an identity, rather than the full profile.
       setIsMerchant(merchantUser);
-      // Any merchant identity (even when viewing the customer profile as a dual user) → no customer INPoints rewards link
+      if (merchantUser) {
+        try {
+          const merchant = await loadMerchantProfile(
+            user?.phone || parsedUserData?.phone || '',
+            parsedSearch?.merchant,
+            storedMerchantId,
+            phone => searchUserByPhoneAtBase(phone, INTOWN_API_BASE),
+            async id => (await axios.get(
+              `${INTOWN_API_BASE}/merchant/${encodeURIComponent(id)}`,
+              { headers: { Accept: 'application/json' }, timeout: 15000 }
+            )).data
+          );
+          if (loadId !== profileLoadId.current) return;
+          parsedSearch = { ...parsedSearch, merchant };
+          hasMerchantData = true;
+          setMerchantId(String(merchant.id));
+          await AsyncStorage.multiSet([
+            ['merchant_id', String(merchant.id)],
+            ['user_search_response', JSON.stringify(parsedSearch)],
+          ]);
+        } catch (error) {
+          if (loadId !== profileLoadId.current) return;
+          console.warn('[Account] Could not refresh merchant profile:', error);
+          setProfileError('Could not load your merchant profile. Please retry.');
+          return;
+        }
+      }
+
+      if (loadId !== profileLoadId.current) return;
+      setIsMerchant(merchantUser);
+      // Any merchant identity (even when viewing the customer profile as a dual user) → no customer INcoins rewards link
       setHasMerchantIdentity(
         merchantUser || !!storedMerchantId || hasMerchantData || lowerType.includes('merchant') || lowerType === 'dual' || lowerRole.includes('merchant'),
       );
@@ -281,17 +333,25 @@ export default function Account() {
         setEmail(m.email || '');
         setBusinessCategory(m.businessCategory || '');
         setDescription(m.description || '');
-        setBranches(m.branchesOfBusiness || '');
-        setFromYears(m.fromYears || '');
+        setBranches(m.branchesOfBusiness == null ? '' : String(m.branchesOfBusiness));
+        setFromYears(m.fromYears == null ? '' : String(m.fromYears));
         setOpenAt(m.openAt || '');
         setCloseAt(m.closeAt || '');
         setBreakStartAt(m.breakStartAt || '');
         setBreakEndAt(m.breakEndAt || '');
         setWeekOff(m.weekOff || '');
         setOffer(m.offer || '');
-        setSpecialOffersText(Array.isArray(m.specialOffers) ? m.specialOffers.filter(Boolean).join('\n') : '');
+        setSpecialOffersText(Array.isArray(m.specialOffers) ? m.specialOffers.filter(Boolean).join('\n') : typeof m.specialOffers === 'string' ? m.specialOffers : '');
         setSpecialOfferImageUrl(getSpecialOfferImageUrl(m));
+        if (Array.isArray(m.s3ImageUrl)) {
+          const images = m.s3ImageUrl
+            .map((image: any) => typeof image === 'string' ? image : image?.s3ImageUrl || image?.url)
+            .filter((url: any): url is string => typeof url === 'string' && !!url && !isSpecialOfferImageUrl(url));
+          setShopImages(images);
+          await AsyncStorage.setItem('merchant_shop_images', JSON.stringify(images));
+        }
         setSpecialOfferEndDate(isoToYmd(m.specialOfferEndDate));
+        setSavedOfferEndIso(m.specialOfferEndDate || '');
         setShopLat(m.latitude ?? null);
         setShopLng(m.longitude ?? null);
 
@@ -316,6 +376,9 @@ export default function Account() {
       }
     } catch (e) {
       console.error('Error loading profile:', e);
+      if (loadId === profileLoadId.current) setProfileError('Could not load your profile. Please retry.');
+    } finally {
+      if (loadId === profileLoadId.current) setIsProfileLoading(false);
     }
   };
 
@@ -326,19 +389,15 @@ export default function Account() {
     } catch (e) {}
   };
 
-  const onSave = async () => {
+  const onSave = async (endOverride?: unknown) => {
+    if (isProfileLoading || profileError) return;
+    const offerEndIso = typeof endOverride === 'string' ? endOverride : effectiveOfferEnd;
+    if (isMerchant && specialOfferList.length && !offerEndIso) {
+      Alert.alert('Choose an end date', 'Set when this seasonal special offer should stop appearing to customers.');
+      return;
+    }
     setIsSaving(true);
     try {
-      // Update local stores
-      updateProfile({ name } as any);
-      const storedUserData = await AsyncStorage.getItem('user_data');
-      if (storedUserData) {
-        const ud = JSON.parse(storedUserData);
-        ud.name = name;
-        ud.email = email;
-        await AsyncStorage.setItem('user_data', JSON.stringify(ud));
-      }
-
       // Resolve merchantId from state OR fallback to AsyncStorage so the PATCH
       // always fires even when state hasn't been hydrated (dual-user case).
       const resolvedMerchantId =
@@ -395,18 +454,13 @@ export default function Account() {
           productNames: customProductsList.filter(p => p.trim()),
         };
         // Backend PATCH ignores null, so only send the end date when one is set
-        if (specialOfferEndDate) edited.specialOfferEndDate = ymdToIsoEndOfDay(specialOfferEndDate);
+        if (offerEndIso) edited.specialOfferEndDate = offerEndIso;
         if (shopLat != null && shopLng != null) {
           edited.latitude = shopLat;
           edited.longitude = shopLng;
         }
 
-        const payload = { ...baseMerchant, ...edited };
-        // Backend PATCH rejects (400) the GET-shaped image array and the "+00:00" date format it
-        // itself returns — images are managed by separate upload flows, and the end date is re-sent
-        // above in ISO "Z" format when set.
-        delete payload.s3ImageUrl;
-        if (!specialOfferEndDate) delete payload.specialOfferEndDate;
+        const payload = merchantUpdatePayload({ ...baseMerchant, ...edited });
 
         // PATCH merchant update API — surface failures in the Alert rather
         // than swallowing them silently.
@@ -447,10 +501,13 @@ export default function Account() {
         if (searchResp) {
           try {
             const data = JSON.parse(searchResp);
-            data.merchant = payload;
+            data.merchant = { ...baseMerchant, ...payload };
             await AsyncStorage.setItem('user_search_response', JSON.stringify(data));
           } catch {}
         }
+        invalidateMerchantDetails(resolvedMerchantId);
+        setSavedOfferEndIso(payload.specialOfferEndDate || '');
+        setSpecialOfferEndDate(isoToYmd(payload.specialOfferEndDate));
       } else if (isMerchant && !resolvedMerchantId) {
         Alert.alert('Update Failed', 'Could not resolve merchant id. Please re-login and try again.');
         return;
@@ -458,7 +515,16 @@ export default function Account() {
         await AsyncStorage.setItem('customer_name', name);
       }
 
-      Alert.alert('Success', 'Your profile has been updated successfully.');
+      // Commit the basic profile only after the merchant PATCH succeeds.
+      updateProfile({ name } as any);
+      const storedUserData = await AsyncStorage.getItem('user_data');
+      if (storedUserData) {
+        const ud = JSON.parse(storedUserData);
+        ud.name = name;
+        ud.email = email;
+        await AsyncStorage.setItem('user_data', JSON.stringify(ud));
+      }
+      Alert.alert(typeof endOverride === 'string' ? 'Special offer stopped' : 'Success', typeof endOverride === 'string' ? 'The special offer has ended. Customers will no longer see it after their offers refresh.' : 'Your profile has been updated successfully.');
       setEditing(false);
     } catch (e) {
       console.error('Error saving:', e);
@@ -614,7 +680,9 @@ export default function Account() {
   // Tab switch (only for dual users)
   const handleSwitchTab = (toMerchant: boolean) => {
     if (toMerchant === isMerchant) return;
+    selectedMerchantContext.current = toMerchant;
     setIsMerchant(toMerchant);
+    void loadProfileData(toMerchant);
     setEditing(false);
     setPendingImageUri(null);
     setPendingImageBase64(null);
@@ -768,7 +836,7 @@ export default function Account() {
 
       // Persist + reflect everywhere
       const finalUrl = canonicalUrl || pendingImageUri;
-      await AsyncStorage.setItem('user_profile_image', finalUrl);
+      await saveProfileImage(userTypeParam === 'IN_MERCHANT' ? 'merchant' : 'customer', finalUrl);
       if (userTypeParam === 'IN_MERCHANT') {
         await AsyncStorage.setItem('merchant_profile_image', finalUrl);
         setMerchantImageCache(finalUrl);
@@ -856,12 +924,26 @@ export default function Account() {
           <Ionicons name="arrow-back" size={22} color="#1A1A1A" />
         </TouchableOpacity>
         <Text style={styles.title}>My Account</Text>
-        <TouchableOpacity onPress={() => setEditing(!editing)}>
+        <TouchableOpacity onPress={() => setEditing(!editing)} disabled={isProfileLoading || !!profileError}>
           <Text style={styles.editBtn}>{editing ? 'Cancel' : 'Edit'}</Text>
         </TouchableOpacity>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} ref={scrollRef}>
+        {isProfileLoading && (
+          <View style={styles.card} testID="account-profile-loading">
+            <ActivityIndicator color="#FF8A00" />
+            <Text style={styles.value}>Loading profile...</Text>
+          </View>
+        )}
+        {!!profileError && (
+          <View style={styles.card} testID="account-profile-error">
+            <Text style={styles.value}>{profileError}</Text>
+            <TouchableOpacity onPress={() => loadProfileData(isMerchant)}>
+              <Text style={styles.editBtn}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        )}
         {/* Dual-user context tabs */}
         {isDualUser && (
           <View style={styles.dualTabs} testID="account-dual-tabs">
@@ -958,7 +1040,7 @@ export default function Account() {
         </View>
 
         {/* MERCHANT-SPECIFIC FIELDS */}
-        {isMerchant && (
+        {isMerchant && !isProfileLoading && !profileError && (
           <>
             <View style={styles.card}>
               <Text style={styles.sectionTitle}>Business Details</Text>
@@ -1312,6 +1394,7 @@ export default function Account() {
                   </View>
                 )}
                 <Text style={styles.fieldHint}>Shown in the Special Offer section of your shop page for customers.</Text>
+                <Text style={styles.fieldHint}>Set a seasonal end date below. For a new season, update the offer and choose a new end date, then save your changes.</Text>
 
                 <View style={styles.fieldGroup}>
                   <Text style={styles.label}>Special Offer Valid Till</Text>
@@ -1326,17 +1409,23 @@ export default function Account() {
                     </Text>
                   )}
                 </View>
+                {!editing && specialOfferList.length > 0 && !isOfferExpired && (
+                  <TouchableOpacity style={[styles.offerImageBtn, { marginVertical: 12 }]} disabled={isSaving} onPress={() => onSave(new Date(Date.now() - 1000).toISOString())} testID="account-stop-special-offer">
+                    <Ionicons name="stop-circle-outline" size={18} color="#D32F2F" />
+                    <Text style={[styles.offerImageBtnText, { color: '#D32F2F' }]}>{isSaving ? 'Stopping...' : 'Stop special offer now'}</Text>
+                  </TouchableOpacity>
+                )}
                 {isOfferExpired && (
                   <View style={styles.expiredBanner} testID="account-offer-expired-banner">
                     <Ionicons name="alert-circle" size={16} color="#C62828" />
                     <Text style={styles.expiredBannerText}>
-                      This offer expired on {formatYmd(specialOfferEndDate)} — customers can't see it in "Deals near you" or on your shop page. Tap Edit and pick a new end date to make it live again.
+                      This offer ended on {formatYmd(specialOfferEndDate)} and is hidden from customers. Tap Edit to update it for a new season and choose a future end date.
                     </Text>
                   </View>
                 )}
 
                 {/* Share the special offer (view mode only, when there is one) */}
-                {!editing && specialOfferList.length > 0 && (
+                {!editing && specialOfferList.length > 0 && !isOfferExpired && (
                   <View style={styles.shareRow} testID="offer-share-row">
                     <TouchableOpacity
                       style={[styles.shareBtn, styles.shareWhatsApp]}
@@ -1408,7 +1497,7 @@ export default function Account() {
                 <View style={styles.menuIconWrap}><Ionicons name="gift-outline" size={20} color="#FF8A00" /></View>
                 <View style={styles.menuTextWrap}>
                   <Text style={styles.menuTitle}>My Rewards</Text>
-                  <Text style={styles.menuSubtitle}>View your INPoints balance and activity</Text>
+                  <Text style={styles.menuSubtitle}>View your INcoins balance and activity</Text>
                 </View>
                 <Ionicons name="chevron-forward" size={18} color="#CCC" />
               </TouchableOpacity>
@@ -1600,9 +1689,8 @@ export default function Account() {
         visible={showEndDatePicker}
         title="Special Offer Valid Till"
         value={specialOfferEndDate}
-        onChange={setSpecialOfferEndDate}
+        onChange={value => { setSpecialOfferEndDate(value); setSavedOfferEndIso(''); }}
         onClose={() => setShowEndDatePicker(false)}
-        onClear={() => { setSpecialOfferEndDate(''); setShowEndDatePicker(false); }}
       />
     </SafeAreaView>
       )}

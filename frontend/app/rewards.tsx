@@ -17,6 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuthStore } from '../store/authStore';
+import { AnimatedNumber } from '../components/AnimatedNumber';
 import { INPOINTS_API_BASE, INTOWN_API_BASE, resolveInPointsCustomerId } from '../utils/api';
 
 type PointTransaction = {
@@ -95,7 +96,7 @@ export default function RewardsScreen() {
         const failedStatus = balanceResponse && !balanceResponse.ok
           ? balanceResponse.status
           : pointsHistoryResponse.status;
-        throw new Error(`Failed to load INPoints (HTTP ${failedStatus}).`);
+        throw new Error(`Failed to load INcoins (HTTP ${failedStatus}).`);
       }
 
       const [balanceData, pointsHistoryData] = await Promise.all([
@@ -121,19 +122,19 @@ export default function RewardsScreen() {
               : null;
 
       if (!historyOnly && !Number.isFinite(inPoints)) {
-        console.error('[Rewards] INPoints balance response did not include a recognized balance field.');
-        throw new Error('The INPoints API returned an invalid balance.');
+        console.error('[Rewards] INcoins balance response did not include a recognized balance field.');
+        throw new Error('The INcoins API returned an invalid balance.');
       }
       if (!pointTransactions) {
-        console.error('[Rewards] INPoints history response did not include a transaction list.');
-        throw new Error('The INPoints API returned invalid points history.');
+        console.error('[Rewards] INcoins history response did not include a transaction list.');
+        throw new Error('The INcoins API returned invalid points history.');
       }
 
       const pointActivity: ActivityItem[] = (pointTransactions as PointTransaction[]).map((transaction): ActivityItem => {
         const points = Number(transaction.points);
         const createdDate = transaction.created ? new Date(transaction.created) : null;
         if (!Number.isSafeInteger(transaction.id) || !Number.isFinite(points)) {
-          throw new Error('The INPoints API returned an invalid transaction.');
+          throw new Error('The INcoins API returned an invalid transaction.');
         }
 
         return {
@@ -193,11 +194,11 @@ export default function RewardsScreen() {
       setActivity([...pointActivity, ...paymentActivity].sort((a, b) => b.sortDate - a.sortDate));
       setError(paymentError);
     } catch (error) {
-      console.error('[Rewards] Failed to fetch INPoints:', error);
+      console.error('[Rewards] Failed to fetch INcoins:', error);
       if (isCurrent()) {
         setError(
           historyOnly
-            ? 'INPoints history is temporarily unavailable. Pull down to try again.'
+            ? 'INcoins history is temporarily unavailable. Pull down to try again.'
             : 'Rewards are temporarily unavailable. Pull down to try again.',
         );
       }
@@ -251,7 +252,7 @@ export default function RewardsScreen() {
           if (isActive) {
             setError(
               historyOnly
-                ? 'We could not find your INPoints account. Please sign in again.'
+                ? 'We could not find your INcoins account. Please sign in again.'
                 : 'We could not find your rewards account. Please sign in again.',
             );
             setLoading(false);
@@ -293,7 +294,7 @@ export default function RewardsScreen() {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" color="#FF8A00" />
-        <Text style={styles.loadingText}>Loading INPoints...</Text>
+        <Text style={styles.loadingText}>Loading INcoins...</Text>
       </View>
     );
   }
@@ -330,8 +331,8 @@ export default function RewardsScreen() {
             <Ionicons name="arrow-back" size={20} color="#FFFFFF" />
           </TouchableOpacity>
           <View style={styles.headerCopy}>
-            <Text style={styles.headerEyebrow}>{historyOnly ? 'INPOINTS' : 'INPOINTS REWARDS'}</Text>
-            <Text style={styles.headerTitle}>{historyOnly ? 'INPoints History' : 'Rewards'}</Text>
+            <Text style={styles.headerEyebrow}>{historyOnly ? 'INcoins' : 'INcoins REWARDS'}</Text>
+            <Text style={styles.headerTitle}>{historyOnly ? 'INcoins History' : 'Rewards'}</Text>
             {!historyOnly && (
               <Text style={styles.headerSubtitle}>A little more value in every visit.</Text>
             )}
@@ -379,7 +380,7 @@ export default function RewardsScreen() {
                     <View style={styles.cardTop}>
                       <View style={styles.badge}>
                         <Ionicons name="ribbon-outline" size={16} color="#FFF" />
-                        <Text style={styles.badgeText}>INPOINTS REWARDS</Text>
+                        <Text style={styles.badgeText}>INcoins REWARDS</Text>
                       </View>
                       <Ionicons name="sparkles" size={21} color="#FFFFFF" />
                     </View>
@@ -387,7 +388,7 @@ export default function RewardsScreen() {
                     <View style={[styles.balanceContainer, isCompact && styles.balanceContainerCompact]}>
                       <Text style={styles.balanceLabel}>YOUR AVAILABLE BALANCE</Text>
                       <Text style={[styles.balanceValue, isCompact && styles.balanceValueCompact]}>
-                        {balance === null ? '--' : balance.toLocaleString()} <Text style={styles.ptsUnit}>POINTS</Text>
+                        <AnimatedNumber value={balance} precision={2} /> <Text style={styles.ptsUnit}>POINTS</Text>
                       </Text>
                     </View>
                   </LinearGradient>
@@ -396,17 +397,17 @@ export default function RewardsScreen() {
                 <View style={styles.statsRow}>
                   <Animated.View entering={FadeInDown.delay(100).duration(550).springify()} layout={LinearTransition.springify()} style={[styles.statCard, isCompact && styles.statCardCompact]}>
                     <Ionicons name="trending-up-outline" size={18} color="#FF9B24" />
-                    <Text style={[styles.statValue, isCompact && styles.statCardCompactValue]}>{totalEarned.toLocaleString()}</Text>
+                    <Text style={[styles.statValue, isCompact && styles.statCardCompactValue]}><AnimatedNumber value={totalEarned} /></Text>
                     <Text style={[styles.statLabel, isCompact && styles.statCardCompactLabel]}>Total earned</Text>
                   </Animated.View>
                   <Animated.View entering={FadeInDown.delay(180).duration(550).springify()} layout={LinearTransition.springify()} style={[styles.statCard, isCompact && styles.statCardCompact]}>
                     <Ionicons name="receipt-outline" size={18} color="#FF9B24" />
-                    <Text style={[styles.statValue, isCompact && styles.statCardCompactValue]}>{pointActivity.length}</Text>
+                    <Text style={[styles.statValue, isCompact && styles.statCardCompactValue]}><AnimatedNumber value={pointActivity.length} /></Text>
                     <Text style={[styles.statLabel, isCompact && styles.statCardCompactLabel]}>Transactions</Text>
                   </Animated.View>
                   <Animated.View entering={FadeInDown.delay(260).duration(550).springify()} layout={LinearTransition.springify()} style={[styles.statCard, isCompact && styles.statCardCompact]}>
                     <Ionicons name="sparkles-outline" size={18} color="#FF9B24" />
-                    <Text style={[styles.statValue, isCompact && styles.statCardCompactValue]}>{averagePoints.toLocaleString()}</Text>
+                    <Text style={[styles.statValue, isCompact && styles.statCardCompactValue]}><AnimatedNumber value={averagePoints} /></Text>
                     <Text style={[styles.statLabel, isCompact && styles.statCardCompactLabel]}>Avg. points</Text>
                   </Animated.View>
                 </View>
@@ -416,10 +417,10 @@ export default function RewardsScreen() {
             <View style={styles.historyHeading}>
               <View>
                 <Text style={styles.sectionEyebrow}>{historyOnly ? 'YOUR REWARDS' : 'YOUR ACTIVITY'}</Text>
-                <Text style={styles.sectionTitle}>{historyOnly ? 'INPoints history' : 'Transaction history'}</Text>
+                <Text style={styles.sectionTitle}>{historyOnly ? 'INcoins history' : 'Transaction history'}</Text>
               </View>
               <View style={styles.historyCount}>
-                <Text style={styles.historyCountText}>{filteredActivity.length}</Text>
+                <Text style={styles.historyCountText}><AnimatedNumber value={filteredActivity.length} /></Text>
               </View>
             </View>
             {error ? (
@@ -433,7 +434,7 @@ export default function RewardsScreen() {
               <View style={styles.filterRow}>
                 {([
                   { key: 'ALL', label: 'All activity' },
-                  { key: 'POINTS', label: 'INPoints' },
+                  { key: 'POINTS', label: 'INcoins' },
                   { key: 'PAYMENT_HISTORY', label: 'Payment history' },
                 ] as const).map((filter) => (
                   <TouchableOpacity
@@ -494,11 +495,11 @@ export default function RewardsScreen() {
                 item.kind === 'POINTS' ? styles.creditText : styles.paymentText,
               ]}
             >
-              {item.kind === 'POINTS'
-                ? `${item.value !== null && item.value >= 0 ? '+' : ''}${item.value?.toLocaleString() ?? '0'} pts`
-                : item.value === null
-                  ? 'Amount unavailable'
-                  : `₹${item.value.toLocaleString('en-IN')}`}
+              {item.kind === 'PAYMENT' && item.value === null ? 'Amount unavailable' : <AnimatedNumber
+                value={item.value ?? 0} precision={2}
+                prefix={item.kind === 'PAYMENT' ? '?' : (item.value ?? 0) >= 0 ? '+' : ''}
+                suffix={item.kind === 'POINTS' ? ' pts' : ''}
+              />}
             </Text>
           </Animated.View>
         )}
@@ -513,14 +514,14 @@ export default function RewardsScreen() {
             </View>
             <Text style={styles.emptyTitle}>
               {historyOnly
-                ? 'No INPoints history yet'
+                ? 'No INcoins history yet'
                 : activeFilter === 'PAYMENTS'
                   ? 'No payments to show yet'
                   : 'Your rewards journey starts here'}
             </Text>
             <Text style={styles.emptyText}>
               {historyOnly
-                ? 'Your earned INPoints will appear here.'
+                ? 'Your earned INcoins will appear here.'
                 : activeFilter === 'PAYMENTS'
                   ? 'Your eligible purchase history will appear here.'
                   : 'Completed reward credits will appear here.'}

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, useWindowDimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getActiveSpecialOffers, formatOfferTimeLeft, getSpecialOfferImageUrl } from '../utils/specialOffer';
 import { getTrendingTaps } from '../utils/offerAnalytics';
@@ -14,12 +14,18 @@ const formatKm = (d: any) => (typeof d === 'number' && isFinite(d) ? `${d.toFixe
 // Horizontal "Deals near you" row for the member home — only shops with an active special offer,
 // ranked by taps in the last 7 days (trending first), then by the original (distance) order.
 export const DealsStrip = ({ shops, onPressShop }: DealsStripProps) => {
+  const { fontScale } = useWindowDimensions();
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 30000);
+    return () => clearInterval(timer);
+  }, []);
   const baseDeals = useMemo(
     () =>
       (shops || [])
-        .map((s) => ({ shop: s, offers: getActiveSpecialOffers(s) }))
+        .map((s) => ({ shop: s, offers: getActiveSpecialOffers(s, now) }))
         .filter((d) => d.offers.length > 0),
-    [shops],
+    [shops, now],
   );
   const idsKey = baseDeals.map((d) => String(d.shop.id)).join(',');
   const [taps, setTaps] = useState<Record<string, number>>({});
@@ -37,8 +43,8 @@ export const DealsStrip = ({ shops, onPressShop }: DealsStripProps) => {
     () => [...baseDeals].sort((a, b) => (taps[String(b.shop.id)] || 0) - (taps[String(a.shop.id)] || 0)),
     [baseDeals, taps],
   );
+  const topTaps = deals.length ? taps[String(deals[0].shop.id)] || 0 : 0;
   if (deals.length === 0) return null;
-  const topTaps = taps[String(deals[0].shop.id)] || 0;
 
   return (
     <View style={styles.section} testID="deals-strip">
@@ -51,7 +57,7 @@ export const DealsStrip = ({ shops, onPressShop }: DealsStripProps) => {
           <Text style={styles.countText} testID="deals-strip-count">{deals.length}</Text>
         </View>
       </View>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
+      <ScrollView horizontal style={{ height: 250 * Math.max(1, fontScale), flexGrow: 0 }} showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
         {deals.map(({ shop, offers }, idx) => {
           const name = shop.businessName || shop.shopName || shop.name || 'Shop';
           const timeLeft = formatOfferTimeLeft(shop);
@@ -120,7 +126,7 @@ const styles = StyleSheet.create({
   title: { fontSize: 16, fontWeight: '700', color: '#1A1A1A' },
   countPill: { backgroundColor: '#E8F5E9', paddingHorizontal: 10, paddingVertical: 3, borderRadius: 999 },
   countText: { color: '#FF8A00', fontWeight: '800', fontSize: 12 },
-  row: { gap: 12, paddingRight: 16 },
+  row: { gap: 12, paddingRight: 16, alignItems: 'stretch' },
   card: {
     width: 220,
     backgroundColor: '#FFF',

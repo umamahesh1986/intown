@@ -38,6 +38,7 @@ import { LoginRequiredModal } from '../components/LoginRequiredModal';
 import { useLocationStore, LocationDetails } from '../store/locationStore';
 import { getPlans, getCategories, getAllNearbyShops, getMerchantImageByShopId, extractImageUrls, enrichShopsWithMerchantDetails } from '../utils/api';
 import { setNavShop } from '../utils/navCache';
+import { DealsStrip } from '../components/DealsStrip';
 
 import {
   getUserLocationWithDetails,
@@ -291,11 +292,12 @@ export default function UserDashboard() {
   }
 
 
-  useEffect(() => {
-    if (location?.latitude && location?.longitude) {
-      loadNearbyShops();
-    }
-  }, [location?.latitude, location?.longitude]);
+  useFocusEffect(useCallback(() => {
+    if (location?.latitude == null || location?.longitude == null) return;
+    void loadNearbyShops(true);
+    const refresh = setInterval(() => { void loadNearbyShops(true); }, 60000);
+    return () => clearInterval(refresh);
+  }, [location?.latitude, location?.longitude]));
 
 
   const SEARCH_ITEMS = [
@@ -464,10 +466,10 @@ export default function UserDashboard() {
     }
   };
   //  Load nearby shops using location only
-  const loadNearbyShops = async () => {
+  const loadNearbyShops = async (forceRefresh = false) => {
     try {
       // location already comes from store
-      if (!location?.latitude || !location?.longitude) return;
+      if (location?.latitude == null || location?.longitude == null) return;
 
       const response = await getAllNearbyShops(
         location.latitude,
@@ -476,7 +478,7 @@ export default function UserDashboard() {
 
       // backend returns ARRAY, not { data: [] }
       const list = Array.isArray(response) ? response : [];
-      const enriched = await enrichShopsWithMerchantDetails(list);
+      const enriched = await enrichShopsWithMerchantDetails(list, forceRefresh);
       setNearbyShops(enriched);
     } catch (error) {
       console.error('Failed to load nearby shops', error);
@@ -623,7 +625,7 @@ export default function UserDashboard() {
               <MaterialIcons name="location-on" size={24} color="#FF8C00" />
               </View>
 
-              <View>
+              <View style={styles.locationCopy}>
                 <Text style={styles.locationLabel}>YOUR LOCATION</Text>
 
                 <Text style={styles.locationText} numberOfLines={1}>
@@ -742,6 +744,10 @@ export default function UserDashboard() {
               </View>
             </TouchableOpacity>
           )}
+          <DealsStrip shops={nearbyShops} onPressShop={async shop => {
+            await setNavShop(shop);
+            router.push({ pathname: '/member-shop-details', params: { shopId: String(shop.id), source: 'user' } });
+          }} />
           {/* Exclusive Offer Card */}
 
           <View style={styles.offerCard}>
@@ -1461,20 +1467,16 @@ const styles = StyleSheet.create({
   },
   locationText: {
     fontSize: 14,
+    lineHeight: 21,
     fontWeight: '700',
-    flex: 1,
     color: "#0F172A",
-    maxWidth: 200,
-    whiteSpace: "nowrap",
-    textOverflow: "ellipsis",
-    overflow: "hidden"
   },
   locationCityText: {
     fontSize: 11,
+    lineHeight: 16,
     fontWeight: '500',
     color: '#64748B',
     marginTop: 1,
-    maxWidth: 200,
   },
   profileButton: {
     flexDirection: 'row',
@@ -2659,10 +2661,15 @@ const styles = StyleSheet.create({
 
   locationWrapper: {
     flexDirection: "row",
-    alignItems: "center"
+    alignItems: "center",
+    flex: 1,
+    minWidth: 0,
+    marginRight: 12,
   },
+  locationCopy: { flex: 1, minWidth: 0 },
 
   locationIcon: {
+    flexShrink: 0,
     width: 40,
     height: 40,
     borderRadius: 20,
@@ -2674,6 +2681,7 @@ const styles = StyleSheet.create({
 
   locationLabel: {
     fontSize: 11,
+    lineHeight: 15,
     color: "#8A97A6",
     fontWeight: "600"
   },
@@ -2681,6 +2689,7 @@ const styles = StyleSheet.create({
 
 
   headerIcons: {
+    flexShrink: 0,
     flexDirection: "row",
     alignItems: "center"
   },

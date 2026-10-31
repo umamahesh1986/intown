@@ -42,7 +42,7 @@ export interface RewardTier {
   min: number;
 }
 
-// Tier ladder by lifetime INPoints earned
+// Tier ladder by lifetime INcoins earned
 export const REWARD_TIERS: RewardTier[] = [
   { name: 'Bronze', min: 0 },
   { name: 'Silver', min: 25 },

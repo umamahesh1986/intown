@@ -1,6 +1,6 @@
 import { View, Text, TouchableOpacity, ScrollView, Image, Modal, Dimensions, ActivityIndicator, Alert, Platform, TextInput, Linking } from 'react-native';
-import { useState, useEffect, useRef } from 'react';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistance } from '../utils/formatDistance';
@@ -18,6 +18,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { styles } from '../styles/member-shop-details.styles';
 import { ShopDetailRow } from '../components/ShopDetailRow';
 import { getShopTagline } from '../utils/shopTagline';
+import { ShopShareModal } from '../components/ShopShareModal';
 
 const PROMO_HERO = require('../assets/images/promo/promo-3.jpg');
 
@@ -62,6 +63,8 @@ export default function MemberShopDetails() {
   const shopDataParam = params.shopData; // Deprecated — kept for backwards compat with any old deep links
 
   const [shop, setShop] = useState<ShopData | null>(null);
+  const [showShopShare, setShowShopShare] = useState(false);
+  const [offerNow, setOfferNow] = useState(Date.now());
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -233,28 +236,35 @@ export default function MemberShopDetails() {
   }, [shopId, categoryId]);
 
   // Nearby-search payloads omit gallery/offer fields — hydrate them from GET /IN/merchant/{id}
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     if (!shop?.id) return;
     let cancelled = false;
-    getMerchantDetailsById(shop.id).then((details) => {
+    const refreshOffer = () => getMerchantDetailsById(shop.id, true).then((details) => {
       if (cancelled || !details) return;
+      setOfferNow(Date.now());
       const images = extractImageUrls(details.s3ImageUrl);
       if (images.length > 0) setShopImages(images);
       setShop((prev: any) =>
         prev
           ? {
               ...prev,
+              images: details.images ?? prev.images,
+              profileImage: details.profileImage ?? prev.profileImage,
+              profileImageUrl: details.profileImageUrl ?? prev.profileImageUrl,
               s3ImageUrl: details.s3ImageUrl ?? prev.s3ImageUrl,
-              specialOffers: details.specialOffers ?? prev.specialOffers,
-              specialOfferEndDate: details.specialOfferEndDate ?? prev.specialOfferEndDate,
+              specialOffers: 'specialOffers' in details ? details.specialOffers : prev.specialOffers,
+              specialOfferEndDate: 'specialOfferEndDate' in details ? details.specialOfferEndDate : prev.specialOfferEndDate,
             }
           : prev,
       );
     });
+    void refreshOffer();
+    const timer = setInterval(() => { setOfferNow(Date.now()); void refreshOffer(); }, 30000);
     return () => {
       cancelled = true;
+      clearInterval(timer);
     };
-  }, [shop?.id]);
+  }, [shop?.id]));
 
   // Load customer ID on mount
   useEffect(() => {
@@ -627,7 +637,7 @@ export default function MemberShopDetails() {
   const userPhone = user?.phone || 'Not available';
 
   // Special offers from the merchant (My Account → Offer); hidden once the end date has passed
-  const activeSpecialOffers = getActiveSpecialOffers(shop);
+  const activeSpecialOffers = getActiveSpecialOffers(shop, offerNow);
   const specialOfferValidTill = formatOfferValidTill(shop);
   const specialOfferImage = getSpecialOfferImageUrl(shop);
 
@@ -694,7 +704,7 @@ export default function MemberShopDetails() {
           <ShopDetailRow icon="business-outline" tint="#FF8A00" tintBg="#FFF3E0" label="Business" value={shop.businessName || 'N/A'} />
           <ShopDetailRow icon="pricetag-outline" tint="#F5A623" tintBg="#FFF7E6" label="Category" value={shop.businessCategory || 'General'} />
           <ShopDetailRow icon="person-outline" tint="#2F80ED" tintBg="#EAF2FF" label="Contact Person" value={shop.contactName || 'N/A'} />
-          <ShopDetailRow
+          {/* <ShopDetailRow
             icon="location-outline"
             tint="#E53935"
             tintBg="#FDECEC"
@@ -705,7 +715,7 @@ export default function MemberShopDetails() {
                 <Text style={styles.liveGpsText}>Live GPS</Text>
               </View>
             }
-          />
+          /> */}
           <ShopDetailRow
             icon="call-outline"
             tint="#2E7D32"
@@ -826,12 +836,13 @@ export default function MemberShopDetails() {
           <Ionicons name="arrow-back" size={24} color="#1A1A1A" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Shop Details</Text>
-        <View style={styles.headerShareBtn} testID="shop-share-icon">
+        <TouchableOpacity style={styles.headerShareBtn} testID="shop-share-icon" onPress={() => setShowShopShare(true)} accessibilityRole="button" accessibilityLabel="Share merchant post">
           <Ionicons name="share-social-outline" size={22} color="#1A1A1A" />
-        </View>
+        </TouchableOpacity>
       </View>
 
       <ShopContent />
+      <ShopShareModal visible={showShopShare} onClose={() => setShowShopShare(false)} shop={shop} images={shopImages} />
 
       <View style={styles.bottomButtons}>
         <TouchableOpacity

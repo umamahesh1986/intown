@@ -144,7 +144,8 @@ export default function CommonBottomTabs({ tabs }: CommonBottomTabsProps) {
         const isActive = isTabActive(tab);
         
         // Fix: Explicitly cast the icon name to any for Ionicons compatibility
-        const iconName = (isActive ? tab.icon : `${tab.icon}-outline`) as any;
+        const passTab = pathname === '/member-card' && tab.name === 'Privilege';
+        const iconName = (isActive && !passTab ? tab.icon : `${tab.icon}-outline`) as any;
         const unread = unreadFor(tab.link);
 
         return (
@@ -160,6 +161,7 @@ export default function CommonBottomTabs({ tabs }: CommonBottomTabsProps) {
                 size={24} 
                 color={isActive ? INTOWN_ORANGE : '#666'} 
               />
+              {passTab && <View style={{ position: 'absolute', top: -3, right: -3, width: 7, height: 7, borderRadius: 4, backgroundColor: INTOWN_ORANGE, borderWidth: 1, borderColor: '#FFF' }} />}
               {unread > 0 && (
                 <View style={styles.tabBadge} testID={`bottom-tab-badge-${tab.name.toLowerCase()}`}>
                   <Text style={styles.tabBadgeText}>{unread > 9 ? '9+' : unread}</Text>
