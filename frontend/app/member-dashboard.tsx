@@ -46,6 +46,9 @@ import {
 import { setNavShop } from '../utils/navCache';
 import { DealsStrip } from '../components/DealsStrip';
 import { SavingsStatCards } from '../components/SavingsStatCards';
+import { RewardsCard, RewardsCardStats } from '../components/RewardsCard';
+import { AnimatedNumber } from '../components/AnimatedNumber';
+import { computeRewardsInsights } from '../utils/rewardsInsights';
 import { NearbyMerchantCard, sortSpecialOffersFirst, hasSpecialOffer } from '../components/NearbyMerchantCard';
 import { trackOfferEvent } from '../utils/offerAnalytics';
 
@@ -63,6 +66,7 @@ import { CATEGORY_ICON_MAP } from '../utils/categoryIconMap';
 import { FontStylesWithFallback } from '../utils/fonts';
 import { formatDistance } from '../utils/formatDistance';
 import { getSavingsPeriodTotals } from '../utils/savingsTotals';
+import { getProfileImage, pickPrimaryS3Url, setProfileImage as saveProfileImage } from '../utils/profileImage';
 import CommonBottomTabs from "../components/CommonBottomTabs";
 
 
@@ -226,11 +230,7 @@ export default function MemberDashboard() {
     thisYear: null,
   });
   const [isTransactionsLoading, setIsTransactionsLoading] = useState(false);
-  const [inPointsStats, setInPointsStats] = useState<{
-    totalEarned: number;
-    transactionCount: number;
-    averagePoints: number;
-  } | null>(null);
+  const [inPointsStats, setInPointsStats] = useState<RewardsCardStats | null>(null);
   const [isInPointsLoading, setIsInPointsLoading] = useState(true);
   const [inPointsError, setInPointsError] = useState(false);
   const [customerId, setCustomerId] = useState<string | null>(null);
@@ -310,7 +310,7 @@ const fetchInPointsStats = async () => {
 
     if (!historyResponse.ok) {
       throw new Error(
-        `INPoints history fetch failed: ${historyResponse.status}`
+        `INcoins history fetch failed: ${historyResponse.status}`
       );
     }
 
@@ -338,7 +338,7 @@ const fetchInPointsStats = async () => {
 
     if (!pointTransactions) {
       throw new Error(
-        'The INPoints API returned invalid points history.'
+        'The INcoins API returned invalid points history.'
       );
     }
 
@@ -346,7 +346,7 @@ const fetchInPointsStats = async () => {
       (item: unknown) => {
         if (!item || typeof item !== 'object') {
           throw new Error(
-            'The INPoints API returned an invalid transaction.'
+            'The INcoins API returned an invalid transaction.'
           );
         }
 
@@ -366,7 +366,7 @@ const fetchInPointsStats = async () => {
           !Number.isFinite(points)
         ) {
           throw new Error(
-            'The INPoints API returned an invalid transaction.'
+            'The INcoins API returned an invalid transaction.'
           );
         }
 
@@ -383,6 +383,7 @@ const fetchInPointsStats = async () => {
 
     if (isActive) {
       setInPointsStats({
+        ...computeRewardsInsights(pointTransactions),
         totalEarned,
         transactionCount,
         averagePoints: transactionCount
@@ -392,7 +393,7 @@ const fetchInPointsStats = async () => {
     }
   } catch (error: unknown) {
     console.error(
-      '[MemberDashboard] Failed to load INPoints history:',
+      '[MemberDashboard] Failed to load INcoins history:',
       error
     );
 
@@ -459,11 +460,12 @@ const fetchInPointsStats = async () => {
 
 
   //  Call nearby shops API when location is available
-  useEffect(() => {
-    if (location?.latitude && location?.longitude) {
-      loadNearbyShops();
-    }
-  }, [location?.latitude, location?.longitude]);
+  useFocusEffect(useCallback(() => {
+    if (location?.latitude == null || location?.longitude == null) return;
+    void loadNearbyShops(true);
+    const refresh = setInterval(() => { void loadNearbyShops(true); }, 60000);
+    return () => clearInterval(refresh);
+  }, [location?.latitude, location?.longitude]));
 
   const stopCategoriesAutoScroll = () => { };
   
@@ -605,7 +607,7 @@ const fetchInPointsStats = async () => {
       let isActive = true;
       const refreshProfileImage = async () => {
         try {
-          const storedProfileImage = await AsyncStorage.getItem('user_profile_image');
+          const storedProfileImage = await getProfileImage('customer');
           if (storedProfileImage && isActive) {
             setProfileImage(storedProfileImage);
           }
@@ -825,9 +827,9 @@ const fetchInPointsStats = async () => {
   };
 
   //  Load nearby shops using real API
-  const loadNearbyShops = async () => {
+  const loadNearbyShops = async (forceRefresh = false) => {
     // location comes from useLocationStore (already implemented)
-    if (!location?.latitude || !location?.longitude) return;
+    if (location?.latitude == null || location?.longitude == null) return;
 
     try {
       setIsNearbyLoading(true);
@@ -839,7 +841,7 @@ const fetchInPointsStats = async () => {
 
 
       const list = Array.isArray(response) ? response : [];
-      const enriched = await enrichShopsWithMerchantDetails(list);
+      const enriched = await enrichShopsWithMerchantDetails(list, forceRefresh);
       setNearbyShops(enriched);
 
     } catch (error) {
@@ -977,8 +979,9 @@ const fetchInPointsStats = async () => {
     if (!images.length) {
       throw new Error('No image URL returned from image fetch.');
     }
-    const latestImage = images[images.length - 1];
-    await AsyncStorage.setItem('user_profile_image', latestImage);
+    const latestImage = pickPrimaryS3Url(images);
+    if (!latestImage) throw new Error('No valid customer profile image returned.');
+    await saveProfileImage('customer', latestImage);
     await AsyncStorage.setItem('customer_profile_images', JSON.stringify(images));
     setProfileImage(latestImage);
   };
@@ -1070,7 +1073,7 @@ const fetchInPointsStats = async () => {
               <MaterialIcons name="location-on" size={24} color="#FF8C00" />
               </View>
 
-              <View>
+              <View style={styles.locationCopy}>
                 <Text style={styles.locationLabel}>YOUR LOCATION</Text>
                 <Text style={styles.locationName} numberOfLines={1}>
                   {getLocationDisplayText()}
@@ -1252,80 +1255,6 @@ const fetchInPointsStats = async () => {
     Unlock verified savings at 200+ local partners.
   </Text>
 </View> */}
-          {/* SUMMARY SECTION */}
-          <View style={{ paddingHorizontal: 16, marginTop: 10 }}>
-            <Text style={[styles.sectionTitle, { margin: 0, fontSize: 18 }]}>INtown Savings</Text>
-          </View>
-          <SavingsStatCards
-            testIDPrefix="member-savings"
-            items={[
-              { label: 'Today', value: todaySavedAmount ?? 0 },
-              { label: 'Month', value: monthSavedAmount ?? 0 },
-              { label: 'Year', value: yearSavedAmount ?? 0 },
-            ]}
-          />
-
-          
-
-             {/* REWARDS SECTION */}
-          <View style={styles.rewardsSection}>
-            <TouchableOpacity
-              style={styles.rewardsHeaderLink}
-              onPress={() => router.push('/rewards')}
-              activeOpacity={0.75}
-              accessibilityRole="button"
-              accessibilityLabel="Open My Rewards"
-            >
-              <Text style={styles.rewardsTitle}>My Rewards</Text>
-              <Ionicons name="chevron-forward" size={20} color="#888888" />
-            </TouchableOpacity>
-            <View style={styles.rewardsMetricsRow}>
-              {[
-                {
-                  label: 'Total earned',
-                  value: inPointsStats?.totalEarned,
-                  icon: 'trending-up-outline' as const,
-                },
-                {
-                  label: 'Transactions',
-                  value: inPointsStats?.transactionCount,
-                  icon: 'receipt-outline' as const,
-                },
-                {
-                  label: 'Avg. points',
-                  value: inPointsStats?.averagePoints,
-                  icon: 'sparkles-outline' as const,
-                },
-              ].map((stat) => (
-                <View key={stat.label} style={styles.rewardsMetricCard}>
-                  <Ionicons name={stat.icon} size={18} color="#FF8C00" />
-                  <Text style={styles.rewardsMetricValue}>
-                    {isInPointsLoading
-                      ? '...'
-                      : inPointsError
-                        ? '--'
-                        : (stat.value ?? 0).toLocaleString('en-IN')}
-                  </Text>
-                  <Text style={styles.rewardsMetricLabel} numberOfLines={1}>{stat.label}</Text>
-                </View>
-              ))}
-            </View>
-            <TouchableOpacity
-              style={styles.rewardsHistoryLink}
-              onPress={() => router.push('/rewards?historyOnly=true')}
-              activeOpacity={0.75}
-              accessibilityRole="button"
-              accessibilityLabel="Open INPoints history"
-            >
-              <View>
-                <Text style={styles.rewardsHistoryTitle}>INPoints History</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color="#888888" />
-            </TouchableOpacity>
-          </View>
-
-         
-
           {/* DEALS NEAR YOU — shops running a special offer, visible before picking a category */}
           <DealsStrip
             shops={nearbyShops}
@@ -1475,7 +1404,108 @@ const fetchInPointsStats = async () => {
             </View>
           )}
 
+          {/* SUMMARY SECTION */}
+          <View style={{ paddingHorizontal: 16, marginTop: 10 }}>
+            <Text style={[styles.sectionTitle, { margin: 0, fontSize: 18 }]}>INtown Savings</Text>
+          </View>
+          <SavingsStatCards
+            testIDPrefix="member-savings"
+            items={[
+              { label: 'Today', value: todaySavedAmount ?? 0 },
+              { label: 'Month', value: monthSavedAmount ?? 0 },
+              { label: 'Year', value: yearSavedAmount ?? 0 },
+            ]}
+          />
+
+          
+
+             {/* REWARDS SECTION */}
+          <View style={styles.rewardsSection}>
+            <TouchableOpacity
+              style={styles.rewardsHeaderLink}
+              onPress={() => router.push('/rewards')}
+              activeOpacity={0.75}
+              accessibilityRole="button"
+              accessibilityLabel="Open My Rewards"
+            >
+              <Text style={styles.rewardsTitle}>My Rewards</Text>
+              <Ionicons name="chevron-forward" size={20} color="#888888" />
+            </TouchableOpacity>
+            <View style={styles.rewardsMetricsRow}>
+              {[
+                {
+                  label: 'Total earned',
+                  value: inPointsStats?.totalEarned,
+                  icon: 'trending-up-outline' as const,
+                },
+                {
+                  label: 'Transactions',
+                  value: inPointsStats?.transactionCount,
+                  icon: 'receipt-outline' as const,
+                },
+                {
+                  label: 'Avg. points',
+                  value: inPointsStats?.averagePoints,
+                  icon: 'sparkles-outline' as const,
+                },
+              ].map((stat) => (
+                <View key={stat.label} style={styles.rewardsMetricCard}>
+                  <Ionicons name={stat.icon} size={18} color="#FF8C00" />
+                  <Text style={styles.rewardsMetricValue}>
+                    {isInPointsLoading
+                      ? '...'
+                      : inPointsError
+                        ? '--'
+                        : <AnimatedNumber value={stat.value ?? 0} />}
+                  </Text>
+                  <Text style={styles.rewardsMetricLabel} numberOfLines={1}>{stat.label}</Text>
+                </View>
+              ))}
+            </View>
+            <TouchableOpacity
+              style={styles.rewardsHistoryLink}
+              onPress={() => router.push('/rewards?historyOnly=true')}
+              activeOpacity={0.75}
+              accessibilityRole="button"
+              accessibilityLabel="Open INcoins history"
+            >
+              <View>
+                <Text style={styles.rewardsHistoryTitle}>INcoins History</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="#888888" />
+            </TouchableOpacity>
+          </View>
+
+         
+
           {/* FOOTER */}
+          {/* INTOWN SAVINGS + MY REWARDS — placed just above the footer */}
+          {/* SUMMARY SECTION */}
+          <View style={{ paddingHorizontal: 16, marginTop: 10 }}>
+            <Text style={[styles.sectionTitle, { margin: 0, fontSize: 18 }]}>INtown Savings</Text>
+          </View>
+          <SavingsStatCards
+            testIDPrefix="member-savings"
+            items={[
+              { label: 'Today', value: todaySavedAmount ?? 0 },
+              { label: 'Month', value: monthSavedAmount ?? 0 },
+              { label: 'Year', value: yearSavedAmount ?? 0 },
+            ]}
+          />
+
+          
+
+             {/* REWARDS SECTION */}
+          <RewardsCard
+            stats={inPointsStats}
+            loading={isInPointsLoading}
+            error={inPointsError}
+            onOpen={() => router.push('/rewards')}
+            onHistory={() => router.push('/rewards?historyOnly=true')}
+            onRedeem={() => router.push('/rewards')}
+            testIDPrefix="member-rewards"
+          />
+
           <Footer dashboardType="member" />
         </ScrollView>
 
@@ -1628,11 +1658,11 @@ const fetchInPointsStats = async () => {
               style={styles.userPanelItem}
               onPress={() => {
                 closeDropdown();
-                router.push('/member-card');
+                router.push({ pathname: '/member-card', params: { from: 'customer' } });
               }}
             >
               <Ionicons name="card-outline" size={22} color="#FF8C00" />
-              <Text style={styles.userPanelText}>Customer Card</Text>
+              <Text style={styles.userPanelText}>Privilege Pass</Text>
             </TouchableOpacity>
 
 
@@ -2729,9 +2759,14 @@ const styles = StyleSheet.create({
   locationSection: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
+    minWidth: 0,
+    marginRight: 12,
   },
+  locationCopy: { flex: 1, minWidth: 0 },
 
   locationIconBox: {
+    flexShrink: 0,
     width: 40,
     height: 40,
     borderRadius: 20,
@@ -2743,25 +2778,27 @@ const styles = StyleSheet.create({
 
   locationLabel: {
     fontSize: 11,
+    lineHeight: 15,
     color: '#999',
     fontWeight: '600',
   },
 
   locationName: {
     fontSize: 14,
+    lineHeight: 21,
     fontWeight: "700",
     color: "#0F172A",
-    maxWidth: 200,
   },
   locationCityText: {
     fontSize: 11,
+    lineHeight: 16,
     fontWeight: '500',
     color: '#64748B',
     marginTop: 1,
-    maxWidth: 200,
   },
 
   headerIcons: {
+    flexShrink: 0,
     flexDirection: 'row',
     alignItems: 'center',
   },

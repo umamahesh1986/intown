@@ -20,6 +20,8 @@ import {
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { MerchantOfferSummary } from '../components/MerchantOfferSummary';
+import { merchantRecord } from '../utils/merchantProfile';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NotificationBell from '../components/NotificationBell';
@@ -30,8 +32,12 @@ import { MaterialIcons } from '@expo/vector-icons';
 import Footer from '../components/Footer';
 import { getAllNearbyShops, getCategories, getMerchantImageByShopId, extractImageUrls, INTOWN_API_BASE, enrichShopsWithMerchantDetails } from '../utils/api';
 import { setNavShop } from '../utils/navCache';
+import { getProfileImage, refreshProfileImage as refreshStoredProfileImage } from '../utils/profileImage';
 import { DealsStrip } from '../components/DealsStrip';
 import { SavingsStatCards } from '../components/SavingsStatCards';
+import { RewardsCard, RewardsCardStats } from '../components/RewardsCard';
+import { computeRewardsInsights } from '../utils/rewardsInsights';
+import { MerchantPackBanner } from '../components/MerchantPackBanner';
 import { NearbyMerchantCard, sortSpecialOffersFirst, hasSpecialOffer } from '../components/NearbyMerchantCard';
 import { trackOfferEvent } from '../utils/offerAnalytics';
 import {
@@ -139,6 +145,8 @@ interface MerchantSummary {
 }
 
 interface MerchantDetails {
+  specialOffers?: string[];
+  specialOfferEndDate?: string;
   id: number;
   businessName: string;
   contactName: string;
@@ -330,11 +338,7 @@ export default function DualDashboard() {
   const [showAllTransactions, setShowAllTransactions] = useState(false);
   const CARD_WIDTH = 172;
 
-  const [inPointsStats, setInPointsStats] = useState<{
-  totalEarned: number;
-  transactionCount: number;
-  averagePoints: number;
-} | null>(null);
+  const [inPointsStats, setInPointsStats] = useState<RewardsCardStats | null>(null);
 
 const [isInPointsLoading, setIsInPointsLoading] = useState(true);
 const [inPointsError, setInPointsError] = useState(false);
@@ -398,15 +402,15 @@ useFocusEffect(
           inPointsCustomerId == null ||
           String(inPointsCustomerId).trim() === ''
         ) {
-          throw new Error('INPoints customer ID not found.');
+          throw new Error('INcoins customer ID not found.');
         }
 
         const url =
           `${INPOINTS_API_BASE}/points/customers/` +
           `${encodeURIComponent(String(inPointsCustomerId))}/history`;
 
-        console.log('[DualDashboard INPoints] Customer ID:', inPointsCustomerId);
-        console.log('[DualDashboard INPoints] URL:', url);
+        console.log('[DualDashboard INcoins] Customer ID:', inPointsCustomerId);
+        console.log('[DualDashboard INcoins] URL:', url);
 
         const response = await fetch(url, {
           method: 'GET',
@@ -417,12 +421,12 @@ useFocusEffect(
 
         const responseText = await response.text();
 
-        console.log('[DualDashboard INPoints] Status:', response.status);
-        console.log('[DualDashboard INPoints] Response:', responseText);
+        console.log('[DualDashboard INcoins] Status:', response.status);
+        console.log('[DualDashboard INcoins] Response:', responseText);
 
         if (!response.ok) {
           throw new Error(
-            `INPoints API failed: ${response.status} ${responseText}`
+            `INcoins API failed: ${response.status} ${responseText}`
           );
         }
 
@@ -455,7 +459,7 @@ useFocusEffect(
 
         if (!transactions) {
           throw new Error(
-            'Transactions array is missing from the INPoints API response.'
+            'Transactions array is missing from the INcoins API response.'
           );
         }
 
@@ -493,6 +497,7 @@ useFocusEffect(
 
         if (isActive) {
           setInPointsStats({
+            ...computeRewardsInsights(transactions),
             totalEarned,
             transactionCount,
             averagePoints: transactionCount
@@ -504,7 +509,7 @@ useFocusEffect(
         }
       } catch (error) {
         console.error(
-          '[DualDashboard] Failed to fetch INPoints:',
+          '[DualDashboard] Failed to fetch INcoins:',
           error
         );
 
@@ -543,10 +548,11 @@ useFocusEffect(
       let isActive = true;
       const refreshProfileImage = async () => {
         try {
-          const storedProfileImage = await AsyncStorage.getItem('user_profile_image');
-          if (storedProfileImage && isActive) {
-            setProfileImage(storedProfileImage);
-          }
+          const role = activeTab === 'merchant' ? 'merchant' : 'customer';
+          const storedProfileImage = await getProfileImage(role);
+          if (isActive) setProfileImage(storedProfileImage);
+          const latest = await refreshStoredProfileImage(role, INTOWN_API_BASE);
+          if (isActive) setProfileImage(latest);
         } catch (error) {
           console.error('Error refreshing profile image:', error);
         }
@@ -574,17 +580,18 @@ useFocusEffect(
       return () => {
         isActive = false;
       };
-    }, [])
+    }, [activeTab])
   );
 
-  useEffect(() => {
-    if (location?.latitude && location?.longitude) {
-      loadNearbyShops();
-    }
-  }, [location?.latitude, location?.longitude]);
+  useFocusEffect(useCallback(() => {
+    if (location?.latitude == null || location?.longitude == null) return;
+    void loadNearbyShops(true);
+    const refresh = setInterval(() => { void loadNearbyShops(true); }, 60000);
+    return () => clearInterval(refresh);
+  }, [location?.latitude, location?.longitude]));
 
-  // Fetch merchant details from API when merchantId is available
-  useEffect(() => {
+  // Refresh after returning from Account as well as on the first visit.
+  useFocusEffect(useCallback(() => {
     if (!merchantId) return;
 
     const fetchMerchantDetails = async () => {
@@ -601,8 +608,13 @@ useFocusEffect(
         if (!res.ok) {
           throw new Error(`Merchant details fetch failed: ${res.status}`);
         }
-        const data: MerchantDetails = await res.json();
+        const data = merchantRecord(await res.json()) as MerchantDetails | null;
+        if (!data) throw new Error('Invalid merchant details response');
         setMerchantDetails(data);
+        const cached = await AsyncStorage.getItem('user_search_response');
+        let search: any = {};
+        try { search = cached ? JSON.parse(cached) : {}; } catch {}
+        await AsyncStorage.setItem('user_search_response', JSON.stringify({ ...search, merchant: data }));
         
         // Extract and set images from API response
         if (data.s3ImageUrl && Array.isArray(data.s3ImageUrl) && data.s3ImageUrl.length > 0) {
@@ -618,7 +630,7 @@ useFocusEffect(
     };
 
     fetchMerchantDetails();
-  }, [merchantId]);
+  }, [merchantId]));
 
 
   // Request location permission on mount
@@ -676,8 +688,8 @@ useFocusEffect(
     }
   };
 
-  const loadNearbyShops = async () => {
-    if (!location?.latitude || !location?.longitude) return;
+  const loadNearbyShops = async (forceRefresh = false) => {
+    if (location?.latitude == null || location?.longitude == null) return;
 
     try {
       setIsNearbyLoading(true);
@@ -686,7 +698,7 @@ useFocusEffect(
         location.longitude,
       );
       const list = Array.isArray(response) ? response : [];
-      const enriched = await enrichShopsWithMerchantDetails(list);
+      const enriched = await enrichShopsWithMerchantDetails(list, forceRefresh);
       setNearbyShops(enriched);
     } catch (error) {
       console.error('Failed to load nearby shops:', error);
@@ -808,10 +820,6 @@ useFocusEffect(
       const storedShopName = await AsyncStorage.getItem('merchant_shop_name');
       if (storedShopName) {
         setMerchantShopName(storedShopName);
-      }
-      const storedProfileImage = await AsyncStorage.getItem('user_profile_image');
-      if (storedProfileImage) {
-        setProfileImage(storedProfileImage);
       }
     } catch (error) {
       console.error('Error loading user data:', error);
@@ -1049,7 +1057,7 @@ useFocusEffect(
           </View>
         </TouchableOpacity>
 
-        <View style={{ flexDirection: "row", alignItems: "center" }}>
+        <View style={{ flexDirection: "row", alignItems: "center", flexShrink: 0 }}>
 
           {/* Notification */}
           <NotificationBell iconSize={20} iconColor="#333" buttonStyle={styles.notificationCircle} />
@@ -1144,11 +1152,11 @@ useFocusEffect(
               style={styles.userPanelItem}
               onPress={() => {
                 closeDropdown();
-                router.push('/member-card');
+                router.push({ pathname: '/member-card', params: { from: 'dual' } });
               }}
             >
               <Ionicons name="card-outline" size={22} color="#FF8A00" />
-              <Text style={styles.userPanelText}>Member Card</Text>
+              <Text style={styles.userPanelText}>Privilege Pass</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.userPanelItem}
@@ -1375,92 +1383,26 @@ useFocusEffect(
             </View>
           </View>
         )}
-        {/* Quick Stats */}
-        <View style={{ paddingHorizontal: 16, marginTop: 10 }}>
-          <Text style={[styles.sectionTitle, { margin: 0, fontSize: 18 }]}>{activeTab === 'customer' ? "INtown Savings" : "INtown Business"}</Text>
-          
-        </View>
-        <SavingsStatCards
-          testIDPrefix={activeTab === 'customer' ? 'dual-savings' : 'dual-business'}
-          items={
-            activeTab === 'customer'
-              ? [
-                  { label: 'Today', value: customerTodaySaved ?? 0 },
-                  { label: 'Month', value: customerMonthSaved ?? 0 },
-                  { label: 'Year', value: customerYearSaved ?? 0 },
-                ]
-              : [
-                  { label: 'Today', value: merchantTodaySales ?? 0 },
-                  { label: 'Month', value: merchantMonthSales ?? 0 },
-                  { label: 'Year', value: merchantYearSales ?? 0 },
-                ]
-          }
-        />
+        {/* Quick Stats — merchant tab keeps INtown Business on top; customer savings + rewards moved above the footer */}
+        {activeTab === 'merchant' && (
+          <>
+            <View style={{ paddingHorizontal: 16, marginTop: 10 }}>
+              <Text style={[styles.sectionTitle, { margin: 0, fontSize: 18 }]}>INtown Business</Text>
+            </View>
+            <SavingsStatCards
+              testIDPrefix="dual-business"
+              items={[
+                { label: 'Today', value: merchantTodaySales ?? 0 },
+                { label: 'Month', value: merchantMonthSales ?? 0 },
+                { label: 'Year', value: merchantYearSales ?? 0 },
+              ]}
+            />
+          </>
+        )}
 
-        
-{/* REWARDS SECTION — SAME AS MEMBER DASHBOARD */}
-{activeTab === 'customer' && (
-  <View style={styles.rewardsSection}>
-    <TouchableOpacity
-      style={styles.rewardsHeaderLink}
-      onPress={() => router.push('/rewards')}
-      activeOpacity={0.75}
-      accessibilityRole="button"
-      accessibilityLabel="Open My Rewards"
-    >
-      <Text style={styles.rewardsTitle}>My Rewards</Text>
-      <Ionicons name="chevron-forward" size={20} color="#888888" />
-    </TouchableOpacity>
-
-    <View style={styles.rewardsMetricsRow}>
-      {[
-        {
-          label: 'Total earned',
-          value: inPointsStats?.totalEarned,
-          icon: 'trending-up-outline' as const,
-        },
-        {
-          label: 'Transactions',
-          value: inPointsStats?.transactionCount,
-          icon: 'receipt-outline' as const,
-        },
-        {
-          label: 'Avg. points',
-          value: inPointsStats?.averagePoints,
-          icon: 'sparkles-outline' as const,
-        },
-      ].map((stat) => (
-        <View key={stat.label} style={styles.rewardsMetricCard}>
-          <Ionicons name={stat.icon} size={18} color="#FF8C00" />
-
-          <Text style={styles.rewardsMetricValue}>
-            {isInPointsLoading
-              ? '...'
-              : inPointsError
-                ? '--'
-                : (stat.value ?? 0).toLocaleString('en-IN')}
-          </Text>
-
-          <Text style={styles.rewardsMetricLabel} numberOfLines={1}>
-            {stat.label}
-          </Text>
-        </View>
-      ))}
-    </View>
-
-    <TouchableOpacity
-      style={styles.rewardsHistoryLink}
-      onPress={() => router.push('/rewards?historyOnly=true')}
-      activeOpacity={0.75}
-      accessibilityRole="button"
-      accessibilityLabel="Open INPoints history"
-    >
-      <Text style={styles.rewardsHistoryTitle}>INPoints History</Text>
-      <Ionicons name="chevron-forward" size={20} color="#888888" />
-    </TouchableOpacity>
-  </View>
-)}
-
+        {/* MERCHANT PACK — current START/LAUNCH pack with Choose/Upgrade → Privilege page (Razorpay) */}
+        {activeTab === 'merchant' && <MerchantPackBanner />}
+        {activeTab === 'merchant' && <MerchantOfferSummary merchant={merchantDetails} from="dual-merchant" />}
 
         {/* Transactions Section (merchant tab only — customers see deals instead) */}
         {activeTab === 'merchant' && (
@@ -1689,6 +1631,33 @@ useFocusEffect(
             </ScrollView>
           </View>
         )}
+
+        {/* INTOWN SAVINGS + MY REWARDS (customer tab) — placed just above the footer */}
+        {activeTab === 'customer' && (
+          <>
+            <View style={{ paddingHorizontal: 16, marginTop: 10 }}>
+              <Text style={[styles.sectionTitle, { margin: 0, fontSize: 18 }]}>INtown Savings</Text>
+            </View>
+            <SavingsStatCards
+              testIDPrefix="dual-savings"
+              items={[
+                { label: 'Today', value: customerTodaySaved ?? 0 },
+                { label: 'Month', value: customerMonthSaved ?? 0 },
+                { label: 'Year', value: customerYearSaved ?? 0 },
+              ]}
+            />
+            <RewardsCard
+              stats={inPointsStats}
+              loading={isInPointsLoading}
+              error={inPointsError}
+              onOpen={() => router.push('/rewards')}
+              onHistory={() => router.push('/rewards?historyOnly=true')}
+              onRedeem={() => router.push('/rewards')}
+              testIDPrefix="dual-rewards"
+            />
+          </>
+        )}
+
         <Footer dashboardType={activeTab === 'customer' ? 'member' : 'merchant'} />
       </ScrollView>
 
@@ -1889,10 +1858,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
+    minWidth: 0,
+    marginRight: 12,
   },
   locationTextContainer: {
     marginLeft: 8,
     flex: 1,
+    minWidth: 0,
   },
   locationRow: {
     flexDirection: 'row',
@@ -1900,18 +1872,21 @@ const styles = StyleSheet.create({
   },
   locationText: {
     fontSize: 16,
+    lineHeight: 22,
     fontWeight: '600',
     color: '#0F172A',
-    flex: 1,
+    flexShrink: 0,
   },
   locationCityText: {
     fontSize: 11,
+    lineHeight: 16,
     fontWeight: '500',
     color: '#64748B',
     marginTop: 1,
   },
   welcomeText: {
     fontSize: 10,
+    lineHeight: 14,
     fontWeight: '600',
     color: '#64748B',
   },
@@ -2621,6 +2596,7 @@ const styles = StyleSheet.create({
     color: "#1A1A1A"
   },
   locationIconCircle: {
+    flexShrink: 0,
     width: 36,
     height: 36,
     borderRadius: 18,

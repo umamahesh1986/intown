@@ -3,7 +3,7 @@ import Constants from 'expo-constants';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { INTOWN_API_BASE } from './api';
+import { INTOWN_API_BASE, BACKEND_URL } from './api';
 import { NotificationItem, NotificationKind } from '../store/notificationStore';
 
 export const isNativePush = Platform.OS === 'ios' || Platform.OS === 'android';
@@ -46,27 +46,32 @@ export const ensureAndroidChannel = async () => {
   });
 };
 
-// Sends the Expo push token to the backend for every role the user has.
-// Contract: PUT {INTOWN_API_BASE}/merchants/{id}/push-token  and  /customers/{id}/push-token
-// Body: { expoPushToken: string, platform: 'ios' | 'android' }
+// Sends the Expo push token to the push relay (our backend) for every role the user has.
+// Relay: PUT {BACKEND_URL}/api/push/tokens  { role, userId, expoPushToken, platform }
+// Also tries the INtown API contract (PUT /merchants/{id}/push-token) best-effort for when it ships.
 const sendTokenToBackend = async (token: string, ids: { merchantId?: string | null; customerId?: string | null }) => {
-  const targets: string[] = [];
-  if (ids.merchantId) targets.push(`${INTOWN_API_BASE}/merchants/${ids.merchantId}/push-token`);
-  if (ids.customerId) targets.push(`${INTOWN_API_BASE}/customers/${ids.customerId}/push-token`);
-  if (targets.length === 0) return false;
+  const roles: Array<{ role: 'merchant' | 'customer'; userId: string }> = [];
+  if (ids.merchantId) roles.push({ role: 'merchant', userId: String(ids.merchantId) });
+  if (ids.customerId) roles.push({ role: 'customer', userId: String(ids.customerId) });
+  if (roles.length === 0) return false;
 
   const results = await Promise.all(
-    targets.map(async (url) => {
+    roles.map(async ({ role, userId }) => {
+      fetch(`${INTOWN_API_BASE}/${role}s/${userId}/push-token`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ expoPushToken: token, platform: Platform.OS }),
+      }).catch(() => {});
       try {
-        const res = await fetch(url, {
+        const res = await fetch(`${BACKEND_URL}/api/push/tokens`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-          body: JSON.stringify({ expoPushToken: token, platform: Platform.OS }),
+          body: JSON.stringify({ role, userId, expoPushToken: token, platform: Platform.OS }),
         });
-        if (!res.ok) console.warn('[push] token registration failed', url, res.status);
+        if (!res.ok) console.warn('[push] relay token registration failed', role, res.status);
         return res.ok;
       } catch (e) {
-        console.warn('[push] token registration error', url, e);
+        console.warn('[push] relay token registration error', role, e);
         return false;
       }
     }),
@@ -128,7 +133,8 @@ export const notificationFromPushData = (
   const pickupId = String(data?.pickup_id ?? '');
   if (!pickupId || !data?.type) return null;
   const status = String(data.status || '').toUpperCase();
-  const isMerchant = data.type === 'ORDER_RECEIVED_MERCHANT' || data.type === 'ORDER_PICKED_UP_MERCHANT';
+  const isMerchant =
+    data.type === 'ORDER_RECEIVED_MERCHANT' || data.type === 'ORDER_PICKED_UP_MERCHANT' || data.type === 'ORDER_CANCELLED_MERCHANT';
   return {
     kind: data.type,
     title: data.title || fallbackTitle || 'Order update',

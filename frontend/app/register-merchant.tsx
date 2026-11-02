@@ -28,6 +28,8 @@ import {
   INTOWN_API_BASE,
 } from '../utils/api';
 import { styles } from '../styles/register-merchant.styles';
+import { MERCHANT_PLANS, MERCHANT_GST_RATE, MerchantPlanId, setMerchantPlan } from '../utils/merchantPlans';
+import { loadRazorpayWebScript, openRazorpayWeb } from '../utils/razorpayWeb';
 
 
 
@@ -237,51 +239,9 @@ export default function RegisterMerchant() {
   const [errors, setErrors] = useState<any>({});
 
   /* ================= JOINING FEE PAYMENT STATE ================= */
-  const GST_RATE = 1.18;
-  const PLANS = [
-    {
-      id: 'START' as const,
-      name: 'START',
-      basePrice: 499,
-      features: [
-        { label: 'Lifetime INtown access', included: true },
-        { label: 'Store profile', included: true },
-        { label: 'Products / services', included: true },
-        { label: 'Create offers', included: true },
-        { label: 'Basic analytics', included: true },
-        { label: 'Pick @ store', included: false },
-        { label: 'Slot Booking', included: false },
-        { label: 'Circle', included: false },
-        { label: 'Featured visibility', included: false },
-        { label: 'Promotional campaign', included: false },
-        { label: 'Promotional creative', included: false },
-        { label: 'Social Media promotion', included: false },
-        { label: 'Campaign report', included: false },
-      ],
-    },
-    {
-      id: 'LAUNCH' as const,
-      name: 'LAUNCH',
-      basePrice: 999,
-      recommended: true,
-      features: [
-        { label: 'Lifetime INtown access', included: true },
-        { label: 'Store profile', included: true },
-        { label: 'Products / services', included: true },
-        { label: 'Create offers', included: true },
-        { label: 'Basic analytics', included: true },
-        { label: 'Pick @ store', included: true },
-        { label: 'Slot Booking', included: true },
-        { label: 'Circle', included: true },
-        { label: 'Featured visibility', included: true },
-        { label: 'Promotional campaign', included: true },
-        { label: 'Promotional creative', included: true },
-        { label: 'Social Media promotion', included: true },
-        { label: 'Campaign report', included: true },
-      ],
-    },
-  ];
-  const [selectedPlanId, setSelectedPlanId] = useState<'START' | 'LAUNCH'>('LAUNCH');
+  const GST_RATE = 1 + MERCHANT_GST_RATE;
+  const PLANS = MERCHANT_PLANS;
+  const [selectedPlanId, setSelectedPlanId] = useState<MerchantPlanId>('LAUNCH');
   const selectedPlan = PLANS.find(p => p.id === selectedPlanId) || PLANS[0];
   const JOINING_FEE_AMOUNT = Math.round(selectedPlan.basePrice * GST_RATE * 100) / 100;
   const RAZORPAY_KEY_ID = 'rzp_live_RrNfvARmKIkZ7C';
@@ -806,40 +766,6 @@ export default function RegisterMerchant() {
 
   /* ================= JOINING FEE PAYMENT HANDLER ================= */
 
-  const loadRazorpayWebScript = (): Promise<boolean> => {
-    return new Promise((resolve) => {
-      if (typeof document === 'undefined') return resolve(false);
-      if ((window as any).Razorpay) return resolve(true);
-      const script = document.createElement('script');
-      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-      script.async = true;
-      script.onload = () => resolve(true);
-      script.onerror = () => resolve(false);
-      document.body.appendChild(script);
-    });
-  };
-
-  const openRazorpayWeb = (options: any): Promise<any> => {
-    return new Promise((resolve, reject) => {
-      const RazorpayCtor = (window as any).Razorpay;
-      if (!RazorpayCtor) {
-        reject(new Error('Razorpay SDK not available'));
-        return;
-      }
-      const rzp = new RazorpayCtor({
-        ...options,
-        handler: (response: any) => resolve(response),
-        modal: {
-          ondismiss: () => reject({ code: 'PAYMENT_CANCELLED', description: 'User cancelled payment' }),
-        },
-      });
-      rzp.on('payment.failed', (resp: any) => {
-        reject(resp?.error || new Error('Payment failed'));
-      });
-      rzp.open();
-    });
-  };
-
   const handlePayJoiningFee = async () => {
     setPaymentError('');
 
@@ -962,7 +888,7 @@ export default function RegisterMerchant() {
       });
       setPaymentCompleted(true);
       setPaymentError('');
-      Alert.alert('Payment received successfully', 'Your ₹499 joining fee has been received. Please accept the terms and complete your registration.');
+      Alert.alert('Payment received successfully', `Your ${selectedPlan.name} pack fee (₹${JOINING_FEE_AMOUNT.toFixed(0)} incl. GST) has been received. Please accept the terms and complete your registration.`);
     } catch (err: any) {
       console.error('Joining fee payment error:', err);
       setPaymentCompleted(false);
@@ -988,7 +914,7 @@ export default function RegisterMerchant() {
       return;
     }
     if (!paymentCompleted || !paymentDetails?.razorpayPaymentId) {
-      Alert.alert('Payment Required', 'Please pay the ₹499 joining fee before completing registration.');
+      Alert.alert('Payment Required', `Please pay the ${selectedPlan.name} pack fee before completing registration.`);
       return;
     }
 
@@ -1056,6 +982,8 @@ export default function RegisterMerchant() {
       if (merchantId) {
         await AsyncStorage.setItem('merchant_id', String(merchantId));
       }
+      // Remember the pack bought at registration (shown on Privilege page / My Account)
+      await setMerchantPlan(merchantId, selectedPlanId);
       if (contactName) {
         await AsyncStorage.setItem('merchant_contact_name', contactName);
       }

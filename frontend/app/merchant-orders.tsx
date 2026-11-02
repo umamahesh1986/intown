@@ -11,6 +11,7 @@ import {
   PickupOrder,
   PickupOrderStatus,
 } from '../utils/api';
+import { pushMerchantOrderEvent } from '../utils/orderPush';
 import { pollMerchantOrders } from '../components/OrderNotificationPoller';
 
 const TABS: { key: PickupOrderStatus; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
@@ -176,8 +177,10 @@ export default function MerchantOrdersScreen() {
     try {
       if (nextInfo.kind === 'action' && nextInfo.action) {
         await performMerchantOrderAction(merchantId, order.pickup_id, nextInfo.action);
+        pushMerchantOrderEvent(order, nextInfo.action === 'ACCEPT' ? 'ACCEPTED' : 'PICKUP_READY');
       } else if (nextInfo.kind === 'confirm') {
         await confirmMerchantOrderDelivery(merchantId, order.pickup_id);
+        pushMerchantOrderEvent(order, 'COMPLETED');
       }
       // Optimistic local update
       setOrders((prev) =>
@@ -197,6 +200,7 @@ export default function MerchantOrdersScreen() {
       setUpdatingId(order.pickup_id);
       try {
         await performMerchantOrderAction(merchantId, order.pickup_id, 'REJECT');
+        pushMerchantOrderEvent(order, 'REJECTED');
         // Optimistic — move to ENDED with reason
         setOrders((prev) =>
           prev.map((o) =>

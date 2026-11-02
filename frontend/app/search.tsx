@@ -20,10 +20,19 @@ import {
   ExpoSpeechRecognitionModule,
   useSpeechRecognitionEvent,
 } from 'expo-speech-recognition';
-import { searchProducts } from '../utils/api';
+import { searchProducts, getAllNearbyShops } from '../utils/api';
 import { useLocationStore } from '../store/locationStore';
 import { addRecentSearch, clearRecentSearches, loadRecentSearches } from '../utils/recentSearches';
 import { RecentSearches } from '../components/RecentSearches';
+import { setNavShop } from '../utils/navCache';
+
+type NearbyShop = { id: number | string; businessName?: string; shopName?: string; businessCategory?: string; distance?: number | string };
+
+const MAX_SHOP_SUGGESTIONS = 5;
+const formatKm = (d?: number | string) => {
+  const n = Number(d);
+  return Number.isFinite(n) && n > 0 ? `${n < 1 ? n.toFixed(1) : n.toFixed(n < 10 ? 1 : 0)} km` : '';
+};
 
 const VOICE_LANG_STORAGE_KEY = 'voice_search_lang';
 
@@ -66,11 +75,42 @@ export default function Search() {
   const [loading, setLoading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const [nearbyShops, setNearbyShops] = useState<NearbyShop[]>([]);
   const inputRef = useRef<TextInput>(null);
+  const location = useLocationStore((s) => s.location);
 
   useEffect(() => {
     loadRecentSearches().then(setRecentSearches);
   }, []);
+
+  // Nearby shop names for "Shops near you" suggestions
+  useEffect(() => {
+    if (!location?.latitude || !location?.longitude) return;
+    let cancelled = false;
+    getAllNearbyShops(location.latitude, location.longitude)
+      .then((list) => { if (!cancelled) setNearbyShops(Array.isArray(list) ? list : []); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [location?.latitude, location?.longitude]);
+
+  const shopMatches: NearbyShop[] = (() => {
+    const q = searchText.trim().toLowerCase();
+    if (!q) return [];
+    return nearbyShops
+      .filter((s) => (s.businessName || s.shopName || '').toLowerCase().includes(q))
+      .slice(0, MAX_SHOP_SUGGESTIONS);
+  })();
+
+  const openShop = async (shop: NearbyShop) => {
+    const name = shop.businessName || shop.shopName || '';
+    setShowSuggestions(false);
+    addRecentSearch(name).then(setRecentSearches);
+    await setNavShop(shop as any);
+    router.push({
+      pathname: '/member-shop-details',
+      params: { shopId: String(shop.id), categoryId: '', source },
+    });
+  };
 
   // Remembers the term (last 5) and opens the shop list for it
   const goToResults = (term: string) => {
@@ -429,8 +469,35 @@ export default function Search() {
           )}
 
           {/* PRODUCT SUGGESTIONS */}
-          {showSuggestions && results.length > 0 && (
+          {showSuggestions && (results.length > 0 || shopMatches.length > 0) && (
             <View style={styles.suggestionBox}>
+              {shopMatches.length > 0 && (
+                <>
+                  <Text style={styles.suggestionSection} testID="search-shops-header">Shops near you</Text>
+                  {shopMatches.map((shop, index) => (
+                    <TouchableOpacity
+                      key={`shop-${shop.id}`}
+                      style={styles.suggestionItem}
+                      onPress={() => openShop(shop)}
+                      testID={`search-shop-suggestion-${index}`}
+                    >
+                      <View style={styles.shopIcon}>
+                        <Ionicons name="storefront" size={14} color="#FF8A00" />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.suggestionText} numberOfLines={1}>{shop.businessName || shop.shopName}</Text>
+                        <Text style={styles.suggestionSub} numberOfLines={1}>
+                          {[shop.businessCategory, formatKm(shop.distance)].filter(Boolean).join(' · ')}
+                        </Text>
+                      </View>
+                      <Ionicons name="chevron-forward" size={16} color="#BBB" />
+                    </TouchableOpacity>
+                  ))}
+                </>
+              )}
+              {results.length > 0 && shopMatches.length > 0 && (
+                <Text style={styles.suggestionSection}>Products</Text>
+              )}
               {results.map((item, index) => (
                 <TouchableOpacity
                   key={item.id ?? index}
@@ -610,6 +677,8 @@ const styles = StyleSheet.create({
     borderColor: '#eee',
     zIndex: 999,
     elevation: 12,
+    maxHeight: 420,
+    overflow: 'hidden',
   },
   suggestionItem: {
     flexDirection: 'row',
@@ -621,6 +690,25 @@ const styles = StyleSheet.create({
   suggestionText: {
     marginLeft: 8,
     fontSize: 14,
+  },
+  suggestionSub: { marginLeft: 8, fontSize: 11, color: '#8A94A6', marginTop: 1 },
+  suggestionSection: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#8A94A6',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+    paddingHorizontal: 12,
+    paddingTop: 10,
+    paddingBottom: 4,
+  },
+  shopIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: '#FFF3E0',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   // Voice search

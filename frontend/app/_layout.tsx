@@ -169,7 +169,9 @@ export default function RootLayout() {
     { name: 'Profile', icon: 'person', link: '/account' },
   ];
 
-  const tabs = isMerchant ? merchantTabs : customerTabs;
+  const tabs = pathname === '/member-card'
+    ? customerTabs.map(tab => tab.name === 'Privilege' ? { ...tab, link: '/member-card' } : tab)
+    : isMerchant ? merchantTabs : customerTabs;
 
   return (
     <View style={{ flex: 1, backgroundColor: '#FFFFFF', ...(Platform.OS === 'web' ? { minHeight: '100vh' } : {}) } as any}>

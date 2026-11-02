@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuthStore } from '../store/authStore';
 import { confirmCustomerOrderReceived, PickupOrder, PickupOrderStatus } from '../utils/api';
+import { pushCustomerPickedUp } from '../utils/orderPush';
 import { pollCustomerOrders } from '../components/OrderNotificationPoller';
 import PaymentModal from '../components/PaymentModal';
 
@@ -78,6 +79,7 @@ export default function MyOrdersScreen() {
     setConfirmingId(order.pickup_id);
     try {
       await confirmCustomerOrderReceived(customerId, order.pickup_id);
+      pushCustomerPickedUp(order);
       // Optimistic — mark customerReceivedAt so the button hides
       setOrders((prev) =>
         prev.map((o) =>

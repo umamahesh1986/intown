@@ -1,12 +1,16 @@
 // metro.config.js
 const { getDefaultConfig } = require("expo/metro-config");
 const path = require('path');
+const fs = require('fs');
 const { FileStore } = require('metro-cache');
 
 const config = getDefaultConfig(__dirname);
 
 // Use a stable on-disk store (shared across web/android)
 const root = process.env.METRO_CACHE_ROOT || path.join(__dirname, '.metro-cache');
+// Keep the module index local and separate across Node serialization versions.
+config.fileMapCacheDirectory = path.join(root, `file-map-node-${process.versions.node.split('.')[0]}`);
+fs.mkdirSync(config.fileMapCacheDirectory, { recursive: true });
 config.cacheStores = [
   new FileStore({ root: path.join(root, 'cache') }),
 ];
