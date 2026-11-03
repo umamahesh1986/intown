@@ -5,6 +5,8 @@
   },
   "build": {
     "development": {
+      "node": "22.23.4",
+      "yarn": "1.22.22",
       "developmentClient": true,
       "distribution": "internal",
       "env": {
@@ -15,6 +17,8 @@
       }
     },
     "preview": {
+      "node": "22.23.4",
+      "yarn": "1.22.22",
       "distribution": "internal",
       "android": {
         "buildType": "apk"
@@ -27,6 +31,8 @@
       }
     },
     "production": {
+      "node": "22.23.4",
+      "yarn": "1.22.22",
       "autoIncrement": true,
       "env": {
         "EAS_BUILD_DISABLE_NPM_CACHE": "1",

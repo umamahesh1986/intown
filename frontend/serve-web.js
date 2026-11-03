@@ -1,6 +1,8 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const { createShareImageMiddleware } = require('./share-image-middleware.cjs');
+const shareImage = createShareImageMiddleware();
 
 const PORT = 3000;
 const DIST_DIR = path.join(__dirname, 'dist');
@@ -26,7 +28,7 @@ const MIME_TYPES = {
   '.webm': 'video/webm',
 };
 
-const server = http.createServer((req, res) => {
+const server = http.createServer((req, res) => shareImage(req, res, () => {
   // Decode URI and remove query string
   let urlPath = decodeURIComponent(req.url.split('?')[0]);
   
@@ -60,7 +62,7 @@ const server = http.createServer((req, res) => {
     res.writeHead(404, { 'Content-Type': 'text/plain' });
     res.end('Not Found');
   }
-});
+}));
 
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`IntownLocal web preview running on http://0.0.0.0:${PORT}`);

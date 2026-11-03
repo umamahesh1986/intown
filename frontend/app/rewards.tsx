@@ -141,7 +141,7 @@ export default function RewardsScreen() {
           id: transaction.id,
           kind: 'POINTS',
           title: transaction.merchantName || 'Purchase reward',
-          detail: `Points credited · #TXN${transaction.id}`,
+          detail: `INcoins credited · #TXN${transaction.id}`,
           value: points,
           date: createdDate && Number.isFinite(createdDate.getTime())
             ? createdDate.toLocaleString()
@@ -388,7 +388,7 @@ export default function RewardsScreen() {
                     <View style={[styles.balanceContainer, isCompact && styles.balanceContainerCompact]}>
                       <Text style={styles.balanceLabel}>YOUR AVAILABLE BALANCE</Text>
                       <Text style={[styles.balanceValue, isCompact && styles.balanceValueCompact]}>
-                        <AnimatedNumber value={balance} precision={2} /> <Text style={styles.ptsUnit}>POINTS</Text>
+                        <AnimatedNumber value={balance} precision={2} /> <Text style={styles.ptsUnit}>INcoins</Text>
                       </Text>
                     </View>
                   </LinearGradient>
@@ -408,7 +408,7 @@ export default function RewardsScreen() {
                   <Animated.View entering={FadeInDown.delay(260).duration(550).springify()} layout={LinearTransition.springify()} style={[styles.statCard, isCompact && styles.statCardCompact]}>
                     <Ionicons name="sparkles-outline" size={18} color="#FF9B24" />
                     <Text style={[styles.statValue, isCompact && styles.statCardCompactValue]}><AnimatedNumber value={averagePoints} /></Text>
-                    <Text style={[styles.statLabel, isCompact && styles.statCardCompactLabel]}>Avg. points</Text>
+                    <Text style={[styles.statLabel, isCompact && styles.statCardCompactLabel]}>Avg. INcoins</Text>
                   </Animated.View>
                 </View>
               </>

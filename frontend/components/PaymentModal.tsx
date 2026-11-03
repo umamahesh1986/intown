@@ -18,7 +18,6 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import {
   INTOWN_API_BASE,
-  INPOINTS_API_BASE,
 } from '../utils/api';
 
 interface PaymentModalProps {
@@ -34,19 +33,6 @@ interface PaymentModalProps {
   merchantUpiId?: string;
   merchantName?: string;
   redirectTo?: string;
-}
-
-interface PointsCreditResponse {
-  transactionId?: number;
-  customerId?: number;
-  merchantId?: number;
-  totalPrice?: number;
-  intownPrice?: number;
-  pointsEarned?: number;
-  currentTotalPoints?: number;
-  status?: string;
-  created?: string;
-  message?: string;
 }
 
 export default function PaymentModal({
@@ -69,15 +55,6 @@ export default function PaymentModal({
 
   const waitingForUpiReturn = useRef(false);
   const redirectPath = useRef('');
-
-  // Store successful transaction details for the points API.
-  const successfulTransaction = useRef<{
-    customerId: number;
-    merchantId: number;
-    totalPrice: number;
-    intownPrice: number;
-    pointsCredited: boolean;
-  } | null>(null);
 
   const parseAmount = (value: string): number => {
     const normalized = value.replace(/,/g, '').trim();
@@ -111,75 +88,6 @@ export default function PaymentModal({
       subscription.remove();
     };
   }, [router]);
-
-  /**
-   * Credit INcoins using the backend API.
-   *
-   * Backend calculates 10% (configurable) of totalPrice.
-   * Do not calculate points again in the frontend.
-   */
-  const creditINPoints = async (): Promise<PointsCreditResponse> => {
-    const transaction = successfulTransaction.current;
-
-    if (!transaction) {
-      throw new Error(
-        'Transaction details are unavailable for INcoins credit.'
-      );
-    }
-
-    // Prevent this component from crediting the same transaction twice.
-    if (transaction.pointsCredited) {
-      console.log('INcoins already credited for this transaction.');
-      return {};
-    }
-
-    const payload = {
-      customerId: transaction.customerId,
-      merchantId: transaction.merchantId,
-      totalPrice: transaction.totalPrice,
-      intownPrice: transaction.intownPrice,
-    };
-
-    console.log('=== INPOINTS CREDIT API ===');
-    console.log('URL:', `${INPOINTS_API_BASE}/points/credit`);
-    console.log('Payload:', JSON.stringify(payload));
-
-    const response = await fetch(
-      `${INPOINTS_API_BASE}/points/credit`,
-      {
-        method: 'POST',
-        headers: {
-          Accept: 'application/json',
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      }
-    );
-
-    const data: PointsCreditResponse = await response
-      .json()
-      .catch(() => ({}));
-
-    console.log('INcoins status:', response.status);
-    console.log('INcoins response:', JSON.stringify(data));
-
-    if (!response.ok) {
-      throw new Error(
-        data.message ||
-          (response.status === 404
-            ? 'Customer or merchant not found. Verify the backend IDs.'
-            : `INcoins credit failed with status ${response.status}.`)
-      );
-    }
-
-    // Only mark credited after the backend accepts the request.
-    transaction.pointsCredited = true;
-
-    console.log('Points earned:', data.pointsEarned);
-    console.log('Current total points:', data.currentTotalPoints);
-
-    return data;
-  };
 
   const handlePayNow = async () => {
     if (
@@ -307,10 +215,7 @@ export default function PaymentModal({
             JSON.stringify(lastData)
           );
 
-          const isSuccess =
-            res.status === 200 ||
-            res.status === 201 ||
-            Boolean(lastData?.transactionId);
+          const isSuccess = res.ok;
 
           if (isSuccess) {
             transactionCreated = true;
@@ -386,43 +291,7 @@ export default function PaymentModal({
         return;
       }
 
-      // Save the transaction data for the points API.
-      successfulTransaction.current = {
-        customerId: customerIdValue,
-        merchantId: merchantIdValue,
-        totalPrice: amountValue,
-        intownPrice,
-        pointsCredited: false,
-      };
-
-      /*
-       * Credit INcoins after the transaction API succeeds.
-       * The backend calculates the 10% points.
-       */
-      try {
-        const pointsResponse = await creditINPoints();
-
-        if (pointsResponse.pointsEarned !== undefined) {
-          Alert.alert(
-            'INcoins Earned',
-            `You earned ${pointsResponse.pointsEarned} points!` +
-              (pointsResponse.currentTotalPoints !== undefined
-                ? `\nAvailable points: ${pointsResponse.currentTotalPoints}`
-                : '')
-          );
-        }
-      } catch (pointsError: any) {
-        console.error(
-          'INcoins credit error:',
-          pointsError?.message
-        );
-
-        Alert.alert(
-          'INcoins Not Credited',
-          `${pointsError?.message || 'Unable to credit points.'}\n\nYour transaction was created, but points need to be verified. Do not retry payment just to get points.`
-        );
-      }
-
+      // INcoins are credited by the backend only after merchant approval.
       setShowSuccess(true);
     } catch (error: any) {
       console.error(
@@ -557,18 +426,18 @@ export default function PaymentModal({
             <View style={styles.successContainer}>
               <View style={styles.successIconWrap}>
                 <Ionicons
-                  name="checkmark-circle"
+                  name="time-outline"
                   size={64}
-                  color="#4CAF50"
+                  color="#FF8A00"
                 />
               </View>
 
               <Text style={styles.successTitle}>
-                Success
+                INcoins under review
               </Text>
 
               <Text style={styles.successMessage}>
-                Your transaction was processed successfully!
+                Your transaction has been submitted. Your INcoins are in progress and will be added after the merchant approves.
               </Text>
 
               <TouchableOpacity

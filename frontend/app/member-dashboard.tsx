@@ -46,6 +46,7 @@ import {
 import { setNavShop } from '../utils/navCache';
 import { DealsStrip } from '../components/DealsStrip';
 import { SavingsStatCards } from '../components/SavingsStatCards';
+import { GradientSectionHeading } from '../components/GradientSectionHeading';
 import { RewardsCard, RewardsCardStats } from '../components/RewardsCard';
 import { AnimatedNumber } from '../components/AnimatedNumber';
 import { computeRewardsInsights } from '../utils/rewardsInsights';
@@ -409,9 +410,17 @@ const fetchInPointsStats = async () => {
 };
 
 
-      void fetchInPointsStats();
+      let refreshingPoints = false;
+      const refreshPoints = async () => {
+        if (refreshingPoints) return;
+        refreshingPoints = true;
+        try { await fetchInPointsStats(); } finally { refreshingPoints = false; }
+      };
+      void refreshPoints();
+      const approvalRefresh = setInterval(() => { void refreshPoints(); }, 15000);
       return () => {
         isActive = false;
+        clearInterval(approvalRefresh);
       };
     }, [user?.phone]),
   );
@@ -1274,7 +1283,7 @@ const fetchInPointsStats = async () => {
 
             {/* TITLE ROW */}
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Feature Categories</Text>
+              <GradientSectionHeading>Feature Categories</GradientSectionHeading>
 
               {/* <TouchableOpacity>
                 <Text style={styles.viewAll}>View All</Text>
@@ -1358,17 +1367,18 @@ const fetchInPointsStats = async () => {
 
           {/* MERCHANT SHOP LIST CAROUSEL */}
           {nearbyShops.length > 0 && (
-            <View style={styles.section}>
+            <View style={[styles.section, { paddingBottom: 0 }]}>
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>INtown Privilege Nearby Shops</Text>
+                <GradientSectionHeading style={styles.sectionTitle}>INtown Privilege Nearby Shops</GradientSectionHeading>
               </View>
 
               <ScrollView
                 ref={nearbyScrollRef}
+                style={{ flexGrow: 0, flexShrink: 0 }}
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 decelerationRate="fast"
-                contentContainerStyle={{ paddingRight: 16, gap: 14 }}
+                contentContainerStyle={{ paddingRight: 16, gap: 14, paddingBottom: 12 }}
                 onScrollBeginDrag={() => {
                   stopNearbyAutoScroll();
                 }}
@@ -1406,7 +1416,7 @@ const fetchInPointsStats = async () => {
 
           {/* SUMMARY SECTION */}
           <View style={{ paddingHorizontal: 16, marginTop: 10 }}>
-            <Text style={[styles.sectionTitle, { margin: 0, fontSize: 18 }]}>INtown Savings</Text>
+            <GradientSectionHeading style={[styles.sectionTitle, { margin: 0, fontSize: 18 }]}>INtown Savings</GradientSectionHeading>
           </View>
           <SavingsStatCards
             testIDPrefix="member-savings"
@@ -1428,7 +1438,7 @@ const fetchInPointsStats = async () => {
               accessibilityRole="button"
               accessibilityLabel="Open My Rewards"
             >
-              <Text style={styles.rewardsTitle}>My Rewards</Text>
+              <GradientSectionHeading style={styles.rewardsTitle}>My Rewards</GradientSectionHeading>
               <Ionicons name="chevron-forward" size={20} color="#888888" />
             </TouchableOpacity>
             <View style={styles.rewardsMetricsRow}>
@@ -1444,7 +1454,7 @@ const fetchInPointsStats = async () => {
                   icon: 'receipt-outline' as const,
                 },
                 {
-                  label: 'Avg. points',
+                  label: 'Avg. INcoins',
                   value: inPointsStats?.averagePoints,
                   icon: 'sparkles-outline' as const,
                 },
@@ -1482,7 +1492,7 @@ const fetchInPointsStats = async () => {
           {/* INTOWN SAVINGS + MY REWARDS — placed just above the footer */}
           {/* SUMMARY SECTION */}
           <View style={{ paddingHorizontal: 16, marginTop: 10 }}>
-            <Text style={[styles.sectionTitle, { margin: 0, fontSize: 18 }]}>INtown Savings</Text>
+            <GradientSectionHeading style={[styles.sectionTitle, { margin: 0, fontSize: 18 }]}>INtown Savings</GradientSectionHeading>
           </View>
           <SavingsStatCards
             testIDPrefix="member-savings"
@@ -1948,7 +1958,7 @@ const styles = StyleSheet.create({
   },
 
   section: { padding: 16 },
-  sectionTitle: { fontSize: 16, fontWeight: '700', marginBottom: 16, color: '#1A1A1A' },
+  sectionTitle: { fontSize: 16, fontWeight: '800', marginBottom: 16, color: '#1A1A1A' },
 
   categoriesAutoScrollContainer: {
     overflow: 'hidden',
@@ -2072,7 +2082,7 @@ const styles = StyleSheet.create({
   },
   rewardsTitle: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#1A1A1A',
   },
   rewardsHeaderLink: {
@@ -2119,7 +2129,7 @@ const styles = StyleSheet.create({
   },
   rewardsHistoryTitle: {
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#26211C',
   },
   sectionHeader: {

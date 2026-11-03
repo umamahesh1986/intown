@@ -56,13 +56,24 @@ export async function createShopShareImage(content: ShopShareContent): Promise<B
   ctx.fillStyle = '#FF8A00'; ctx.fillRect(0, 0, 1080, 110);
   ctx.fillStyle = '#FFF'; ctx.font = 'bold 44px sans-serif'; ctx.fillText('INtown · Discover local', 64, 73);
   if (content.imageUrl) {
-    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const loadImage = (url: string) => new Promise<HTMLImageElement>((resolve, reject) => {
       const img = new globalThis.Image(); img.crossOrigin = 'anonymous';
       const timeout = setTimeout(() => reject(new Error('Merchant image took too long to load. Please retry.')), 15000);
       img.onload = () => { clearTimeout(timeout); resolve(img); };
-      img.onerror = () => { clearTimeout(timeout); reject(new Error('The merchant image could not be exported. Try sharing from the mobile app, or copy the caption.')); };
-      img.src = content.imageUrl!;
+      img.onerror = () => { clearTimeout(timeout); reject(new Error('Could not prepare the merchant photo. Tap Retry image to try again.')); };
+      img.src = url;
     });
+    let image: HTMLImageElement;
+    const endpoint = process.env.EXPO_PUBLIC_SHARE_IMAGE_PROXY_URL || '/api/share-image';
+    const exportUrl = `${endpoint}${endpoint.includes('?') ? '&' : '?'}url=${encodeURIComponent(content.imageUrl)}`;
+    const isIntownUpload = /^https:\/\/intown-dev\.s3\.ap-south-1\.amazonaws\.com\//i.test(content.imageUrl);
+    try { image = await loadImage(isIntownUpload ? exportUrl : content.imageUrl); }
+    catch {
+      if (isIntownUpload) throw new Error('Could not prepare the merchant photo. Tap Retry image to try again.');
+      // Displaying a remote photo does not mean its host permits canvas access.
+      // The first-party route returns the same image without cross-origin canvas restrictions.
+      image = await loadImage(exportUrl);
+    }
     const scale = Math.max(1080 / image.naturalWidth, 460 / image.naturalHeight);
     ctx.save(); ctx.beginPath(); ctx.rect(0, 110, 1080, 460); ctx.clip();
     ctx.drawImage(image, (1080 - image.naturalWidth * scale) / 2, 110 + (460 - image.naturalHeight * scale) / 2, image.naturalWidth * scale, image.naturalHeight * scale);

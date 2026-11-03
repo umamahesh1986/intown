@@ -1,6 +1,12 @@
 // user-dashboard.tsx
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Footer from '../components/Footer';
+import { SavingsCalculator } from '../components/SavingsCalculator';
+import { ShopLocalCard } from '../components/ShopLocalCard';
+import { NearbyOfferPanel } from '../components/NearbyOfferPanel';
+import { getActiveSpecialOffers } from '../utils/specialOffer';
+import { GradientSectionHeading } from '../components/GradientSectionHeading';
+import { categoryChipColor } from '../utils/categoryChipColor';
 import {
   CATEGORY_IMAGE_LIST,
   FALLBACK_CATEGORY_IMAGE,
@@ -144,7 +150,6 @@ export default function UserDashboard() {
 
 
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
-  const [monthlySpend, setMonthlySpend] = useState('10000');
   const [showDropdown, setShowDropdown] = useState(false);
   const [activeTab, setActiveTab] = useState<'customer' | 'merchant'>('customer');
   const [suggestions, setSuggestions] = useState<string[]>([]);
@@ -175,6 +180,8 @@ export default function UserDashboard() {
   const autoPlayTimer = useRef<number | null>(null);
   const categoriesScrollRef = useRef<ScrollView | null>(null);
   const nearbyScrollRef = useRef<ScrollView | null>(null);
+  const dashboardScrollRef = useRef<ScrollView | null>(null);
+  const nearbySectionY = useRef(0);
 
   // ================= CAROUSEL IMAGES FROM S3 =================
   // const loadCarouselImages = () => {
@@ -487,14 +494,6 @@ export default function UserDashboard() {
   };
 
 
-  const calculateSavings = () => {
-    const spend = parseFloat(monthlySpend) || 0;
-    const monthlySavings = spend * 0.1;
-    const annualSavings = monthlySavings * 12;
-    return { monthlySavings, annualSavings };
-  };
-
-  const { monthlySavings, annualSavings } = calculateSavings();
 
   const handleLogout = () => {
     logout();
@@ -612,7 +611,7 @@ export default function UserDashboard() {
         message="Please log in to view your profile"
       />
       <View style={styles.container}>
-        <ScrollView showsVerticalScrollIndicator={false}>
+        <ScrollView ref={dashboardScrollRef} showsVerticalScrollIndicator={false}>
           {/* Header */}
 
           <View style={styles.headerRow}>
@@ -750,21 +749,10 @@ export default function UserDashboard() {
           }} />
           {/* Exclusive Offer Card */}
 
-          <View style={styles.offerCard}>
-
-            <View style={styles.offerTag}>
-              <Text style={styles.offerTagText}>VOCAL FOR LOCAL</Text>
-            </View>
-
-            <Text style={styles.offerTitle}>
-              Shop Local, Save Local
-            </Text>
-
-            <Text style={styles.offerSubtitle}>
-            Exclusive privilege access at nearby shops
-            </Text>
-
-          </View>
+          <ShopLocalCard onExplore={() => {
+            if (nearbyShops.length > 0) dashboardScrollRef.current?.scrollTo({ y: nearbySectionY.current, animated: true });
+            else router.push({ pathname: '/search', params: { source: 'user' } });
+          }} />
 
 
 
@@ -815,7 +803,7 @@ export default function UserDashboard() {
           {/* Popular Categories */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Feature Categories</Text>
+              <GradientSectionHeading>Feature Categories</GradientSectionHeading>
 
               {/* <TouchableOpacity>
                 <Text style={styles.viewAll}>View All</Text>
@@ -878,61 +866,10 @@ export default function UserDashboard() {
             )}
           </View>
 
-          {/* Savings Calculator */}
-
-          <View style={styles.savingsCard}>
-
-            {/* Title */}
-            <View style={styles.savingsHeader}>
-              <Ionicons name="calculator-outline" size={22} color="#FF7A00" />
-              <Text style={styles.savingsTitle}>Savings Calculator</Text>
-            </View>
-
-            {/* Monthly Spend Label */}
-            <Text style={styles.savingsLabel}>
-              Estimated Monthly Spend
-            </Text>
-
-            {/* Input */}
-            <View style={styles.inputBox}>
-              <Text style={styles.currency}>₹</Text>
-
-              <TextInput
-                style={styles.savingsInput}
-                keyboardType="numeric"
-                value={monthlySpend}
-                onChangeText={setMonthlySpend}
-              />
-            </View>
-
-            {/* Savings Result Row */}
-            <View style={styles.resultRow}>
-
-              <View style={styles.monthlyBox}>
-                <Text style={styles.resultLabel}>MONTHLY SAVINGS</Text>
-
-                <Text style={styles.monthlyValue}>
-                  ₹ {Math.floor(Number(monthlySpend) * 0.15)}
-                </Text>
-              </View>
-
-              <View style={styles.annualBox}>
-                <Text style={styles.annualLabel}>ANNUAL SAVINGS</Text>
-
-                <Text style={styles.annualValue}>
-                  ₹ {Math.floor(Number(monthlySpend) * 0.15 * 12)}
-                </Text>
-              </View>
-
-            </View>
-
-          </View>
-
-
-
+          <SavingsCalculator />
 
           {/* Membership Plans */}
-          <View style={styles.section}>
+          <View style={styles.registrationCard}>
             {/* <Text style={styles.sectionTitle}>Customer Plans</Text> */}
 
             {/* Tab Navigation */}
@@ -979,31 +916,31 @@ export default function UserDashboard() {
             {activeTab === 'customer' && (
               <View style={styles.tabContent}>
                 <View style={styles.merchantContent}>
-                  <Text style={styles.merchantTagline}>"Local. Trusted. Rewarding."</Text>
+                  <GradientSectionHeading style={styles.merchantTagline}>{'"Local. Trusted. Rewarding."'}</GradientSectionHeading>
                   <Text style={styles.merchantDescription}>
                     Save on every purchase from your favourite local shops. Join the INtown community today.
                   </Text>
 
                   <View style={styles.featuresList}>
                     <View style={styles.featureItem}>
-                      <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+                      <View style={styles.featureCheck}><Ionicons name="checkmark" size={14} color="#009B73" /></View>
                       <Text style={styles.featureText}>Exclusive Local Discounts</Text>
                     </View>
                     <View style={styles.featureItem}>
-                      <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+                      <View style={styles.featureCheck}><Ionicons name="checkmark" size={14} color="#009B73" /></View>
                       <Text style={styles.featureText}>Instant Savings on Every Visit</Text>
                     </View>
                     <View style={styles.featureItem}>
-                      <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
-                      <Text style={styles.featureText}>Discover Nearby Shops</Text>
+                      <View style={styles.featureCheck}><Ionicons name="checkmark" size={14} color="#009B73" /></View>
+                      <Text style={styles.featureText}>Discover Nearby Verified Shops</Text>
                     </View>
                     <View style={styles.featureItem}>
-                      <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
-                      <Text style={styles.featureText}>Track Your Savings</Text>
+                      <View style={styles.featureCheck}><Ionicons name="checkmark" size={14} color="#009B73" /></View>
+                      <Text style={styles.featureText}>Track Your Cumulative Savings</Text>
                     </View>
                     <View style={styles.featureItem}>
-                      <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
-                      <Text style={styles.featureText}>Support Local Businesses</Text>
+                      <View style={styles.featureCheck}><Ionicons name="checkmark" size={14} color="#009B73" /></View>
+                      <Text style={styles.featureText}>Support Neighborhood Businesses</Text>
                     </View>
                   </View>
 
@@ -1012,6 +949,7 @@ export default function UserDashboard() {
                     onPress={() => router.push('/register-member')}
                   >
                     <Text style={styles.registerMerchantButtonText}>Register as Customer</Text>
+                    <Ionicons name="arrow-forward" size={20} color="#FFF" />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -1021,34 +959,34 @@ export default function UserDashboard() {
             {activeTab === 'merchant' && (
               <View style={styles.tabContent}>
                 <View style={styles.merchantContent}>
-                  <Text style={styles.merchantTagline}>"Local. Trusted. Rewarding."</Text>
+                  <GradientSectionHeading style={styles.merchantTagline}>{'"Local. Trusted. Rewarding."'}</GradientSectionHeading>
                   <Text style={styles.merchantDescription}>
                     Grow your business with our merchant friendly platform that puts you in your control.
                   </Text>
 
                   <View style={styles.featuresList}>
                     {/* <View style={styles.featureItem}>
-                      <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+                      <View style={styles.featureCheck}><Ionicons name="checkmark" size={14} color="#009B73" /></View>
                       <Text style={styles.featureText}>Zero Commissions</Text>
                     </View> */}
                     <View style={styles.featureItem}>
-                      <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+                      <View style={styles.featureCheck}><Ionicons name="checkmark" size={14} color="#009B73" /></View>
                       <Text style={styles.featureText}>Hassle free onboard</Text>
                     </View>
                     <View style={styles.featureItem}>
-                      <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+                      <View style={styles.featureCheck}><Ionicons name="checkmark" size={14} color="#009B73" /></View>
                       <Text style={styles.featureText}>Boost Walk-ins</Text>
                     </View>
                     <View style={styles.featureItem}>
-                      <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+                      <View style={styles.featureCheck}><Ionicons name="checkmark" size={14} color="#009B73" /></View>
                       <Text style={styles.featureText}>Control Your Offers</Text>
                     </View>
                     <View style={styles.featureItem}>
-                      <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+                      <View style={styles.featureCheck}><Ionicons name="checkmark" size={14} color="#009B73" /></View>
                       <Text style={styles.featureText}>Effective  Promotion</Text>
                     </View>
                     <View style={styles.featureItem}>
-                      <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+                      <View style={styles.featureCheck}><Ionicons name="checkmark" size={14} color="#009B73" /></View>
                       <Text style={styles.featureText}>Customer Loyalty</Text>
                     </View>
                   </View>
@@ -1058,6 +996,7 @@ export default function UserDashboard() {
                     onPress={() => router.push('/register-merchant')}
                   >
                     <Text style={styles.registerMerchantButtonText}>Register as Merchant</Text>
+                    <Ionicons name="arrow-forward" size={20} color="#FFF" />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -1066,17 +1005,18 @@ export default function UserDashboard() {
 
           {/* MERCHANT SHOP LIST CAROUSEL */}
           {nearbyShops.length > 0 && (
-            <View style={styles.section}>
+            <View style={styles.section} onLayout={event => { nearbySectionY.current = event.nativeEvent.layout.y; }}>
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>INtown Previlage Nearby Shops</Text>
+                <GradientSectionHeading style={styles.sectionTitle}>INtown Privilege Nearby Shops</GradientSectionHeading>
               </View>
 
               <ScrollView
                 ref={nearbyScrollRef}
+                style={{ marginBottom: 24 }}
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 decelerationRate="fast"
-                contentContainerStyle={{ paddingRight: 16, gap: 14 }}
+                contentContainerStyle={{ paddingRight: 16, gap: 14, paddingBottom: 12 }}
                 onScrollBeginDrag={() => {
                   stopNearbyAutoScroll();
                 }}
@@ -1098,6 +1038,7 @@ export default function UserDashboard() {
                   const shopName = shop.businessName || shop.shopName || shop.contactName || 'Shop';
                   const category = shop.businessCategory || 'General';
                   const offerText = shop.offer || '';
+                  const specialOffers = getActiveSpecialOffers(shop);
 
                   return (
                     <TouchableOpacity
@@ -1124,7 +1065,7 @@ export default function UserDashboard() {
                             <Ionicons name="storefront" size={36} color="#FF8A00" />
                           </View>
                         )}
-                        <View style={styles.merchantCategoryBadge}>
+                        <View style={[styles.merchantCategoryBadge, { backgroundColor: categoryChipColor(category) }]}>
                           <Text style={styles.merchantCategoryText}>{category}</Text>
                         </View>
                       </View>
@@ -1139,7 +1080,12 @@ export default function UserDashboard() {
                             <Text style={styles.merchantInfoText} numberOfLines={1}>{shop.address}</Text>
                           </View>
                         ) : null}
-                        {offerText ? (
+                        {specialOffers.length > 0 ? (
+                          <NearbyOfferPanel shop={shop} offer={specialOffers[0]} onClaim={async () => {
+                            await setNavShop(shop);
+                            router.push({ pathname: '/member-shop-details', params: { shopId: String(shop.id), categoryId: '', source: 'user' } });
+                          }} />
+                        ) : offerText ? (
                           <View style={styles.merchantOfferBadge}>
                             <Ionicons name="pricetag" size={12} color="#4CAF50" />
                             <Text style={styles.merchantOfferText} numberOfLines={1}>{offerText}</Text>
@@ -1751,7 +1697,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#1A1A1A',
     marginBottom: 16,
   },
@@ -1789,63 +1735,81 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   tabContent: {
-    marginTop: 8,
+    marginTop: 22,
+  },
+  registrationCard: {
+    marginHorizontal: 10, marginVertical: 16, padding: 20, borderRadius: 26, backgroundColor: '#FFF',
+    shadowColor: '#26334B', shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.07, shadowRadius: 12, elevation: 3,
   },
   merchantContent: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
-    padding: 20,
+    padding: 0,
     alignItems: 'center',
   },
   merchantTagline: {
     ...FontStylesWithFallback.h3,
-    color: '#FF8C00',
+    alignSelf: 'center',
+    color: '#FF7100',
+    fontSize: 20,
+    lineHeight: 26,
     textAlign: 'center',
-    marginBottom: 12,
-    fontWeight: '700',
+    marginBottom: 8,
+    fontWeight: '800',
   },
   merchantDescription: {
     ...FontStylesWithFallback.body,
-    color: '#666666',
+    color: '#73839B',
+    fontSize: 12,
     textAlign: 'center',
-    marginBottom: 24,
-    lineHeight: 24,
+    marginBottom: 20,
+    lineHeight: 19,
   },
   featuresList: {
     width: '100%',
-    marginBottom: 24,
+    marginBottom: 14,
   },
   featureItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
-    paddingHorizontal: 8,
+    marginBottom: 10,
+    paddingHorizontal: 0,
   },
+  featureCheck: { width: 20, height: 20, borderRadius: 10, backgroundColor: '#D0F9E5', alignItems: 'center', justifyContent: 'center' },
   featureText: {
     ...FontStylesWithFallback.body,
-    color: '#1A1A1A',
+    color: '#101C2D',
+    fontSize: 12,
+    lineHeight: 20,
     marginLeft: 12,
-    fontWeight: '500',
+    fontWeight: '600',
+    flex: 1,
   },
   registerMerchantButton: {
-    backgroundColor: '#FF8C00',
-    borderRadius: 12,
-    paddingVertical: 16,
-    paddingHorizontal: 32,
+    backgroundColor: '#FF7900',
+    borderRadius: 17,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    width: '100%',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 10,
+    shadowColor: '#FF7900', shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.2, shadowRadius: 9, elevation: 3,
     alignItems: 'center',
     minWidth: 200,
   },
   registerMerchantButtonText: {
     ...FontStylesWithFallback.buttonLarge,
     color: '#FFFFFF',
-    fontWeight: '600',
+    fontWeight: '800',
+    fontSize: 14,
   },
 
   categoriesAutoScrollContainer: {
     overflow: 'hidden',
   },
   categoriesAutoScrollContent: {
-    flexDirection: 'row',
+    flexDirection: 'row'
   },
   categoriesCarouselContent: {
     flexDirection: 'row',
@@ -2133,6 +2097,7 @@ const styles = StyleSheet.create({
   },
   autoScrollContent: {
     flexDirection: 'row',
+    marginBottom: 12,
   },
   nearbyCarouselContent: {
     paddingRight: 12,
@@ -2463,7 +2428,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 8,
-    alignSelf: 'flex-start',
+    alignSelf: 'stretch',
+    minWidth: 0,
     marginTop: 2,
   },
   merchantOfferText: {
@@ -2471,6 +2437,8 @@ const styles = StyleSheet.create({
     color: '#4CAF50',
     fontWeight: '600',
     flex: 1,
+    minWidth: 0,
+    flexShrink: 1,
   },
   offerCard: {
     marginHorizontal: 16,
@@ -2621,17 +2589,17 @@ const styles = StyleSheet.create({
 
   toggleContainer: {
     flexDirection: 'row',
-    backgroundColor: '#E9EEF5',
-    borderRadius: 30,
-    marginTop: 10,
-    marginBottom: 15,
+    backgroundColor: '#F0F4F8',
+    borderRadius: 16,
+    marginTop: 0,
+    marginBottom: 0,
     padding: 4,
   },
 
   toggleButton: {
     flex: 1,
-    paddingVertical: 10,
-    borderRadius: 25,
+    paddingVertical: 8,
+    borderRadius: 13,
     alignItems: 'center',
   },
 
@@ -2640,7 +2608,7 @@ const styles = StyleSheet.create({
   },
 
   toggleText: {
-    fontSize: 15,
+    fontSize: 12,
     color: '#7A8A9A',
     fontWeight: '600',
   },

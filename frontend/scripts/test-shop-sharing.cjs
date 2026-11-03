@@ -14,13 +14,18 @@ function load(file, extra = {}) {
 const specialOffer = load('utils/specialOffer.ts');
 const drawn = [];
 let imageLoads = 0;
+let rejectRemoteImage = false;
+const requestedImages = [];
 const context2d = { measureText: text => ({ width: text.length * 22 }), fillRect() {}, save() {}, beginPath() {}, rect() {}, clip() {}, restore() {}, drawImage() { imageLoads++; }, fillText: (text, x, y) => drawn.push({ text, y }) };
 const canvas = { width: 0, height: 0, getContext: () => context2d, toBlob: callback => callback(new Blob(['png'], { type: 'image/png' })) };
 class ImageMock {
   naturalWidth = 800; naturalHeight = 500;
-  set src(value) { assert.equal(this.crossOrigin, 'anonymous'); queueMicrotask(() => this.onload()); }
+  set src(value) {
+    assert.equal(this.crossOrigin, 'anonymous'); requestedImages.push(value);
+    queueMicrotask(() => rejectRemoteImage && value.startsWith('https:') ? this.onerror() : this.onload());
+  }
 }
-const helpers = load('utils/shopShare.ts', { require: () => specialOffer, document: { createElement: () => canvas }, Image: ImageMock });
+const helpers = load('utils/shopShare.ts', { process: { env: {} }, require: () => specialOffer, document: { createElement: () => canvas }, Image: ImageMock });
 const now = new Date(2026, 9, 31, 12).getTime();
 const shop = { id: 42, businessName: 'Local Grocery', offer: 'Everyday savings', specialOffers: ['Festival 20% off', 'Free gift'], specialOfferEndDate: '2026-12-31',
   s3ImageUrl: [{ s3ImageUrl: 'https://example.test/special_offer_42.jpg', isPrimary: true }, { s3ImageUrl: 'https://example.test/merchant.jpg', isPrimary: true }],
@@ -58,5 +63,10 @@ assert.equal(helpers.buildShopShareContent({ businessName: 'No offers' }, [], no
   assert.ok(drawn.some(item => item.text.includes('Festival 20% off')));
   const footer = drawn.find(item => item.text === 'Find this merchant on the INtown app');
   assert.ok(drawn.filter(item => item !== footer).every(item => item.y < footer.y), 'Content fits above the footer');
+  rejectRemoteImage = true;
+  const proxied = await helpers.createShopShareImage(active);
+  assert.equal(proxied.type, 'image/png');
+  assert.equal(requestedImages.at(-1), `/api/share-image?url=${encodeURIComponent(active.imageUrl)}`);
+  assert.equal(imageLoads, 2, 'CORS rejection still exports the merchant photo through the first-party route');
   console.log('Shop sharing priority, expiry fallback, merchant image, caption, and PNG export checks passed.');
 })().catch(error => { console.error(error); process.exitCode = 1; });

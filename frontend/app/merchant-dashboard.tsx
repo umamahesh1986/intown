@@ -19,6 +19,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MerchantOfferSummary } from '../components/MerchantOfferSummary';
+import { GradientSectionHeading } from '../components/GradientSectionHeading';
+import { MerchantPaymentApprovals } from '../components/MerchantPaymentApprovals';
 import { merchantRecord } from '../utils/merchantProfile';
 import { Ionicons } from '@expo/vector-icons';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -116,6 +118,7 @@ const formatTransactionDate = (value: string) => {
 };
 
 export default function MerchantDashboard() {
+  const [salesRefresh, setSalesRefresh] = useState(0);
   console.log("=== MERCHANT DASHBOARD MOUNTING ===");
   const router = useRouter();
   const params = useLocalSearchParams<{ userType?: string; merchantId?: string }>();
@@ -509,7 +512,7 @@ export default function MerchantDashboard() {
     };
 
     fetchSales();
-  }, [merchantId, token]);
+  }, [merchantId, token, salesRefresh]);
 
   // Refresh offer status after returning from Account.
   useFocusEffect(useCallback(() => {
@@ -801,7 +804,7 @@ export default function MerchantDashboard() {
         <MerchantOfferSummary merchant={merchantDetails} from="merchant" />
         {/* Total Summary Section */}
         <View style={{ paddingHorizontal: 16, marginTop: 10 }}>
-          <Text style={[styles.sectionTitle, { margin: 0, fontSize: 18 }]}>INtown Business</Text>
+          <GradientSectionHeading style={[styles.sectionTitle, { margin: 0, fontSize: 18 }]}>INtown Business</GradientSectionHeading>
         </View>
         <SavingsStatCards
           testIDPrefix="merchant-business"
@@ -813,11 +816,12 @@ export default function MerchantDashboard() {
         />
 
         {/* Payments List */}
+        <MerchantPaymentApprovals merchantId={merchantId} token={token} onApproved={() => setSalesRefresh(value => value + 1)} />
         <View style={styles.transactionsCard}>
           <View style={[styles.transactionHeader, { marginTop: 10, alignItems: 'center' }]}>
             {/* This View below uses row direction to keep title and brackets together */}
             <View style={{ flexDirection: 'row', alignItems: 'baseline', flex: 1 }}>
-              <Text style={[styles.sectionTitle, { margin: 0, fontSize: 18 }]}>Recent Business</Text>
+              <GradientSectionHeading style={[styles.sectionTitle, { margin: 0, fontSize: 18 }]}>Recent Business</GradientSectionHeading>
               {/* <Text style={[styles.normalText, { fontSize: 10, color: '#888', marginLeft: 6 }]}>
                 (Calculated on visits)
               </Text> */}
@@ -1408,7 +1412,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#1A1A1A', margin: 16 },
+  sectionTitle: { fontSize: 18, fontWeight: '800', color: '#1A1A1A', margin: 16 },
   summarySection: {
     backgroundColor: '#FF8A00',
     paddingVertical: 20,

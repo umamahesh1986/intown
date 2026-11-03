@@ -801,6 +801,10 @@ export type PickupOrderStatus =
   | string;
 
 export interface PickupOrder {
+  pendingINcoins?: number | string | null;
+  pointsEarned?: number | string | null;
+  inCoins?: number | string | null;
+  transaction?: { pointsEarned?: number | string | null } | null;
   pickup_id: string;
   customerId: number;
   merchantId: number;

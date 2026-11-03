@@ -1,0 +1,44 @@
+const fs = require('node:fs');
+const vm = require('node:vm');
+const assert = require('node:assert/strict');
+const ts = require('typescript');
+const path = require('node:path');
+const calls = [];
+let response = [];
+let status = 200;
+const context = {
+  exports: {}, require: () => ({ INTOWN_API_BASE: 'https://test.invalid/IN' }),
+  fetch: async (url, options) => {
+    calls.push({ url, options });
+    return { ok: status < 300, json: async () => response };
+  },
+};
+vm.runInNewContext(ts.transpileModule(fs.readFileSync(path.join(__dirname, '../utils/paymentApprovals.ts'), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText, context);
+const { getPendingPayments, approvePayment } = context.exports;
+async function check() {
+  response = [
+    { transactionId: 1, merchantId: 100102, status: 'PENDING_APPROVAL' },
+    { transactionId: 2, merchantId: 100102, status: 'COMPLETED' },
+    { transactionId: 3, merchantId: 100103, status: 'PENDING_APPROVAL' },
+  ];
+  const pending = await getPendingPayments(100102, 'merchant-token');
+  assert.equal(pending.length, 1);
+  assert.equal(pending[0].transactionId, 1);
+  assert.equal(calls[0].url, 'https://test.invalid/IN/transactions/merchants/100102/pending');
+  assert.equal(calls[0].options.headers.Authorization, 'Bearer merchant-token');
+  response = { transactionId: 1, status: 'COMPLETED', pointsEarned: 50 };
+  const result = await approvePayment(1, 'merchant-token');
+  assert.equal(result.pointsEarned, 50);
+  assert.equal(calls[1].url, 'https://test.invalid/IN/transactions/1/merchant-action');
+  assert.equal(calls[1].options.method, 'POST');
+  assert.deepEqual(JSON.parse(calls[1].options.body), { action: 'ACCEPT' });
+  assert.ok(calls.every(call => !call.url.includes('/points/credit')), 'Backend approval owns crediting, preventing a duplicate credit');
+  status = 400; response = { message: 'Transaction not pending' };
+  await assert.rejects(() => approvePayment(1), /Transaction not pending/);
+  status = 200; response = { status: 'PENDING_APPROVAL' };
+  await assert.rejects(() => approvePayment(1), /has not completed/);
+  response = {};
+  await assert.rejects(() => getPendingPayments(100102), /Unable to read/);
+  console.log('Pending payment isolation, auth, approval API, server reward response and failed/still-pending approval checks passed.');
+}
+check().catch(error => { console.error(error); process.exitCode = 1; });

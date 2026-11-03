@@ -1,8 +1,11 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, Animated, Easing, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { extractImageUrls } from '../utils/api';
-import { getActiveSpecialOffers, formatOfferValidTill, formatOfferTimeLeft, getSpecialOfferImageUrl } from '../utils/specialOffer';
+import { categoryChipColor } from '../utils/categoryChipColor';
+import { getActiveSpecialOffers, getSpecialOfferImageUrl } from '../utils/specialOffer';
+import { NearbyOfferPanel } from './NearbyOfferPanel';
 
 // Subtle looping glow + breathe used behind special-offer cards.
 const usePulse = (enabled: boolean) => {
@@ -44,8 +47,6 @@ export const NearbyMerchantCard = ({ shop, onPress, testID }: Props) => {
   const special = offers.length > 0;
   const offerImage = special ? getSpecialOfferImageUrl(shop) : null;
   const heroUri = offerImage || imageUri;
-  const validTill = special ? formatOfferValidTill(shop) : '';
-  const timeLeft = special ? formatOfferTimeLeft(shop) : null;
   const offerText = shop.offer || '';
   const pulse = usePulse(special);
   const glowOpacity = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.15, 0.75] });
@@ -71,16 +72,16 @@ export const NearbyMerchantCard = ({ shop, onPress, testID }: Props) => {
         {special ? (
           <>
             <View style={styles.imageTint} />
-            <View style={styles.ribbon} testID={`nearby-merchant-ribbon-${shop.id}`}>
+            <LinearGradient colors={['#FF8A00', '#FF4D00']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.ribbon} testID={`nearby-merchant-ribbon-${shop.id}`}>
               <Text style={styles.ribbonText}>SPECIAL OFFER</Text>
-            </View>
-            <View style={styles.offerCountPill}>
+            </LinearGradient>
+            <LinearGradient colors={['#FF8A00', '#FF4D00']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.offerCountPill}>
               <Ionicons name="gift" size={11} color="#FFF" />
               <Text style={styles.offerCountText}>{offers.length > 1 ? `${offers.length} deals` : 'Deal'}</Text>
-            </View>
+            </LinearGradient>
           </>
         ) : null}
-        <View style={[styles.categoryBadge, special && styles.categoryBadgeSpecial]}>
+        <View style={[styles.categoryBadge, { backgroundColor: categoryChipColor(category) }]}>
           <Text style={styles.categoryText}>{category}</Text>
         </View>
       </View>
@@ -98,22 +99,7 @@ export const NearbyMerchantCard = ({ shop, onPress, testID }: Props) => {
         ) : null}
 
         {special ? (
-          <View style={styles.specialBox}>
-            <View style={styles.specialRow}>
-              <Ionicons name="sparkles" size={14} color="#FF8A00" />
-              <Text style={styles.specialText} numberOfLines={2}>{offers[0]}</Text>
-            </View>
-            {!!validTill && (
-              <View style={styles.specialMetaRow}>
-                <Text style={styles.specialValid}>Valid till {validTill}</Text>
-                {timeLeft && (
-                  <Text style={[styles.specialTimeLeft, timeLeft.urgent && styles.specialTimeLeftUrgent]} testID={`nearby-merchant-expiry-${shop.id}`}>
-                    {timeLeft.label}
-                  </Text>
-                )}
-              </View>
-            )}
-          </View>
+          <NearbyOfferPanel shop={shop} offer={offers[0]} onClaim={() => onPress(shop)} />
         ) : offerText ? (
           <View style={styles.offerBadge}>
             <Ionicons name="pricetag" size={12} color="#4CAF50" style={styles.offerIcon} />
@@ -209,10 +195,11 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     borderRadius: 8,
     alignSelf: 'stretch',
+    minWidth: 0,
     marginTop: 4,
   },
   offerIcon: { marginTop: 2 },
-  offerText: { flex: 1, fontSize: 11, color: '#2E7D32', fontWeight: '600', lineHeight: 15 },
+  offerText: { flex: 1, minWidth: 0, flexShrink: 1, fontSize: 11, color: '#2E7D32', fontWeight: '600', lineHeight: 15 },
   specialBox: {
     marginTop: 6,
     backgroundColor: '#F1F8E9',

@@ -95,7 +95,7 @@ code {
         padding-left: inherit;
         padding-right: inherit;
         padding-top: inherit;
-        padding-bottom: inherit;
+        padding-bottom: 0;
         column-gap: inherit;
         row-gap: inherit;
         gap: inherit;

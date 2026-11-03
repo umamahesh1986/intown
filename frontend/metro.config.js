@@ -5,6 +5,13 @@ const fs = require('fs');
 const { FileStore } = require('metro-cache');
 
 const config = getDefaultConfig(__dirname);
+const { createShareImageMiddleware } = require('./share-image-middleware.cjs');
+const enhanceMiddleware = config.server.enhanceMiddleware;
+config.server.enhanceMiddleware = (middleware, server) => {
+  const metroMiddleware = enhanceMiddleware ? enhanceMiddleware(middleware, server) : middleware;
+  const shareImage = createShareImageMiddleware();
+  return (req, res, next) => shareImage(req, res, () => metroMiddleware(req, res, next));
+};
 
 // Use a stable on-disk store (shared across web/android)
 const root = process.env.METRO_CACHE_ROOT || path.join(__dirname, '.metro-cache');

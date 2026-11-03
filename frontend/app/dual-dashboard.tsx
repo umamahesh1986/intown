@@ -21,6 +21,7 @@ import {
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MerchantOfferSummary } from '../components/MerchantOfferSummary';
+import { MerchantPaymentApprovals } from '../components/MerchantPaymentApprovals';
 import { merchantRecord } from '../utils/merchantProfile';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -35,6 +36,8 @@ import { setNavShop } from '../utils/navCache';
 import { getProfileImage, refreshProfileImage as refreshStoredProfileImage } from '../utils/profileImage';
 import { DealsStrip } from '../components/DealsStrip';
 import { SavingsStatCards } from '../components/SavingsStatCards';
+import { GradientSectionHeading } from '../components/GradientSectionHeading';
+import { getSavingsPeriodTotals } from '../utils/savingsTotals';
 import { RewardsCard, RewardsCardStats } from '../components/RewardsCard';
 import { computeRewardsInsights } from '../utils/rewardsInsights';
 import { MerchantPackBanner } from '../components/MerchantPackBanner';
@@ -524,10 +527,18 @@ useFocusEffect(
       }
     };
 
-    void fetchInPointsStats();
+    let refreshingPoints = false;
+    const refreshPoints = async () => {
+      if (refreshingPoints) return;
+      refreshingPoints = true;
+      try { await fetchInPointsStats(); } finally { refreshingPoints = false; }
+    };
+    void refreshPoints();
+    const approvalRefresh = setInterval(() => { void refreshPoints(); }, 15000);
 
     return () => {
       isActive = false;
+      clearInterval(approvalRefresh);
     };
   }, [user?.phone])
 );
@@ -839,8 +850,13 @@ useFocusEffect(
     }
   };
 
-  useEffect(() => {
+  const [transactionRefresh, setTransactionRefresh] = useState(0);
+  useFocusEffect(useCallback(() => {
+    let active = true;
+    let fetching = false;
     const fetchCustomerTransactions = async (id: string) => {
+      if (fetching) return;
+      fetching = true;
       setIsCustomerLoading(true);
       try {
         const res = await fetch(
@@ -858,7 +874,9 @@ useFocusEffect(
           throw new Error(`Customer transactions fetch failed: ${res.status}`);
         }
         const data = await res.json();
-        const apiTransactions: CustomerTransaction[] = data?.transactions ?? [];
+        if (!active) return;
+        const apiTransactions: CustomerTransaction[] = Array.isArray(data?.transactions) ? data.transactions : [];
+        const savings = getSavingsPeriodTotals(apiTransactions);
         setCustomerTransactions(
           apiTransactions.map((item) => ({
             id: String(item.transactionId),
@@ -870,24 +888,25 @@ useFocusEffect(
           }))
         );
         setCustomerTotals({
-          today: data?.today ?? null,
-          thisMonth: data?.thisMonth ?? null,
-          thisYear: data?.thisYear ?? null,
+          today: { ...data?.today, totalSavedAmount: savings.today },
+          thisMonth: { ...data?.thisMonth, totalSavedAmount: savings.thisMonth },
+          thisYear: { ...data?.thisYear, totalSavedAmount: savings.thisYear },
         });
       } catch (error) {
         console.error('Error loading customer transactions:', error);
-        setCustomerTransactions([]);
-        setCustomerTotals({ today: null, thisMonth: null, thisYear: null });
       } finally {
-        setIsCustomerLoading(false);
+        fetching = false;
+        if (active) setIsCustomerLoading(false);
       }
     };
 
-    if (customerId) {
-      fetchCustomerTransactions(customerId);
-    }
-  }, [customerId, token]);
+    if (!customerId) return;
+    void fetchCustomerTransactions(customerId);
+    const timer = setInterval(() => { void fetchCustomerTransactions(customerId); }, 30000);
+    return () => { active = false; clearInterval(timer); };
+  }, [customerId, token, transactionRefresh]));
 
+  const [salesRefresh, setSalesRefresh] = useState(0);
   useEffect(() => {
     const fetchMerchantSales = async (id: string) => {
       setIsMerchantLoading(true);
@@ -935,12 +954,13 @@ useFocusEffect(
     if (merchantId) {
       fetchMerchantSales(merchantId);
     }
-  }, [merchantId, token]);
+  }, [merchantId, token, salesRefresh]);
 
   const onRefresh = async () => {
     setRefreshing(true);
     await loadUserData();
     await loadTransactions();
+    setTransactionRefresh(value => value + 1);
     setRefreshing(false);
   };
 
@@ -1271,7 +1291,6 @@ useFocusEffect(
       <ScrollView
         ref={contentScrollRef}
         style={styles.content}
-        contentContainerStyle={{ paddingBottom: 24 }}
         showsVerticalScrollIndicator={true}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -1387,7 +1406,7 @@ useFocusEffect(
         {activeTab === 'merchant' && (
           <>
             <View style={{ paddingHorizontal: 16, marginTop: 10 }}>
-              <Text style={[styles.sectionTitle, { margin: 0, fontSize: 18 }]}>INtown Business</Text>
+              <GradientSectionHeading style={[styles.sectionTitle, { margin: 0, fontSize: 18 }]}>INtown Business</GradientSectionHeading>
             </View>
             <SavingsStatCards
               testIDPrefix="dual-business"
@@ -1405,10 +1424,11 @@ useFocusEffect(
         {activeTab === 'merchant' && <MerchantOfferSummary merchant={merchantDetails} from="dual-merchant" />}
 
         {/* Transactions Section (merchant tab only — customers see deals instead) */}
+        {activeTab === 'merchant' && <MerchantPaymentApprovals merchantId={merchantId} token={token} onApproved={() => setSalesRefresh(value => value + 1)} />}
         {activeTab === 'merchant' && (
         <View style={styles.transactionsSection}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Recent Transactions</Text>
+            <GradientSectionHeading style={styles.sectionTitle}>Recent Transactions</GradientSectionHeading>
             {/* <Text style={styles.normalText}>(Will be calculated on customervisits):</Text> */}
             <TouchableOpacity onPress={() => setShowAllTransactions(true)}>
               <Text style={styles.viewAllText}>View All</Text>
@@ -1450,7 +1470,7 @@ useFocusEffect(
         {activeTab === 'customer' && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Feature Categories</Text>
+              <GradientSectionHeading>Feature Categories</GradientSectionHeading>
 
               {/* <TouchableOpacity>
                 <Text style={styles.viewAllText}>View All</Text>
@@ -1589,15 +1609,16 @@ useFocusEffect(
         {activeTab === 'customer' && nearbyShops.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>INtown Privilege Nearby Shops</Text>
+              <GradientSectionHeading style={styles.sectionTitle}>INtown Privilege Nearby Shops</GradientSectionHeading>
             </View>
 
             <ScrollView
               ref={nearbyScrollRef}
+                style={{ marginBottom: 24 }}
               horizontal
               showsHorizontalScrollIndicator={false}
               decelerationRate="fast"
-              contentContainerStyle={{ paddingRight: 16, gap: 14 }}
+              contentContainerStyle={{ paddingRight: 16, gap: 14, paddingBottom: 12 }}
               onScrollBeginDrag={() => {
                 stopNearbyAutoScroll();
               }}
@@ -1636,7 +1657,7 @@ useFocusEffect(
         {activeTab === 'customer' && (
           <>
             <View style={{ paddingHorizontal: 16, marginTop: 10 }}>
-              <Text style={[styles.sectionTitle, { margin: 0, fontSize: 18 }]}>INtown Savings</Text>
+              <GradientSectionHeading style={[styles.sectionTitle, { margin: 0, fontSize: 18 }]}>INtown Savings</GradientSectionHeading>
             </View>
             <SavingsStatCards
               testIDPrefix="dual-savings"
@@ -2216,7 +2237,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '800',
     color: '#1A1A1A',
     marginBottom: 8,
   },

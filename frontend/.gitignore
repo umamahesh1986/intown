@@ -2,6 +2,8 @@
 
 # dependencies
 node_modules/
+# Yarn is the package manager used by EAS; commit yarn.lock only.
+/package-lock.json
 .metro-cache/
 
 # Expo

@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { tierFor, RewardsInsights } from '../utils/rewardsInsights';
 import { AnimatedNumber, useAnimatedNumber } from './AnimatedNumber';
+import { GradientSectionHeading } from './GradientSectionHeading';
 
 export interface RewardsCardStats extends Partial<RewardsInsights> {
   totalEarned: number;
@@ -41,7 +42,7 @@ export const RewardsCard = ({ stats, loading, error, onOpen, onHistory, onRedeem
   return (
     <View style={styles.card} testID={`${testIDPrefix}-card`}>
       <TouchableOpacity style={styles.header} onPress={onOpen} activeOpacity={0.75} accessibilityRole="button" accessibilityLabel="Open My Rewards" testID={`${testIDPrefix}-open`}>
-        <Text style={styles.title}>My Rewards</Text>
+        <GradientSectionHeading style={styles.title}>My Rewards</GradientSectionHeading>
         {!unavailable && (
           <View style={styles.tierPill} testID={`${testIDPrefix}-tier`}>
             <Ionicons name="star" size={11} color="#B36B00" />
@@ -89,7 +90,7 @@ export const RewardsCard = ({ stats, loading, error, onOpen, onHistory, onRedeem
             <Ionicons name="sparkles-outline" size={18} color="#FF8C00" />
           </View>
           <AnimatedNumber value={unavailable ? null : stats?.averagePoints} style={styles.metricValue} />
-          <Text style={styles.metricLabel}>Avg. points</Text>
+          <Text style={styles.metricLabel}>Avg. INcoins</Text>
           <Text style={[styles.metricHint, styles.metricHintOrange]}>Per spend</Text>
         </View>
       </View>
@@ -133,6 +134,7 @@ const styles = StyleSheet.create({
   card: {
     marginHorizontal: 16,
     marginTop: 16,
+    marginBottom: 24,
     backgroundColor: '#FFF',
     borderRadius: 20,
     padding: 16,
