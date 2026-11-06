@@ -485,18 +485,21 @@ const fetchInPointsStats = async () => {
 
   const startNearbyAutoScroll = () => {
     if (nearbyAutoScrollRef.current) clearInterval(nearbyAutoScrollRef.current);
+    // Advance one card every 2.5s with a smooth native animation. The previous
+    // implementation ran at 30ms with a 1px step which saturated the JS thread
+    // and caused iOS to terminate child press gestures (View All / Categories /
+    // Nearby Shops were unclickable).
     nearbyAutoScrollRef.current = setInterval(() => {
       if (!nearbyScrollRef.current || nearbyShops.length === 0) return;
-      nearbyScrollPos.current += 1;
-      // Reset to start when scrolled past original list (seamless loop)
       const totalWidth = nearbyShops.length * MERCHANT_CARD_WIDTH;
+      nearbyScrollPos.current += MERCHANT_CARD_WIDTH;
       if (nearbyScrollPos.current >= totalWidth) {
         nearbyScrollPos.current = 0;
         nearbyScrollRef.current.scrollTo({ x: 0, animated: false });
       } else {
-        nearbyScrollRef.current.scrollTo({ x: nearbyScrollPos.current, animated: false });
+        nearbyScrollRef.current.scrollTo({ x: nearbyScrollPos.current, animated: true });
       }
-    }, 30);
+    }, 2500);
   };
 
   const stopNearbyAutoScroll = () => {
@@ -1067,7 +1070,11 @@ const fetchInPointsStats = async () => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={{ flex: 1 }}>
-        <ScrollView ref={contentScrollRef} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          ref={contentScrollRef}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
 
 
           {/* HEADER */}

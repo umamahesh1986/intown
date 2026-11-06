@@ -13,6 +13,7 @@ if (typeof (globalThis as any).DOMException === 'undefined') {
 import { Stack, usePathname } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { View, Text, TextInput, Platform } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useAuthStore } from '../store/authStore';
 import { useLocationStore } from '../store/locationStore';
 import { getUserLocationWithDetails } from '../utils/location';
@@ -174,7 +175,7 @@ export default function RootLayout() {
     : isMerchant ? merchantTabs : customerTabs;
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#FFFFFF', ...(Platform.OS === 'web' ? { minHeight: '100vh' } : {}) } as any}>
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#FFFFFF', ...(Platform.OS === 'web' ? { minHeight: '100vh' } : {}) } as any}>
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" />
         <Stack.Screen name="location" />
@@ -218,6 +219,6 @@ export default function RootLayout() {
 
       {/* Expo push: token registration, foreground mirroring into the bell, tap deep-links */}
       <PushNotificationBridge />
-    </View>
+    </GestureHandlerRootView>
   );
 }

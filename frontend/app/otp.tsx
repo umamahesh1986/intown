@@ -110,8 +110,6 @@ export default function OTPScreen() {
 
   useEffect(() => {
     isMountedRef.current = true;
-    // Show success popup on mount since OTP was sent from login screen
-    showOtpSentPopup("OTP sent successfully");
     return () => {
       isMountedRef.current = false;
       if (popupTimerRef.current) clearTimeout(popupTimerRef.current);

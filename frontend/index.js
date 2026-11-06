@@ -31,6 +31,9 @@ if (typeof globalThis !== 'undefined' && typeof globalThis.DOMException === 'und
   console.log('[BOOTSTRAP] DOMException already available');
 }
 
+// Import react-native-gesture-handler before loading router
+import 'react-native-gesture-handler';
+
 // Now safe to load the rest of the app
 console.log('[BOOTSTRAP] Loading expo-router...');
 import 'expo-router/entry';

@@ -642,7 +642,10 @@ export default function MerchantDashboard() {
   return (
     <ErrorBoundary fallbackText="Merchant Dashboard Error">
     <SafeAreaView style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
         {/* Header */}
         <View style={styles.header}>
 
