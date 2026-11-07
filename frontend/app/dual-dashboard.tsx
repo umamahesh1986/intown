@@ -22,6 +22,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MerchantOfferSummary } from '../components/MerchantOfferSummary';
 import { MerchantPaymentApprovals } from '../components/MerchantPaymentApprovals';
+import { MerchantOrderHistoryLink } from '../components/MerchantOrderHistoryLink';
 import { merchantRecord } from '../utils/merchantProfile';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -1405,7 +1406,7 @@ useFocusEffect(
         {/* Quick Stats — merchant tab keeps INtown Business on top; customer savings + rewards moved above the footer */}
         {activeTab === 'merchant' && (
           <>
-            <View style={{ paddingHorizontal: 16, marginTop: 10 }}>
+            <View style={{ paddingHorizontal: 16, marginTop: 16 }}>
               <GradientSectionHeading style={[styles.sectionTitle, { margin: 0, fontSize: 18 }]}>INtown Business</GradientSectionHeading>
             </View>
             <SavingsStatCards
@@ -1424,6 +1425,7 @@ useFocusEffect(
         {activeTab === 'merchant' && <MerchantOfferSummary merchant={merchantDetails} from="dual-merchant" />}
 
         {/* Transactions Section (merchant tab only — customers see deals instead) */}
+        {activeTab === 'merchant' && <MerchantOrderHistoryLink />}
         {activeTab === 'merchant' && <MerchantPaymentApprovals merchantId={merchantId} token={token} onApproved={() => setSalesRefresh(value => value + 1)} />}
         {activeTab === 'merchant' && (
         <View style={styles.transactionsSection}>
@@ -1541,7 +1543,7 @@ useFocusEffect(
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.actionButton}
-                  onPress={() => router.push('/rewards')}
+                  onPress={() => router.push({ pathname: '/rewards', params: { from: activeTab === 'merchant' ? 'merchant' : 'customer' } })}
                 >
                   <Ionicons name="gift" size={24} color="#FF8A00" />
                   <Text style={styles.actionText}>My Rewards</Text>
@@ -1618,7 +1620,7 @@ useFocusEffect(
               horizontal
               showsHorizontalScrollIndicator={false}
               decelerationRate="fast"
-              contentContainerStyle={{ paddingRight: 16, gap: 14, paddingBottom: 12 }}
+              contentContainerStyle={{ paddingRight: 16, gap: 14, paddingBottom: 12, alignItems: 'stretch' }}
               onScrollBeginDrag={() => {
                 stopNearbyAutoScroll();
               }}
@@ -2224,8 +2226,8 @@ const styles = StyleSheet.create({
   transactionsSection: {
     backgroundColor: "#FFFFFF",
     marginHorizontal: 16,
-    marginTop: 20,
-    marginBottom: 20,
+    marginTop: 16,
+    marginBottom: 16,
     padding: 16,
     borderRadius: 20,
   },
@@ -2233,18 +2235,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 12,
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '800',
     color: '#1A1A1A',
-    marginBottom: 8,
+    marginBottom: 0,
   },
 
   categoriesCarouselContent: {
     flexDirection: 'row',
-    paddingVertical: 4,
+    paddingBottom: 4,
     paddingRight: 12,
   },
   categoryColumn: {

@@ -1,12 +1,14 @@
 import { createElement } from 'react';
 import { Platform, Text, StyleProp, TextStyle } from 'react-native';
 
-export function GradientSectionHeading({ children, compact = false, style }: { children: string; compact?: boolean; style?: StyleProp<TextStyle> }) {
+export const SECTION_HEADING_TYPOGRAPHY = { fontSize: 18, fontWeight: '800' as const, lineHeight: 24 };
+
+export function GradientSectionHeading({ children, style }: { children: string; style?: StyleProp<TextStyle> }) {
   const characters = Array.from(children);
   return <Text accessibilityRole="header" accessibilityLabel={children}
-    style={[{ alignSelf: 'flex-start', fontSize: compact ? 15 : 18, fontWeight: '800', color: '#FF7900', flexShrink: 1,
+    style={[{ alignSelf: 'flex-start', color: '#FF7900', flexShrink: 1,
       textShadowColor: 'rgba(126, 49, 0, 0.18)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 2,
-    }, style]}>
+    }, style, SECTION_HEADING_TYPOGRAPHY]}>
     {Platform.OS === 'web' ? createElement('span', {
       style: {
         backgroundImage: 'linear-gradient(90deg, #FF8A00 0%, #FF4D00 100%)',

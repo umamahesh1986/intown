@@ -19,21 +19,21 @@ export const MerchantPackBanner = () => {
   const info = getMerchantPlanById(plan);
   const top = plan === 'LAUNCH';
   return (
-    <TouchableOpacity style={[styles.card, top && styles.cardTop]} onPress={() => router.push('/plans')} activeOpacity={0.85} testID="merchant-pack-banner">
+    <TouchableOpacity style={[styles.card, top && styles.cardTop]} disabled={top} onPress={() => { if (!top) router.push('/plans'); }} activeOpacity={0.85} testID="merchant-pack-banner">
       <View style={[styles.icon, top && styles.iconTop]}>
         <Ionicons name={top ? 'rocket' : 'storefront'} size={20} color={top ? '#2E7D32' : '#FF8A00'} />
       </View>
       <View style={{ flex: 1 }}>
         <Text style={styles.title} testID="merchant-pack-banner-title">
-          {info ? `${info.name} pack · ₹${info.basePrice}/-` : 'No INtown pack yet'}
+          {info ? `${info.name} pack · ₹${info.basePrice}/-` : 'Choose your INtown pack'}
         </Text>
         <Text style={styles.sub}>
-          {top ? 'All merchant features unlocked' : info ? 'Upgrade to LAUNCH for Pick @ store, Slot Booking & more' : 'Choose a pack to activate your shop (pay via Razorpay)'}
+          {top ? 'All merchant features unlocked' : info ? 'Upgrade to LAUNCH for Pick @ store, Slot Booking & more' : 'No pack recorded. Select START or LAUNCH to activate your shop.'}
         </Text>
       </View>
       {!top && (
         <View style={styles.cta}>
-          <Text style={styles.ctaText}>{info ? 'Upgrade' : 'Choose pack'}</Text>
+          <Text style={styles.ctaText}>{plan === 'START' ? 'Upgrade to LAUNCH' : 'Choose pack'}</Text>
         </View>
       )}
     </TouchableOpacity>
@@ -46,7 +46,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     marginHorizontal: 16,
-    marginTop: 14,
+    marginTop: 16,
     backgroundColor: '#FFF7EE',
     borderWidth: 1,
     borderColor: '#FFE0BF',

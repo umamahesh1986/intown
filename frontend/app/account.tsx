@@ -1493,7 +1493,7 @@ export default function Account() {
           {!hasMerchantIdentity && (
             <>
               <View style={styles.menuDivider} />
-              <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/rewards')} testID="account-my-rewards-link">
+              <TouchableOpacity style={styles.menuItem} onPress={() => router.push({ pathname: '/rewards', params: { from: isMerchant ? 'merchant' : 'customer' } })} testID="account-my-rewards-link">
                 <View style={styles.menuIconWrap}><Ionicons name="gift-outline" size={20} color="#FF8A00" /></View>
                 <View style={styles.menuTextWrap}>
                   <Text style={styles.menuTitle}>My Rewards</Text>

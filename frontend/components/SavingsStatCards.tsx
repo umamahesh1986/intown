@@ -40,7 +40,7 @@ const cardStyles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
     marginHorizontal: 16,
-    marginTop: 14,
+    marginTop: 12,
   },
   card: {
     flex: 1,

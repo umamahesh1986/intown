@@ -4,11 +4,17 @@ const assert = require('node:assert/strict');
 const ts = require('typescript');
 const path = require('node:path');
 const calls = [];
+const profileCalls = [];
 let response = [];
 let status = 200;
 const context = {
+  AbortController, setTimeout, clearTimeout,
   exports: {}, require: () => ({ INTOWN_API_BASE: 'https://test.invalid/IN' }),
   fetch: async (url, options) => {
+    if (url.includes('/IN/customer/')) {
+      profileCalls.push({ url, options });
+      return { ok: true, json: async () => ({ id: 100038, contactName: '  Praveen Kumar  ' }) };
+    }
     calls.push({ url, options });
     return { ok: status < 300, json: async () => response };
   },
@@ -39,6 +45,22 @@ async function check() {
   await assert.rejects(() => approvePayment(1), /has not completed/);
   response = {};
   await assert.rejects(() => getPendingPayments(100102), /Unable to read/);
+  response = [
+    { transactionId: 10, merchantId: 100102, customerId: 100038, status: 'PENDING_APPROVAL' },
+    { transactionId: 11, merchantId: 100102, customerId: 100038, status: 'PENDING_APPROVAL' },
+    { transactionId: 12, merchantId: 100102, customerId: 55, customerName: 'Existing Name', status: 'PENDING_APPROVAL' },
+  ];
+  const named = await getPendingPayments(100102, 'merchant-token');
+  assert.equal(named[0].customerName, 'Praveen Kumar');
+  assert.equal(named[1].customerName, 'Praveen Kumar');
+  assert.equal(named[2].customerName, 'Existing Name');
+  assert.equal(profileCalls.length, 1, 'Repeated customer payments share one name lookup');
+  assert.equal(profileCalls[0].options.headers.Authorization, 'Bearer merchant-token');
+  await getPendingPayments(100102, 'merchant-token');
+  assert.equal(profileCalls.length, 1, 'Polling reuses cached customer names');
+  response = [{ transactionId: 13, merchantId: 100102, customerId: 100039, status: 'PENDING_APPROVAL' }];
+  const mismatch = await getPendingPayments(100102);
+  assert.equal(mismatch[0].customerName, '', 'Never show a name from a different customer profile');
   console.log('Pending payment isolation, auth, approval API, server reward response and failed/still-pending approval checks passed.');
 }
 check().catch(error => { console.error(error); process.exitCode = 1; });

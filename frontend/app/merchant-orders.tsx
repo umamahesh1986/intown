@@ -15,6 +15,7 @@ import { pushMerchantOrderEvent } from '../utils/orderPush';
 import { pollMerchantOrders } from '../components/OrderNotificationPoller';
 
 const TABS: { key: PickupOrderStatus; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+  { key: 'ALL', label: 'All orders', icon: 'list-outline' },
   { key: 'PLACED', label: 'New', icon: 'notifications-outline' },
   { key: 'ACCEPTED', label: 'Accepted', icon: 'checkmark-circle-outline' },
   { key: 'PICKUP_READY', label: 'Ready', icon: 'cube-outline' },
@@ -119,7 +120,7 @@ export default function MerchantOrdersScreen() {
 
       if (newlyArrived.length > 0) {
         // Auto-switch to PLACED tab so the merchant sees the new order right away
-        setActiveTab('PLACED');
+        setActiveTab(previous => previous === 'ALL' ? previous : 'PLACED');
         const label =
           newlyArrived.length === 1
             ? `New order from ${newlyArrived[0].customerName || `Customer #${newlyArrived[0].customerId}`}`
@@ -226,9 +227,9 @@ export default function MerchantOrdersScreen() {
     );
   };
 
-  const filteredOrders = orders.filter((o) => String(o.status).toUpperCase() === activeTab);
+  const filteredOrders = orders.filter((o) => activeTab === 'ALL' || String(o.status).toUpperCase() === activeTab);
   const countFor = (statusKey: PickupOrderStatus) =>
-    orders.filter((o) => String(o.status).toUpperCase() === statusKey).length;
+    statusKey === 'ALL' ? orders.length : orders.filter((o) => String(o.status).toUpperCase() === statusKey).length;
 
   return (
     <SafeAreaView style={styles.screen}>
@@ -369,10 +370,11 @@ function MerchantOrderCard({
   isUpdating: boolean;
   isHighlighted?: boolean;
 }) {
+  const [expanded, setExpanded] = useState(false);
   const statusKey = String(order.status).toUpperCase();
   const color = STATUS_COLORS[statusKey] || { bg: '#F5F5F5', text: '#666' };
   const nextInfo = NEXT_STATUS[statusKey];
-  const orderDate = formatDateTime(order.acceptedAt || order.respondBy || order.endedAt || null);
+  const orderDate = formatDateTime(order.createdAt || order.acceptedAt || order.respondBy || order.endedAt || null);
 
   return (
     <View
@@ -405,11 +407,27 @@ function MerchantOrderCard({
         {(order.items || []).map((it, idx) => (
           <View key={`${order.pickup_id}-i-${idx}`} style={styles.itemRow}>
             <View style={styles.itemBullet} />
-            <Text style={styles.itemName} numberOfLines={1}>{it.productName}</Text>
+            <Text style={styles.itemName} numberOfLines={expanded ? undefined : 1}>{it.productName}</Text>
             <Text style={styles.itemQty}>{it.quantity}</Text>
           </View>
         ))}
       </View>
+
+      <TouchableOpacity style={styles.detailsToggle} onPress={() => setExpanded(value => !value)} accessibilityRole="button" accessibilityState={{ expanded }} testID={`merchant-order-details-${order.pickup_id}`}>
+        <Text style={styles.detailsLabel}>{expanded ? 'Hide order details' : 'View order details'}</Text><Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={16} color="#E87500" />
+      </TouchableOpacity>
+      {expanded && <View style={styles.detailsBox}>
+        <Text style={styles.detailsText}>Order ID: {order.pickup_id}</Text>
+        <Text style={styles.detailsText}>Customer: {order.customerName || `Customer #${order.customerId}`}</Text>
+        <Text style={styles.detailsText}>Order type: {order.orderType || 'PICKUP'}</Text>
+        <Text style={styles.detailsText}>Status: {statusKey.replace(/_/g, ' ')}</Text>
+        {([
+          ['Placed', order.createdAt], ['Respond by', order.respondBy], ['Accepted', order.acceptedAt],
+          ['Ready for pickup', order.packedAt], ['Customer received', order.customerReceivedAt],
+          ['Merchant delivered', order.merchantDeliveredAt], ['Completed', order.completedAt], ['Ended', order.endedAt],
+        ] as const).filter(([, value]) => !!value).map(([label, value]) => <Text key={label} style={styles.detailsText}>{label}: {formatDateTime(value)}</Text>)}
+        {!order.items?.length && <Text style={styles.detailsText}>No item details provided.</Text>}
+      </View>}
 
       {nextInfo && (
         <View style={styles.actionRow}>
@@ -454,6 +472,10 @@ function MerchantOrderCard({
 }
 
 const styles = StyleSheet.create({
+  detailsToggle: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12 },
+  detailsLabel: { color: '#E87500', fontSize: 13, fontWeight: '700' },
+  detailsBox: { backgroundColor: '#FFF8ED', padding: 12, borderRadius: 12, marginBottom: 12, gap: 6 },
+  detailsText: { fontSize: 12, lineHeight: 18, color: '#445066' },
   screen: { flex: 1, backgroundColor: '#F5F6FA' },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',

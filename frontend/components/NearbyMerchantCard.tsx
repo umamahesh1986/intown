@@ -116,8 +116,9 @@ const GREEN = '#2E7D32';
 const ORANGE = '#FF8A00';
 
 const styles = StyleSheet.create({
-  wrap: { width: 220, position: 'relative' },
+  wrap: { width: 220, position: 'relative', alignSelf: 'stretch' },
   card: {
+    flex: 1,
     width: 220,
     backgroundColor: '#FFF',
     borderRadius: 14,
@@ -181,7 +182,7 @@ const styles = StyleSheet.create({
   },
   categoryBadgeSpecial: { backgroundColor: 'rgba(255, 138, 0, 0.92)' },
   categoryText: { color: '#FFF', fontSize: 10, fontWeight: '700' },
-  content: { padding: 12, gap: 4 },
+  content: { flex: 1, padding: 12, gap: 4 },
   name: { fontSize: 15, fontWeight: '700', color: '#1A1A1A' },
   contact: { fontSize: 12, color: '#666' },
   infoRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
