@@ -58,7 +58,7 @@ export const DealsStrip = ({ shops, onPressShop }: DealsStripProps) => {
             <Text style={styles.countText} testID="deals-strip-count">{deals.length} Active</Text>
           </View>
         </View>
-        <TouchableOpacity onPress={() => setShowAll(value => !value)} accessibilityRole="button" accessibilityLabel={showAll ? 'Show fewer nearby deals' : 'See all nearby deals'} testID="deals-see-all"><Text style={styles.seeAll}>{showAll ? 'Show less' : 'See all'}</Text></TouchableOpacity>
+        <TouchableOpacity onPress={() => setShowAll(value => !value)} accessibilityRole="button" accessibilityLabel={showAll ? 'Show fewer nearby deals' : 'See all nearby deals'} testID="deals-see-all"><Text style={styles.seeAll}>{showAll ? 'Show less' : 'Show all'}</Text></TouchableOpacity>
       </View>
       <ScrollView horizontal={!showAll} nestedScrollEnabled style={{ height: (showAll ? Math.min(deals.length, 3) * 254 : 256) * Math.max(1, fontScale), flexGrow: 0 }} showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.row, showAll && styles.allRow]}>
         {deals.map(({ shop, offers }) => {

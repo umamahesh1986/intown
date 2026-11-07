@@ -1567,7 +1567,7 @@ export default function RegisterMerchant() {
               testID="agree-terms-switch"
             />
             <Text style={{ marginLeft: 8, flex: 1, color: '#1A1A1A' }}>
-              I agree to the{' '}
+              I agree{' '}
               <Text onPress={() => setShowTerms(true)} accessibilityRole="link" style={{ color: '#F58200', textDecorationLine: 'underline', fontWeight: '600' }} testID="merchant-registration-terms-link">Terms &amp; Conditions</Text>
             </Text>
           </View>
