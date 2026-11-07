@@ -66,7 +66,6 @@ export function MerchantPaymentApprovals({ merchantId, token, onApproved }: {
       <View style={{ flex: 1 }} />
       <TouchableOpacity style={styles.refresh} accessibilityRole="button" accessibilityLabel="Refresh INcoins approvals" onPress={() => setRevision(value => value + 1)}><Ionicons name="refresh" size={17} color="#FF6900" /></TouchableOpacity>
     </View>
-    <Text style={styles.subtitle}>Verify each customer payment before approving their INcoins.</Text>
     {!!error && <Text style={styles.error} accessibilityLiveRegion="polite">{error}</Text>}
     {!!notice && <Text style={styles.notice} accessibilityLiveRegion="polite">{notice}</Text>}
     {loading ? <ActivityIndicator color="#FF8A00" /> : !payments.length && !error ? <Text style={styles.subtitle}>No payments awaiting approval.</Text> : null}
@@ -82,10 +81,6 @@ export function MerchantPaymentApprovals({ merchantId, token, onApproved }: {
         <View style={styles.paid}><Text style={styles.paidLabel}>CUSTOMER PAID</Text><Text style={styles.paidAmount}>{currency(payment.payablePrice)}</Text></View>
         <View style={styles.bill}><Text style={styles.billLabel}>TOTAL BILL</Text><Text style={styles.billAmount}>{currency(payment.totalPrice)}</Text></View>
         <View style={styles.discount}><Text style={styles.discountLabel}>DISCOUNT</Text><Text style={styles.discountValue}>{currency(Math.max(0, Number(payment.totalPrice) - Number(payment.payablePrice)))} off</Text></View>
-      </View>
-      <View style={styles.reward}>
-        <View style={styles.star}><Ionicons name="star" size={11} color="#FFF" /></View>
-        <View style={{ flex: 1 }}><Text style={styles.rewardTitle}>{payment.pointsEarned != null ? `Customer receives ${payment.pointsEarned} INcoins automatically after approval.` : 'Customer receives INcoins automatically after approval.'}</Text><Text style={styles.rewardDetail}>The server calculates the cashback points &amp; reward instantly.</Text></View>
       </View>
       <TouchableOpacity disabled={busy !== null} onPress={() => approve(payment)} style={[styles.buttonWrap, busy !== null && { opacity: 0.5 }]} accessibilityRole="button" testID={`approve-payment-${payment.transactionId}`}>
         <LinearGradient colors={['#FF7B12', '#F45100']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.button}>
