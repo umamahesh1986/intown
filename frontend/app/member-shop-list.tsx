@@ -12,6 +12,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { getMerchantImageByShopId, extractImageUrls, INTOWN_API_BASE, enrichShopsWithMerchantDetails } from '../utils/api';
 import { setNavShop } from '../utils/navCache';
 import { useLocationStore } from '../store/locationStore';
@@ -312,21 +313,26 @@ export default function MemberShopList() {
           renderItem={({ item }) => {
             try {
               if (!item) return null;
-              const imageUri = getFirstImageUrl(item?.image);
+              const imageUri = getFirstImageUrl(item?.image ?? item?.s3ImageUrl);
               const shopName = item?.businessName || item?.shopName || item?.name || item?.contactName || 'Shop';
               const categoryText = item?.businessCategory || item?.category || 'General';
-              const contactName = item?.contactName;
               const specialOffers = getActiveSpecialOffers(item);
+              const rating = Number(item?.rating ?? item?.averageRating);
+              const reviewCount = Number(item?.reviewCount ?? item?.ratingCount);
+              const hasRating = Number.isFinite(rating) && rating > 0 && rating <= 5;
+              const distance = typeof item?.distance === 'number' && Number.isFinite(item.distance) ? `${formatDistance(item.distance)} away` : 'Nearby';
 
               return (
                 <TouchableOpacity style={styles.shopCard} onPress={() => handleViewShop(item)} activeOpacity={0.9} testID={`shop-card-${item?.id ?? ''}`}>
                   {/* Hero Image */}
-                  <View style={styles.imageWrapper}>
+                  <LinearGradient colors={['#FFFBEF', '#FFF0F0', '#FFEED8']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.imageWrapper}>
                     {imageUri ? (
-                      <Image source={{ uri: imageUri }} style={styles.heroImage} resizeMode="cover" />
+                      <Image source={{ uri: imageUri }} style={styles.heroImage} resizeMode="contain" />
                     ) : (
                       <View style={styles.heroPlaceholder}>
-                        <Ionicons name="storefront" size={48} color="#FF8A00" />
+                        <View style={styles.radiusPill}><Ionicons name="location" size={12} color="#18304B" /><Text style={styles.radiusText}>IN YOUR LOCAL RADIUS</Text></View>
+                        <Text style={styles.localCopy}>మీకు కావాల్సిన ప్రతిదీ మీ పరిసరాల్లోనే!</Text>
+                        <Text style={styles.heroSubtitle}>{categoryText === 'Groceries' ? 'Kirana • Staples • Rice • Daily Essentials' : `${categoryText} • Explore local shops`}</Text>
                       </View>
                     )}
                     {/* Category Badge */}
@@ -336,11 +342,11 @@ export default function MemberShopList() {
                     {/* Special Offer tag — only when the merchant has an active (non-expired) special offer */}
                     {specialOffers.length > 0 && (
                       <View style={styles.offerBadge} testID={`shop-offer-badge-${item?.id ?? ''}`}>
-                        <Ionicons name="gift" size={12} color="#FFF" />
+                        <Ionicons name="checkmark-circle" size={12} color="#FFF" />
                         <Text style={styles.offerBadgeText}>Special Offer</Text>
                       </View>
                     )}
-                  </View>
+                  </LinearGradient>
 
                   {/* Card Content */}
                   <View style={styles.cardContent}>
@@ -348,12 +354,13 @@ export default function MemberShopList() {
                       <View style={styles.cardInfo}>
                         <Text style={styles.shopName} numberOfLines={1}>{shopName}</Text>
                         <View style={styles.distanceRow}>
-                          <Ionicons name="location-outline" size={14} color="#FF8A00" />
-                          <Text style={styles.distanceText}>{formatDistance(item?.distance)}</Text>
+                          {hasRating && <View style={styles.rating}><Ionicons name="star" size={12} color="#FF9800" /><Text style={styles.ratingText}>{rating.toFixed(1)}{Number.isFinite(reviewCount) && reviewCount >= 0 ? ` (${reviewCount})` : ''}</Text></View>}
+                          <Ionicons name="location" size={13} color="#94A3BA" />
+                          <Text style={styles.distanceText}>{distance}</Text>
                         </View>
                         {specialOffers.length > 0 && (
                           <View style={styles.offerLine}>
-                            <Ionicons name="pricetag" size={13} color="#2E7D32" />
+                            <Ionicons name="sparkles" size={16} color="#00A57D" />
                             <Text style={styles.offerLineText} numberOfLines={1} testID={`shop-offer-text-${item?.id ?? ''}`}>
                               {specialOffers[0]}
                               {specialOffers.length > 1 ? `  +${specialOffers.length - 1} more` : ''}
@@ -362,8 +369,11 @@ export default function MemberShopList() {
                         )}
                       </View>
                     </View>
-                    <TouchableOpacity style={styles.viewButton} onPress={() => handleViewShop(item)}>
+                    <TouchableOpacity style={styles.viewButton} onPress={() => handleViewShop(item)} accessibilityRole="button" accessibilityLabel={`View ${shopName}`}>
+                      <LinearGradient colors={['#FF7519', '#F5A000']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.viewButtonGradient}>
                       <Text style={styles.viewButtonText}>View Shop</Text>
+                      <Ionicons name="chevron-forward" size={18} color="#FFF" />
+                      </LinearGradient>
                     </TouchableOpacity>
                   </View>
                 </TouchableOpacity>
@@ -450,10 +460,10 @@ const styles = StyleSheet.create({
   // Card styles
   shopCard: {
     backgroundColor: '#FFF',
-    borderRadius: 16,
+    borderRadius: 20,
     marginBottom: 20,
     overflow: 'hidden',
-    shadowColor: '#000',
+    shadowColor: '#9C6C34',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 8,
@@ -461,7 +471,7 @@ const styles = StyleSheet.create({
   },
   imageWrapper: {
     width: '100%',
-    height: 180,
+    height: 176,
     position: 'relative',
   },
   heroImage: {
@@ -471,7 +481,8 @@ const styles = StyleSheet.create({
   heroPlaceholder: {
     width: '100%',
     height: '100%',
-    backgroundColor: '#FFF3E0',
+    paddingHorizontal: 28,
+    paddingTop: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -479,14 +490,14 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 12,
     left: 12,
-    backgroundColor: 'rgba(255, 138, 0, 0.9)',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 11,
+    paddingVertical: 6,
+    borderRadius: 20,
   },
   categoryBadgeText: {
-    color: '#FFF',
-    fontSize: 12,
+    color: '#FF6900',
+    fontSize: 10,
     fontWeight: '600',
   },
   offerBadge: {
@@ -496,37 +507,39 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: 'rgba(46, 125, 50, 0.95)',
+    backgroundColor: '#008663',
     paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
   },
   offerBadgeText: {
     color: '#FFF',
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '700',
     letterSpacing: 0.3,
   },
   offerLine: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    marginTop: 6,
-    backgroundColor: '#E8F5E9',
-    alignSelf: 'flex-start',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
+    gap: 7,
+    marginTop: 12,
+    backgroundColor: '#ECFCF4',
+    borderWidth: 1,
+    borderColor: '#C6F4DF',
+    alignSelf: 'stretch',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 12,
     maxWidth: '100%',
   },
   offerLineText: {
-    color: '#2E7D32',
+    color: '#008765',
     fontSize: 12,
     fontWeight: '600',
     flexShrink: 1,
   },
   cardContent: {
-    padding: 14,
+    padding: 16,
   },
   cardRow: {
     flexDirection: 'row',
@@ -538,21 +551,22 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   shopName: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1A1A1A',
-    marginBottom: 4,
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#10223B',
+    marginBottom: 6,
   },
   distanceRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 2,
+    marginTop: 0,
+    gap: 4,
   },
   distanceText: {
-    fontSize: 13,
-    color: '#FF8A00',
-    marginLeft: 4,
-    fontWeight: '700',
+    fontSize: 12,
+    color: '#7D8FA9',
+    marginLeft: 0,
+    fontWeight: '400',
   },
   contactText: {
     fontSize: 12,
@@ -560,13 +574,17 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   viewButton: {
-    backgroundColor: '#FF8A00',
-    borderRadius: 25,
-    paddingVertical: 12,
-    alignItems: 'center',
-    alignSelf: 'flex-end',
-    paddingHorizontal: 28,
+    borderRadius: 13,
+    alignSelf: 'stretch',
+    shadowColor: '#FF7900', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 7, elevation: 3,
   },
+  viewButtonGradient: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, paddingVertical: 12, borderRadius: 13 },
+  radiusPill: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#FFE6D7', paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20, marginBottom: 5 },
+  radiusText: { fontSize: 10, fontWeight: '800', color: '#18304B' },
+  localCopy: { fontSize: 14, lineHeight: 19, textAlign: 'center', color: '#10223B', fontWeight: '600' },
+  heroSubtitle: { fontSize: 9, color: '#7285A5', marginTop: 5, textAlign: 'center' },
+  rating: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: '#FFFAE9', paddingHorizontal: 4, paddingVertical: 3, marginRight: 5, borderRadius: 4 },
+  ratingText: { fontSize: 12, color: '#DB7C00' },
   viewButtonText: {
     color: '#FFF',
     fontSize: 15,

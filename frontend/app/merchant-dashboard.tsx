@@ -21,6 +21,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MerchantOfferSummary } from '../components/MerchantOfferSummary';
 import { GradientSectionHeading } from '../components/GradientSectionHeading';
 import { MerchantPaymentApprovals } from '../components/MerchantPaymentApprovals';
+import { MerchantOrderHistoryLink } from '../components/MerchantOrderHistoryLink';
 import { merchantRecord } from '../utils/merchantProfile';
 import { Ionicons } from '@expo/vector-icons';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -45,7 +46,6 @@ const { width } = Dimensions.get('window');
 const SLIDE_WIDTH = Math.round(width) || 360;
 const CAROUSEL_HEIGHT = 160;
 
-const SHOP_IMAGE_WIDTH = (width || 360) - 64;
 
 
 
@@ -118,6 +118,7 @@ const formatTransactionDate = (value: string) => {
 };
 
 export default function MerchantDashboard() {
+  const [shopImageWidth, setShopImageWidth] = useState((width || 360) - 34);
   const [salesRefresh, setSalesRefresh] = useState(0);
   console.log("=== MERCHANT DASHBOARD MOUNTING ===");
   const router = useRouter();
@@ -223,10 +224,10 @@ export default function MerchantDashboard() {
   useEffect(() => {
     if (!shopImageScrollRef.current || shopImages.length === 0) return;
     shopImageScrollRef.current.scrollTo({
-      x: shopImageIndex * SHOP_IMAGE_WIDTH,
+      x: shopImageIndex * shopImageWidth,
       animated: true,
     });
-  }, [shopImageIndex, shopImages.length]);
+  }, [shopImageIndex, shopImages.length, shopImageWidth]);
 
   const handlePrevShopImage = () => {
     if (shopImages.length === 0) return;
@@ -730,7 +731,7 @@ export default function MerchantDashboard() {
 
         {/* Shop Details Card */}
         <View style={styles.shopCard}>
-          <View style={styles.shopImageContainer}>
+          <View style={styles.shopImageContainer} onLayout={event => setShopImageWidth(event.nativeEvent.layout.width)}>
             {shopImages.length > 0 ? (
               <>
                 <ScrollView
@@ -744,7 +745,7 @@ export default function MerchantDashboard() {
                   contentContainerStyle={styles.shopImageScrollContent}
                   onMomentumScrollEnd={(e) => {
                     const index = Math.round(
-                      e.nativeEvent.contentOffset.x / SHOP_IMAGE_WIDTH
+                      e.nativeEvent.contentOffset.x / shopImageWidth
                     );
                     setShopImageIndex(index);
                   }}
@@ -753,7 +754,7 @@ export default function MerchantDashboard() {
                     <Image
                       key={`${img}-${index}`}
                       source={{ uri: img }}
-                      style={styles.shopImageCarousel}
+                      style={[styles.shopImageCarousel, { width: shopImageWidth }]}
                       resizeMode="cover"
                     />
 
@@ -776,11 +777,13 @@ export default function MerchantDashboard() {
               <Ionicons name="storefront" size={80} color="#2196F3" style={{ textAlign: 'center' }} />
             )}
           </View>
+          <View style={styles.shopDetails}>
           <Text style={styles.shopName}>{merchantShop.name}</Text>
           <Text style={styles.shopCategory}>{merchantShop.category}</Text>
           <Text style={[styles.descriptionText, { textAlign: 'left', lineHeight: 20, width: '100%', color: '#94A3B8' }]}>
               {merchantShop.description}
             </Text>
+          </View>
           {/* <View style={styles.ratingContainer}>
             {[1, 2, 3, 4, 5].map((i) => (
               <Ionicons
@@ -806,7 +809,7 @@ export default function MerchantDashboard() {
 
         <MerchantOfferSummary merchant={merchantDetails} from="merchant" />
         {/* Total Summary Section */}
-        <View style={{ paddingHorizontal: 16, marginTop: 10 }}>
+        <View style={{ paddingHorizontal: 16, marginTop: 16 }}>
           <GradientSectionHeading style={[styles.sectionTitle, { margin: 0, fontSize: 18 }]}>INtown Business</GradientSectionHeading>
         </View>
         <SavingsStatCards
@@ -819,6 +822,7 @@ export default function MerchantDashboard() {
         />
 
         {/* Payments List */}
+        <MerchantOrderHistoryLink />
         <MerchantPaymentApprovals merchantId={merchantId} token={token} onApproved={() => setSalesRefresh(value => value + 1)} />
         <View style={styles.transactionsCard}>
           <View style={[styles.transactionHeader, { marginTop: 10, alignItems: 'center' }]}>
@@ -1346,17 +1350,18 @@ const styles = StyleSheet.create({
   dropdownText: { fontSize: 14, color: '#666666', marginLeft: 12 },
   shopCard: {
     backgroundColor: '#FFFFFF',
-    margin: 16,
+    marginHorizontal: 16,
+    marginTop: 16,
     borderRadius: 12,
-    padding: 24,
+    padding: 0,
+    overflow: 'hidden',
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#EEEEEE',
   },
   shopImageContainer: {
-    width: SHOP_IMAGE_WIDTH,
+    width: '100%',
     aspectRatio: 16 / 9,
-    borderRadius: 10,
     overflow: 'hidden',
     marginBottom: 16,
     position: 'relative',
@@ -1373,7 +1378,6 @@ const styles = StyleSheet.create({
 
 
   shopImageCarousel: {
-    width: SHOP_IMAGE_WIDTH,
     height: '100%',
     resizeMode: 'cover',
   },
@@ -1398,6 +1402,7 @@ const styles = StyleSheet.create({
     right: 8,
   },
   shopName: { fontSize: 18, fontWeight: 'bold', color: '#1A1A1A', marginBottom: 4, textAlign: 'center' },
+  shopDetails: { width: '100%', paddingHorizontal: 24, paddingBottom: 24, alignItems: 'center' },
   shopCategory: { fontSize: 16, color: '#666666', marginBottom: 12 },
   ratingContainer: { flexDirection: 'row', alignItems: 'center' },
   ratingText: { fontSize: 16, fontWeight: '600', color: '#666666', marginLeft: 8 },
@@ -1828,8 +1833,8 @@ const styles = StyleSheet.create({
   transactionsCard: {
     backgroundColor: "#FFFFFF",
     marginHorizontal: 16,
-    marginTop: 20,
-    marginBottom: 20,
+    marginTop: 16,
+    marginBottom: 16,
     borderRadius: 20,
     paddingVertical: 10,
     paddingBottom: 20,

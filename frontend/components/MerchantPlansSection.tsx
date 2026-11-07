@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, Alert } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, Text, StyleSheet, Alert, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -39,13 +39,21 @@ export const MerchantPlansSection = ({ showHero = true, onPlanChanged }: Merchan
   const [merchant, setMerchant] = useState<any | null>(null);
   const [activePlan, setActivePlan] = useState<MerchantPlanId | null>(null);
   const [processing, setProcessing] = useState<MerchantPlanId | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
 
   const load = useCallback(async () => {
+    setLoading(true);
+    setLoadError('');
+    try {
     const id = (await AsyncStorage.getItem('merchant_id'))?.trim() || null;
     setMerchantId(id);
     const [plan, details] = await Promise.all([getMerchantPlan(id), id ? getMerchantDetailsById(id) : null]);
     setActivePlan(plan);
     setMerchant(details);
+    } catch {
+      setLoadError('Unable to load your current pack. Please retry.');
+    } finally { setLoading(false); }
   }, []);
 
   useFocusEffect(
@@ -53,9 +61,6 @@ export const MerchantPlansSection = ({ showHero = true, onPlanChanged }: Merchan
       load();
     }, [load]),
   );
-  useEffect(() => {
-    load();
-  }, [load]);
 
   const statusFor = (plan: MerchantPlan) => {
     if (activePlan === plan.id) return 'active' as const;
@@ -64,6 +69,7 @@ export const MerchantPlansSection = ({ showHero = true, onPlanChanged }: Merchan
   };
 
   const buy = async (plan: MerchantPlan) => {
+    if (loading || loadError || !merchantId || processing || merchantPlanRank(plan.id) <= merchantPlanRank(activePlan)) return;
     const mobile = await resolveMobile(merchant);
     if (!mobile) {
       Alert.alert('Phone number missing', 'We could not find your registered mobile number. Please update it in My Account and try again.');
@@ -100,6 +106,12 @@ export const MerchantPlansSection = ({ showHero = true, onPlanChanged }: Merchan
 
   const current = MERCHANT_PLANS.find((p) => p.id === activePlan) || null;
 
+  if (loading) return <View style={styles.infoBox} testID="merchant-plan-loading"><ActivityIndicator color="#FF8A00" /><Text style={styles.infoText}>Loading your current pack…</Text></View>;
+  if (loadError) return <View style={styles.infoBox} testID="merchant-plan-unavailable">
+    <View style={{ flex: 1 }}><Text style={styles.heroTitle}>Current pack unavailable</Text><Text style={styles.infoText}>{loadError || 'Your purchased pack could not be verified on this device. Please refresh or contact support to restore it.'}</Text></View>
+    <TouchableOpacity onPress={() => { void load(); }} accessibilityRole="button" accessibilityLabel="Reload merchant pack"><Text style={{ color: '#E87500', fontWeight: '700' }}>Retry</Text></TouchableOpacity>
+  </View>;
+
   return (
     <View testID="merchant-plans-section">
       {showHero && (
@@ -119,7 +131,7 @@ export const MerchantPlansSection = ({ showHero = true, onPlanChanged }: Merchan
       {activePlan === 'LAUNCH' ? (
         <View style={styles.infoBox} testID="merchant-plan-top-banner">
           <Ionicons name="trophy" size={16} color="#2E7D32" />
-          <Text style={styles.infoText}>You're on our top pack — every INtown merchant feature is unlocked.</Text>
+          <Text style={styles.infoText}>You are on our top pack — every INtown merchant feature is unlocked.</Text>
         </View>
       ) : (
         <View style={styles.infoBox} testID="merchant-plan-upgrade-banner">
@@ -132,7 +144,7 @@ export const MerchantPlansSection = ({ showHero = true, onPlanChanged }: Merchan
         </View>
       )}
 
-      {MERCHANT_PLANS.map((plan) => (
+      {MERCHANT_PLANS.filter(plan => merchantPlanRank(plan.id) >= merchantPlanRank(activePlan)).map((plan) => (
         <MerchantPlanCard
           key={plan.id}
           plan={plan}

@@ -69,7 +69,7 @@ export const RewardsCard = ({ stats, loading, error, onOpen, onHistory, onRedeem
           <Text style={styles.balanceSub}>≈ ₹<AnimatedNumber value={unavailable ? null : balance} precision={2} format={value => value.toFixed(2)} /> Cashback Value</Text>
         </View>
         <TouchableOpacity style={styles.redeemBtn} onPress={onRedeem} disabled={unavailable} activeOpacity={0.85} testID={`${testIDPrefix}-redeem`}>
-          <Text style={styles.redeemText}>Redeem</Text>
+          <Text style={styles.redeemText}>Check INcoins</Text>
           <Ionicons name="arrow-forward" size={14} color="#FF7A00" />
         </TouchableOpacity>
       </LinearGradient>
@@ -144,7 +144,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     elevation: 3,
   },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
   title: { fontSize: 20, fontWeight: '800', color: '#1A1A1A' },
   tierPill: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#FFF3E0', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
   tierText: { fontSize: 11.5, fontWeight: '800', color: '#B36B00' },

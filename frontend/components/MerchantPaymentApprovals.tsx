@@ -2,7 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { GradientSectionHeading } from './GradientSectionHeading';
+import { LinearGradient } from 'expo-linear-gradient';
+import { SECTION_HEADING_TYPOGRAPHY } from './GradientSectionHeading';
 import { approvePayment, getPendingPayments, PendingPayment } from '../utils/paymentApprovals';
 
 export function MerchantPaymentApprovals({ merchantId, token, onApproved }: {
@@ -49,7 +50,7 @@ export function MerchantPaymentApprovals({ merchantId, token, onApproved }: {
       if (currentMerchant.current !== merchantId) return;
       setPayments(previous => previous.filter(item => item.transactionId !== payment.transactionId));
       setNotice(result.pointsEarned != null
-        ? `Approved. ${result.pointsEarned} INcoins credited to Customer #${payment.customerId}.`
+        ? `Approved. ${result.pointsEarned} INcoins credited to ${payment.customerName || 'the customer'}.`
         : 'Payment approved. The customer’s INcoins balance will refresh.');
       onApproved?.();
     } catch (reason: any) { if (currentMerchant.current === merchantId) setError(reason.message); }
@@ -57,32 +58,55 @@ export function MerchantPaymentApprovals({ merchantId, token, onApproved }: {
   };
 
   return <View style={styles.section} testID="merchant-payment-approvals">
-    <View style={styles.heading}><Ionicons name="wallet-outline" color="#F58200" size={22} /><GradientSectionHeading style={styles.title}>{`INcoins approvals (${payments.length})`}</GradientSectionHeading>
-      <TouchableOpacity accessibilityLabel="Refresh INcoins approvals" onPress={() => setRevision(value => value + 1)}><Ionicons name="refresh" size={20} color="#F58200" /></TouchableOpacity></View>
-    <Text style={styles.subtitle}>Verify each customer payment before approving their INcoins.</Text>
+    <LinearGradient colors={['#FF7900', '#FFC52B', '#FF3868']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.topLine} />
+    <View style={styles.heading}>
+      <View style={styles.wallet}><Ionicons name="wallet-outline" color="#FF6900" size={23} /><View style={styles.coin}><Text style={styles.coinText}>₹</Text></View></View>
+      <Text style={styles.title}>INcoins approvals</Text>
+      <LinearGradient colors={['#FF7928', '#FF3E67']} style={styles.count}><Text style={styles.countText}>{payments.length}</Text></LinearGradient>
+      <View style={{ flex: 1 }} />
+      <TouchableOpacity style={styles.refresh} accessibilityRole="button" accessibilityLabel="Refresh INcoins approvals" onPress={() => setRevision(value => value + 1)}><Ionicons name="refresh" size={17} color="#FF6900" /></TouchableOpacity>
+    </View>
     {!!error && <Text style={styles.error} accessibilityLiveRegion="polite">{error}</Text>}
     {!!notice && <Text style={styles.notice} accessibilityLiveRegion="polite">{notice}</Text>}
     {loading ? <ActivityIndicator color="#FF8A00" /> : !payments.length && !error ? <Text style={styles.subtitle}>No payments awaiting approval.</Text> : null}
     {payments.map(payment => <View key={payment.transactionId} style={styles.payment} testID={`payment-approval-${payment.transactionId}`}>
-      <Text style={styles.customer}>{payment.customerName || `Customer #${payment.customerId}`}</Text>
-      <Text style={styles.subtitle}>Transaction #{payment.transactionId} · Awaiting your approval</Text>
-      <Text style={styles.amount}>Payment: {currency(payment.payablePrice)} · Bill: {currency(payment.totalPrice)}</Text>
-      <Text style={styles.reward}>{payment.pointsEarned != null
-        ? `Customer receives ${payment.pointsEarned} INcoins on your approval.`
-        : 'Customer receives INcoins after your approval. The server calculates the reward.'}</Text>
-      <TouchableOpacity disabled={busy !== null} onPress={() => approve(payment)} style={[styles.button, busy !== null && { opacity: 0.5 }]} accessibilityRole="button" testID={`approve-payment-${payment.transactionId}`}>
-        {busy === payment.transactionId ? <ActivityIndicator color="#FFF" /> : <Text style={styles.buttonText}>Approve payment & INcoins</Text>}
+      <View style={styles.identity}>
+        <LinearGradient colors={['#9460FF', '#D442D0']} start={{ x: 0, y: 1 }} end={{ x: 1, y: 0 }} style={styles.avatar}><Text style={styles.initials}>{payment.customerName?.trim().split(/\s+/).slice(0, 2).map(word => word[0]).join('').toUpperCase() || '?'}</Text></LinearGradient>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text style={styles.customer}>{payment.customerName || 'Customer name unavailable'}</Text>
+          <View style={styles.transactionRow}><Text style={styles.transaction}>Transaction #{payment.transactionId}</Text><View style={styles.separator} /><View style={styles.status}><View style={styles.statusDot} /><Text style={styles.statusText}>Awaiting approval</Text></View></View>
+        </View>
+      </View>
+      <View style={styles.breakdown}>
+        <View style={styles.paid}><Text style={styles.paidLabel}>CUSTOMER PAID</Text><Text style={styles.paidAmount}>{currency(payment.payablePrice)}</Text></View>
+        <View style={styles.bill}><Text style={styles.billLabel}>TOTAL BILL</Text><Text style={styles.billAmount}>{currency(payment.totalPrice)}</Text></View>
+        <View style={styles.discount}><Text style={styles.discountLabel}>DISCOUNT</Text><Text style={styles.discountValue}>{currency(Math.max(0, Number(payment.totalPrice) - Number(payment.payablePrice)))} off</Text></View>
+      </View>
+      <TouchableOpacity disabled={busy !== null} onPress={() => approve(payment)} style={[styles.buttonWrap, busy !== null && { opacity: 0.5 }]} accessibilityRole="button" testID={`approve-payment-${payment.transactionId}`}>
+        <LinearGradient colors={['#FF7B12', '#F45100']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.button}>
+          {busy === payment.transactionId ? <ActivityIndicator color="#FFF" /> : <><View style={styles.check}><Ionicons name="checkmark" size={15} color="#FFF" /></View><Text style={styles.buttonText}>Approve payment &amp; INcoins</Text></>}
+        </LinearGradient>
       </TouchableOpacity>
     </View>)}
   </View>;
 }
 
 const styles = StyleSheet.create({
-  section: { marginHorizontal: 16, marginTop: 18, padding: 16, backgroundColor: '#FFF', borderRadius: 20 },
-  heading: { flexDirection: 'row', gap: 8, alignItems: 'center', marginBottom: 8 }, title: { flex: 1, fontSize: 17, fontWeight: '800', color: '#202020' },
+  section: { marginHorizontal: 16, marginTop: 16, padding: 16, paddingTop: 20, backgroundColor: '#FFFDFC', borderRadius: 26, borderWidth: 1, borderColor: '#FFE0BC', overflow: 'hidden', shadowColor: '#E98830', shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.1, shadowRadius: 12, elevation: 3 },
+  topLine: { position: 'absolute', top: 0, left: 0, right: 0, height: 6 },
+  heading: { flexDirection: 'row', gap: 8, alignItems: 'center', marginBottom: 6 }, title: { ...SECTION_HEADING_TYPOGRAPHY, color: '#101E34', flexShrink: 1 },
+  wallet: { width: 44, height: 44, borderRadius: 15, borderWidth: 1, borderColor: '#FFCEA0', backgroundColor: '#FFF8EE', alignItems: 'center', justifyContent: 'center', marginRight: 2 },
+  coin: { position: 'absolute', right: -3, top: -5, width: 17, height: 17, backgroundColor: '#FFD044', borderRadius: 9, alignItems: 'center', justifyContent: 'center' }, coinText: { color: '#9D5B00', fontSize: 10, fontWeight: '800' },
+  count: { minWidth: 21, height: 21, paddingHorizontal: 5, borderRadius: 11, alignItems: 'center', justifyContent: 'center' }, countText: { fontSize: 12, fontWeight: '700', color: '#FFF' },
+  refresh: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#F0F4F8', alignItems: 'center', justifyContent: 'center' },
   subtitle: { fontSize: 12, color: '#667085', lineHeight: 18, marginBottom: 8 },
-  payment: { paddingVertical: 14, borderTopWidth: 1, borderTopColor: '#EEE' }, customer: { fontSize: 15, color: '#222', fontWeight: '700', marginBottom: 4 },
-  amount: { fontSize: 13, color: '#344054', marginBottom: 8 }, reward: { fontSize: 13, lineHeight: 20, color: '#995000', backgroundColor: '#FFF5E5', padding: 10, borderRadius: 10 },
-  button: { padding: 13, borderRadius: 12, alignItems: 'center', backgroundColor: '#FF8A00', marginTop: 10 }, buttonText: { color: '#FFF', fontSize: 13, fontWeight: '700' },
+  payment: { paddingTop: 14, marginTop: 6, borderTopWidth: 1, borderTopColor: '#E7EDF4' },
+  identity: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 14 }, avatar: { width: 40, height: 40, borderRadius: 16, alignItems: 'center', justifyContent: 'center' }, initials: { color: '#FFF', fontWeight: '800', fontSize: 12 }, customer: { fontSize: 14, color: '#101E34', fontWeight: '800', marginBottom: 5 },
+  transactionRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }, transaction: { color: '#72839D', fontSize: 11 }, separator: { width: 5, height: 5, borderRadius: 3, backgroundColor: '#CBD6E5' }, status: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 7, paddingVertical: 3, backgroundColor: '#FFFBEB', borderWidth: 1, borderColor: '#FFD47A', borderRadius: 20 }, statusDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: '#FFA000' }, statusText: { fontSize: 10, color: '#D58200', fontWeight: '600' },
+  breakdown: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#F7F9FF', borderWidth: 1, borderColor: '#DFE8FF', borderRadius: 17, padding: 12, marginBottom: 12 },
+  paid: { flex: 1, minWidth: 0, borderRightWidth: 1, borderRightColor: '#D0DAEB', borderStyle: 'dashed', paddingRight: 8 }, bill: { flex: 1, minWidth: 0 }, paidLabel: { fontSize: 9, fontWeight: '700', color: '#00A58B', marginBottom: 4 }, paidAmount: { color: '#00A58B', fontSize: 20, fontWeight: '800' }, billLabel: { fontSize: 9, fontWeight: '700', color: '#8A9ABA', marginBottom: 4 }, billAmount: { color: '#1A2A43', fontSize: 20, fontWeight: '800' },
+  discount: { borderWidth: 1, borderColor: '#8EEAC7', backgroundColor: '#DBFCEE', borderRadius: 12, paddingHorizontal: 9, paddingVertical: 6 }, discountLabel: { color: '#00896C', fontSize: 9, fontWeight: '800', textAlign: 'center' }, discountValue: { color: '#00896C', fontSize: 11, fontWeight: '800', marginTop: 4, textAlign: 'center' },
+  reward: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, padding: 10, borderWidth: 1, borderColor: '#FFDA7C', backgroundColor: '#FFFBEC', borderRadius: 17 }, star: { width: 20, height: 20, borderRadius: 10, backgroundColor: '#F4A000', alignItems: 'center', justifyContent: 'center', marginTop: 2 }, rewardTitle: { fontSize: 12, fontWeight: '700', color: '#984500', lineHeight: 15 }, rewardDetail: { fontSize: 11, color: '#B8732B', lineHeight: 16, marginTop: 4 },
+  buttonWrap: { marginTop: 12, borderRadius: 17, shadowColor: '#F76A00', shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 3 }, button: { paddingVertical: 14, paddingHorizontal: 8, borderRadius: 17, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }, check: { width: 21, height: 21, borderRadius: 11, backgroundColor: 'rgba(255,255,255,0.25)', alignItems: 'center', justifyContent: 'center' }, buttonText: { color: '#FFF', fontSize: 14, fontWeight: '800' },
   error: { fontSize: 13, color: '#B42318', marginVertical: 8 }, notice: { fontSize: 13, color: '#15803D', marginVertical: 8 },
 });

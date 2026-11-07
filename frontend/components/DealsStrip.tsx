@@ -53,7 +53,7 @@ export const DealsStrip = ({ shops, onPressShop }: DealsStripProps) => {
       <View style={styles.header}>
         <View style={styles.titleRow}>
           <Ionicons name="gift" size={18} color="#FF8A00" />
-          <GradientSectionHeading compact>Deals near you</GradientSectionHeading>
+          <GradientSectionHeading>Deals near you</GradientSectionHeading>
           <View style={styles.countPill}>
             <Text style={styles.countText} testID="deals-strip-count">{deals.length} Active</Text>
           </View>
@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
   title: { fontSize: 16, fontWeight: '800', color: '#101C2D' },
   countPill: { backgroundColor: '#FFF1C5', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 },
   countText: { color: '#FF6B00', fontWeight: '600', fontSize: 11 },
-  seeAll: { fontSize: 12, color: '#FF6B00', paddingVertical: 6, paddingLeft: 8 },
+  seeAll: { fontSize: 12, color: '#FF6B00', paddingLeft: 8 },
   row: { gap: 14, paddingRight: 4, paddingBottom: 6, alignItems: 'stretch' },
   allRow: { paddingRight: 0, paddingBottom: 8 },
   fullCard: { width: '100%', minHeight: 242 },

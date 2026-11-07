@@ -10,6 +10,7 @@ import {
   SafeAreaView,
   StatusBar,
   useWindowDimensions,
+  Linking,
 } from 'react-native';
 import Animated, { FadeInDown, LinearTransition } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -19,6 +20,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuthStore } from '../store/authStore';
 import { AnimatedNumber } from '../components/AnimatedNumber';
 import { INPOINTS_API_BASE, INTOWN_API_BASE, resolveInPointsCustomerId } from '../utils/api';
+import { useLocationStore } from '../store/locationStore';
+import { buildRedemptionWhatsAppUrl, loadRedemptionProfile, RedemptionProfile } from '../utils/incoinsRedemption';
 
 type PointTransaction = {
   id: number;
@@ -54,10 +57,26 @@ type ActivityFilter = 'ALL' | 'POINTS' | 'PAYMENTS';
 
 export default function RewardsScreen() {
   const router = useRouter();
-  const { historyOnly: historyOnlyParam } = useLocalSearchParams<{ historyOnly?: string }>();
+  const { historyOnly: historyOnlyParam, from } = useLocalSearchParams<{ historyOnly?: string; from?: string }>();
   const historyOnly = historyOnlyParam === 'true';
   const { width } = useWindowDimensions();
-  const { user } = useAuthStore();
+  const { user, token } = useAuthStore();
+  const { location } = useLocationStore();
+  const redemptionRole = from === 'merchant' || from === 'dual-merchant' || user?.userType === 'merchant' ? 'merchant' : 'customer';
+  const [redemptionProfile, setRedemptionProfile] = useState<RedemptionProfile | null>(null);
+  const [redemptionLoading, setRedemptionLoading] = useState(true);
+  const [redemptionError, setRedemptionError] = useState('');
+  const [redemptionNotice, setRedemptionNotice] = useState('');
+  const [redemptionRetry, setRedemptionRetry] = useState(0);
+  useFocusEffect(useCallback(() => {
+    if (historyOnly) return;
+    let active = true;
+    setRedemptionProfile(null); setRedemptionLoading(true); setRedemptionError(''); setRedemptionNotice('');
+    loadRedemptionProfile(redemptionRole, token).then(profile => { if (active) setRedemptionProfile(profile); })
+      .catch(reason => { if (active) setRedemptionError(reason?.message || 'Unable to load your details. Please retry.'); })
+      .finally(() => { if (active) setRedemptionLoading(false); });
+    return () => { active = false; };
+  }, [redemptionRole, token, historyOnly, user?.phone, redemptionRetry]));
   const [customerId, setCustomerId] = useState<string | null>(null);
   const [paymentCustomerId, setPaymentCustomerId] = useState<string | null>(null);
   const [balance, setBalance] = useState<number | null>(null);
@@ -289,6 +308,15 @@ export default function RewardsScreen() {
   const isCompact = width < 380;
   const isWide = width >= 760;
   const isDesktop = width >= 1280;
+  const redeem = () => {
+    if (!redemptionProfile || balance == null || !Number.isFinite(balance) || balance < 0) return;
+    try {
+      const url = buildRedemptionWhatsAppUrl(redemptionProfile, balance, location);
+      // Open directly from the tap so mobile browsers retain user activation.
+      void Linking.openURL(url).then(() => setRedemptionNotice('Send the prepared WhatsApp message to request redemption. Your INcoins remain unchanged until it is processed.'))
+        .catch(() => setRedemptionError('Could not open WhatsApp. Please check that WhatsApp is available and try again.'));
+    } catch (reason: any) { setRedemptionError(reason.message); }
+  };
 
   if (loading) {
     return (
@@ -390,6 +418,11 @@ export default function RewardsScreen() {
                       <Text style={[styles.balanceValue, isCompact && styles.balanceValueCompact]}>
                         <AnimatedNumber value={balance} precision={2} /> <Text style={styles.ptsUnit}>INcoins</Text>
                       </Text>
+                      <TouchableOpacity onPress={redeem} disabled={redemptionLoading || !redemptionProfile || balance == null || !Number.isFinite(balance) || balance < 0} accessibilityRole="button" accessibilityLabel="Request INcoins redemption on WhatsApp" testID="rewards-redeem-whatsapp" style={[styles.redeemButton, (redemptionLoading || !redemptionProfile || balance == null || !Number.isFinite(balance) || balance < 0) && { opacity: 0.55 }]}>
+                        {redemptionLoading ? <ActivityIndicator color="#FF7900" /> : <><Ionicons name="logo-whatsapp" size={19} color="#18A665" /><Text style={styles.redeemButtonText}>Redeem</Text><Ionicons name="arrow-forward" size={17} color="#FF7900" /></>}
+                      </TouchableOpacity>
+                      {!!redemptionError && <View><Text style={styles.redemptionMessage}>{redemptionError}</Text><TouchableOpacity onPress={() => setRedemptionRetry(value => value + 1)}><Text style={styles.redemptionRetry}>Retry</Text></TouchableOpacity></View>}
+                      {!!redemptionNotice && <Text style={styles.redemptionMessage} accessibilityLiveRegion="polite">{redemptionNotice}</Text>}
                     </View>
                   </LinearGradient>
                 </Animated.View>
@@ -497,7 +530,7 @@ export default function RewardsScreen() {
             >
               {item.kind === 'PAYMENT' && item.value === null ? 'Amount unavailable' : <AnimatedNumber
                 value={item.value ?? 0} precision={2}
-                prefix={item.kind === 'PAYMENT' ? '?' : (item.value ?? 0) >= 0 ? '+' : ''}
+                prefix={(item.value ?? 0) >= 0 ? '+' : ''}
                 suffix={item.kind === 'POINTS' ? ' pts' : ''}
               />}
             </Text>
@@ -534,6 +567,10 @@ export default function RewardsScreen() {
 }
 
 const styles = StyleSheet.create({
+  redeemButton: { alignSelf: 'flex-start', marginTop: 16, flexDirection: 'row', gap: 8, alignItems: 'center', backgroundColor: '#FFF', borderRadius: 24, paddingHorizontal: 18, paddingVertical: 11 },
+  redeemButtonText: { color: '#F57500', fontSize: 14, fontWeight: '800' },
+  redemptionMessage: { color: '#FFF', fontSize: 12, lineHeight: 18, marginTop: 10 },
+  redemptionRetry: { color: '#FFF', fontSize: 13, fontWeight: '700', textDecorationLine: 'underline', marginTop: 6 },
   container: {
     flex: 1,
     backgroundColor: '#FFF8F1',

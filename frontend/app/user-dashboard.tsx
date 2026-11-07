@@ -1023,7 +1023,7 @@ export default function UserDashboard() {
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 decelerationRate="fast"
-                contentContainerStyle={{ paddingRight: 16, gap: 14, paddingBottom: 12 }}
+                contentContainerStyle={{ paddingRight: 16, gap: 14, paddingBottom: 12, alignItems: 'stretch' }}
                 onScrollBeginDrag={() => {
                   stopNearbyAutoScroll();
                 }}
@@ -1706,7 +1706,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '800',
     color: '#1A1A1A',
-    marginBottom: 16,
+    marginBottom: 0,
   },
   normalText: {
     fontWeight: 'normal',
@@ -1820,7 +1820,7 @@ const styles = StyleSheet.create({
   },
   categoriesCarouselContent: {
     flexDirection: 'row',
-    paddingVertical: 4,
+    paddingBottom: 4,
     paddingRight: 12,
   },
   categoryColumn: {
@@ -2362,6 +2362,7 @@ const styles = StyleSheet.create({
 
   // Merchant Carousel Card Styles
   merchantCard: {
+    alignSelf: 'stretch',
     width: 220,
     backgroundColor: '#FFF',
     borderRadius: 14,
@@ -2489,6 +2490,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginHorizontal: 0,
     marginTop: 20,
+    marginBottom: 12,
   },
   viewAll: {
     color: "#FF8C00",

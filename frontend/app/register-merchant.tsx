@@ -30,6 +30,9 @@ import {
 import { styles } from '../styles/register-merchant.styles';
 import { MERCHANT_PLANS, MERCHANT_GST_RATE, MerchantPlanId, setMerchantPlan } from '../utils/merchantPlans';
 import { loadRazorpayWebScript, openRazorpayWeb } from '../utils/razorpayWeb';
+import { validateBreakTimes } from '../utils/businessTimings';
+import { LEGAL_CONTENT } from '../utils/legalContent';
+import { LegalDocumentModal } from '../components/LegalDocumentModal';
 
 
 
@@ -79,6 +82,7 @@ export default function RegisterMerchant() {
   const [closeAt, setCloseAt] = useState('');
   const [breakStartAt, setBreakStartAt] = useState('');
   const [breakEndAt, setBreakEndAt] = useState('');
+  const timingErrors = validateBreakTimes(openAt, closeAt, breakStartAt, breakEndAt);
   const [weekOff, setWeekOff] = useState('');
   const [offer, setOffer] = useState('');
   const [showTimePicker, setShowTimePicker] = useState<string | null>(null);
@@ -235,6 +239,7 @@ export default function RegisterMerchant() {
     }
   };
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [showTerms, setShowTerms] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<any>({});
 
@@ -291,7 +296,7 @@ export default function RegisterMerchant() {
     location !== null && location.latitude !== undefined && location.longitude !== undefined &&
     introducedByValid &&
     paymentCompleted &&
-    agreedToTerms;
+    agreedToTerms && Object.keys(timingErrors).length === 0;
 
   // Fields required BEFORE the merchant can pay the joining fee.
   // Kept lightweight so the button becomes clickable as soon as the
@@ -300,6 +305,7 @@ export default function RegisterMerchant() {
   const canInitiatePayment =
     !paymentCompleted &&
     !isPaying &&
+    agreedToTerms &&
     businessName.trim().length > 0 &&
     contactName.trim().length > 0 &&
     selectedCategoryId !== null;
@@ -697,7 +703,7 @@ export default function RegisterMerchant() {
   /* ================= VALIDATION (UNCHANGED) ================= */
 
   const validateForm = () => {
-    const newErrors: any = {};
+    const newErrors: any = { ...timingErrors };
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
     // BUSINESS
@@ -768,6 +774,14 @@ export default function RegisterMerchant() {
 
   const handlePayJoiningFee = async () => {
     setPaymentError('');
+    if (!agreedToTerms) {
+      setPaymentError('Please accept the Terms & Conditions before selecting a pack and paying.');
+      return;
+    }
+    if (Object.keys(timingErrors).length > 0) {
+      setPaymentError(Object.values(timingErrors).join('\n'));
+      return;
+    }
 
     // Validate required fields before opening Razorpay
     const missing: string[] = [];
@@ -888,13 +902,11 @@ export default function RegisterMerchant() {
       });
       setPaymentCompleted(true);
       setPaymentError('');
-      Alert.alert('Payment received successfully', `Your ${selectedPlan.name} pack fee (₹${JOINING_FEE_AMOUNT.toFixed(0)} incl. GST) has been received. Please accept the terms and complete your registration.`);
+      Alert.alert('Payment received successfully', `Your ${selectedPlan.name} pack fee (₹${JOINING_FEE_AMOUNT.toFixed(0)} incl. GST) has been received. Tap Register Merchant to complete your registration.`);
     } catch (err: any) {
       console.error('Joining fee payment error:', err);
       setPaymentCompleted(false);
       setPaymentDetails(null);
-      // Ensure terms cannot be checked
-      setAgreedToTerms(false);
       const cancelled = err?.code === 'PAYMENT_CANCELLED' || String(err?.description || '').toLowerCase().includes('cancel');
       const msg = cancelled
         ? 'Payment was cancelled. Please retry to continue registration.'
@@ -1469,7 +1481,7 @@ export default function RegisterMerchant() {
           </View>
 
           {/* ROW 2: Break Start / Break End */}
-          <View style={styles.timeRow}>
+          <View style={[styles.timeRow, Object.keys(timingErrors).length > 0 && { marginBottom: 0 }]}>
             <View style={styles.timeField}>
               <Text style={styles.label}>Break Start</Text>
               <TouchableOpacity
@@ -1497,6 +1509,8 @@ export default function RegisterMerchant() {
               </TouchableOpacity>
             </View>
           </View>
+
+          {Object.entries(timingErrors).map(([field, message]) => <Text key={field} style={styles.errorText} accessibilityLiveRegion="polite">{message}</Text>)}
 
           {/* ROW 3: Week Off */}
           <View style={styles.formGroup}>
@@ -1544,6 +1558,27 @@ export default function RegisterMerchant() {
             />
           </View>
 
+          {/* TERMS */}
+          <View style={styles.row}>
+            <Switch
+              value={agreedToTerms}
+              onValueChange={setAgreedToTerms}
+              disabled={isPaying || isLoading}
+              testID="agree-terms-switch"
+            />
+            <Text style={{ marginLeft: 8, flex: 1, color: '#1A1A1A' }}>
+              I agree to the{' '}
+              <Text onPress={() => setShowTerms(true)} accessibilityRole="link" style={{ color: '#F58200', textDecorationLine: 'underline', fontWeight: '600' }} testID="merchant-registration-terms-link">Terms &amp; Conditions</Text>
+            </Text>
+          </View>
+          {!agreedToTerms && (
+            <Text style={styles.helperText}>
+              Accept the Terms &amp; Conditions to select a growth pack and continue to payment.
+            </Text>
+          )}
+
+          <LegalDocumentModal visible={showTerms} onClose={() => setShowTerms(false)} title="Terms & Conditions" html={LEGAL_CONTENT.terms} />
+
           {/* JOINING FEE PAYMENT — Growth Pack Selector */}
           <View style={styles.sectionHeader}>
             <Ionicons name="rocket-outline" size={18} color="#FF8A00" />
@@ -1560,9 +1595,9 @@ export default function RegisterMerchant() {
                 <TouchableOpacity
                   key={plan.id}
                   activeOpacity={0.85}
-                  style={[styles.planCard, isSelected && styles.planCardSelected, paymentCompleted && styles.planCardDisabled]}
-                  onPress={() => !paymentCompleted && setSelectedPlanId(plan.id)}
-                  disabled={paymentCompleted}
+                  style={[styles.planCard, isSelected && styles.planCardSelected, (!agreedToTerms || paymentCompleted || isPaying) && styles.planCardDisabled]}
+                  disabled={!agreedToTerms || paymentCompleted || isPaying}
+                  onPress={() => agreedToTerms && !paymentCompleted && !isPaying && setSelectedPlanId(plan.id)}
                   testID={`plan-card-${plan.id.toLowerCase()}`}
                 >
                   {plan.recommended && (
@@ -1657,24 +1692,6 @@ export default function RegisterMerchant() {
               </View>
             )}
           </View>
-
-          {/* TERMS */}
-          <View style={styles.row}>
-            <Switch
-              value={agreedToTerms}
-              onValueChange={setAgreedToTerms}
-              disabled={!paymentCompleted}
-              testID="agree-terms-switch"
-            />
-            <Text style={{ marginLeft: 8, color: paymentCompleted ? '#1A1A1A' : '#999' }}>
-              I agree to terms
-            </Text>
-          </View>
-          {!paymentCompleted && (
-            <Text style={styles.helperText}>
-              Complete the joining fee payment to enable this checkbox.
-            </Text>
-          )}
 
           {/* SUBMIT BUTTON */}
           <TouchableOpacity

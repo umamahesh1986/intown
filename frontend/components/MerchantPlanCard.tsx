@@ -60,7 +60,7 @@ export const MerchantPlanCard = ({ plan, status, processing, onPress }: Merchant
         ))}
       </View>
 
-      <TouchableOpacity
+      {(status === 'upgrade' || status === 'select') && <TouchableOpacity
         style={[
           styles.cta,
           status === 'active' && styles.ctaActive,
@@ -78,7 +78,7 @@ export const MerchantPlanCard = ({ plan, status, processing, onPress }: Merchant
             {CTA[status]}
           </Text>
         )}
-      </TouchableOpacity>
+      </TouchableOpacity>}
     </View>
   );
 };
