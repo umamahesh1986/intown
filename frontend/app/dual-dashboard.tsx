@@ -1,3 +1,5 @@
+import { normalizeMerchantSales } from '../utils/merchantSales';
+import { MerchantCardAccent, merchantCardSurface } from '../components/MerchantCardAccent';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
@@ -34,7 +36,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import Footer from '../components/Footer';
 import { getAllNearbyShops, getCategories, getMerchantImageByShopId, extractImageUrls, INTOWN_API_BASE, enrichShopsWithMerchantDetails } from '../utils/api';
 import { setNavShop } from '../utils/navCache';
-import { getProfileImage, refreshProfileImage as refreshStoredProfileImage } from '../utils/profileImage';
+import { refreshProfileImage as refreshStoredProfileImage } from '../utils/profileImage';
 import { DealsStrip } from '../components/DealsStrip';
 import { SavingsStatCards } from '../components/SavingsStatCards';
 import { GradientSectionHeading } from '../components/GradientSectionHeading';
@@ -273,6 +275,7 @@ const getCategoryImage = (category: any, index: number) => {
    MAIN COMPONENT
 ================================ */
 export default function DualDashboard() {
+  const [transactionRefresh, setTransactionRefresh] = useState(0);
   const router = useRouter();
   const params = useLocalSearchParams<{ userType?: string }>();
   const { user, logout, token } = useAuthStore();
@@ -389,7 +392,6 @@ useFocusEffect(
     let isActive = true;
 
     const fetchInPointsStats = async () => {
-      setIsInPointsLoading(true);
       setInPointsError(false);
 
       try {
@@ -535,13 +537,11 @@ useFocusEffect(
       try { await fetchInPointsStats(); } finally { refreshingPoints = false; }
     };
     void refreshPoints();
-    const approvalRefresh = setInterval(() => { void refreshPoints(); }, 15000);
 
     return () => {
       isActive = false;
-      clearInterval(approvalRefresh);
     };
-  }, [user?.phone])
+  }, [user?.phone, transactionRefresh])
 );
 
   /* ===============================
@@ -561,8 +561,7 @@ useFocusEffect(
       const refreshProfileImage = async () => {
         try {
           const role = activeTab === 'merchant' ? 'merchant' : 'customer';
-          const storedProfileImage = await getProfileImage(role);
-          if (isActive) setProfileImage(storedProfileImage);
+          if (isActive) setProfileImage(null);
           const latest = await refreshStoredProfileImage(role, INTOWN_API_BASE);
           if (isActive) setProfileImage(latest);
         } catch (error) {
@@ -598,8 +597,6 @@ useFocusEffect(
   useFocusEffect(useCallback(() => {
     if (location?.latitude == null || location?.longitude == null) return;
     void loadNearbyShops(true);
-    const refresh = setInterval(() => { void loadNearbyShops(true); }, 60000);
-    return () => clearInterval(refresh);
   }, [location?.latitude, location?.longitude]));
 
   // Refresh after returning from Account as well as on the first visit.
@@ -851,7 +848,6 @@ useFocusEffect(
     }
   };
 
-  const [transactionRefresh, setTransactionRefresh] = useState(0);
   useFocusEffect(useCallback(() => {
     let active = true;
     let fetching = false;
@@ -903,12 +899,11 @@ useFocusEffect(
 
     if (!customerId) return;
     void fetchCustomerTransactions(customerId);
-    const timer = setInterval(() => { void fetchCustomerTransactions(customerId); }, 30000);
-    return () => { active = false; clearInterval(timer); };
+    return () => { active = false; };
   }, [customerId, token, transactionRefresh]));
 
   const [salesRefresh, setSalesRefresh] = useState(0);
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     const fetchMerchantSales = async (id: string) => {
       setIsMerchantLoading(true);
       try {
@@ -927,7 +922,7 @@ useFocusEffect(
           throw new Error(`Merchant sales fetch failed: ${res.status}`);
         }
         const data = await res.json();
-        const apiSales: MerchantSale[] = data?.sales ?? [];
+        const apiSales: MerchantSale[] = normalizeMerchantSales(data);
         setMerchantTransactions(
           apiSales.map((item) => ({
             id: String(item.transactionId),
@@ -955,12 +950,13 @@ useFocusEffect(
     if (merchantId) {
       fetchMerchantSales(merchantId);
     }
-  }, [merchantId, token, salesRefresh]);
+  }, [merchantId, token, salesRefresh, transactionRefresh]));
 
   const onRefresh = async () => {
     setRefreshing(true);
     await loadUserData();
     await loadTransactions();
+    await loadNearbyShops(true);
     setTransactionRefresh(value => value + 1);
     setRefreshing(false);
   };
@@ -1008,9 +1004,9 @@ useFocusEffect(
   const customerTodaySaved = customerTotals.today?.totalSavedAmount ?? 0;
   const customerMonthSaved = customerTotals.thisMonth?.totalSavedAmount ?? 0;
   const customerYearSaved = customerTotals.thisYear?.totalSavedAmount ?? 0;
-  const merchantTodaySales = merchantTotals.today?.totalSalesValue ?? 0;
-  const merchantMonthSales = merchantTotals.thisMonth?.totalSalesValue ?? 0;
-  const merchantYearSales = merchantTotals.thisYear?.totalSalesValue ?? 0;
+  const merchantTodaySales = merchantTotals.today?.totalAmountReceived ?? 0;
+  const merchantMonthSales = merchantTotals.thisMonth?.totalAmountReceived ?? 0;
+  const merchantYearSales = merchantTotals.thisYear?.totalAmountReceived ?? 0;
 
   const getWelcomeName = () => {
     if (activeTab === 'customer') {
@@ -1428,7 +1424,8 @@ useFocusEffect(
         {activeTab === 'merchant' && <MerchantOrderHistoryLink />}
         {activeTab === 'merchant' && <MerchantPaymentApprovals merchantId={merchantId} token={token} onApproved={() => setSalesRefresh(value => value + 1)} />}
         {activeTab === 'merchant' && (
-        <View style={styles.transactionsSection}>
+        <View style={[styles.transactionsSection, merchantCardSurface]}>
+      <MerchantCardAccent />
           <View style={styles.sectionHeader}>
             <GradientSectionHeading style={styles.sectionTitle}>Recent Transactions</GradientSectionHeading>
             {/* <Text style={styles.normalText}>(Will be calculated on customervisits):</Text> */}
@@ -1470,8 +1467,8 @@ useFocusEffect(
         )}
         {/* Popular Categories (Customer Only) */}
         {activeTab === 'customer' && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
+          <View style={styles.dashboardSection}>
+            <View style={[styles.sectionHeader, { marginTop: 0 }]}>
               <GradientSectionHeading>Feature Categories</GradientSectionHeading>
 
               {/* <TouchableOpacity>
@@ -1485,6 +1482,7 @@ useFocusEffect(
                 showsHorizontalScrollIndicator={false}
                 snapToInterval={CATEGORY_CARD_WIDTH + CATEGORY_CARD_GAP}
                 decelerationRate="fast"
+                style={{ flexGrow: 0, flexShrink: 0 }}
                 contentContainerStyle={styles.categoriesCarouselContent}
               >
                 {categoryColumns.map((column, columnIndex) => (
@@ -1609,14 +1607,14 @@ useFocusEffect(
         </View> */}
         {/* INtown Privilege Nearby Shops (Customer Only) */}
         {activeTab === 'customer' && nearbyShops.length > 0 && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
+          <View style={styles.dashboardSection}>
+            <View style={[styles.sectionHeader, { marginTop: 0 }]}>
               <GradientSectionHeading style={styles.sectionTitle}>INtown Privilege Nearby Shops</GradientSectionHeading>
             </View>
 
             <ScrollView
               ref={nearbyScrollRef}
-                style={{ marginBottom: 24 }}
+                style={{ flexGrow: 0, flexShrink: 0 }}
               horizontal
               showsHorizontalScrollIndicator={false}
               decelerationRate="fast"
@@ -1658,7 +1656,7 @@ useFocusEffect(
         {/* INTOWN SAVINGS + MY REWARDS (customer tab) — placed just above the footer */}
         {activeTab === 'customer' && (
           <>
-            <View style={{ paddingHorizontal: 16, marginTop: 10 }}>
+            <View style={{ paddingHorizontal: 16, marginTop: 12 }}>
               <GradientSectionHeading style={[styles.sectionTitle, { margin: 0, fontSize: 18 }]}>INtown Savings</GradientSectionHeading>
             </View>
             <SavingsStatCards
@@ -1753,7 +1751,7 @@ useFocusEffect(
             </View>
             <ScrollView>
               {currentTransactions.length > 0 ? (
-                currentTransactions.slice(0, 6).map((transaction) => (
+                currentTransactions.map((transaction) => (
                   <TransactionCard
                     key={`all-${transaction.id}`}
                     transaction={transaction}
@@ -1860,6 +1858,7 @@ useFocusEffect(
    STYLES
 ================================ */
 const styles = StyleSheet.create({
+  dashboardSection: { paddingHorizontal: 16, marginTop: 12 },
   container: {
     flex: 1,
     backgroundColor: '#F8F7F5',
@@ -2246,16 +2245,17 @@ const styles = StyleSheet.create({
 
   categoriesCarouselContent: {
     flexDirection: 'row',
-    paddingBottom: 4,
+    paddingBottom: 12,
     paddingRight: 12,
   },
   categoryColumn: {
     width: 100,
     marginRight: 12,
+    gap: 12,
   },
   categoryCard: {
     width: 100,
-    marginBottom: 12,
+    marginBottom: 0,
     alignItems: 'center',
   },
   categoryImageContainer: {

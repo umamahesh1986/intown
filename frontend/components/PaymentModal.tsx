@@ -105,8 +105,8 @@ export default function PaymentModal({
       intownPrice > amountValue
     ) {
       Alert.alert(
-        'Invalid Intown Price',
-        'Intown Price must be between 0 and Total Price'
+        'Invalid INtown Price',
+        'INtown Price must be between 0 and Total Price'
       );
       return;
     }
@@ -579,7 +579,7 @@ export default function PaymentModal({
 
               <View style={styles.amountSection}>
                 <Text style={styles.label}>
-                  Intown Price
+                  INtown Price
                 </Text>
 
                 <View style={styles.amountInputWrapper}>
@@ -602,7 +602,7 @@ export default function PaymentModal({
                 <View style={styles.savingsSection}>
                   <View style={styles.savingsRow}>
                     <Text style={styles.savingsLabel}>
-                      Intown Savings
+                      INtown Savings
                     </Text>
 
                     <Text style={styles.savingsValue}>

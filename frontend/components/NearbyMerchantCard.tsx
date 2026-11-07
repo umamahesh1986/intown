@@ -5,7 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { extractImageUrls } from '../utils/api';
 import { categoryChipColor } from '../utils/categoryChipColor';
 import { getActiveSpecialOffers, getSpecialOfferImageUrl } from '../utils/specialOffer';
-import { NearbyOfferPanel } from './NearbyOfferPanel';
+import { NearbyOfferTag } from './NearbyOfferTag';
 
 // Subtle looping glow + breathe used behind special-offer cards.
 const usePulse = (enabled: boolean) => {
@@ -88,24 +88,12 @@ export const NearbyMerchantCard = ({ shop, onPress, testID }: Props) => {
 
       <View style={styles.content}>
         <Text style={styles.name} numberOfLines={1}>{shopName}</Text>
-        {shop.contactName && shop.contactName !== shopName && (
-          <Text style={styles.contact} numberOfLines={1}>{shop.contactName}</Text>
-        )}
-        {shop.address ? (
+        <Text style={styles.contact} numberOfLines={1}>{shop.contactName && shop.contactName !== shopName ? shop.contactName : ' '}</Text>
           <View style={styles.infoRow}>
-            <Ionicons name="location-outline" size={13} color="#888" />
-            <Text style={styles.infoText} numberOfLines={1}>{shop.address}</Text>
+            <Ionicons name="location-outline" size={13} color={shop.address ? '#888' : 'transparent'} />
+            <Text style={styles.infoText} numberOfLines={1}>{shop.address || ' '}</Text>
           </View>
-        ) : null}
-
-        {special ? (
-          <NearbyOfferPanel shop={shop} offer={offers[0]} onClaim={() => onPress(shop)} />
-        ) : offerText ? (
-          <View style={styles.offerBadge}>
-            <Ionicons name="pricetag" size={12} color="#4CAF50" style={styles.offerIcon} />
-            <Text style={styles.offerText} numberOfLines={2}>{offerText}</Text>
-          </View>
-        ) : null}
+        <NearbyOfferTag offer={special ? offers[0] : offerText} special={special} />
       </View>
     </TouchableOpacity>
     </Animated.View>
@@ -120,6 +108,8 @@ const styles = StyleSheet.create({
   card: {
     flex: 1,
     width: 220,
+    borderWidth: 0.5,
+    borderColor: 'transparent',
     backgroundColor: '#FFF',
     borderRadius: 14,
     overflow: 'hidden',
@@ -183,10 +173,10 @@ const styles = StyleSheet.create({
   categoryBadgeSpecial: { backgroundColor: 'rgba(255, 138, 0, 0.92)' },
   categoryText: { color: '#FFF', fontSize: 10, fontWeight: '700' },
   content: { flex: 1, padding: 12, gap: 4 },
-  name: { fontSize: 15, fontWeight: '700', color: '#1A1A1A' },
-  contact: { fontSize: 12, color: '#666' },
-  infoRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  infoText: { fontSize: 12, color: '#888', flex: 1 },
+  name: { fontSize: 15, lineHeight: 20, minHeight: 20, fontWeight: '700', color: '#1A1A1A' },
+  contact: { fontSize: 12, lineHeight: 16, minHeight: 16, color: '#666' },
+  infoRow: { flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 16 },
+  infoText: { fontSize: 12, lineHeight: 16, color: '#888', flex: 1 },
   offerBadge: {
     flexDirection: 'row',
     alignItems: 'flex-start',

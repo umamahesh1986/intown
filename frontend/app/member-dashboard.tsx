@@ -66,7 +66,7 @@ import { CATEGORY_ICON_MAP } from '../utils/categoryIconMap';
 import { FontStylesWithFallback } from '../utils/fonts';
 import { formatDistance } from '../utils/formatDistance';
 import { getSavingsPeriodTotals } from '../utils/savingsTotals';
-import { getProfileImage, pickPrimaryS3Url, setProfileImage as saveProfileImage } from '../utils/profileImage';
+import { refreshProfileImage as fetchProfileImage, pickPrimaryS3Url, setProfileImage as saveProfileImage } from '../utils/profileImage';
 import CommonBottomTabs from "../components/CommonBottomTabs";
 
 
@@ -289,7 +289,6 @@ export default function MemberDashboard() {
 
      
 const fetchInPointsStats = async () => {
-  setIsInPointsLoading(true);
   setInPointsError(false);
 
   try {
@@ -416,10 +415,8 @@ const fetchInPointsStats = async () => {
         try { await fetchInPointsStats(); } finally { refreshingPoints = false; }
       };
       void refreshPoints();
-      const approvalRefresh = setInterval(() => { void refreshPoints(); }, 15000);
       return () => {
         isActive = false;
-        clearInterval(approvalRefresh);
       };
     }, [user?.phone]),
   );
@@ -471,8 +468,6 @@ const fetchInPointsStats = async () => {
   useFocusEffect(useCallback(() => {
     if (location?.latitude == null || location?.longitude == null) return;
     void loadNearbyShops(true);
-    const refresh = setInterval(() => { void loadNearbyShops(true); }, 60000);
-    return () => clearInterval(refresh);
   }, [location?.latitude, location?.longitude]));
 
   const stopCategoriesAutoScroll = () => { };
@@ -589,10 +584,7 @@ const fetchInPointsStats = async () => {
           await AsyncStorage.setItem('customer_name', name);
         }
 
-        const storedProfileImage = await AsyncStorage.getItem('user_profile_image');
-        if (storedProfileImage) {
-          setProfileImage(storedProfileImage);
-        }
+
         if (params.customerId) {
           setCustomerId(params.customerId);
           await AsyncStorage.setItem('customer_id', params.customerId);
@@ -615,25 +607,9 @@ const fetchInPointsStats = async () => {
       let isActive = true;
       const refreshProfileImage = async () => {
         try {
-          const storedProfileImage = await getProfileImage('customer');
-          if (storedProfileImage && isActive) {
-            setProfileImage(storedProfileImage);
-          }
-          if (!storedProfileImage) {
-            const storedCustomerImages = await AsyncStorage.getItem('customer_profile_images');
-            if (storedCustomerImages && isActive) {
-              try {
-                const parsedImages = JSON.parse(storedCustomerImages);
-                if (Array.isArray(parsedImages) && parsedImages.length > 0) {
-                  const firstImage = parsedImages[0];
-                  setProfileImage(firstImage);
-                  await AsyncStorage.setItem('user_profile_image', firstImage);
-                }
-              } catch {
-                // ignore parse issues
-              }
-            }
-          }
+          if (isActive) setProfileImage(null);
+          const latest = await fetchProfileImage('customer', INTOWN_API_BASE);
+          if (isActive) setProfileImage(latest);
         } catch (error) {
           console.error('Error refreshing profile image:', error);
         }
@@ -1278,10 +1254,10 @@ const fetchInPointsStats = async () => {
 
 
           {/* CATEGORIES */}
-          <View style={styles.section}>
+          <View style={styles.dashboardSection}>
 
             {/* TITLE ROW */}
-            <View style={styles.sectionHeader}>
+            <View style={[styles.sectionHeader, { marginTop: 0 }]}>
               <GradientSectionHeading>Feature Categories</GradientSectionHeading>
 
               {/* <TouchableOpacity>
@@ -1295,7 +1271,8 @@ const fetchInPointsStats = async () => {
               showsHorizontalScrollIndicator={false}
               snapToInterval={CATEGORY_CARD_WIDTH + CATEGORY_CARD_GAP}
               decelerationRate="fast"
-              contentContainerStyle={styles.categoriesCarouselContent}
+              style={{ flexGrow: 0, flexShrink: 0 }}
+                contentContainerStyle={styles.categoriesCarouselContent}
               onScrollBeginDrag={stopCategoriesAutoScroll}
             >
               {categoryColumns.map((column, columnIndex) => (
@@ -1366,8 +1343,8 @@ const fetchInPointsStats = async () => {
 
           {/* MERCHANT SHOP LIST CAROUSEL */}
           {nearbyShops.length > 0 && (
-            <View style={[styles.section, { paddingBottom: 0 }]}>
-              <View style={styles.sectionHeader}>
+            <View style={styles.dashboardSection}>
+              <View style={[styles.sectionHeader, { marginTop: 0 }]}>
                 <GradientSectionHeading style={styles.sectionTitle}>INtown Privilege Nearby Shops</GradientSectionHeading>
               </View>
 
@@ -1416,7 +1393,7 @@ const fetchInPointsStats = async () => {
           {/* FOOTER */}
           {/* INTOWN SAVINGS + MY REWARDS — placed just above the footer */}
           {/* SUMMARY SECTION */}
-          <View style={{ paddingHorizontal: 16, marginTop: 10 }}>
+          <View style={{ paddingHorizontal: 16, marginTop: 12 }}>
             <GradientSectionHeading style={[styles.sectionTitle, { margin: 0, fontSize: 18 }]}>INtown Savings</GradientSectionHeading>
           </View>
           <SavingsStatCards
@@ -1732,6 +1709,7 @@ const fetchInPointsStats = async () => {
 }
 
 const styles = StyleSheet.create({
+  dashboardSection: { paddingHorizontal: 16, marginTop: 12 },
   container: { 
     flex: 1, 
     backgroundColor: "rgba(248,247,245,1)", 
@@ -1893,16 +1871,17 @@ const styles = StyleSheet.create({
   },
   categoriesCarouselContent: {
     flexDirection: 'row',
-    paddingBottom: 4,
+    paddingBottom: 12,
     paddingRight: 12,
   },
   categoryColumn: {
     width: 100,
     marginRight: 12,
+    gap: 12,
   },
   categoryCard: {
     width: 100,
-    marginBottom: 12,
+    marginBottom: 0,
     alignItems: 'center',
   },
   categoryImageContainer: {

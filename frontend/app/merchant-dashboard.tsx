@@ -1,3 +1,6 @@
+import { normalizeMerchantSales } from '../utils/merchantSales';
+import { MerchantCardAccent, merchantCardSurface } from '../components/MerchantCardAccent';
+import { refreshProfileImage as fetchProfileImage } from '../utils/profileImage';
 import {
   View,
   Text,
@@ -246,29 +249,9 @@ export default function MerchantDashboard() {
       let isActive = true;
       const refreshProfileImage = async () => {
         try {
-          const storedProfileImage =
-            (await AsyncStorage.getItem('merchant_profile_image')) ??
-            (await AsyncStorage.getItem('user_profile_image'));
-          if (storedProfileImage && isActive) {
-            setProfileImage(storedProfileImage);
-          }
-          const storedShopImagesRaw = await AsyncStorage.getItem('merchant_shop_images');
-          if (storedShopImagesRaw && isActive) {
-            try {
-              const storedImages = JSON.parse(storedShopImagesRaw);
-              if (Array.isArray(storedImages) && storedImages.length > 0) {
-                setShopImages(storedImages);
-                setShopImageIndex(0);
-                if (!storedProfileImage) {
-                  const firstImage = storedImages[0];
-                  setProfileImage(firstImage);
-                  await AsyncStorage.setItem('merchant_profile_image', firstImage);
-                }
-              }
-            } catch {
-              // ignore parse issues
-            }
-          }
+          if (isActive) setProfileImage(null);
+          const latest = await fetchProfileImage('merchant', INTOWN_API_BASE);
+          if (isActive) setProfileImage(latest);
         } catch (error) {
           console.error('Error refreshing profile image:', error);
         }
@@ -391,12 +374,7 @@ export default function MerchantDashboard() {
         if (storedContactName && isMounted) {
           setMerchantContactName(storedContactName);
         }
-        const storedProfileImage =
-          (await AsyncStorage.getItem('merchant_profile_image')) ??
-          (await AsyncStorage.getItem('user_profile_image'));
-        if (storedProfileImage && isMounted) {
-          setProfileImage(storedProfileImage);
-        }
+
 
         const storedId =
           (await AsyncStorage.getItem('merchant_id')) ??
@@ -431,9 +409,6 @@ export default function MerchantDashboard() {
 
   const loadMerchantImages = async (id: string) => {
     try {
-      const storedProfileImage =
-        (await AsyncStorage.getItem('merchant_profile_image')) ??
-        (await AsyncStorage.getItem('user_profile_image'));
       const storedImagesRaw = await AsyncStorage.getItem('merchant_shop_images');
       if (storedImagesRaw) {
         try {
@@ -441,11 +416,7 @@ export default function MerchantDashboard() {
           if (Array.isArray(storedImages) && storedImages.length > 0) {
             setShopImages(storedImages);
             setShopImageIndex(0);
-            if (!storedProfileImage) {
-              const firstImage = storedImages[0];
-              setProfileImage(firstImage);
-              await AsyncStorage.setItem('merchant_profile_image', firstImage);
-            }
+
             return;
           }
         } catch {
@@ -462,11 +433,7 @@ export default function MerchantDashboard() {
       if (images.length > 0) {
         setShopImages(images);
         setShopImageIndex(0);
-        if (!storedProfileImage) {
-          const firstImage = images[0];
-          setProfileImage(firstImage);
-          await AsyncStorage.setItem('merchant_profile_image', firstImage);
-        }
+
         await AsyncStorage.setItem('merchant_shop_images', JSON.stringify(images));
       }
     } catch (error) {
@@ -474,7 +441,7 @@ export default function MerchantDashboard() {
     }
   };
 
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     if (!merchantId) return;
 
     const fetchSales = async () => {
@@ -495,7 +462,7 @@ export default function MerchantDashboard() {
           throw new Error(`Sales fetch failed: ${res.status}`);
         }
         const data = await res.json();
-        setSales(data?.sales ?? []);
+        setSales(normalizeMerchantSales(data));
         setLifetimeTotals(data?.lifetime ?? null);
         setPeriodTotals({
           today: data?.today ?? null,
@@ -513,7 +480,7 @@ export default function MerchantDashboard() {
     };
 
     fetchSales();
-  }, [merchantId, token, salesRefresh]);
+  }, [merchantId, token, salesRefresh]));
 
   // Refresh offer status after returning from Account.
   useFocusEffect(useCallback(() => {
@@ -588,9 +555,7 @@ export default function MerchantDashboard() {
           setShopImages(imageUrls);
           setShopImageIndex(0);
           // Set profile image to first image if not already set
-          if (!profileImage && imageUrls.length > 0) {
-            setProfileImage(imageUrls[0]);
-          }
+
         }
       } catch (error) {
         console.error('Error fetching merchant details:', error);
@@ -812,16 +777,17 @@ export default function MerchantDashboard() {
         <SavingsStatCards
           testIDPrefix="merchant-business"
           items={[
-            { label: 'Today', value: periodTotals.today?.totalSalesValue ?? 0 },
-            { label: 'Month', value: periodTotals.thisMonth?.totalSalesValue ?? 0 },
-            { label: 'Year', value: periodTotals.thisYear?.totalSalesValue ?? 0 },
+            { label: 'Today', value: periodTotals.today?.totalAmountReceived ?? 0 },
+            { label: 'Month', value: periodTotals.thisMonth?.totalAmountReceived ?? 0 },
+            { label: 'Year', value: periodTotals.thisYear?.totalAmountReceived ?? 0 },
           ]}
         />
 
         {/* Payments List */}
         <MerchantOrderHistoryLink />
         <MerchantPaymentApprovals merchantId={merchantId} token={token} onApproved={() => setSalesRefresh(value => value + 1)} />
-        <View style={styles.transactionsCard}>
+        <View style={[styles.transactionsCard, merchantCardSurface]}>
+      <MerchantCardAccent />
           <View style={[styles.transactionHeader, { marginTop: 10, alignItems: 'center' }]}>
             {/* This View below uses row direction to keep title and brackets together */}
             <View style={{ flexDirection: 'row', alignItems: 'baseline', flex: 1 }}>

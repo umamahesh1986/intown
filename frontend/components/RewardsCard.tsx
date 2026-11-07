@@ -5,6 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { tierFor, RewardsInsights } from '../utils/rewardsInsights';
 import { AnimatedNumber, useAnimatedNumber } from './AnimatedNumber';
 import { GradientSectionHeading } from './GradientSectionHeading';
+import { MerchantCardAccent, merchantCardSurface } from './MerchantCardAccent';
 
 export interface RewardsCardStats extends Partial<RewardsInsights> {
   totalEarned: number;
@@ -40,33 +41,22 @@ export const RewardsCard = ({ stats, loading, error, onOpen, onHistory, onRedeem
   const yesterday = stats?.yesterdayEarned ?? null;
 
   return (
-    <View style={styles.card} testID={`${testIDPrefix}-card`}>
+    <View style={[styles.card, merchantCardSurface]} testID={`${testIDPrefix}-card`}>
+      <MerchantCardAccent />
       <TouchableOpacity style={styles.header} onPress={onOpen} activeOpacity={0.75} accessibilityRole="button" accessibilityLabel="Open My Rewards" testID={`${testIDPrefix}-open`}>
         <GradientSectionHeading style={styles.title}>My Rewards</GradientSectionHeading>
-        {!unavailable && (
-          <View style={styles.tierPill} testID={`${testIDPrefix}-tier`}>
-            <Ionicons name="star" size={11} color="#B36B00" />
-            <Text style={styles.tierText}>{current.name} Tier</Text>
-          </View>
-        )}
-        <View style={{ flex: 1 }} />
-        <View style={styles.chevron}>
-          <Ionicons name="chevron-forward" size={18} color="#6B7280" />
-        </View>
       </TouchableOpacity>
 
       <LinearGradient colors={['#FF7A00', '#FF9F2E']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.balance}>
         <View style={styles.balanceGlow} />
         <View style={{ flex: 1 }}>
           <View style={styles.balanceLabelRow}>
-            <Text style={styles.balanceLabel}>AVAILABLE BALANCE</Text>
+            <Text style={styles.balanceLabel}>AVAILABLE INcoins</Text>
             <View style={styles.liveDot} />
           </View>
           <View style={styles.balanceRow}>
             <AnimatedNumber value={unavailable ? null : balance} placeholder={loading ? '…' : '--'} style={styles.balanceValue} testID={`${testIDPrefix}-balance`} />
-            <Text style={styles.balanceUnit}>INcoins</Text>
           </View>
-          <Text style={styles.balanceSub}>≈ ₹<AnimatedNumber value={unavailable ? null : balance} precision={2} format={value => value.toFixed(2)} /> Cashback Value</Text>
         </View>
         <TouchableOpacity style={styles.redeemBtn} onPress={onRedeem} disabled={unavailable} activeOpacity={0.85} testID={`${testIDPrefix}-redeem`}>
           <Text style={styles.redeemText}>Check INcoins</Text>
@@ -100,14 +90,14 @@ export const RewardsCard = ({ stats, loading, error, onOpen, onHistory, onRedeem
           <Text style={styles.goalLabel}>
             Goal: <Text style={styles.goalTier}>{next ? `${next.name} Tier` : 'Top tier reached'}</Text>
           </Text>
-          <Text style={styles.goalToGo}>{next ? <AnimatedNumber value={unavailable ? null : toGo} suffix=" pts to go" /> : '🎉'}</Text>
+          <Text style={styles.goalToGo}>{next ? <AnimatedNumber value={unavailable ? null : toGo} suffix=" INcoins to go" /> : '🎉'}</Text>
         </View>
         <View style={styles.track}>
           <View style={[styles.fill, { width: `${Math.round(animatedProgress)}%` }]} />
         </View>
         <View style={styles.goalRow}>
           <AnimatedNumber value={unavailable ? null : total} suffix=" earned" style={styles.goalMeta} />
-          {next && <AnimatedNumber value={unavailable ? null : next.min} suffix=" pts target" style={styles.goalMeta} />}
+          {next && <AnimatedNumber value={unavailable ? null : next.min} suffix=" INcoins target" style={styles.goalMeta} />}
         </View>
       </View>
 
@@ -117,11 +107,11 @@ export const RewardsCard = ({ stats, loading, error, onOpen, onHistory, onRedeem
         </View>
         <View style={{ flex: 1 }}>
           <Text style={styles.historyTitle}>INcoins History</Text>
-          <Text style={styles.historySub}>View points earned & claimed</Text>
+          <Text style={styles.historySub}>View INcoins earned & claimed</Text>
         </View>
         {yesterday != null && yesterday > 0 && (
           <View style={styles.yesterdayPill}>
-            <AnimatedNumber value={yesterday} prefix="+" suffix=" pts yesterday" style={styles.yesterdayText} />
+            <AnimatedNumber value={yesterday} prefix="+" suffix=" INcoins yesterday" style={styles.yesterdayText} />
           </View>
         )}
         <Ionicons name="chevron-forward" size={18} color="#9AA3B2" />
@@ -133,7 +123,7 @@ export const RewardsCard = ({ stats, loading, error, onOpen, onHistory, onRedeem
 const styles = StyleSheet.create({
   card: {
     marginHorizontal: 16,
-    marginTop: 16,
+    marginTop: 24,
     marginBottom: 24,
     backgroundColor: '#FFF',
     borderRadius: 20,
@@ -146,9 +136,6 @@ const styles = StyleSheet.create({
   },
   header: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
   title: { fontSize: 20, fontWeight: '800', color: '#1A1A1A' },
-  tierPill: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#FFF3E0', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
-  tierText: { fontSize: 11.5, fontWeight: '800', color: '#B36B00' },
-  chevron: { width: 30, height: 30, borderRadius: 15, backgroundColor: '#F3F4F6', alignItems: 'center', justifyContent: 'center' },
   balance: { flexDirection: 'row', alignItems: 'center', borderRadius: 16, padding: 16, overflow: 'hidden' },
   balanceGlow: { position: 'absolute', right: -30, top: -40, width: 140, height: 140, borderRadius: 70, backgroundColor: 'rgba(255,255,255,0.14)' },
   balanceLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },

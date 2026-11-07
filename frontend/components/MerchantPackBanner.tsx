@@ -1,3 +1,4 @@
+import { MerchantCardAccent, merchantCardSurface } from './MerchantCardAccent';
 import React, { useCallback, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,7 +20,8 @@ export const MerchantPackBanner = () => {
   const info = getMerchantPlanById(plan);
   const top = plan === 'LAUNCH';
   return (
-    <TouchableOpacity style={[styles.card, top && styles.cardTop]} disabled={top} onPress={() => { if (!top) router.push('/plans'); }} activeOpacity={0.85} testID="merchant-pack-banner">
+    <TouchableOpacity style={[styles.card, top && styles.cardTop, merchantCardSurface]} disabled={top} onPress={() => { if (!top) router.push('/plans'); }} activeOpacity={0.85} testID="merchant-pack-banner">
+      <MerchantCardAccent />
       <View style={[styles.icon, top && styles.iconTop]}>
         <Ionicons name={top ? 'rocket' : 'storefront'} size={20} color={top ? '#2E7D32' : '#FF8A00'} />
       </View>

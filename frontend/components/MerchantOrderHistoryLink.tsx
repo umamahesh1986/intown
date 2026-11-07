@@ -1,3 +1,4 @@
+import { MerchantCardAccent, merchantCardSurface } from './MerchantCardAccent';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -5,7 +6,8 @@ import { GradientSectionHeading } from './GradientSectionHeading';
 
 export function MerchantOrderHistoryLink() {
   const router = useRouter();
-  return <TouchableOpacity style={styles.card} onPress={() => router.push({ pathname: '/merchant-orders', params: { tab: 'ALL' } })} accessibilityRole="button" accessibilityLabel="View all merchant orders and order details" testID="merchant-order-history-link">
+  return <TouchableOpacity style={[styles.card, merchantCardSurface]} onPress={() => router.push({ pathname: '/merchant-orders', params: { tab: 'ALL' } })} accessibilityRole="button" accessibilityLabel="View all merchant orders and order details" testID="merchant-order-history-link">
+      <MerchantCardAccent />
     <View style={styles.icon}><Ionicons name="receipt-outline" size={23} color="#FF7900" /></View>
     <View style={{ flex: 1 }}><GradientSectionHeading>Merchant order history</GradientSectionHeading><Text style={styles.subtitle}>View all orders, items and status updates</Text></View>
     <Ionicons name="chevron-forward" size={20} color="#FF7900" />

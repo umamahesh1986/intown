@@ -1,9 +1,10 @@
+import { refreshProfileImage } from '../utils/profileImage';
 // user-dashboard.tsx
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Footer from '../components/Footer';
 import { SavingsCalculator } from '../components/SavingsCalculator';
 import { ShopLocalCard } from '../components/ShopLocalCard';
-import { NearbyOfferPanel } from '../components/NearbyOfferPanel';
+import { NearbyOfferTag } from '../components/NearbyOfferTag';
 import { getActiveSpecialOffers } from '../utils/specialOffer';
 import { GradientSectionHeading } from '../components/GradientSectionHeading';
 import { categoryChipColor } from '../utils/categoryChipColor';
@@ -42,7 +43,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useAuthStore } from '../store/authStore';
 import { LoginRequiredModal } from '../components/LoginRequiredModal';
 import { useLocationStore, LocationDetails } from '../store/locationStore';
-import { getPlans, getCategories, getAllNearbyShops, getMerchantImageByShopId, extractImageUrls, enrichShopsWithMerchantDetails } from '../utils/api';
+import { INTOWN_API_BASE, getPlans, getCategories, getAllNearbyShops, getMerchantImageByShopId, extractImageUrls, enrichShopsWithMerchantDetails } from '../utils/api';
 import { setNavShop } from '../utils/navCache';
 import { DealsStrip } from '../components/DealsStrip';
 
@@ -302,8 +303,6 @@ export default function UserDashboard() {
   useFocusEffect(useCallback(() => {
     if (location?.latitude == null || location?.longitude == null) return;
     void loadNearbyShops(true);
-    const refresh = setInterval(() => { void loadNearbyShops(true); }, 60000);
-    return () => clearInterval(refresh);
   }, [location?.latitude, location?.longitude]));
 
 
@@ -425,10 +424,8 @@ export default function UserDashboard() {
 
   const loadProfileImage = async () => {
     try {
-      const storedImage = await AsyncStorage.getItem('user_profile_image');
-      if (storedImage) {
-        setProfileImage(storedImage);
-      }
+      const latest = await refreshProfileImage('customer', INTOWN_API_BASE);
+      setProfileImage(latest);
     } catch (error) {
       console.log('Error loading profile image:', error);
     }
@@ -801,8 +798,8 @@ export default function UserDashboard() {
 
 
           {/* Popular Categories */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
+          <View style={styles.dashboardSection}>
+            <View style={[styles.sectionHeader, { marginTop: 0 }]}>
               <GradientSectionHeading>Feature Categories</GradientSectionHeading>
 
               {/* <TouchableOpacity>
@@ -817,6 +814,7 @@ export default function UserDashboard() {
                 showsHorizontalScrollIndicator={false}
                 snapToInterval={CATEGORY_CARD_WIDTH + CATEGORY_CARD_GAP}
                 decelerationRate="fast"
+                style={{ flexGrow: 0, flexShrink: 0 }}
                 contentContainerStyle={styles.categoriesCarouselContent}
                 onScrollBeginDrag={stopCategoriesAutoScroll}
               >
@@ -1005,14 +1003,14 @@ export default function UserDashboard() {
 
           {/* MERCHANT SHOP LIST CAROUSEL */}
           {nearbyShops.length > 0 && (
-            <View style={styles.section} onLayout={event => { nearbySectionY.current = event.nativeEvent.layout.y; }}>
-              <View style={styles.sectionHeader}>
+            <View style={styles.dashboardSection} onLayout={event => { nearbySectionY.current = event.nativeEvent.layout.y; }}>
+              <View style={[styles.sectionHeader, { marginTop: 0 }]}>
                 <GradientSectionHeading style={styles.sectionTitle}>INtown Privilege Nearby Shops</GradientSectionHeading>
               </View>
 
               <ScrollView
                 ref={nearbyScrollRef}
-                style={{ marginBottom: 24 }}
+                style={{ flexGrow: 0, flexShrink: 0 }}
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 decelerationRate="fast"
@@ -1071,26 +1069,12 @@ export default function UserDashboard() {
                       </View>
                       <View style={styles.merchantCardContent}>
                         <Text style={styles.merchantName} numberOfLines={1}>{shopName}</Text>
-                        {shop.contactName && shop.contactName !== shopName && (
-                          <Text style={styles.merchantContact} numberOfLines={1}>{shop.contactName}</Text>
-                        )}
-                        {shop.address ? (
+                        <Text style={styles.merchantContact} numberOfLines={1}>{shop.contactName && shop.contactName !== shopName ? shop.contactName : ' '}</Text>
                           <View style={styles.merchantInfoRow}>
-                            <Ionicons name="location-outline" size={13} color="#888" />
-                            <Text style={styles.merchantInfoText} numberOfLines={1}>{shop.address}</Text>
+                            <Ionicons name="location-outline" size={13} color={shop.address ? '#888' : 'transparent'} />
+                            <Text style={styles.merchantInfoText} numberOfLines={1}>{shop.address || ' '}</Text>
                           </View>
-                        ) : null}
-                        {specialOffers.length > 0 ? (
-                          <NearbyOfferPanel shop={shop} offer={specialOffers[0]} onClaim={async () => {
-                            await setNavShop(shop);
-                            router.push({ pathname: '/member-shop-details', params: { shopId: String(shop.id), categoryId: '', source: 'user' } });
-                          }} />
-                        ) : offerText ? (
-                          <View style={styles.merchantOfferBadge}>
-                            <Ionicons name="pricetag" size={12} color="#4CAF50" />
-                            <Text style={styles.merchantOfferText} numberOfLines={1}>{offerText}</Text>
-                          </View>
-                        ) : null}
+                        <NearbyOfferTag offer={specialOffers.length > 0 ? specialOffers[0] : offerText} special={specialOffers.length > 0} />
                       </View>
                     </TouchableOpacity>
                   );
@@ -1370,6 +1354,7 @@ export default function UserDashboard() {
 }
 
 const styles = StyleSheet.create({
+  dashboardSection: { paddingHorizontal: 16, marginTop: 12 },
   container: {
     flex: 1,
     backgroundColor: "#F2F4F7",
@@ -1813,16 +1798,17 @@ const styles = StyleSheet.create({
   },
   categoriesCarouselContent: {
     flexDirection: 'row',
-    paddingBottom: 4,
+    paddingBottom: 12,
     paddingRight: 12,
   },
   categoryColumn: {
     width: 100,
     marginRight: 12,
+    gap: 12,
   },
   categoryCard: {
     width: 100,
-    marginBottom: 12,
+    marginBottom: 0,
     alignItems: 'center',
   },
   categoryImageContainer: {
@@ -2400,23 +2386,29 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   merchantName: {
+    lineHeight: 20,
+    minHeight: 20,
     fontSize: 14,
     fontWeight: '700',
     color: '#1A1A1A',
     marginBottom: 2,
   },
   merchantContact: {
+    lineHeight: 16,
+    minHeight: 16,
     fontSize: 12,
     color: '#888',
     marginBottom: 4,
   },
   merchantInfoRow: {
+    minHeight: 16,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
     marginBottom: 4,
   },
   merchantInfoText: {
+    lineHeight: 16,
     fontSize: 11,
     color: '#888',
     flex: 1,
