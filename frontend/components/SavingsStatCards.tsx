@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { AnimatedNumber } from './AnimatedNumber';
+import { compactNumber } from '../utils/compactNumber';
 
 interface StatItem {
   label: string;
@@ -21,7 +22,7 @@ const StatCard = ({ item, testIDPrefix }: { item: StatItem; testIDPrefix: string
       <Text style={cardStyles.label}>{item.label.toUpperCase()}</Text>
       <View style={cardStyles.valueRow}>
         <Text style={cardStyles.rupee}>₹</Text>
-        <AnimatedNumber value={item.value} style={cardStyles.value} testID={`${testIDPrefix}-value-${key}`} />
+        <AnimatedNumber value={item.value} format={compactNumber} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.65} accessibilityLabel={`${item.label}: ₹${item.value.toLocaleString('en-IN')}`} style={cardStyles.value} testID={`${testIDPrefix}-value-${key}`} />
       </View>
     </View>
   );
@@ -88,5 +89,5 @@ const cardStyles = StyleSheet.create({
     gap: 2,
   },
   rupee: { color: '#FFFFFF', fontSize: 14, fontWeight: '700' },
-  value: { color: '#FFFFFF', fontSize: 26, fontWeight: '800', lineHeight: 30 },
+  value: { color: '#FFFFFF', fontSize: 26, fontWeight: '800', lineHeight: 30, flexShrink: 1 },
 });

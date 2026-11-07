@@ -1,21 +1,20 @@
 import { useEffect, useRef } from 'react';
+import { AppState } from 'react-native';
 import { usePathname } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNotificationStore, NotificationItem } from '../store/notificationStore';
 import { getMerchantPickupOrders, getCustomerPickupOrders, PickupOrder, INTOWN_API_BASE } from '../utils/api';
-import { presentLocalNotification, isPushRegistered } from '../utils/pushNotifications';
+import { presentLocalNotification } from '../utils/pushNotifications';
 import { playNotificationFeedback } from '../utils/notificationFeedback';
 import { getActiveSpecialOffers, daysUntilOfferEnds, formatOfferValidTill } from '../utils/specialOffer';
 
 const OFFER_EXPIRY_CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000;
 const OFFER_EXPIRY_WARN_DAYS = 2;
-
 const POLL_INTERVAL_MS = 15000;
-// Once the backend has accepted our Expo push token, pushes are the primary channel — poll far less often.
-const POLL_INTERVAL_WITH_PUSH_MS = 60000;
+
 const MERCHANT_SNAP_KEY = 'notif_snap_merchant_v1';
 const CUSTOMER_SNAP_KEY = 'notif_snap_customer_v1';
-const SKIP_PATHS = ['/', '/index', '/login', '/otp', '/promo-carousel', '/location'];
+const SKIP_PATHS = ['/', '/index', '/login', '/otp', '/promo-carousel', '/location', '/rewards', '/payment-history'];
 
 type MerchantSnap = { merchantId: string; placedIds: string[]; pickedUpIds?: string[]; cancelledIds?: string[] };
 type CustomerSnap = { customerId: string; statusMap: Record<string, string> };
@@ -196,17 +195,17 @@ export default function OrderNotificationPoller() {
 
   useEffect(() => {
     if (!active) return;
-    let timer: any = null;
     let cancelled = false;
 
     const tick = async () => {
-      if (busyRef.current) return;
+      if (cancelled || busyRef.current || AppState.currentState !== 'active') return;
       busyRef.current = true;
       try {
         const [merchantId, customerId] = await Promise.all([
           AsyncStorage.getItem('merchant_id'),
           AsyncStorage.getItem('customer_id'),
         ]);
+        if (cancelled) return;
         await Promise.all([
           merchantId && !skipMerchant ? pollMerchantOrders(merchantId).catch((e) => console.warn('[OrderPoller] merchant', e)) : null,
           customerId && !skipCustomer ? pollCustomerOrders(customerId).catch((e) => console.warn('[OrderPoller] customer', e)) : null,
@@ -217,18 +216,19 @@ export default function OrderNotificationPoller() {
       }
     };
 
-    (async () => {
-      const interval = (await isPushRegistered()) ? POLL_INTERVAL_WITH_PUSH_MS : POLL_INTERVAL_MS;
-      if (cancelled) return;
-      tick();
-      timer = setInterval(tick, interval);
-    })();
+    // Frontend polling supplies order notifications until backend push is available.
+    void tick();
+    const timer = setInterval(() => { void tick(); }, POLL_INTERVAL_MS);
+    const subscription = AppState.addEventListener('change', state => {
+      if (state === 'active') void tick();
+    });
 
     return () => {
       cancelled = true;
-      if (timer) clearInterval(timer);
+      clearInterval(timer);
+      subscription.remove();
     };
-  }, [active, skipMerchant, skipCustomer]);
+  }, [pathname, active, skipMerchant, skipCustomer]);
 
   return null;
 }

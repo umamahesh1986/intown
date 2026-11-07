@@ -14,7 +14,7 @@ import { INTOWN_API_BASE, getAllNearbyShops, enrichShopsWithMerchantDetails } fr
 import { getActiveSpecialOffers } from '../utils/specialOffer';
 import { setNavShop } from '../utils/navCache';
 import { passId, passValidity, PassRole, resolvePassRole } from '../utils/privilegePass';
-import { getProfileImage, profileImageFromRecord, refreshProfileImage } from '../utils/profileImage';
+import { refreshProfileImage } from '../utils/profileImage';
 
 type PassData = { role: PassRole; customerId: string | null; merchantId: string | null; name: string; image: string | null; validity?: string };
 const parse = (raw: string | null) => { try { return raw ? JSON.parse(raw) : {}; } catch { return {}; } };
@@ -60,17 +60,14 @@ export default function MemberCardScreen() {
         const merchant = results[1].status === 'fulfilled' && results[1].value ? unwrap(results[1].value.data, 'merchant') : cached.merchant;
         const primary = role === 'merchant' ? merchant : customer;
         const imageRole = role === 'merchant' ? 'merchant' : 'customer';
-        const savedImage = await getProfileImage(imageRole);
+        const savedImage = await refreshProfileImage(imageRole, INTOWN_API_BASE);
         if (!active) return;
         setPass({
           role, customerId, merchantId,
           name: primary?.contactName || primary?.name || user?.name || primary?.businessName || 'INtown Member',
-          image: savedImage || profileImageFromRecord(primary) || profileImageFromRecord(role === 'merchant' ? cached.merchant : cached.customer),
+          image: savedImage,
           validity: primary?.validity,
         });
-        void refreshProfileImage(imageRole, INTOWN_API_BASE).then(latestImage => {
-          if (active && latestImage) setPass(current => current ? { ...current, image: latestImage } : current);
-        }).catch(error => console.warn('[PrivilegePass] Could not refresh image:', error));
       } catch (error) {
         console.warn('[PrivilegePass] Unable to load pass:', error);
         if (active) setPass({ role: resolvePassRole(from, user?.userType || '', null, null), customerId: null, merchantId: null, name: user?.name || 'INtown Member', image: null });

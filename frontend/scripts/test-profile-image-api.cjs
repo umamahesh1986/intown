@@ -1,0 +1,21 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const vm = require('node:vm');
+const ts = require('typescript');
+const storage = { getItem: async key => key === 'customer_id' ? '42' : key === 'merchant_id' ? '77' : 'stale-image', multiSet: async () => {} };
+let ok = true; let imageUrl = 'https://example.com/avatar.jpg'; const calls = [];
+const scope = { exports: {}, require: () => ({ default: storage }), URL, AbortController, setTimeout, clearTimeout, fetch: async (url, options) => { calls.push({url,options}); return { ok, json: async () => ({ s3ImageUrl: [imageUrl] }) }; } };
+const source = ts.transpileModule(fs.readFileSync('utils/profileImage.ts','utf8'), {compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText;
+vm.runInNewContext(source,scope);
+(async () => {
+ const customer = await scope.exports.refreshProfileImage('customer','https://api.example.com');
+ const merchant = await scope.exports.refreshProfileImage('merchant','https://api.example.com');
+ assert.match(customer, /_profileRefresh=/); assert.match(merchant, /_profileRefresh=/);
+ assert.match(calls[0].url,/customerId=42/); assert.match(calls[1].url,/merchantId=77/);
+ assert.equal(calls[0].options.cache,'no-store');
+ imageUrl = 'https://example.com/new-avatar.jpg?X-Amz-Credential=test%2Fscope&X-Amz-Signature=original-signature';
+ assert.equal(await scope.exports.refreshProfileImage('customer','https://api.example.com'), imageUrl, 'Presigned image URLs must be preserved byte for byte');
+ assert.equal(await scope.exports.refreshProfileImage('merchant','https://api.example.com'), imageUrl, 'Merchant image signatures must also remain intact');
+ ok = false; assert.equal(await scope.exports.refreshProfileImage('customer','https://api.example.com'),null);
+ console.log('Profile images use role-specific API requests, bypass cache and never fall back to saved images.');
+})().catch(error=>{console.error(error);process.exitCode=1;});

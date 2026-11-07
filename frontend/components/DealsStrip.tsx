@@ -60,7 +60,7 @@ export const DealsStrip = ({ shops, onPressShop }: DealsStripProps) => {
         </View>
         <TouchableOpacity onPress={() => setShowAll(value => !value)} accessibilityRole="button" accessibilityLabel={showAll ? 'Show fewer nearby deals' : 'See all nearby deals'} testID="deals-see-all"><Text style={styles.seeAll}>{showAll ? 'Show less' : 'See all'}</Text></TouchableOpacity>
       </View>
-      <ScrollView horizontal={!showAll} nestedScrollEnabled style={{ height: (showAll ? Math.min(deals.length, 3) * 254 : 250) * Math.max(1, fontScale), flexGrow: 0 }} showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.row, showAll && styles.allRow]}>
+      <ScrollView horizontal={!showAll} nestedScrollEnabled style={{ height: (showAll ? Math.min(deals.length, 3) * 254 : 256) * Math.max(1, fontScale), flexGrow: 0 }} showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.row, showAll && styles.allRow]}>
         {deals.map(({ shop, offers }) => {
           const name = shop.businessName || shop.shopName || shop.name || 'Shop';
           const timeLeft = formatOfferTimeLeft(shop);
@@ -87,8 +87,8 @@ export const DealsStrip = ({ shops, onPressShop }: DealsStripProps) => {
                 </LinearGradient>
               </View>
               <View style={styles.body}>
-                <Text style={styles.offer} numberOfLines={2}>{offers[0]}</Text>
                 <Text style={styles.shop} numberOfLines={1}>{name}</Text>
+                <Text style={styles.offer} numberOfLines={2}>{offers[0]}</Text>
                 <View style={styles.metaRow}>
                   {typeof shop.distance === 'number' && Number.isFinite(shop.distance) && (
                     <Text style={styles.meta}>
@@ -112,14 +112,14 @@ export const DealsStrip = ({ shops, onPressShop }: DealsStripProps) => {
 };
 
 const styles = StyleSheet.create({
-  section: { marginTop: 16, marginBottom: 16, paddingHorizontal: 12, paddingVertical: 8 },
+  section: { marginTop: 24, paddingHorizontal: 16 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 },
   title: { fontSize: 16, fontWeight: '800', color: '#101C2D' },
   countPill: { backgroundColor: '#FFF1C5', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 },
   countText: { color: '#FF6B00', fontWeight: '600', fontSize: 11 },
   seeAll: { fontSize: 12, color: '#FF6B00', paddingLeft: 8 },
-  row: { gap: 14, paddingRight: 4, paddingBottom: 6, alignItems: 'stretch' },
+  row: { gap: 14, paddingRight: 4, paddingBottom: 12, alignItems: 'stretch' },
   allRow: { paddingRight: 0, paddingBottom: 8 },
   fullCard: { width: '100%', minHeight: 242 },
   card: {

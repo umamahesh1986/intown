@@ -47,23 +47,29 @@ export const getProfileImage = async (role: ProfileRole): Promise<string | null>
 
 // The customer avatar is also served by /s3; it is not always included by /profile.
 export const refreshProfileImage = async (role: ProfileRole, apiBase: string): Promise<string | null> => {
-  const cached = await getProfileImage(role);
+
   let id = await AsyncStorage.getItem(`${role}_id`);
   if (!id) {
     try { id = JSON.parse((await AsyncStorage.getItem('user_search_response')) || '{}')?.[role]?.id; } catch {}
   }
-  if (!id) return cached;
+  if (!id) return null;
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 15000);
   try {
-    const response = await fetch(`${apiBase}/s3?${role}Id=${encodeURIComponent(String(id))}`, { signal: controller.signal });
-    if (!response.ok) return cached;
+    const response = await fetch(`${apiBase}/s3?${role}Id=${encodeURIComponent(String(id))}`, { signal: controller.signal, cache: 'no-store' });
+    if (!response.ok) return null;
     const body = await response.json();
     const data = body?.data ?? body;
     const url = Array.isArray(data) ? pickPrimaryS3Url(data) : profileImageFromRecord(data);
     if (url) await setProfileImage(role, url);
-    return url || cached;
-  } catch { return cached; }
+    if (!url) return null;
+    // S3 signs the complete query string. Adding cache-busting parameters (or
+    // normalizing its encoding) invalidates the API's presigned URL.
+    if (/[?&]X-Amz-Signature=/i.test(url)) return url;
+    const fresh = new URL(url);
+    fresh.searchParams.set('_profileRefresh', String(Date.now()));
+    return fresh.toString();
+  } catch { return null; }
   finally { clearTimeout(timeout); }
 };
 

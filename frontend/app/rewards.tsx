@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   StyleSheet,
   Text,
@@ -85,6 +85,7 @@ export default function RewardsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [activeFilter, setActiveFilter] = useState<ActivityFilter>('ALL');
   const [error, setError] = useState<string | null>(null);
+  const loadedAccount = useRef('');
 
   const fetchData = useCallback(async (
     resolvedCustomerId: string,
@@ -248,12 +249,16 @@ export default function RewardsScreen() {
   useFocusEffect(
     useCallback(() => {
       let isActive = true;
-      setLoading(true);
+      const accountKey = `${user?.phone || ''}:${user?.id || ''}:${historyOnly}`;
+      const firstLoad = loadedAccount.current !== accountKey;
+      if (firstLoad) {
+        setLoading(true);
+        setCustomerId(null);
+        setPaymentCustomerId(null);
+        setBalance(null);
+        setActivity([]);
+      }
       setError(null);
-      setCustomerId(null);
-      setPaymentCustomerId(null);
-      setBalance(null);
-      setActivity([]);
 
       const loadCustomerPoints = async () => {
         try {
@@ -266,6 +271,7 @@ export default function RewardsScreen() {
           setCustomerId(resolvedCustomerId);
           setPaymentCustomerId(resolvedPaymentCustomerId);
           await fetchData(resolvedCustomerId, resolvedPaymentCustomerId, () => isActive);
+          if (isActive) loadedAccount.current = accountKey;
         } catch (loadError) {
           console.error('[Rewards] Failed to resolve customer ID:', loadError);
           if (isActive) {
@@ -283,7 +289,7 @@ export default function RewardsScreen() {
       return () => {
         isActive = false;
       };
-    }, [fetchData, historyOnly, resolveCustomerId, resolvePaymentCustomerId]),
+    }, [fetchData, historyOnly, resolveCustomerId, resolvePaymentCustomerId, user?.phone, user?.id]),
   );
 
   const onRefresh = useCallback(() => {
@@ -359,10 +365,10 @@ export default function RewardsScreen() {
             <Ionicons name="arrow-back" size={20} color="#FFFFFF" />
           </TouchableOpacity>
           <View style={styles.headerCopy}>
-            <Text style={styles.headerEyebrow}>{historyOnly ? 'INcoins' : 'INcoins REWARDS'}</Text>
+            {/* <Text style={styles.headerEyebrow}>{historyOnly ? 'INcoins' : 'INcoins REWARDS'}</Text> */}
             <Text style={styles.headerTitle}>{historyOnly ? 'INcoins History' : 'Rewards'}</Text>
             {!historyOnly && (
-              <Text style={styles.headerSubtitle}>A little more value in every visit.</Text>
+              <Text style={styles.headerSubtitle}>A little more value on every visit.</Text>
             )}
           </View>
           <View style={styles.headerLogo} accessibilityLabel="Rewards">
@@ -414,9 +420,9 @@ export default function RewardsScreen() {
                     </View>
 
                     <View style={[styles.balanceContainer, isCompact && styles.balanceContainerCompact]}>
-                      <Text style={styles.balanceLabel}>YOUR AVAILABLE BALANCE</Text>
+                      <Text style={styles.balanceLabel}>YOUR AVAILABLE INCOINS</Text>
                       <Text style={[styles.balanceValue, isCompact && styles.balanceValueCompact]}>
-                        <AnimatedNumber value={balance} precision={2} /> <Text style={styles.ptsUnit}>INcoins</Text>
+                        <AnimatedNumber value={balance} precision={2} />
                       </Text>
                       <TouchableOpacity onPress={redeem} disabled={redemptionLoading || !redemptionProfile || balance == null || !Number.isFinite(balance) || balance < 0} accessibilityRole="button" accessibilityLabel="Request INcoins redemption on WhatsApp" testID="rewards-redeem-whatsapp" style={[styles.redeemButton, (redemptionLoading || !redemptionProfile || balance == null || !Number.isFinite(balance) || balance < 0) && { opacity: 0.55 }]}>
                         {redemptionLoading ? <ActivityIndicator color="#FF7900" /> : <><Ionicons name="logo-whatsapp" size={19} color="#18A665" /><Text style={styles.redeemButtonText}>Redeem</Text><Ionicons name="arrow-forward" size={17} color="#FF7900" /></>}
@@ -449,8 +455,8 @@ export default function RewardsScreen() {
 
             <View style={styles.historyHeading}>
               <View>
-                <Text style={styles.sectionEyebrow}>{historyOnly ? 'YOUR REWARDS' : 'YOUR ACTIVITY'}</Text>
-                <Text style={styles.sectionTitle}>{historyOnly ? 'INcoins history' : 'Transaction history'}</Text>
+                <Text style={styles.sectionEyebrow}>{historyOnly ? 'YOUR ACTIVITY' : 'YOUR ACTIVITY'}</Text>
+                <Text style={styles.sectionTitle}>{historyOnly ? 'All Transaction history' : 'Transaction history'}</Text>
               </View>
               <View style={styles.historyCount}>
                 <Text style={styles.historyCountText}><AnimatedNumber value={filteredActivity.length} /></Text>
@@ -468,27 +474,21 @@ export default function RewardsScreen() {
                 {([
                   { key: 'ALL', label: 'All activity' },
                   { key: 'POINTS', label: 'INcoins' },
-                  { key: 'PAYMENT_HISTORY', label: 'Payment history' },
+                  { key: 'PAYMENTS', label: 'Payment history' },
                 ] as const).map((filter) => (
                   <TouchableOpacity
                     key={filter.key}
-                    onPress={() => {
-                      if (filter.key === 'PAYMENT_HISTORY') {
-                        router.push('/payment-history');
-                        return;
-                      }
-                      setActiveFilter(filter.key);
-                    }}
+                    onPress={() => setActiveFilter(filter.key)}
                     style={[
                       styles.filterButton,
-                      filter.key !== 'PAYMENT_HISTORY' && activeFilter === filter.key && styles.filterButtonActive,
+                      activeFilter === filter.key && styles.filterButtonActive,
                     ]}
                     activeOpacity={0.68}
                   >
                     <Text
                       style={[
                         styles.filterText,
-                        filter.key !== 'PAYMENT_HISTORY' && activeFilter === filter.key && styles.filterTextActive,
+                        activeFilter === filter.key && styles.filterTextActive,
                       ]}
                     >{filter.label}</Text>
                   </TouchableOpacity>
@@ -510,9 +510,9 @@ export default function RewardsScreen() {
               ]}
             >
               {item.kind === 'POINTS' ? (
-                <Ionicons name="sparkles-outline" size={19} color="#FF9B24" />
+                <Ionicons name="wallet-outline" size={22} color="#F07800" />
               ) : (
-                <Ionicons name="card-outline" size={19} color="#F4F1E8" />
+                <Ionicons name="card-outline" size={22} color="#F07800" />
               )}
             </View>
 
@@ -528,11 +528,10 @@ export default function RewardsScreen() {
                 item.kind === 'POINTS' ? styles.creditText : styles.paymentText,
               ]}
             >
-              {item.kind === 'PAYMENT' && item.value === null ? 'Amount unavailable' : <AnimatedNumber
+              {item.kind === 'PAYMENT' && item.value === null ? 'Amount unavailable' : <><AnimatedNumber
                 value={item.value ?? 0} precision={2}
                 prefix={(item.value ?? 0) >= 0 ? '+' : ''}
-                suffix={item.kind === 'POINTS' ? ' pts' : ''}
-              />}
+              />{item.kind === 'POINTS' && <Text style={{ fontSize: 11, fontWeight: '600' }}> INcoins</Text>}</>}
             </Text>
           </Animated.View>
         )}
