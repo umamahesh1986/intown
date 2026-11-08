@@ -22,8 +22,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { registerMember, INTOWN_API_BASE } from '../utils/api';
 import { useAuthStore } from '../store/authStore';
 import { useFocusEffect } from '@react-navigation/native';
+import { LEGAL_CONTENT } from '../utils/legalContent';
+import { LegalDocumentModal } from '../components/LegalDocumentModal';
 
 export default function RegisterMember() {
+  const [showTerms, setShowTerms] = useState(false);
   const router = useRouter();
   const params = useLocalSearchParams<{ latitude?: string; longitude?: string }>();
   const { setUserType, user } = useAuthStore();
@@ -645,18 +648,15 @@ export default function RegisterMember() {
                 trackColor={{ false: '#CCCCCC', true: '#FF8A00' }}
                 thumbColor={agreedToTerms ? '#FFFFFF' : '#F4F3F4'}
               />
-              <Text style={styles.termsLabel}>I agree to the Terms & Conditions</Text>
-            </View>
-            {errors.terms && <Text style={styles.errorText}>{errors.terms}</Text>}
-
-            <View style={styles.policyBox}>
-              <Text style={styles.policyText}>
-                By registering, you agree to our terms of service and privacy policy. We will use your
-                information to provide you with exclusive offers and updates from local merchants. You can
-                unsubscribe at any time.
+              <Text style={{ marginLeft: 8, flex: 1, color: '#1A1A1A' }}>
+                I agree{' '}
+                <Text onPress={() => setShowTerms(true)} accessibilityRole="link" style={{ color: '#F58200', textDecorationLine: 'underline', fontWeight: '600' }} testID="customer-registration-terms-link">Terms &amp; Conditions</Text>
               </Text>
             </View>
+            {errors.terms && <Text style={styles.errorText}>{errors.terms}</Text>}
           </View>
+
+          <LegalDocumentModal visible={showTerms} onClose={() => setShowTerms(false)} title="Terms & Conditions" html={LEGAL_CONTENT.terms} />
 
           {/* Buttons */}
           <View style={styles.buttonContainer}>

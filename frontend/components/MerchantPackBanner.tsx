@@ -4,6 +4,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { SECTION_HEADING_TYPOGRAPHY } from './GradientSectionHeading';
 import { getMerchantPlan, getMerchantPlanById, MerchantPlanId } from '../utils/merchantPlans';
 
 // Compact "your INtown pack" card for dashboards → Privilege page (Razorpay checkout lives there)
@@ -13,7 +14,11 @@ export const MerchantPackBanner = () => {
 
   useFocusEffect(
     useCallback(() => {
-      AsyncStorage.getItem('merchant_id').then((id) => getMerchantPlan(id).then(setPlan));
+      let active = true;
+      AsyncStorage.getItem('merchant_id').then(id => getMerchantPlan(id)).then(value => {
+        if (active) setPlan(value);
+      });
+      return () => { active = false; };
     }, []),
   );
 
@@ -34,7 +39,7 @@ export const MerchantPackBanner = () => {
         </Text>
       </View>
       {!top && (
-        <View style={styles.cta}>
+        <View style={[styles.cta, plan === 'START' && styles.upgradeCta]}>
           <Text style={styles.ctaText}>{plan === 'START' ? 'Upgrade to LAUNCH' : 'Choose pack'}</Text>
         </View>
       )}
@@ -58,8 +63,9 @@ const styles = StyleSheet.create({
   cardTop: { backgroundColor: '#EEF9F1', borderColor: '#BFE6CC' },
   icon: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#FFE8CC', alignItems: 'center', justifyContent: 'center' },
   iconTop: { backgroundColor: '#D7F0DE' },
-  title: { fontSize: 14, fontWeight: '800', color: '#1A1A1A' },
+  title: { ...SECTION_HEADING_TYPOGRAPHY, color: '#1A1A1A' },
   sub: { fontSize: 11.5, color: '#6B7280', marginTop: 2, lineHeight: 16 },
   cta: { backgroundColor: '#FF8A00', borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7 },
+  upgradeCta: { backgroundColor: '#2E7D32' },
   ctaText: { color: '#FFF', fontSize: 12, fontWeight: '800' },
 });

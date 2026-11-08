@@ -1,3 +1,4 @@
+import { MerchantPackBanner } from '../components/MerchantPackBanner';
 import { normalizeMerchantSales } from '../utils/merchantSales';
 import { MerchantCardAccent, merchantCardSurface } from '../components/MerchantCardAccent';
 import { refreshProfileImage as fetchProfileImage } from '../utils/profileImage';
@@ -788,6 +789,8 @@ export default function MerchantDashboard() {
 
         {/* Payments List */}
         <MerchantOrderHistoryLink />
+        <MerchantPackBanner />
+
         <MerchantPaymentApprovals merchantId={merchantId} token={token} onApproved={() => setSalesRefresh(value => value + 1)} />
         <View style={[styles.transactionsCard, merchantCardSurface]}>
       <MerchantCardAccent />

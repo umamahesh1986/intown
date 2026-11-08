@@ -15,6 +15,34 @@ const LEGACY_KEY = 'user_profile_image'; // older single-key cache
 const accountKey = (role: ProfileRole) =>
   role === 'customer' ? 'customer_profile_image' : 'merchant_profile_image';
 
+export const profileImageEntries = (response: any): { url: string; fileName?: string }[] => {
+  if (typeof response === 'string') return /^https?:/.test(response) ? [{ url: response }] : [];
+  if (Array.isArray(response)) return response.flatMap(profileImageEntries);
+  if (!response || typeof response !== 'object') return [];
+  if (typeof response.s3ImageUrl === 'string' || typeof response.url === 'string') {
+    const url = response.s3ImageUrl || response.url;
+    return /special_offer/i.test(url) ? [] : [{ url, fileName: response.fileName }];
+  }
+  return profileImageEntries(response.data ?? response.images ?? response.s3ImageUrl ?? response.profileImage);
+};
+
+export const uploadedProfileImage = (response: any, fileName: string): string | null =>
+  profileImageEntries(response).find(entry => entry.fileName === fileName || entry.url.split('?')[0].endsWith('/' + fileName))?.url ?? null;
+
+export const freshProfileImageUrl = (url: string): string => {
+  if (/[?&]X-Amz-Signature=/i.test(url)) return url;
+  try {
+    const fresh = new URL(url);
+    fresh.searchParams.set('_profileRefresh', String(Date.now()));
+    return fresh.toString();
+  } catch { return url; }
+};
+
+export const rememberUploadedProfileImage = async (role: ProfileRole, url: string): Promise<void> => {
+  await AsyncStorage.setItem('uploaded_profile_image_' + role, url);
+  await setProfileImage(role, freshProfileImageUrl(url));
+};
+
 export const pickPrimaryS3Url = (images: unknown): string | null => {
   if (typeof images === 'string') return images || null;
   if (!Array.isArray(images) || images.length === 0) return null;
@@ -60,15 +88,12 @@ export const refreshProfileImage = async (role: ProfileRole, apiBase: string): P
     if (!response.ok) return null;
     const body = await response.json();
     const data = body?.data ?? body;
-    const url = Array.isArray(data) ? pickPrimaryS3Url(data) : profileImageFromRecord(data);
-    if (url) await setProfileImage(role, url);
+    const uploaded = await AsyncStorage.getItem('uploaded_profile_image_' + role);
+    const selected = uploaded && profileImageEntries(data).find(entry => entry.url.split('?')[0] === uploaded.split('?')[0]);
+    const url = selected ? selected.url : Array.isArray(data) ? pickPrimaryS3Url(data) : profileImageFromRecord(data);
+    if (url) await setProfileImage(role, freshProfileImageUrl(url));
     if (!url) return null;
-    // S3 signs the complete query string. Adding cache-busting parameters (or
-    // normalizing its encoding) invalidates the API's presigned URL.
-    if (/[?&]X-Amz-Signature=/i.test(url)) return url;
-    const fresh = new URL(url);
-    fresh.searchParams.set('_profileRefresh', String(Date.now()));
-    return fresh.toString();
+    return freshProfileImageUrl(url);
   } catch { return null; }
   finally { clearTimeout(timeout); }
 };

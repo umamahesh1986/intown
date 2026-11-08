@@ -811,18 +811,15 @@ export default function RegisterMerchant() {
     setIsPaying(true);
     try {
       // Step 1: Create Order
-      // Backend `CreateOrderRequest` requires EXACTLY ONE of `customerId` OR `mobileNumber`
-      // and only accepts these subscriptionPlan enum values: FREE_TRIAL, MONTHLY, QUARTERLY,
-      // SEMI_ANNUAL, ANNUAL. Since the merchant hasn't been registered yet (no customerId),
-      // we send `mobileNumber` only and omit `subscriptionPlan` entirely. The joining-fee
-      // context is preserved in `description` + `notes.type`.
+      // Associate the selected merchant tier with the order before checkout.
       const createOrderRes = await fetch(`${INTOWN_API_BASE}/payment/create-order`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
         body: JSON.stringify({
           mobileNumber: phoneNumber,
           amount: JOINING_FEE_AMOUNT,
-          description: 'INtown Merchant Joining Fee',
+          description: `Merchant ${selectedPlanId} Plan Registration`,
+          merchantPlan: selectedPlanId,
           notes: {
             type: 'MERCHANT_JOINING',
             phoneNumber: String(phoneNumber),
@@ -1567,7 +1564,7 @@ export default function RegisterMerchant() {
               testID="agree-terms-switch"
             />
             <Text style={{ marginLeft: 8, flex: 1, color: '#1A1A1A' }}>
-              I agree to the{' '}
+              I agree{' '}
               <Text onPress={() => setShowTerms(true)} accessibilityRole="link" style={{ color: '#F58200', textDecorationLine: 'underline', fontWeight: '600' }} testID="merchant-registration-terms-link">Terms &amp; Conditions</Text>
             </Text>
           </View>

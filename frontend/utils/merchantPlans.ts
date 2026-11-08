@@ -74,17 +74,25 @@ export const merchantPlanRank = (id?: MerchantPlanId | null) => (id === 'LAUNCH'
 export const merchantPlanTotal = (plan: MerchantPlan) => Math.round(plan.basePrice * (1 + MERCHANT_GST_RATE) * 100) / 100;
 export const merchantPlanGst = (plan: MerchantPlan) => Math.round(plan.basePrice * MERCHANT_GST_RATE * 100) / 100;
 
-// The merchant API has no plan field yet, so the active pack is kept on-device
-// (per merchant id, plus a generic key used before the id is known at registration).
+// Cache verified purchases per merchant for offline use. Server details take precedence.
 const planKey = (merchantId?: string | number | null) =>
-  merchantId != null && String(merchantId).trim() ? `merchant_plan_${String(merchantId).trim()}` : 'merchant_plan';
+  merchantId != null && String(merchantId).trim() ? 'merchant_plan_' + String(merchantId).trim() : 'merchant_plan';
 
-export const getMerchantPlan = async (merchantId?: string | number | null): Promise<MerchantPlanId | null> => {
+export const getMerchantPlan = async (merchantId?: string | number | null, details?: any): Promise<MerchantPlanId | null> => {
   try {
-    const specific = await AsyncStorage.getItem(planKey(merchantId));
-    const generic = specific || (await AsyncStorage.getItem('merchant_plan'));
-    const plan = getMerchantPlanById(generic);
-    return plan ? plan.id : null;
+    if (merchantId != null && String(merchantId).trim()) {
+      const record = details === undefined
+        ? await (await import('./api')).getMerchantDetailsById(merchantId, true)
+        : details;
+      if (record && Object.prototype.hasOwnProperty.call(record, 'merchantSubscriptionPlan')) {
+        const plan = getMerchantPlanById(record.merchantSubscriptionPlan);
+        if (plan) await setMerchantPlan(merchantId, plan.id);
+        else await AsyncStorage.removeItem(planKey(merchantId));
+        return plan?.id ?? null;
+      }
+    }
+    const cached = await AsyncStorage.getItem(planKey(merchantId));
+    return getMerchantPlanById(cached)?.id ?? null;
   } catch {
     return null;
   }
