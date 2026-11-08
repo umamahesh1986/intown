@@ -1427,7 +1427,13 @@ useFocusEffect(
         <View style={[styles.transactionsSection, merchantCardSurface]}>
       <MerchantCardAccent />
           <View style={styles.sectionHeader}>
-            <GradientSectionHeading style={styles.sectionTitle}>Recent Transactions</GradientSectionHeading>
+            <View style={styles.transactionsHeading}>
+              <View style={styles.transactionsIcon}><Ionicons name="swap-horizontal-outline" size={23} color="#FFF" /></View>
+              <View style={styles.transactionsHeadingCopy}>
+                <GradientSectionHeading style={styles.sectionTitle}>Recent Transactions</GradientSectionHeading>
+                <Text style={styles.transactionsSubtitle}>View your latest payments and activity</Text>
+              </View>
+            </View>
             {/* <Text style={styles.normalText}>(Will be calculated on customervisits):</Text> */}
             <TouchableOpacity onPress={() => setShowAllTransactions(true)}>
               <Text style={styles.viewAllText}>View All</Text>
@@ -2222,6 +2228,10 @@ const styles = StyleSheet.create({
     marginTop: 6,
     textAlign: "center"
   },
+  transactionsHeadingCopy: { flex: 1, minWidth: 0 },
+  transactionsSubtitle: { fontSize: 12, lineHeight: 18, color: '#72819B', marginTop: 4 },
+  transactionsHeading: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 12, marginRight: 12 },
+  transactionsIcon: { width: 44, height: 44, borderRadius: 15, backgroundColor: '#FF8A00', alignItems: 'center', justifyContent: 'center' },
   transactionsSection: {
     backgroundColor: "#FFFFFF",
     marginHorizontal: 16,

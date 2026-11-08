@@ -1,7 +1,7 @@
 import { createElement } from 'react';
 import { Platform, Text, StyleProp, TextStyle } from 'react-native';
 
-export const SECTION_HEADING_TYPOGRAPHY = { fontSize: 18, fontWeight: '800' as const, lineHeight: 24 };
+export const SECTION_HEADING_TYPOGRAPHY = { fontSize: 12, fontWeight: '800' as const, lineHeight: 24, textTransform: 'uppercase' as const };
 
 export function GradientSectionHeading({ children, style }: { children: string; style?: StyleProp<TextStyle> }) {
   const characters = Array.from(children);

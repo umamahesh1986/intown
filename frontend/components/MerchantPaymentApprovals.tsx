@@ -3,7 +3,8 @@ import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'rea
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { SECTION_HEADING_TYPOGRAPHY } from './GradientSectionHeading';
+import { GradientSectionHeading } from './GradientSectionHeading';
+import { MerchantCardAccent, merchantCardSurface } from './MerchantCardAccent';
 import { approvePayment, getPendingPayments, PendingPayment } from '../utils/paymentApprovals';
 
 export function MerchantPaymentApprovals({ merchantId, token, onApproved }: {
@@ -57,18 +58,22 @@ export function MerchantPaymentApprovals({ merchantId, token, onApproved }: {
     finally { lock.current = false; setBusy(null); setRevision(value => value + 1); }
   };
 
-  return <View style={styles.section} testID="merchant-payment-approvals">
-    <LinearGradient colors={['#FF7900', '#FFC52B', '#FF3868']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.topLine} />
+  return <View style={[styles.section, merchantCardSurface]} testID="merchant-payment-approvals">
+    <MerchantCardAccent />
     <View style={styles.heading}>
-      <View style={styles.wallet}><Ionicons name="wallet-outline" color="#FF6900" size={23} /><View style={styles.coin}><Text style={styles.coinText}>₹</Text></View></View>
-      <Text style={styles.title}>INcoins approvals</Text>
-      <LinearGradient colors={['#FF7928', '#FF3E67']} style={styles.count}><Text style={styles.countText}>{payments.length}</Text></LinearGradient>
-      <View style={{ flex: 1 }} />
+      <View style={styles.wallet}><Ionicons name="wallet-outline" color="#FFF" size={23} /><View style={styles.coin}><Text style={styles.coinText}>₹</Text></View></View>
+      <View style={styles.headingCopy}>
+        <View style={styles.titleRow}>
+          <GradientSectionHeading>INcoins approvals</GradientSectionHeading>
+          <LinearGradient colors={['#FF7928', '#FF3E67']} style={styles.count}><Text style={styles.countText}>{payments.length}</Text></LinearGradient>
+        </View>
+        <Text style={styles.headingSubtitle}>Review payments and approve INcoins</Text>
+      </View>
       <TouchableOpacity style={styles.refresh} accessibilityRole="button" accessibilityLabel="Refresh INcoins approvals" onPress={() => setRevision(value => value + 1)}><Ionicons name="refresh" size={17} color="#FF6900" /></TouchableOpacity>
     </View>
     {!!error && <Text style={styles.error} accessibilityLiveRegion="polite">{error}</Text>}
     {!!notice && <Text style={styles.notice} accessibilityLiveRegion="polite">{notice}</Text>}
-    {loading ? <ActivityIndicator color="#FF8A00" /> : !payments.length && !error ? <Text style={styles.subtitle}>No payments awaiting approval.</Text> : null}
+    {loading && <ActivityIndicator color="#FF8A00" />}
     {payments.map(payment => <View key={payment.transactionId} style={styles.payment} testID={`payment-approval-${payment.transactionId}`}>
       <View style={styles.identity}>
         <LinearGradient colors={['#9460FF', '#D442D0']} start={{ x: 0, y: 1 }} end={{ x: 1, y: 0 }} style={styles.avatar}><Text style={styles.initials}>{payment.customerName?.trim().split(/\s+/).slice(0, 2).map(word => word[0]).join('').toUpperCase() || '?'}</Text></LinearGradient>
@@ -94,11 +99,11 @@ export function MerchantPaymentApprovals({ merchantId, token, onApproved }: {
 const styles = StyleSheet.create({
   section: { marginHorizontal: 16, marginTop: 16, padding: 16, paddingTop: 20, backgroundColor: '#FFFDFC', borderRadius: 26, borderWidth: 1, borderColor: '#FFE0BC', overflow: 'hidden', shadowColor: '#E98830', shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.1, shadowRadius: 12, elevation: 3 },
   topLine: { position: 'absolute', top: 0, left: 0, right: 0, height: 6 },
-  heading: { flexDirection: 'row', gap: 8, alignItems: 'center', marginBottom: 6 }, title: { ...SECTION_HEADING_TYPOGRAPHY, color: '#101E34', flexShrink: 1 },
-  wallet: { width: 44, height: 44, borderRadius: 15, borderWidth: 1, borderColor: '#FFCEA0', backgroundColor: '#FFF8EE', alignItems: 'center', justifyContent: 'center', marginRight: 2 },
+  heading: { flexDirection: 'row', gap: 8, alignItems: 'center', marginBottom: 12 }, headingCopy: { flex: 1, minWidth: 0 }, titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 }, headingSubtitle: { fontSize: 12, lineHeight: 18, color: '#72819B', marginTop: 4 },
+  wallet: { width: 44, height: 44, borderRadius: 15, backgroundColor: '#FF8A00', alignItems: 'center', justifyContent: 'center', marginRight: 2 },
   coin: { position: 'absolute', right: -3, top: -5, width: 17, height: 17, backgroundColor: '#FFD044', borderRadius: 9, alignItems: 'center', justifyContent: 'center' }, coinText: { color: '#9D5B00', fontSize: 10, fontWeight: '800' },
   count: { minWidth: 21, height: 21, paddingHorizontal: 5, borderRadius: 11, alignItems: 'center', justifyContent: 'center' }, countText: { fontSize: 12, fontWeight: '700', color: '#FFF' },
-  refresh: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#F0F4F8', alignItems: 'center', justifyContent: 'center' },
+  refresh: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#FFF3E3', alignItems: 'center', justifyContent: 'center' },
   subtitle: { fontSize: 12, color: '#667085', lineHeight: 18, marginBottom: 8 },
   payment: { paddingTop: 14, marginTop: 6, borderTopWidth: 1, borderTopColor: '#E7EDF4' },
   identity: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 14 }, avatar: { width: 40, height: 40, borderRadius: 16, alignItems: 'center', justifyContent: 'center' }, initials: { color: '#FFF', fontWeight: '800', fontSize: 12 }, customer: { fontSize: 14, color: '#101E34', fontWeight: '800', marginBottom: 5 },

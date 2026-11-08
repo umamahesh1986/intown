@@ -48,7 +48,9 @@ export const MerchantPlansSection = ({ showHero = true, onPlanChanged }: Merchan
     try {
     const id = (await AsyncStorage.getItem('merchant_id'))?.trim() || null;
     setMerchantId(id);
-    const [plan, details] = await Promise.all([getMerchantPlan(id), id ? getMerchantDetailsById(id) : null]);
+    const details = id ? await getMerchantDetailsById(id, true) : null;
+    if (!details) throw new Error('Merchant details unavailable');
+    const plan = await getMerchantPlan(id, details);
     setActivePlan(plan);
     setMerchant(details);
     } catch {

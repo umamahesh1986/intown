@@ -37,6 +37,7 @@ export const payForMerchantPlan = async (input: MerchantPlanPaymentInput): Promi
     body: JSON.stringify({
       mobileNumber,
       amount: totalRupees,
+      merchantPlan: plan.id,
       description,
       notes: {
         type: input.noteType || 'MERCHANT_PLAN',

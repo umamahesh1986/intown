@@ -16,7 +16,7 @@ import { getSpecialOfferImageUrl, isSpecialOfferImageUrl, isSpecialOfferExpired 
 import { INTOWN_API_BASE, getCategories, getProductsByCategory, uploadSpecialOfferImage, searchUserByPhoneAtBase, invalidateMerchantDetails } from '../utils/api';
 import { loadMerchantProfile } from '../utils/merchantProfile';
 import { merchantUpdatePayload } from '../utils/merchantUpdate';
-import { getProfileImage, setProfileImage as saveProfileImage } from '../utils/profileImage';
+import { getProfileImage, setProfileImage as saveProfileImage, profileImageEntries, uploadedProfileImage, freshProfileImageUrl, rememberUploadedProfileImage } from '../utils/profileImage';
 import { getMerchantPlan, getMerchantPlanById, MerchantPlanId } from '../utils/merchantPlans';
 import { MerchantPlansSection } from '../components/MerchantPlansSection';
 import axios from 'axios';
@@ -786,56 +786,33 @@ export default function Account() {
         return;
       }
 
-      // 2) Pull the authoritative image list back from the server so we get the
-      // canonical S3 URL (the upload endpoint response shape varies; using
-      // /s3?merchantId= matches the registration flow at line 149 of
-      // register-merchant.tsx).
-      let canonicalUrl: string | null = null;
+      // Select the uploaded file explicitly; list entries can be objects or URLs.
+      let uploaded: any = null;
+      try { uploaded = await uploadRes.json(); } catch {}
+      let canonicalUrl = uploadedProfileImage(uploaded, fileName);
+      const uploadEntries = profileImageEntries(uploaded);
+      if (!canonicalUrl && uploadEntries.length === 1) canonicalUrl = uploadEntries[0].url;
       try {
-        const listUrl =
-          userTypeParam === 'IN_MERCHANT'
-            ? `${INTOWN_API_BASE}/s3?merchantId=${inTownId}`
-            : `${INTOWN_API_BASE}/s3?customerId=${inTownId}`;
-        const listRes = await fetch(listUrl);
+        const roleQuery = userTypeParam === 'IN_MERCHANT' ? 'merchantId' : 'customerId';
+        const listRes = await fetch(`${INTOWN_API_BASE}/s3?${roleQuery}=${encodeURIComponent(inTownId)}`, { cache: 'no-store' });
         if (listRes.ok) {
           const listData = await listRes.json();
-          const imgs: any = listData?.s3ImageUrl;
-          if (Array.isArray(imgs) && imgs.length > 0) {
-            // Latest upload is typically last in the list
-            canonicalUrl = String(imgs[imgs.length - 1]);
-            // Save full list under the merchant-image AsyncStorage convention
-            if (userTypeParam === 'IN_MERCHANT') {
-              await AsyncStorage.setItem('merchant_shop_images', JSON.stringify(imgs));
-              setShopImages(imgs.filter((u: any) => typeof u === 'string' && u.length > 0));
-            }
+          canonicalUrl = uploadedProfileImage(listData, fileName) || canonicalUrl;
+          const urls = profileImageEntries(listData).map(entry => entry.url);
+          if (userTypeParam === 'IN_MERCHANT') {
+            await AsyncStorage.setItem('merchant_shop_images', JSON.stringify(urls));
+            setShopImages(urls);
+            invalidateMerchantDetails(inTownId);
           }
         }
-      } catch (e) {
-        console.warn('[Account] /s3 list fetch failed:', e);
+      } catch (error) {
+        console.warn('[Account] Could not refresh uploaded image list:', error);
       }
-
-      // Fallback: try to parse the upload response itself
-      if (!canonicalUrl) {
-        try {
-          const raw = await uploadRes.clone().text();
-          const parsed = raw ? JSON.parse(raw) : null;
-          if (parsed) {
-            if (Array.isArray(parsed?.s3ImageUrl) && parsed.s3ImageUrl.length > 0) {
-              canonicalUrl = String(parsed.s3ImageUrl[parsed.s3ImageUrl.length - 1]);
-            } else if (typeof parsed?.url === 'string') {
-              canonicalUrl = parsed.url;
-            } else if (Array.isArray(parsed) && parsed.length > 0) {
-              const last = parsed[parsed.length - 1];
-              canonicalUrl = last?.url || last?.s3ImageUrl || null;
-            }
-          }
-        } catch {
-          // ignore JSON parse failure
-        }
-      }
+      if (!canonicalUrl) throw new Error('The uploaded image URL could not be confirmed. Please retry.');
 
       // Persist + reflect everywhere
-      const finalUrl = canonicalUrl || pendingImageUri;
+      const finalUrl = freshProfileImageUrl(canonicalUrl);
+      await rememberUploadedProfileImage(userTypeParam === 'IN_MERCHANT' ? 'merchant' : 'customer', canonicalUrl);
       await saveProfileImage(userTypeParam === 'IN_MERCHANT' ? 'merchant' : 'customer', finalUrl);
       if (userTypeParam === 'IN_MERCHANT') {
         await AsyncStorage.setItem('merchant_profile_image', finalUrl);
