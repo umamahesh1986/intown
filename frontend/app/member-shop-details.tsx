@@ -19,6 +19,7 @@ import { styles } from '../styles/member-shop-details.styles';
 import { ShopDetailRow } from '../components/ShopDetailRow';
 import { getShopTagline } from '../utils/shopTagline';
 import { ShopShareModal } from '../components/ShopShareModal';
+import { getMerchantPlanById } from '../utils/merchantPlans';
 
 const PROMO_HERO = require('../assets/images/promo/promo-3.jpg');
 
@@ -52,6 +53,7 @@ interface ShopData {
   offer?: string;
   specialOffers?: string[] | null;
   specialOfferEndDate?: string | null;
+  merchantSubscriptionPlan?: string | null;
 }
 
 export default function MemberShopDetails() {
@@ -88,6 +90,7 @@ export default function MemberShopDetails() {
   const SUPPORTED_ORDER_CATEGORIES = [
     'pharmacy',
     'dairy products',
+    'Restaurants',
     'meat',
     'bakery',
     'stationery',
@@ -254,6 +257,7 @@ export default function MemberShopDetails() {
               s3ImageUrl: details.s3ImageUrl ?? prev.s3ImageUrl,
               specialOffers: 'specialOffers' in details ? details.specialOffers : prev.specialOffers,
               specialOfferEndDate: 'specialOfferEndDate' in details ? details.specialOfferEndDate : prev.specialOfferEndDate,
+              merchantSubscriptionPlan: details.merchantSubscriptionPlan ?? null,
             }
           : prev,
       );
@@ -326,6 +330,8 @@ export default function MemberShopDetails() {
     if (!category) return false;
     return SUPPORTED_ORDER_CATEGORIES.includes(category.trim().toLowerCase());
   };
+  const canPickAtStore = getMerchantPlanById(shop?.merchantSubscriptionPlan)?.id === 'LAUNCH'
+    && isOrderCategorySupported(shop?.businessCategory);
 
   // Deterministic pastel color per product name (Blinkit-style tile bg)
   const productTileColor = (name: string) => {
@@ -352,6 +358,7 @@ export default function MemberShopDetails() {
   };
 
   const openOrderModal = async () => {
+    if (!canPickAtStore) return;
     setOrderError('');
     setSelectedItems({});
     setChosenUnit({});
@@ -433,6 +440,7 @@ export default function MemberShopDetails() {
   };
 
   const handleSubmitOrder = async () => {
+    if (!canPickAtStore) return;
     setOrderError('');
     if (!customerId) {
       Alert.alert('Login Required', 'Please login again to place an order.');
@@ -668,7 +676,7 @@ export default function MemberShopDetails() {
           <Text style={styles.shopTagline} testID="shop-tagline">{getShopTagline(shop.businessCategory)}</Text>
 
           {/* Order Button — visible only for supported categories */}
-          {isOrderCategorySupported(shop.businessCategory) && (
+          {canPickAtStore && (
             <TouchableOpacity
               style={styles.orderBtn}
               onPress={() => {

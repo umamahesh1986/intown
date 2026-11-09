@@ -437,16 +437,21 @@ export default function RegisterMember() {
     }
   };
 
-  const handleSuccessClose = (customerId?: string | number | null) => {
+  const handleSuccessClose = async (customerId?: string | number | null) => {
     if (successTimerRef.current) {
       clearTimeout(successTimerRef.current);
       successTimerRef.current = null;
     }
     setShowSuccessPopup(false);
-    setUserType('member');
+    const nextUserType = user?.userType === 'merchant' || user?.userType === 'dual'
+      ? 'dual'
+      : 'member';
+    await setUserType(nextUserType);
+    await AsyncStorage.setItem('user_role', nextUserType === 'dual' ? 'dual' : 'customer');
+    await AsyncStorage.setItem('user_type', nextUserType === 'dual' ? 'dual' : 'in_Customer');
     const resolvedId = customerId ?? successCustomerId;
     router.replace({
-      pathname: '/member-dashboard',
+      pathname: nextUserType === 'dual' ? '/dual-dashboard' : '/member-dashboard',
       params: resolvedId ? { customerId: String(resolvedId) } : {},
     });
   };
