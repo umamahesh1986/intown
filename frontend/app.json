@@ -58,6 +58,7 @@
       ],
       "expo-build-properties",
       "./plugins/withUpiQueries",
+      "./plugins/withIosSceneLifecycle",
       [
         "expo-speech-recognition",
         {
