@@ -16,7 +16,7 @@ function visit(node) {
 }
 visit(source);
 for (const plan of ['START', 'LAUNCH', 'launch', null, undefined, 'UNKNOWN']) {
-  for (const category of ['Groceries', 'Pharmacy', 'unsupported', undefined]) {
+  for (const category of ['Groceries', 'Pharmacy', 'Restaurants', ' restaurants ', 'unsupported', undefined]) {
     const context = {
       shop: { merchantSubscriptionPlan: plan, businessCategory: category },
       getMerchantPlanById: plans.exports.getMerchantPlanById,
@@ -25,7 +25,7 @@ for (const plan of ['START', 'LAUNCH', 'launch', null, undefined, 'UNKNOWN']) {
     const code = `const isOrderCategorySupported = ${expressions.isOrderCategorySupported}; const allowed = ${expressions.canPickAtStore};`;
     const js = ts.transpileModule(code, { compilerOptions: { target: ts.ScriptTarget.ES2020 } }).outputText;
     const actual = vm.runInNewContext(`${js}\nallowed`, context);
-    assert.equal(actual, ['LAUNCH', 'launch'].includes(plan) && ['Groceries', 'Pharmacy'].includes(category));
+    assert.equal(actual, ['LAUNCH', 'launch'].includes(plan) && ['Groceries', 'Pharmacy', 'Restaurants', ' restaurants '].includes(category));
   }
 }
 console.log('Pickup visibility passed: LAUNCH only, supported categories only, missing/unknown plans hidden.');
