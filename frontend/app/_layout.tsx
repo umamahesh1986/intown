@@ -141,6 +141,7 @@ export default function RootLayout() {
     '/payment',
     '/member-card',
     '/rewards',
+    '/incoins-history',
     '/near-by',
     '/savings',
     '/plans',
@@ -201,6 +202,8 @@ export default function RootLayout() {
         <Stack.Screen name="checkout" />
         <Stack.Screen name="payment-history" />
         <Stack.Screen name="rewards" />
+        <Stack.Screen name="incoins-history" />
+        <Stack.Screen name="merchant-incoin-wallet" />
         <Stack.Screen name="my-orders" />
         <Stack.Screen name="merchant-orders" />
       </Stack>

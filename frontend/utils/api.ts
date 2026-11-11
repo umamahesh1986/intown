@@ -3,6 +3,8 @@ import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { isSpecialOfferImageName, isSpecialOfferImageUrl, specialOfferImageFileName } from "./specialOffer";
 import { merchantRecord } from './merchantProfile';
+import { referralNumber, registrationDeviceId } from './referralRegistration';
+import { intownApiBaseUrl } from './apiBaseUrl';
 
 // ==========================================================================
 // ==========================================================================
@@ -37,11 +39,11 @@ const resolvedOtpBase = IS_PRODUCTION_API
   : nonProdOverride(process.env.EXPO_PUBLIC_OTP_API_BASE_URL) || `${DEV_BASE}/IN`;
 
 const BASE_URL = resolvedBaseUrl;
-export const INTOWN_API_BASE = `${BASE_URL}/IN`;
+export const INTOWN_API_BASE = intownApiBaseUrl(BASE_URL);
 const INPOINTS_API_BASE_URL = IS_PRODUCTION_API
   ? PROD_BASE
   : nonProdOverride(process.env.EXPO_PUBLIC_INPOINTS_API_BASE_URL) || BASE_URL;
-export const INPOINTS_API_BASE = `${INPOINTS_API_BASE_URL}/IN`;
+export const INPOINTS_API_BASE = intownApiBaseUrl(INPOINTS_API_BASE_URL);
 
 const OTP_API_BASE = resolvedOtpBase;
 
@@ -236,7 +238,6 @@ export const getPlans = async () => {
 
 export const registerMember = async (memberData: any) => {
   try {
-    console.log("Registering customer:", memberData);
     
     // Prepare payload - ensure phone number is clean
     let cleanPhone = memberData.phoneNumber?.replace(/\D/g, "") || "";
@@ -253,24 +254,22 @@ export const registerMember = async (memberData: any) => {
       latitude: memberData.location?.latitude,
       longitude: memberData.location?.longitude,
       images: memberData.images || [],
-      referredBy: memberData.referredBy || '',
+      referredBy: referralNumber(memberData.referredBy),
+      deviceId: await registrationDeviceId(),
       isPrivileged: true,
       userType: "IN_CUSTOMER",
     };
     
-    console.log("Customer registration payload:", payload);
     
-    const response = await axios.post(`${INTOWN_API_BASE}/customer/`, payload, {
+    const response = await axios.post(`${INTOWN_API_BASE}/customers/register`, payload, {
       timeout: 30000,
       headers: {
         "Content-Type": "application/json",
       },
     });
     
-    console.log("Customer registration response:", response.data);
     return response.data;
   } catch (error: any) {
-    console.error("Customer registration error:", error);
     
     // Return error details for proper handling
     if (error.response) {
@@ -301,7 +300,6 @@ export const registerMember = async (memberData: any) => {
 
 export const registerMerchant = async (merchantData: any) => {
   try {
-    console.log("Registering merchant:", merchantData);
     
     // Prepare payload - ensure phone number is clean
     let cleanPhone = merchantData.phoneNumber?.replace(/\D/g, "") || "";
@@ -324,7 +322,8 @@ export const registerMerchant = async (merchantData: any) => {
       latitude: merchantData.location?.latitude ?? merchantData.latitude ?? null,
       longitude: merchantData.location?.longitude ?? merchantData.longitude ?? null,
       address: merchantData.address,
-      referredBy: merchantData.introducedBy,
+      referredBy: referralNumber(merchantData.referredBy ?? merchantData.introducedBy),
+      subscriptionPlan: merchantData.subscriptionPlan,
       images: merchantData.images || [],
       agreedToTerms: merchantData.agreedToTerms,
       categoryList: merchantData.categoryList || [],
@@ -339,19 +338,16 @@ export const registerMerchant = async (merchantData: any) => {
       specialOffers: merchantData.specialOffers || [],
     };
     
-    console.log("Merchant registration payload:", payload);
     
-    const response = await axios.post(`${INTOWN_API_BASE}/merchant/`, payload, {
+    const response = await axios.post(`${INTOWN_API_BASE}/merchants/register`, payload, {
       timeout: 30000,
       headers: {
         "Content-Type": "application/json",
       },
     });
     
-    console.log("Merchant registration response:", response.data);
     return response.data;
   } catch (error: any) {
-    console.error("Merchant registration error:", error);
     
     // Return error details for proper handling
     if (error.response) {

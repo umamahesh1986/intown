@@ -38,17 +38,12 @@ import {
   getCustomerProfile,
   getMerchantImageByShopId,
   enrichShopsWithMerchantDetails,
-  extractImageUrls,
-  INPOINTS_API_BASE,
-  INTOWN_API_BASE,
-  resolveInPointsCustomerId,
-} from '../utils/api';
+  extractImageUrls,  INTOWN_API_BASE,} from '../utils/api';
 import { setNavShop } from '../utils/navCache';
 import { DealsStrip } from '../components/DealsStrip';
 import { SavingsStatCards } from '../components/SavingsStatCards';
 import { GradientSectionHeading } from '../components/GradientSectionHeading';
-import { RewardsCard, RewardsCardStats } from '../components/RewardsCard';
-import { computeRewardsInsights } from '../utils/rewardsInsights';
+import { INCoinsWalletCard } from '../components/incoins/INCoinsWalletCard';
 import { NearbyMerchantCard, sortSpecialOffersFirst, hasSpecialOffer } from '../components/NearbyMerchantCard';
 import { trackOfferEvent } from '../utils/offerAnalytics';
 
@@ -230,9 +225,6 @@ export default function MemberDashboard() {
     thisYear: null,
   });
   const [isTransactionsLoading, setIsTransactionsLoading] = useState(false);
-  const [inPointsStats, setInPointsStats] = useState<RewardsCardStats | null>(null);
-  const [isInPointsLoading, setIsInPointsLoading] = useState(true);
-  const [inPointsError, setInPointsError] = useState(false);
   const [customerId, setCustomerId] = useState<string | null>(null);
   const normalizeId = (value?: string | number | null) => {
     if (value == null) return null;
@@ -282,144 +274,6 @@ export default function MemberDashboard() {
 
   // ===== MEMBER CAROUSEL STATE =====
   const [carouselIndex, setCarouselIndex] = useState(0);
-
-  useFocusEffect(
-    useCallback(() => {
-      let isActive = true;
-
-     
-const fetchInPointsStats = async () => {
-  setInPointsError(false);
-
-  try {
-    const inPointsCustomerId = await resolveInPointsCustomerId(
-      user?.phone ?? ''
-    );
-
-    const historyResponse = await fetch(
-      `${INPOINTS_API_BASE}/points/customers/${encodeURIComponent(
-        String(inPointsCustomerId)
-      )}/history`,
-      {
-        headers: {
-          Accept: 'application/json',
-        },
-      }
-    );
-
-    if (!historyResponse.ok) {
-      throw new Error(
-        `INcoins history fetch failed: ${historyResponse.status}`
-      );
-    }
-
-    const historyData: unknown = await historyResponse.json();
-
-    const data = historyData as {
-      transactions?: unknown;
-      data?: {
-        transactions?: unknown;
-      } | unknown[];
-    };
-
-    const pointTransactions: unknown[] | null = Array.isArray(historyData)
-      ? historyData
-      : Array.isArray(data?.transactions)
-        ? data.transactions
-        : Array.isArray(data?.data)
-          ? data.data
-          : data?.data &&
-              typeof data.data === 'object' &&
-              'transactions' in data.data &&
-              Array.isArray(data.data.transactions)
-            ? data.data.transactions
-            : null;
-
-    if (!pointTransactions) {
-      throw new Error(
-        'The INcoins API returned invalid points history.'
-      );
-    }
-
-    const pointValues: number[] = pointTransactions.map(
-      (item: unknown) => {
-        if (!item || typeof item !== 'object') {
-          throw new Error(
-            'The INcoins API returned an invalid transaction.'
-          );
-        }
-
-        const transaction = item as {
-          id?: number | string;
-          points?: number | string;
-        };
-
-        const points = Number(transaction.points);
-        const transactionId = Number(transaction.id);
-
-        if (
-          transaction.id == null ||
-          !Number.isSafeInteger(transactionId) ||
-          transaction.points == null ||
-          transaction.points === '' ||
-          !Number.isFinite(points)
-        ) {
-          throw new Error(
-            'The INcoins API returned an invalid transaction.'
-          );
-        }
-
-        return points;
-      }
-    );
-
-    const totalEarned = pointValues.reduce<number>(
-      (total, points) => total + Math.max(0, points),
-      0
-    );
-
-    const transactionCount = pointValues.length;
-
-    if (isActive) {
-      setInPointsStats({
-        ...computeRewardsInsights(pointTransactions),
-        totalEarned,
-        transactionCount,
-        averagePoints: transactionCount
-          ? Math.round(totalEarned / transactionCount)
-          : 0,
-      });
-    }
-  } catch (error: unknown) {
-    console.error(
-      '[MemberDashboard] Failed to load INcoins history:',
-      error
-    );
-
-    if (isActive) {
-      setInPointsStats(null);
-      setInPointsError(true);
-    }
-  } finally {
-    if (isActive) {
-      setIsInPointsLoading(false);
-    }
-  }
-};
-
-
-      let refreshingPoints = false;
-      const refreshPoints = async () => {
-        if (refreshingPoints) return;
-        refreshingPoints = true;
-        try { await fetchInPointsStats(); } finally { refreshingPoints = false; }
-      };
-      void refreshPoints();
-      return () => {
-        isActive = false;
-      };
-    }, [user?.phone]),
-  );
   const carouselRef = useRef<ScrollView | null>(null);
   const categoriesScrollRef = useRef<ScrollView | null>(null);
   const nearbyScrollRef = useRef<ScrollView | null>(null);
@@ -1408,15 +1262,7 @@ const fetchInPointsStats = async () => {
           
 
              {/* REWARDS SECTION */}
-          <RewardsCard
-            stats={inPointsStats}
-            loading={isInPointsLoading}
-            error={inPointsError}
-            onOpen={() => router.push('/rewards')}
-            onHistory={() => router.push('/rewards?historyOnly=true')}
-            onRedeem={() => router.push('/rewards')}
-            testIDPrefix="member-rewards"
-          />
+          <INCoinsWalletCard role="customer" />
 
           <Footer dashboardType="member" />
         </ScrollView>

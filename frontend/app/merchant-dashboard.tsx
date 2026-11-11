@@ -1,3 +1,4 @@
+import { INCoinsWalletCard } from '../components/incoins/INCoinsWalletCard';
 import { MerchantPackBanner } from '../components/MerchantPackBanner';
 import { normalizeMerchantSales } from '../utils/merchantSales';
 import { MerchantCardAccent, merchantCardSurface } from '../components/MerchantCardAccent';
@@ -852,6 +853,7 @@ export default function MerchantDashboard() {
         </View>
 
         {/* Footer */}
+        <INCoinsWalletCard role="merchant" />
         <Footer dashboardType="merchant" />
       </ScrollView>
 

@@ -1,3 +1,5 @@
+import { useINCoinsStore } from '../store/incoinsStore';
+import { registrationReferralMessage } from '../utils/referralRegistration';
 import {
   View,
   Text,
@@ -341,12 +343,15 @@ export default function RegisterMember() {
     }
   };
 
+  const registrationPending = useRef(false);
   const handleRegister = async () => {
+    if (registrationPending.current) return;
     if (!validateForm()) {
       Alert.alert('Validation Error', 'Please fill all required fields correctly');
       return;
     }
 
+    registrationPending.current = true;
     setIsLoading(true);
     
     try {
@@ -363,7 +368,7 @@ export default function RegisterMember() {
       };
 
       const response = await registerMember(memberData);
-      console.log('Customer registration success:', response);
+
 
       const customerId =
         response?.customerId ??
@@ -412,7 +417,10 @@ export default function RegisterMember() {
       const popupMessage = `Your customer account has been created successfully!\nCustomer ID: ${
         customerId ?? 'N/A'
       }`;
-      setSuccessMessage(popupMessage);
+      const referralMessage = registrationReferralMessage(response);
+      setSuccessMessage(referralMessage ? `${popupMessage}\n\n${referralMessage}` : popupMessage);
+      useINCoinsStore.getState().clear();
+      void useINCoinsStore.getState().refresh();
       setSuccessCustomerId(customerId ?? null);
       setShowSuccessPopup(true);
       if (successTimerRef.current) {
@@ -423,7 +431,7 @@ export default function RegisterMember() {
       }, 5000);
       
     } catch (error: any) {
-      console.error('Customer registration error:', error);
+
       
       // Show error message
       const errorMessage = error.message || 'Registration failed. Please try again.';
@@ -433,6 +441,7 @@ export default function RegisterMember() {
         [{ text: 'OK' }]
       );
     } finally {
+      registrationPending.current = false;
       setIsLoading(false);
     }
   };

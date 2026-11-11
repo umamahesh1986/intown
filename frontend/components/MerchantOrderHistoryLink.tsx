@@ -9,7 +9,7 @@ export function MerchantOrderHistoryLink() {
   return <TouchableOpacity style={[styles.card, merchantCardSurface]} onPress={() => router.push({ pathname: '/merchant-orders', params: { tab: 'ALL' } })} accessibilityRole="button" accessibilityLabel="View all merchant orders and order details" testID="merchant-order-history-link">
       <MerchantCardAccent />
     <View style={styles.icon}><Ionicons name="receipt-outline" size={23} color="#FFF" /></View>
-    <View style={{ flex: 1 }}><GradientSectionHeading>Merchant order history</GradientSectionHeading><Text style={styles.subtitle}>View all orders, items and status updates</Text></View>
+    <View style={{ flex: 1 }}><GradientSectionHeading>Order history</GradientSectionHeading><Text style={styles.subtitle}>View all orders, items and status updates</Text></View>
     <View style={styles.action}><Ionicons name="chevron-forward" size={20} color="#FF7900" /></View>
   </TouchableOpacity>;
 }

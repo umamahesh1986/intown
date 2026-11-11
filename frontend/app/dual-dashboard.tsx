@@ -41,8 +41,7 @@ import { DealsStrip } from '../components/DealsStrip';
 import { SavingsStatCards } from '../components/SavingsStatCards';
 import { GradientSectionHeading } from '../components/GradientSectionHeading';
 import { getSavingsPeriodTotals } from '../utils/savingsTotals';
-import { RewardsCard, RewardsCardStats } from '../components/RewardsCard';
-import { computeRewardsInsights } from '../utils/rewardsInsights';
+import { INCoinsWalletCard } from '../components/incoins/INCoinsWalletCard';
 import { MerchantPackBanner } from '../components/MerchantPackBanner';
 import { NearbyMerchantCard, sortSpecialOffersFirst, hasSpecialOffer } from '../components/NearbyMerchantCard';
 import { trackOfferEvent } from '../utils/offerAnalytics';
@@ -58,11 +57,7 @@ import {
 } from '../utils/location';
 import { formatDistance } from '../utils/formatDistance';
 import CommonBottomTabs from "../components/CommonBottomTabs";
-import {
-  
-  INPOINTS_API_BASE,
-  resolveInPointsCustomerId,
-} from '../utils/api';
+import {} from '../utils/api';
 
 const { width } = Dimensions.get('window');
 
@@ -345,10 +340,7 @@ export default function DualDashboard() {
   const [showAllTransactions, setShowAllTransactions] = useState(false);
   const CARD_WIDTH = 172;
 
-  const [inPointsStats, setInPointsStats] = useState<RewardsCardStats | null>(null);
 
-const [isInPointsLoading, setIsInPointsLoading] = useState(true);
-const [inPointsError, setInPointsError] = useState(false);
 
   const startNearbyAutoScroll = () => {
     if (nearbyAutoScrollRef.current) clearInterval(nearbyAutoScrollRef.current);
@@ -385,164 +377,6 @@ const [inPointsError, setInPointsError] = useState(false);
   for (let i = 0; i < categories.length; i += 2) {
     categoryColumns.push(categories.slice(i, i + 2));
   }
-
-  
-useFocusEffect(
-  useCallback(() => {
-    let isActive = true;
-
-    const fetchInPointsStats = async () => {
-      setInPointsError(false);
-
-      try {
-        const phone = String(user?.phone ?? '').trim();
-
-        if (!phone) {
-          throw new Error('Logged-in user phone number is missing.');
-        }
-
-        const inPointsCustomerId =
-          await resolveInPointsCustomerId(phone);
-
-        if (
-          inPointsCustomerId == null ||
-          String(inPointsCustomerId).trim() === ''
-        ) {
-          throw new Error('INcoins customer ID not found.');
-        }
-
-        const url =
-          `${INPOINTS_API_BASE}/points/customers/` +
-          `${encodeURIComponent(String(inPointsCustomerId))}/history`;
-
-        console.log('[DualDashboard INcoins] Customer ID:', inPointsCustomerId);
-        console.log('[DualDashboard INcoins] URL:', url);
-
-        const response = await fetch(url, {
-          method: 'GET',
-          headers: {
-            Accept: 'application/json',
-          },
-        });
-
-        const responseText = await response.text();
-
-        console.log('[DualDashboard INcoins] Status:', response.status);
-        console.log('[DualDashboard INcoins] Response:', responseText);
-
-        if (!response.ok) {
-          throw new Error(
-            `INcoins API failed: ${response.status} ${responseText}`
-          );
-        }
-
-        const result: unknown = responseText
-          ? JSON.parse(responseText)
-          : null;
-
-        const payload = result as {
-          transactions?: unknown;
-          data?: unknown;
-          totalPoints?: number | string;
-        } | null;
-
-        let transactions: unknown[] | null = null;
-
-        if (Array.isArray(result)) {
-          transactions = result;
-        } else if (Array.isArray(payload?.transactions)) {
-          transactions = payload.transactions;
-        } else if (Array.isArray(payload?.data)) {
-          transactions = payload.data;
-        } else if (
-          payload?.data &&
-          typeof payload.data === 'object' &&
-          'transactions' in payload.data &&
-          Array.isArray(payload.data.transactions)
-        ) {
-          transactions = payload.data.transactions;
-        }
-
-        if (!transactions) {
-          throw new Error(
-            'Transactions array is missing from the INcoins API response.'
-          );
-        }
-
-        const points = transactions.map((item: unknown) => {
-          if (!item || typeof item !== 'object') {
-            return 0;
-          }
-
-          const transaction = item as {
-            points?: number | string;
-            pointsEarned?: number | string;
-            earnedPoints?: number | string;
-          };
-
-          const rawPoints =
-            transaction.points ??
-            transaction.pointsEarned ??
-            transaction.earnedPoints;
-
-          const value = Number(rawPoints);
-
-          return rawPoints == null ||
-            rawPoints === '' ||
-            !Number.isFinite(value)
-            ? 0
-            : Math.max(0, value);
-        });
-
-        const totalEarned = points.reduce(
-          (sum, value) => sum + value,
-          0
-        );
-
-        const transactionCount = transactions.length;
-
-        if (isActive) {
-          setInPointsStats({
-            ...computeRewardsInsights(transactions),
-            totalEarned,
-            transactionCount,
-            averagePoints: transactionCount
-              ? Math.round(totalEarned / transactionCount)
-              : 0,
-          });
-
-          setInPointsError(false);
-        }
-      } catch (error) {
-        console.error(
-          '[DualDashboard] Failed to fetch INcoins:',
-          error
-        );
-
-        if (isActive) {
-          setInPointsStats(null);
-          setInPointsError(true);
-        }
-      } finally {
-        if (isActive) {
-          setIsInPointsLoading(false);
-        }
-      }
-    };
-
-    let refreshingPoints = false;
-    const refreshPoints = async () => {
-      if (refreshingPoints) return;
-      refreshingPoints = true;
-      try { await fetchInPointsStats(); } finally { refreshingPoints = false; }
-    };
-    void refreshPoints();
-
-    return () => {
-      isActive = false;
-    };
-  }, [user?.phone, transactionRefresh])
-);
 
   /* ===============================
      LOAD USER DATA
@@ -1673,18 +1507,11 @@ useFocusEffect(
                 { label: 'Year', value: customerYearSaved ?? 0 },
               ]}
             />
-            <RewardsCard
-              stats={inPointsStats}
-              loading={isInPointsLoading}
-              error={inPointsError}
-              onOpen={() => router.push('/rewards')}
-              onHistory={() => router.push('/rewards?historyOnly=true')}
-              onRedeem={() => router.push('/rewards')}
-              testIDPrefix="dual-rewards"
-            />
+            <INCoinsWalletCard role="customer" />
           </>
         )}
 
+        {activeTab === 'merchant' && <INCoinsWalletCard role="merchant" />}
         <Footer dashboardType={activeTab === 'customer' ? 'member' : 'merchant'} />
       </ScrollView>
 

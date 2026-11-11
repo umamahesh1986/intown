@@ -14,6 +14,7 @@ interface AuthState {
   token: string | null;
   isAuthenticated: boolean;
   isGuest: boolean;
+  isHydrated: boolean;
   setUser: (user: User | null) => void;
   setToken: (token: string | null) => void;
   setUserType: (userType: 'user' | 'member' | 'merchant' | 'dual') => void;
@@ -28,6 +29,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   token: null,
   isAuthenticated: false,
   isGuest: false,
+  isHydrated: false,
   setUser: async (user) => {
     if (user) {
       await AsyncStorage.setItem('user_data', JSON.stringify(user));
@@ -35,7 +37,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       await AsyncStorage.removeItem('user_data');
     }
     // A real login always supersedes any earlier guest session.
-    set({ user, isAuthenticated: !!user, isGuest: false });
+    set({ user, isAuthenticated: !!user, isGuest: false, isHydrated: true });
   },
   setToken: async (token) => {
     if (token) {
@@ -87,6 +89,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
     } catch (error) {
       console.error('Error loading auth:', error);
+    } finally {
+      set({ isHydrated: true });
     }
   },
   updateProfile: (data) =>
