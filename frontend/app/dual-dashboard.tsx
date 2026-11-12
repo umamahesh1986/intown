@@ -1,3 +1,4 @@
+import { MerchantProfileHeader } from '../components/MerchantProfileHeader';
 import { normalizeMerchantSales } from '../utils/merchantSales';
 import { MerchantCardAccent, merchantCardSurface } from '../components/MerchantCardAccent';
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -1150,88 +1151,7 @@ export default function DualDashboard() {
 
           {/* Merchant Shop Details Card (Merchant Tab Only) */}
         {activeTab === 'merchant' && (
-          <View style={styles.merchantShopCard}>
-            {/* Image Carousel */}
-            <View style={styles.merchantImageCarousel}>
-              {isMerchantDetailsLoading ? (
-                <View style={styles.merchantImagePlaceholder}>
-                  <ActivityIndicator size="large" color="#FF8A00" />
-                </View>
-              ) : merchantImages.length > 0 ? (
-                <>
-                  <ScrollView
-                    ref={merchantImageScrollRef}
-                    horizontal
-                    pagingEnabled
-                    showsHorizontalScrollIndicator={false}
-                    onMomentumScrollEnd={(e) => {
-                      const index = Math.round(e.nativeEvent.contentOffset.x / MERCHANT_IMAGE_WIDTH);
-                      setMerchantImageIndex(index);
-                    }}
-                  >
-                    {merchantImages.map((img, index) => (
-                      <Image
-                        key={`merchant-img-${index}`}
-                        source={{ uri: img }}
-                        style={[styles.merchantImage, { width: MERCHANT_IMAGE_WIDTH }]}
-                        resizeMode="cover"
-                      />
-                    ))}
-                  </ScrollView>
-                  {merchantImages.length > 1 && (
-                    <View style={styles.imageIndicators}>
-                      {merchantImages.map((_, index) => (
-                        <View
-                          key={`indicator-${index}`}
-                          style={[
-                            styles.imageIndicator,
-                            index === merchantImageIndex && styles.imageIndicatorActive,
-                          ]}
-                        />
-                      ))}
-                    </View>
-                  )}
-                </>
-              ) : (
-                <View style={styles.merchantImagePlaceholder}>
-                  <Ionicons name="storefront" size={60} color="#FF8A00" />
-                </View>
-              )}
-            </View>
-
-            {/* Business Details */}
-            <View style={styles.merchantDetailsContent}>
-              <Text style={styles.merchantBusinessName}>
-                {merchantDetails?.businessName || merchantShopName || 'My Shop'}
-              </Text>
-              <View style={styles.merchantCategoryBadge}>
-                <Ionicons name="pricetag" size={14} color="#FF8A00" />
-                <Text style={styles.merchantCategoryText}>
-                  {merchantDetails?.businessCategory || 'Retail Store'}
-                </Text>
-              </View>
-              {merchantDetails?.description && (
-                <View style={styles.merchantDescriptionBox}>
-                  <Text style={styles.merchantDescriptionLabel}>Description</Text>
-                  <Text style={styles.merchantDescriptionText}>
-                    {merchantDetails.description}
-                  </Text>
-                </View>
-              )}
-
-              {/* Edit Profile Button (Merchant tab → IN_MERCHANT) */}
-              <TouchableOpacity
-                style={styles.editProfileBtn}
-                onPress={() => router.push({ pathname: '/account' as any, params: { from: 'dual-merchant' } })}
-                activeOpacity={0.85}
-                data-testid="dual-dashboard-edit-profile-btn"
-                testID="dual-dashboard-edit-profile-btn"
-              >
-                <Ionicons name="create-outline" size={18} color="#FFFFFF" />
-                <Text style={styles.editProfileBtnText}>Edit Profile</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+          <MerchantProfileHeader name={merchantDetails?.businessName || merchantShopName || 'My Shop'} category={merchantDetails?.businessCategory || 'Retail Store'} years={merchantDetails?.fromYears} onPress={() => router.push({ pathname: '/account', params: { from: 'dual-merchant' } })} />
         )}
         {/* Quick Stats — merchant tab keeps INtown Business on top; customer savings + rewards moved above the footer */}
         {activeTab === 'merchant' && (

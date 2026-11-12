@@ -1,3 +1,4 @@
+import { MerchantProfileHeader } from '../components/MerchantProfileHeader';
 import { INCoinsWalletCard } from '../components/incoins/INCoinsWalletCard';
 import { MerchantPackBanner } from '../components/MerchantPackBanner';
 import { normalizeMerchantSales } from '../utils/merchantSales';
@@ -694,72 +695,7 @@ export default function MerchantDashboard() {
         {/* === END MERCHANT CAROUSEL === */}
 
         {/* Shop Details Card */}
-        <View style={styles.shopCard}>
-          <View style={styles.shopImageContainer} onLayout={event => setShopImageWidth(event.nativeEvent.layout.width)}>
-            {shopImages.length > 0 ? (
-              <>
-                <ScrollView
-                  ref={shopImageScrollRef}
-                  horizontal
-                  pagingEnabled
-                  showsHorizontalScrollIndicator={false}
-                  scrollEventThrottle={16}
-
-                  style={styles.shopImageScroll}
-                  contentContainerStyle={styles.shopImageScrollContent}
-                  onMomentumScrollEnd={(e) => {
-                    const index = Math.round(
-                      e.nativeEvent.contentOffset.x / shopImageWidth
-                    );
-                    setShopImageIndex(index);
-                  }}
-                >
-                  {shopImages.map((img, index) => (
-                    <Image
-                      key={`${img}-${index}`}
-                      source={{ uri: img }}
-                      style={[styles.shopImageCarousel, { width: shopImageWidth }]}
-                      resizeMode="cover"
-                    />
-
-                  ))}
-                </ScrollView>
-                <TouchableOpacity
-                  style={[styles.shopArrow, styles.shopArrowLeft]}
-                  onPress={handlePrevShopImage}
-                >
-                  <Ionicons name="chevron-back" size={20} color="#FFFFFF" />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.shopArrow, styles.shopArrowRight]}
-                  onPress={handleNextShopImage}
-                >
-                  <Ionicons name="chevron-forward" size={20} color="#FFFFFF" />
-                </TouchableOpacity>
-              </>
-            ) : (
-              <Ionicons name="storefront" size={80} color="#2196F3" style={{ textAlign: 'center' }} />
-            )}
-          </View>
-          <View style={styles.shopDetails}>
-          <Text style={styles.shopName}>{merchantShop.name}</Text>
-          <Text style={styles.shopCategory}>{merchantShop.category}</Text>
-          <Text style={[styles.descriptionText, { textAlign: 'left', lineHeight: 20, width: '100%', color: '#94A3B8' }]}>
-              {merchantShop.description}
-            </Text>
-          </View>
-          {/* <View style={styles.ratingContainer}>
-            {[1, 2, 3, 4, 5].map((i) => (
-              <Ionicons
-                key={i}
-                name={i <= merchantShop.rating ? 'star' : 'star-outline'}
-                size={20}
-                color="#FFA500"
-              />
-            ))}
-            <Text style={styles.ratingText}>{merchantShop.rating}</Text>
-          </View> */}
-        </View>
+        <MerchantProfileHeader name={merchantShop.name} category={merchantShop.category} years={merchantDetails?.fromYears} onPress={() => router.push({ pathname: '/account', params: { from: 'merchant' } })} />
 
         {/* Description Section */}
         {/* <View style={{ paddingHorizontal: 16, marginTop: 10 }}>
