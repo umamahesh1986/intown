@@ -1,3 +1,4 @@
+import { useINCoinsStore } from '../store/incoinsStore';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
@@ -53,6 +54,7 @@ export function MerchantPaymentApprovals({ merchantId, token, onApproved }: {
       setNotice(result.pointsEarned != null
         ? `Approved. ${result.pointsEarned} INcoins credited to ${payment.customerName || 'the customer'}.`
         : 'Payment approved. The customer’s INcoins balance will refresh.');
+      void useINCoinsStore.getState().refresh();
       onApproved?.();
     } catch (reason: any) { if (currentMerchant.current === merchantId) setError(reason.message); }
     finally { lock.current = false; setBusy(null); setRevision(value => value + 1); }

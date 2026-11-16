@@ -1,3 +1,4 @@
+import { useINCoinsStore } from '../store/incoinsStore';
 import {
   View,
   Text,
@@ -319,6 +320,7 @@ export default function PaymentModal({
     const savedSavings =
       intownSavings > 0 ? intownSavings : 0;
 
+    void useINCoinsStore.getState().refresh();
     onSuccess(savedAmount, savedSavings, 'UPI');
 
     setAmount('');
@@ -392,6 +394,7 @@ export default function PaymentModal({
     const savedSavings =
       intownSavings > 0 ? intownSavings : 0;
 
+    void useINCoinsStore.getState().refresh();
     onSuccess(savedAmount, savedSavings, 'Cash');
 
     setAmount('');

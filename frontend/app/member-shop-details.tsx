@@ -88,6 +88,7 @@ export default function MemberShopDetails() {
 
   // ================= ORDER FEATURE STATE =================
   const SUPPORTED_ORDER_CATEGORIES = [
+    'restaurants',
     'pharmacy',
     'dairy products',
     'Restaurants',

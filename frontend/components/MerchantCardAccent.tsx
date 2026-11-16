@@ -9,4 +9,4 @@ export const merchantCardSurface = StyleSheet.create({
   card: { backgroundColor: '#FFF', borderRadius: 26, borderWidth: 1, borderColor: '#FFE0BC', overflow: 'hidden', paddingTop: 20, shadowColor: '#D78B43', shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 3 },
 }).card;
 
-const styles = StyleSheet.create({ line: { position: 'absolute', top: 0, left: 0, right: 0, height: 6 } });
+const styles = StyleSheet.create({ line: { position: 'absolute', top: 0, left: 0, right: 0, height: 3 } });

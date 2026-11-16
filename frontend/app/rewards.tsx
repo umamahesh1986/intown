@@ -1,3 +1,5 @@
+import { useINCoinsStore } from '../store/incoinsStore';
+import { walletPhone, transactionTitle } from '../utils/incoins';
 import React, { useState, useCallback, useRef } from 'react';
 import {
   StyleSheet,
@@ -19,16 +21,10 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuthStore } from '../store/authStore';
 import { AnimatedNumber } from '../components/AnimatedNumber';
-import { INPOINTS_API_BASE, INTOWN_API_BASE, resolveInPointsCustomerId } from '../utils/api';
+import { INTOWN_API_BASE } from '../utils/api';
 import { useLocationStore } from '../store/locationStore';
 import { buildRedemptionWhatsAppUrl, loadRedemptionProfile, RedemptionProfile } from '../utils/incoinsRedemption';
 
-type PointTransaction = {
-  id: number;
-  merchantName?: string | null;
-  points: number;
-  created?: string | null;
-};
 
 type PaymentTransaction = {
   transactionId: number;
@@ -79,7 +75,8 @@ export default function RewardsScreen() {
   }, [redemptionRole, token, historyOnly, user?.phone, redemptionRetry]));
   const [customerId, setCustomerId] = useState<string | null>(null);
   const [paymentCustomerId, setPaymentCustomerId] = useState<string | null>(null);
-  const [balance, setBalance] = useState<number | null>(null);
+  const wallet = useINCoinsStore();
+  const balance = wallet.balance?.inCoins ?? null;
   const [activity, setActivity] = useState<ActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -88,92 +85,30 @@ export default function RewardsScreen() {
   const loadedAccount = useRef('');
 
   const fetchData = useCallback(async (
-    resolvedCustomerId: string,
+    resolvedPhone: string,
     resolvedPaymentCustomerId: string | null,
-    isCurrent: () => boolean = () => true,
+    isActive: () => boolean = () => true,
   ) => {
+    const sessionToken = useAuthStore.getState().token;
+    const isCurrent = () => isActive() && useAuthStore.getState().token === sessionToken
+      && useAuthStore.getState().user?.phone?.replace(/\D/g, '').slice(-10) === resolvedPhone;
     try {
-      const [balanceResponse, pointsHistoryResponse, paymentHistoryResponse] = await Promise.all([
-        historyOnly
-          ? Promise.resolve(null)
-          : fetch(`${INPOINTS_API_BASE}/points/customers/${encodeURIComponent(resolvedCustomerId)}`, {
-              headers: { Accept: 'application/json' },
-            }),
-        fetch(`${INPOINTS_API_BASE}/points/customers/${encodeURIComponent(resolvedCustomerId)}/history`, {
-          headers: { Accept: 'application/json' },
-        }),
-        !historyOnly && resolvedPaymentCustomerId
-          ? fetch(`${INTOWN_API_BASE}/transactions/customers/${encodeURIComponent(resolvedPaymentCustomerId)}`, {
-              headers: { Accept: 'application/json' },
-            }).catch((paymentRequestError) => {
-              console.error('[Rewards] Failed to request purchase history:', paymentRequestError);
-              return null;
-            })
-          : Promise.resolve(null),
-      ]);
-
-      if (!pointsHistoryResponse.ok || (balanceResponse && !balanceResponse.ok)) {
-        const failedStatus = balanceResponse && !balanceResponse.ok
-          ? balanceResponse.status
-          : pointsHistoryResponse.status;
-        throw new Error(`Failed to load INcoins (HTTP ${failedStatus}).`);
-      }
-
-      const [balanceData, pointsHistoryData] = await Promise.all([
-        balanceResponse ? balanceResponse.json() : Promise.resolve(null),
-        pointsHistoryResponse.json(),
-      ]);
-      const balanceValue =
-        balanceData?.inPoints ??
-        balanceData?.currentTotalPoints ??
-        balanceData?.data?.inPoints ??
-        balanceData?.data?.currentTotalPoints ??
-        pointsHistoryData?.totalPoints ??
-        pointsHistoryData?.data?.totalPoints;
-      const inPoints = balanceValue == null ? NaN : Number(balanceValue);
-      const pointTransactions = Array.isArray(pointsHistoryData)
-        ? pointsHistoryData
-        : Array.isArray(pointsHistoryData?.transactions)
-          ? pointsHistoryData.transactions
-          : Array.isArray(pointsHistoryData?.data)
-            ? pointsHistoryData.data
-            : Array.isArray(pointsHistoryData?.data?.transactions)
-              ? pointsHistoryData.data.transactions
-              : null;
-
-      if (!historyOnly && !Number.isFinite(inPoints)) {
-        console.error('[Rewards] INcoins balance response did not include a recognized balance field.');
-        throw new Error('The INcoins API returned an invalid balance.');
-      }
-      if (!pointTransactions) {
-        console.error('[Rewards] INcoins history response did not include a transaction list.');
-        throw new Error('The INcoins API returned invalid points history.');
-      }
-
-      const pointActivity: ActivityItem[] = (pointTransactions as PointTransaction[]).map((transaction): ActivityItem => {
-        const points = Number(transaction.points);
-        const createdDate = transaction.created ? new Date(transaction.created) : null;
-        if (!Number.isSafeInteger(transaction.id) || !Number.isFinite(points)) {
-          throw new Error('The INcoins API returned an invalid transaction.');
-        }
-
-        return {
-          id: transaction.id,
-          kind: 'POINTS',
-          title: transaction.merchantName || 'Purchase reward',
-          detail: `INcoins credited · #TXN${transaction.id}`,
-          value: points,
-          date: createdDate && Number.isFinite(createdDate.getTime())
-            ? createdDate.toLocaleString()
-            : 'Date unavailable',
-          sortDate: createdDate && Number.isFinite(createdDate.getTime())
-            ? createdDate.getTime()
-            : 0,
-        };
+      await useINCoinsStore.getState().refresh();
+      if (!isCurrent()) return;
+      const wallet = useINCoinsStore.getState();
+      if (wallet.balanceError || wallet.historyError) throw new Error(wallet.balanceError || wallet.historyError);
+      const pointActivity: ActivityItem[] = wallet.transactions.map(transaction => {
+        const date = transaction.created ? new Date(transaction.created) : null;
+        return { id: transaction.id, kind: 'POINTS', title: transactionTitle(transaction.transactionType),
+          detail: transaction.description, value: transaction.coins,
+          date: date && Number.isFinite(date.getTime()) ? date.toLocaleString() : 'Date unavailable',
+          sortDate: date && Number.isFinite(date.getTime()) ? date.getTime() : 0 };
       });
+      const paymentHistoryResponse = !historyOnly && resolvedPaymentCustomerId
+        ? await fetch(`${INTOWN_API_BASE}/transactions/customers/${encodeURIComponent(resolvedPaymentCustomerId)}`, { headers: { Accept: 'application/json' } }).catch(() => null)
+        : null;
 
       let paymentActivity: ActivityItem[] = [];
-      let paymentTransactionsData: PaymentTransaction[] = [];
       let paymentError: string | null = null;
       if (paymentHistoryResponse?.ok) {
         try {
@@ -181,7 +116,7 @@ export default function RewardsScreen() {
           if (!Array.isArray(paymentHistoryData?.transactions)) {
             throw new Error('Purchase history response is invalid.');
           }
-          paymentTransactionsData = (paymentHistoryData.transactions as PaymentTransaction[])
+          const paymentTransactionsData = (paymentHistoryData.transactions as PaymentTransaction[])
             .filter((transaction) => Number.isSafeInteger(Number(transaction.transactionId)));
           paymentActivity = paymentTransactionsData.map((transaction): ActivityItem => {
             const amount = transaction.payablePrice ?? transaction.inTownPrice ?? transaction.totalPrice;
@@ -203,14 +138,14 @@ export default function RewardsScreen() {
           console.error('[Rewards] Failed to parse purchase history:', paymentLoadError);
           paymentError = 'Purchase history could not be loaded.';
         }
-      } else if (!historyOnly) {
+      } else if (!historyOnly && resolvedPaymentCustomerId) {
         paymentError = paymentHistoryResponse
           ? `Purchase history could not be loaded (HTTP ${paymentHistoryResponse.status}).`
           : 'Purchase history is temporarily unavailable.';
       }
 
       if (!isCurrent()) return;
-      if (!historyOnly) setBalance(inPoints);
+
       setActivity([...pointActivity, ...paymentActivity].sort((a, b) => b.sortDate - a.sortDate));
       setError(paymentError);
     } catch (error) {
@@ -231,12 +166,12 @@ export default function RewardsScreen() {
   }, [historyOnly]);
 
   const resolveCustomerId = useCallback(async (): Promise<string> => {
-    return resolveInPointsCustomerId(user?.phone ?? '');
+    return walletPhone(user?.phone ?? '');
   }, [user?.phone]);
 
   const resolvePaymentCustomerId = useCallback(async (): Promise<string | null> => {
     const storedCustomerId = await AsyncStorage.getItem('customer_id');
-    const candidate = storedCustomerId || user?.id;
+    const candidate = storedCustomerId || (user?.userType === 'member' || user?.userType === 'dual' ? user?.id : null);
     if (!candidate) return null;
 
     const numericId = Number(candidate);
@@ -244,7 +179,7 @@ export default function RewardsScreen() {
       throw new Error('The payment history customer ID is invalid.');
     }
     return String(numericId);
-  }, [user?.id]);
+  }, [user?.id, user?.userType]);
 
   useFocusEffect(
     useCallback(() => {
@@ -255,7 +190,7 @@ export default function RewardsScreen() {
         setLoading(true);
         setCustomerId(null);
         setPaymentCustomerId(null);
-        setBalance(null);
+
         setActivity([]);
       }
       setError(null);

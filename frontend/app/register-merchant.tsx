@@ -1,3 +1,5 @@
+import { useINCoinsStore } from '../store/incoinsStore';
+import { registrationReferralMessage } from '../utils/referralRegistration';
 import {
   View,
   Text,
@@ -917,7 +919,9 @@ export default function RegisterMerchant() {
 
   /* ================= SUBMIT (UNCHANGED) ================= */
 
+  const registrationPending = useRef(false);
   const handleRegister = async () => {
+    if (registrationPending.current) return;
     if (!validateForm()) {
       Alert.alert('Error', 'Please fill required fields');
       return;
@@ -927,6 +931,7 @@ export default function RegisterMerchant() {
       return;
     }
 
+    registrationPending.current = true;
     setIsLoading(true);
     // ✅ MERGE EXISTING PRODUCTS + CSV PRODUCTS
     const allProducts = [...products, ...customProducts];
@@ -964,6 +969,7 @@ export default function RegisterMerchant() {
       breakEndAt,
       weekOff,
       offer,
+      subscriptionPlan: selectedPlanId,
       joiningFee: JOINING_FEE_AMOUNT,
       joiningFeePaid: true,
       razorpayPaymentId: paymentDetails?.razorpayPaymentId,
@@ -973,7 +979,7 @@ export default function RegisterMerchant() {
 
     try {
       const response = await registerMerchant(payload);
-      console.log('Merchant registration success:', response);
+
       const merchantId =
         response?.merchantId ??
         response?.id ??
@@ -1018,7 +1024,10 @@ export default function RegisterMerchant() {
 
       const popupMessage = `Your merchant account has been created successfully!\nMerchant ID: ${merchantId ?? 'N/A'
         }`;
-      setSuccessMessage(popupMessage);
+      const referralMessage = registrationReferralMessage(response);
+      setSuccessMessage(referralMessage ? `${popupMessage}\n\n${referralMessage}` : popupMessage);
+      useINCoinsStore.getState().clear();
+      void useINCoinsStore.getState().refresh();
       setSuccessMerchantId(merchantId ?? null);
       setShowSuccessPopup(true);
       if (successTimerRef.current) {
@@ -1028,7 +1037,7 @@ export default function RegisterMerchant() {
         handleSuccessClose(merchantId);
       }, 5000);
     } catch (error: any) {
-      console.error('Merchant registration error:', error);
+
 
       // Show error message with details
       const errorMessage = error.message || 'Registration failed. Please try again.';
@@ -1038,6 +1047,7 @@ export default function RegisterMerchant() {
         [{ text: 'OK' }]
       );
     } finally {
+      registrationPending.current = false;
       setIsLoading(false);
     }
 
