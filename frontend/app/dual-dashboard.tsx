@@ -1,3 +1,4 @@
+import { BRAND_LOGO } from '../utils/branding';
 import { BookingButton } from '../components/BookingUI';
 import { MerchantProfileHeader } from '../components/MerchantProfileHeader';
 import { normalizeMerchantSales } from '../utils/merchantSales';
@@ -1177,7 +1178,7 @@ export default function DualDashboard() {
 
         {/* Transactions Section (merchant tab only — customers see deals instead) */}
         {activeTab === 'merchant' && <MerchantOrderHistoryLink />}
-        <View style={{ paddingHorizontal: 16, marginVertical: 10 }}><BookingButton title={activeTab === 'merchant' ? 'Manage Slot Bookings' : 'My Bookings'} onPress={() => router.push(activeTab === 'merchant' ? '/merchant-bookings' : '/my-bookings')} /></View>
+        <View style={activeTab === 'merchant' ? styles.merchantBookingSection : { paddingHorizontal: 16, marginVertical: 10 }}><BookingButton title={activeTab === 'merchant' ? 'Manage Slot Bookings' : 'My Bookings'} onPress={() => router.push(activeTab === 'merchant' ? '/merchant-bookings' : '/my-bookings')} /></View>
         {activeTab === 'merchant' && <MerchantPaymentApprovals merchantId={merchantId} token={token} onApproved={() => setSalesRefresh(value => value + 1)} />}
         {activeTab === 'merchant' && (
         <View style={[styles.transactionsSection, merchantCardSurface]}>
@@ -1447,7 +1448,7 @@ export default function DualDashboard() {
         <View style={styles.supportModalOverlay}>
           <View style={styles.supportModalContent}>
             <Image
-              source={{ uri: 'https://intown-dev.s3.ap-south-1.amazonaws.com/app_logo/intown-logo.jpg' }}
+              source={BRAND_LOGO}
               style={styles.supportLogo}
             />
             <Text style={styles.supportTitle}>INtown Customer Support</Text>
@@ -1978,6 +1979,7 @@ const styles = StyleSheet.create({
     textAlign: "center"
   },
   transactionsHeadingCopy: { flex: 1, minWidth: 0 },
+  merchantBookingSection: { paddingHorizontal: 16, marginTop: 16 },
   transactionsSubtitle: { fontSize: 12, lineHeight: 18, color: '#72819B', marginTop: 4 },
   transactionsHeading: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 12, marginRight: 12 },
   transactionsIcon: { width: 44, height: 44, borderRadius: 15, backgroundColor: '#FF8A00', alignItems: 'center', justifyContent: 'center' },
@@ -1985,7 +1987,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     marginHorizontal: 16,
     marginTop: 16,
-    marginBottom: 16,
+    marginBottom: 0,
     padding: 16,
     borderRadius: 20,
   },

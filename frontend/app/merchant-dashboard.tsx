@@ -726,7 +726,7 @@ export default function MerchantDashboard() {
         <MerchantOrderHistoryLink />
         <MerchantPackBanner />
 
-        <View style={{ paddingHorizontal: 16, marginVertical: 10 }}><BookingButton title="Manage Slot Bookings" onPress={() => router.push('/merchant-bookings')} /></View>
+        <View style={{ paddingHorizontal: 16, marginTop: 16 }}><BookingButton title="Manage Slot Bookings" onPress={() => router.push('/merchant-bookings')} /></View>
         <MerchantPaymentApprovals merchantId={merchantId} token={token} onApproved={() => setSalesRefresh(value => value + 1)} />
         <View style={[styles.transactionsCard, merchantCardSurface]}>
       <MerchantCardAccent />
@@ -1740,7 +1740,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     marginHorizontal: 16,
     marginTop: 16,
-    marginBottom: 16,
+    marginBottom: 0,
     borderRadius: 20,
     paddingVertical: 10,
     paddingBottom: 20,

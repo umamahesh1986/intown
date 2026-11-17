@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Platform, Share, Linking, Alert, Image } from '
 import { Ionicons } from '@expo/vector-icons';
 import * as Sharing from 'expo-sharing';
 import { captureRef } from 'react-native-view-shot';
+import { BRAND_LOGO } from '../utils/branding';
 
 interface OfferShareCardProps {
   shopName: string;
@@ -101,7 +102,7 @@ export const OfferShareCard = forwardRef<View, OfferShareCardProps>(
         )}
         <View style={styles.topRow}>
           <View style={styles.brandPill}>
-            <Text style={styles.brandText}>INtown</Text>
+            <Image source={BRAND_LOGO} style={{ width: 90, height: 44 }} resizeMode="contain" accessibilityLabel="INtown logo" />
           </View>
           {!showImage && <Ionicons name="gift" size={28} color="#FFF" />}
         </View>

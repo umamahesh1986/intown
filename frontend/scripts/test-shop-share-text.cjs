@@ -11,6 +11,7 @@ const content = util.exports.buildShopShareContent(shop, [], Date.now());
 assert.ok(content.caption.includes(shop.businessName));
 assert.ok(content.caption.includes(shop.description));
 assert.ok(content.caption.includes('https://intownlocal.com/download'));
+assert.equal(new URL(content.downloadUrl).searchParams.get('brand'), 'in-logo-20261118');
 assert.ok(!content.caption.includes('intown://'));
 const source = ts.createSourceFile('ShopShareModal.tsx', fs.readFileSync(path.join(root, 'components/ShopShareModal.tsx'), 'utf8'), ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
 let expression;

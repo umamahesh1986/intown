@@ -1,3 +1,4 @@
+import { BRAND_LOGO } from '../utils/branding';
 import {
   View,
   Text,
@@ -1277,7 +1278,7 @@ export default function MemberDashboard() {
           <View style={styles.supportModalOverlay}>
             <View style={styles.supportModalContent}>
               <Image
-                source={{ uri: 'https://intown-dev.s3.ap-south-1.amazonaws.com/app_logo/intown-logo.jpg' }}
+                source={BRAND_LOGO}
                 style={styles.supportLogo}
               />
               <Text style={styles.supportTitle}>INtown Customer Support</Text>

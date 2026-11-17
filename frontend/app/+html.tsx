@@ -13,6 +13,16 @@ export default function Root({ children }: PropsWithChildren) {
         <meta name="theme-color" content="#FF8A00" />
         <meta name="description" content="InTown - Shop Local, Save Instantly" />
         <title>InTown - Shop Local, Save Instantly</title>
+        <link rel="icon" type="image/png" href="/brand/favicon.png" />
+        <link rel="apple-touch-icon" href="/brand/apple-touch-icon.png" />
+        <meta property="og:title" content="INtown - Shop Local, Save Instantly" />
+        <meta property="og:description" content="Your trusted local shopping and rewards platform." />
+        <meta property="og:type" content="website" />
+        <meta property="og:image" content="https://intownlocal.com/brand/share-preview-in-20261118.png" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:image" content="https://intownlocal.com/brand/share-preview-in-20261118.png" />
         {/* Disable body scrolling on web */}
         <ScrollViewStyleReset />
         <style dangerouslySetInnerHTML={{ __html: `

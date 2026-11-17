@@ -31,7 +31,7 @@ async function main() {
   const middleware = createShareImageMiddleware(upstream);
   const html = `<html><body><script>
     var exports = {}; ${compile('specialOffer.ts')}
-    var special = exports; exports = {}; var require = () => special;
+    var special = exports; exports = {}; var require = (name) => name === './branding' ? {CHECKOUT_LOGO: ${JSON.stringify(require('../assets/branding/checkout-logo.json').dataUri)}} : special;
     var process = {env: {}}; ${compile('shopShare.ts')}
     window.renderPost = exports.createShopShareImage;
   </script></body></html>`;
