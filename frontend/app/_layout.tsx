@@ -1,3 +1,4 @@
+import BookingNotificationPoller from '../components/BookingNotificationPoller';
 // Ensure DOMException is available for all dependencies
 if (typeof (globalThis as any).DOMException === 'undefined') {
   class PolyfilledDOMException extends Error {
@@ -204,6 +205,9 @@ export default function RootLayout() {
         <Stack.Screen name="rewards" />
         <Stack.Screen name="incoins-history" />
         <Stack.Screen name="merchant-incoin-wallet" />
+        <Stack.Screen name="slot-booking" />
+        <Stack.Screen name="my-bookings" />
+        <Stack.Screen name="merchant-bookings" />
         <Stack.Screen name="my-orders" />
         <Stack.Screen name="merchant-orders" />
       </Stack>
@@ -218,6 +222,7 @@ export default function RootLayout() {
 
       {/* Background 15s poller — bell notifications for merchants (new orders) & customers (status updates) on every screen */}
       <OrderNotificationPoller />
+      <BookingNotificationPoller />
 
       {/* Expo push: token registration, foreground mirroring into the bell, tap deep-links */}
       <PushNotificationBridge />

@@ -43,7 +43,7 @@ export default function PushNotificationBridge() {
       if (!item) return;
       useNotificationStore.getState().add(item);
       useNotificationStore.getState().markReadByPickup(item.pickup_id);
-      router.push({ pathname: item.targetRoute, params: { tab: item.targetTab, highlightId: item.pickup_id } });
+      router.push({ pathname: item.targetRoute, params: { tab: item.targetTab, date: item.bookingDate, highlightId: item.pickup_id } });
     };
 
     // Push arrived while the app is in the foreground → add to bell (system banner shown by handler)

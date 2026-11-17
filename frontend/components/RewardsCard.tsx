@@ -51,7 +51,7 @@ export const RewardsCard = ({ stats, loading, error, onOpen, onHistory, onRedeem
         <View style={styles.balanceGlow} />
         <View style={{ flex: 1 }}>
           <View style={styles.balanceLabelRow}>
-            <Text style={styles.balanceLabel}>AVAILABLE INcoins</Text>
+            <Text style={styles.balanceLabel}>AVAILABLE INCoins</Text>
             <View style={styles.liveDot} />
           </View>
           <View style={styles.balanceRow}>
@@ -59,7 +59,7 @@ export const RewardsCard = ({ stats, loading, error, onOpen, onHistory, onRedeem
           </View>
         </View>
         <TouchableOpacity style={styles.redeemBtn} onPress={onRedeem} disabled={unavailable} activeOpacity={0.85} testID={`${testIDPrefix}-redeem`}>
-          <Text style={styles.redeemText}>Check INcoins</Text>
+          <Text style={styles.redeemText}>Claim INCoins</Text>
           <Ionicons name="arrow-forward" size={14} color="#FF7A00" />
         </TouchableOpacity>
       </LinearGradient>
@@ -80,7 +80,7 @@ export const RewardsCard = ({ stats, loading, error, onOpen, onHistory, onRedeem
             <Ionicons name="sparkles-outline" size={18} color="#FF8C00" />
           </View>
           <AnimatedNumber value={unavailable ? null : stats?.averagePoints} style={styles.metricValue} />
-          <Text style={styles.metricLabel}>Avg. INcoins</Text>
+          <Text style={styles.metricLabel}>Avg. INCoins</Text>
           <Text style={[styles.metricHint, styles.metricHintOrange]}>Per spend</Text>
         </View>
       </View>
@@ -90,31 +90,33 @@ export const RewardsCard = ({ stats, loading, error, onOpen, onHistory, onRedeem
           <Text style={styles.goalLabel}>
             Goal: <Text style={styles.goalTier}>{next ? `${next.name} Tier` : 'Top tier reached'}</Text>
           </Text>
-          <Text style={styles.goalToGo}>{next ? <AnimatedNumber value={unavailable ? null : toGo} suffix=" INcoins to go" /> : '🎉'}</Text>
+          <Text style={styles.goalToGo}>{next ? <AnimatedNumber value={unavailable ? null : toGo} suffix=" INCoins to go" /> : '🎉'}</Text>
         </View>
         <View style={styles.track}>
           <View style={[styles.fill, { width: `${Math.round(animatedProgress)}%` }]} />
         </View>
         <View style={styles.goalRow}>
           <AnimatedNumber value={unavailable ? null : total} suffix=" earned" style={styles.goalMeta} />
-          {next && <AnimatedNumber value={unavailable ? null : next.min} suffix=" INcoins target" style={styles.goalMeta} />}
+          {next && <AnimatedNumber value={unavailable ? null : next.min} suffix=" INCoins target" style={styles.goalMeta} />}
         </View>
       </View>
 
-      <TouchableOpacity style={styles.history} onPress={onHistory} activeOpacity={0.75} accessibilityRole="button" accessibilityLabel="Open INcoins history" testID={`${testIDPrefix}-history`}>
+      <TouchableOpacity style={styles.history} onPress={onHistory} activeOpacity={0.75} accessibilityRole="button" accessibilityLabel="Open INCoins history" testID={`${testIDPrefix}-history`}>
+        <View style={styles.historyRow}>
         <View style={styles.historyIcon}>
           <Ionicons name="time-outline" size={18} color="#FF8C00" />
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={styles.historyTitle}>INcoins History</Text>
-          <Text style={styles.historySub}>View INcoins earned & claimed</Text>
+          <Text style={styles.historyTitle}>INCoins History</Text>
+          <Text style={styles.historySub}>View INCoins earned & claimed</Text>
+        </View>
+        <Ionicons name="chevron-forward" size={18} color="#9AA3B2" />
         </View>
         {yesterday != null && yesterday > 0 && (
           <View style={styles.yesterdayPill}>
-            <AnimatedNumber value={yesterday} prefix="+" suffix=" INcoins yesterday" style={styles.yesterdayText} />
+            <AnimatedNumber value={yesterday} prefix="+" suffix=" INCoins yesterday" style={styles.yesterdayText} />
           </View>
         )}
-        <Ionicons name="chevron-forward" size={18} color="#9AA3B2" />
       </TouchableOpacity>
     </View>
   );
@@ -163,10 +165,11 @@ const styles = StyleSheet.create({
   track: { height: 8, borderRadius: 4, backgroundColor: '#F0F2F5', marginVertical: 8, overflow: 'hidden' },
   fill: { height: '100%', borderRadius: 4, backgroundColor: '#FF8C00' },
   goalMeta: { fontSize: 11.5, color: '#8A94A6' },
-  history: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 14, paddingTop: 14, borderTopWidth: 1, borderTopColor: '#F0F2F5' },
+  history: { gap: 10, marginTop: 14, paddingTop: 14, borderTopWidth: 1, borderTopColor: '#F0F2F5' },
+  historyRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   historyIcon: { width: 34, height: 34, borderRadius: 17, backgroundColor: '#FFF1E0', alignItems: 'center', justifyContent: 'center' },
   historyTitle: { fontSize: 15, fontWeight: '800', color: '#1A1A1A' },
   historySub: { fontSize: 11.5, color: '#8A94A6', marginTop: 1 },
-  yesterdayPill: { backgroundColor: '#E8F5E9', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5 },
+  yesterdayPill: { alignSelf: 'flex-start', marginLeft: 44, backgroundColor: '#E8F5E9', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5 },
   yesterdayText: { fontSize: 11, fontWeight: '800', color: '#2E7D32' },
 });

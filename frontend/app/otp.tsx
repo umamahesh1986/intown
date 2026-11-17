@@ -9,7 +9,6 @@ import {
   Platform,
   Animated,
   ActivityIndicator,
-  Modal,
 } from "react-native";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -70,8 +69,6 @@ export default function OTPScreen() {
   const [isSendingOtp, setIsSendingOtp] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
   const [otpSent, setOtpSent] = useState(true); // OTP was already sent from login screen
-  const [showOtpPopup, setShowOtpPopup] = useState(false);
-  const [otpPopupMessage, setOtpPopupMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
   const [timer, setTimer] = useState(RESEND_SECONDS);
@@ -79,7 +76,6 @@ export default function OTPScreen() {
 
   const inputRefs = useRef<(TextInput | null)[]>([]);
   const shakeAnim = useRef(new Animated.Value(0)).current;
-  const popupTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasProcessedAuth = useRef(false);
   const isMountedRef = useRef(true);
   const verifyWithCodeRef = useRef<(code: string) => void>(() => {});
@@ -99,22 +95,10 @@ export default function OTPScreen() {
     return null;
   };
 
-  const showOtpSentPopup = (message: string) => {
-    setOtpPopupMessage(message);
-    setShowOtpPopup(true);
-    if (popupTimerRef.current) clearTimeout(popupTimerRef.current);
-    popupTimerRef.current = setTimeout(() => {
-      setShowOtpPopup(false);
-    }, 2000);
-  };
-
   useEffect(() => {
     isMountedRef.current = true;
-    // Show success popup on mount since OTP was sent from login screen
-    showOtpSentPopup("OTP sent successfully");
     return () => {
       isMountedRef.current = false;
-      if (popupTimerRef.current) clearTimeout(popupTimerRef.current);
     };
   }, []);
 
@@ -214,10 +198,12 @@ export default function OTPScreen() {
       const roleInfo = determineUserRole(searchResponse);
 
       const lowerUserType = (roleInfo.userType ?? '').toLowerCase();
-      const mappedUserType: 'merchant' | 'member' | 'user' =
-        lowerUserType.includes('merchant')
+      const mappedUserType: 'merchant' | 'member' | 'user' | 'dual' =
+        lowerUserType.includes('dual')
+          ? 'dual'
+          : lowerUserType.includes('merchant')
           ? 'merchant'
-          : lowerUserType.includes('customer') || lowerUserType === 'dual'
+          : lowerUserType.includes('customer')
           ? 'member'
           : 'user';
       const resolvedId =
@@ -316,7 +302,6 @@ export default function OTPScreen() {
       await sendOtpApi(mobileNumber);
       setOtpSent(true);
       setStatusMessage("");
-      showOtpSentPopup("OTP sent successfully");
 
       // Restart SMS Retriever listener for the fresh OTP
       stopOtpListener();
@@ -521,7 +506,7 @@ export default function OTPScreen() {
         </TouchableOpacity>
 
         <View style={styles.resendContainer}>
-          <Text style={styles.resendLabel}>Didn't receive the code? </Text>
+          <Text style={styles.resendLabel}>Didn&apos;t receive the code? </Text>
           <TouchableOpacity
             onPress={handleResendOtp}
             disabled={!canResend || isSendingOtp}
@@ -533,14 +518,6 @@ export default function OTPScreen() {
         </View>
       </View>
 
-      <Modal visible={showOtpPopup} transparent animationType="fade">
-        <View style={styles.popupOverlay}>
-          <View style={styles.popupCard}>
-            <Ionicons name="checkmark-circle" size={22} color="#4CAF50" />
-            <Text style={styles.popupText}>{otpPopupMessage}</Text>
-          </View>
-        </View>
-      </Modal>
     </KeyboardAvoidingView>
   );
 }
@@ -661,32 +638,5 @@ const styles = StyleSheet.create({
   resendDisabled: {
     color: '#999',
   },
-  popupOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.35)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 24,
-  },
-  popupCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E6E6E6',
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 3,
-  },
-  popupText: {
-    marginLeft: 8,
-    fontSize: 14,
-    color: '#1A1A1A',
-    fontWeight: '600',
-  },
+
 });

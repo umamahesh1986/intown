@@ -52,8 +52,8 @@ export function MerchantPaymentApprovals({ merchantId, token, onApproved }: {
       if (currentMerchant.current !== merchantId) return;
       setPayments(previous => previous.filter(item => item.transactionId !== payment.transactionId));
       setNotice(result.pointsEarned != null
-        ? `Approved. ${result.pointsEarned} INcoins credited to ${payment.customerName || 'the customer'}.`
-        : 'Payment approved. The customer’s INcoins balance will refresh.');
+        ? `Approved. ${result.pointsEarned} INCoins credited to ${payment.customerName || 'the customer'}.`
+        : 'Payment approved. The customer’s INCoins balance will refresh.');
       void useINCoinsStore.getState().refresh();
       onApproved?.();
     } catch (reason: any) { if (currentMerchant.current === merchantId) setError(reason.message); }
@@ -66,12 +66,12 @@ export function MerchantPaymentApprovals({ merchantId, token, onApproved }: {
       <View style={styles.wallet}><Ionicons name="wallet-outline" color="#FFF" size={23} /><View style={styles.coin}><Text style={styles.coinText}>₹</Text></View></View>
       <View style={styles.headingCopy}>
         <View style={styles.titleRow}>
-          <GradientSectionHeading>INcoins approvals</GradientSectionHeading>
+          <GradientSectionHeading>INCoins approvals</GradientSectionHeading>
           <LinearGradient colors={['#FF7928', '#FF3E67']} style={styles.count}><Text style={styles.countText}>{payments.length}</Text></LinearGradient>
         </View>
-        <Text style={styles.headingSubtitle}>Review payments and approve INcoins</Text>
+        <Text style={styles.headingSubtitle}>Review payments and approve INCoins</Text>
       </View>
-      <TouchableOpacity style={styles.refresh} accessibilityRole="button" accessibilityLabel="Refresh INcoins approvals" onPress={() => setRevision(value => value + 1)}><Ionicons name="refresh" size={17} color="#FF6900" /></TouchableOpacity>
+      <TouchableOpacity style={styles.refresh} accessibilityRole="button" accessibilityLabel="Refresh INCoins approvals" onPress={() => setRevision(value => value + 1)}><Ionicons name="refresh" size={17} color="#FF6900" /></TouchableOpacity>
     </View>
     {!!error && <Text style={styles.error} accessibilityLiveRegion="polite">{error}</Text>}
     {!!notice && <Text style={styles.notice} accessibilityLiveRegion="polite">{notice}</Text>}
@@ -91,7 +91,7 @@ export function MerchantPaymentApprovals({ merchantId, token, onApproved }: {
       </View>
       <TouchableOpacity disabled={busy !== null} onPress={() => approve(payment)} style={[styles.buttonWrap, busy !== null && { opacity: 0.5 }]} accessibilityRole="button" testID={`approve-payment-${payment.transactionId}`}>
         <LinearGradient colors={['#FF7B12', '#F45100']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.button}>
-          {busy === payment.transactionId ? <ActivityIndicator color="#FFF" /> : <><View style={styles.check}><Ionicons name="checkmark" size={15} color="#FFF" /></View><Text style={styles.buttonText}>Approve payment &amp; INcoins</Text></>}
+          {busy === payment.transactionId ? <ActivityIndicator color="#FFF" /> : <><View style={styles.check}><Ionicons name="checkmark" size={15} color="#FFF" /></View><Text style={styles.buttonText}>Approve payment &amp; INCoins</Text></>}
         </LinearGradient>
       </TouchableOpacity>
     </View>)}

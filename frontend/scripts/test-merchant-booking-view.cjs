@@ -1,0 +1,16 @@
+﻿const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const ts = require('typescript');
+const vm = require('node:vm');
+const scope = { exports: {}, require: name => name === 'react-native' ? { Platform: { OS: 'android' }, StyleSheet: { create: value => value } } : {} };
+vm.runInNewContext(ts.transpileModule(fs.readFileSync(path.join(__dirname, '../components/MerchantBookingsView.tsx'), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.React, target: ts.ScriptTarget.ES2020 } }).outputText, scope);
+const { validBookingDate, merchantBookingMatches } = scope.exports;
+for (const date of ['2026-11-16', '2024-02-29', '2027-01-01']) assert.equal(validBookingDate(date), true);
+for (const date of ['2026-02-29', '2026-02-30', '2026-13-01', '2026-11-31', '16-11-2026', '', '2026-1-1']) assert.equal(validBookingDate(date), false, date);
+const records = ['PENDING_APPROVAL', 'ACCEPTED', 'COMPLETED', 'REJECTED', 'CANCELLED', 'EXPIRED', 'NO_SHOW'].map(status => ({ status }));
+assert.equal(records.filter(b => merchantBookingMatches(b, 'All')).length, 7);
+assert.deepEqual(records.filter(b => merchantBookingMatches(b, 'Pending')).map(b => b.status), ['PENDING_APPROVAL']);
+assert.deepEqual(records.filter(b => merchantBookingMatches(b, 'Confirmed')).map(b => b.status), ['ACCEPTED']);
+assert.equal(records.filter(b => merchantBookingMatches(b, 'Past')).length, 5);
+console.log('Merchant booking view checks passed: real calendar dates, leap years, invalid dates, and all seven statuses across filters.');

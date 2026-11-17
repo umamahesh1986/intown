@@ -32,7 +32,7 @@ async function main() {
       },
     });
     await pay();
-    assert.equal(calls.length, 1, 'Payment only submits the transaction, never credits INcoins');
+    assert.equal(calls.length, 1, 'Payment only submits the transaction, never credits INCoins');
     assert.equal(calls[0].url, 'https://test.invalid/IN/transactions/');
     assert.equal(underReview, status === 201);
     assert.equal(notices.length, status === 201 ? 0 : 1);

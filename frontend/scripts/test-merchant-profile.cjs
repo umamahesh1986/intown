@@ -9,12 +9,21 @@ const compiled = ts.transpileModule(source, {
 }).outputText;
 const context = { exports: {} };
 vm.runInNewContext(compiled, context);
-const { merchantRecord, loadMerchantProfile } = context.exports;
+const { merchantRecord, merchantFromLookup, loadMerchantProfile } = context.exports;
 
 (async () => {
   assert.equal(merchantRecord({ data: { merchant: { merchantId: 42, contactName: 'Merchant' } } }).id, 42);
   assert.equal(merchantRecord({ customer: { id: 1 } }), null);
   assert.equal(merchantRecord({ id: 'undefined' }), null);
+  assert.equal(merchantFromLookup({ merchant: { id: 42 } }).id, 42);
+  assert.equal(merchantFromLookup({ data: { merchant: { merchantId: '42' } } }).id, '42');
+  assert.equal(merchantFromLookup({ data: { data: { merchant: { id: 42 } } } }).id, 42);
+  // Never mistake a customer ID or a stale local UI role for merchant ownership.
+  assert.equal(merchantFromLookup({ customer: { id: 42 }, userType: 'merchant' }), null);
+  assert.equal(merchantFromLookup({ id: 42, userType: 'merchant' }), null);
+  assert.equal(merchantFromLookup({ merchant: { id: 'undefined' } }), null);
+  assert.equal(merchantFromLookup({ merchant: { id: -1 } }), null);
+  assert.equal(merchantFromLookup({ merchant: { id: '42/other' } }), null);
 
   let requestedId;
   const profile = await loadMerchantProfile('9999999999', { id: 7 }, '7',

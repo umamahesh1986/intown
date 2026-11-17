@@ -31,7 +31,8 @@ const deferred = () => { let resolve; const promise = new Promise(done => { reso
     assert.equal(intownApiBaseUrl(base), 'https://test/IN');
   }
   let next = response({ inCoins: 800, phoneNumber: '9876543210', lastUpdated: '2026-11-11T13:20:00' });
-  const service = load('utils/incoins.ts', () => ({ INPOINTS_API_BASE: 'https://test/IN' }), {
+  const share = load('utils/appShare.ts', () => ({}));
+  const service = load('utils/incoins.ts', name => name === './appShare' ? share : ({ INPOINTS_API_BASE: 'https://test/IN' }), {
     console: { warn() {} },
     fetch: async (url, options) => { calls.push({ url, options }); return typeof next === 'function' ? next(url) : next; },
   });
@@ -134,7 +135,8 @@ const deferred = () => { let resolve; const promise = new Promise(done => { reso
   assert.ok(requests.some(item => item.url.endsWith('/customers/register')));
   assert.ok(requests.some(item => item.url.endsWith('/merchants/register')));
   assert.ok(service.referralShareMessage('+919876543210').includes('9876543210'));
-  assert.ok(!service.referralShareMessage('9876543210').includes('http'));
+  const referralMessage = service.referralShareMessage('9876543210');
+  assert.equal(referralMessage, 'You are invited to join INtown your trusted local shopping and rewards platform. Simply enter this number *9876543210* in the "Referred By" field during registration to unlock exclusive redeemable INCoins. https://intownlocal.com/download');
   // Exercise each form's actual submission handler twice while registration is pending.
   for (const kind of ['member', 'merchant']) {
     let submissions = 0;

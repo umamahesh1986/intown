@@ -1,4 +1,5 @@
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, Alert, Platform, ScrollView, ActivityIndicator, Modal } from 'react-native';
+import { BookingButton } from '../components/BookingUI';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, Alert, Platform, ScrollView, ActivityIndicator, Modal, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
@@ -82,6 +83,8 @@ export default function Account() {
   const [description, setDescription] = useState('');
   const [branches, setBranches] = useState('');
   const [fromYears, setFromYears] = useState('');
+  const [isSlotBookingEnabled, setSlotBookingEnabled] = useState(false);
+  const [slotCapacity, setSlotCapacity] = useState('1');
   const [openAt, setOpenAt] = useState('');
   const [closeAt, setCloseAt] = useState('');
   const [breakStartAt, setBreakStartAt] = useState('');
@@ -291,7 +294,7 @@ export default function Account() {
 
       if (loadId !== profileLoadId.current) return;
       setIsMerchant(merchantUser);
-      // Any merchant identity (even when viewing the customer profile as a dual user) → no customer INcoins rewards link
+      // Any merchant identity (even when viewing the customer profile as a dual user) → no customer INCoins rewards link
       setHasMerchantIdentity(
         merchantUser || !!storedMerchantId || hasMerchantData || lowerType.includes('merchant') || lowerType === 'dual' || lowerRole.includes('merchant'),
       );
@@ -336,6 +339,8 @@ export default function Account() {
         setBranches(m.branchesOfBusiness == null ? '' : String(m.branchesOfBusiness));
         setFromYears(m.fromYears == null ? '' : String(m.fromYears));
         setOpenAt(m.openAt || '');
+        setSlotBookingEnabled(m.isSlotBookingEnabled === true);
+        setSlotCapacity(String(m.slotCapacity || 1));
         setCloseAt(m.closeAt || '');
         setBreakStartAt(m.breakStartAt || '');
         setBreakEndAt(m.breakEndAt || '');
@@ -435,7 +440,11 @@ export default function Account() {
           }
         }
 
+        const capacity = Number(slotCapacity);
+        if (!Number.isSafeInteger(capacity) || capacity < 1) { Alert.alert('Invalid capacity', 'Enter a positive whole number for slot capacity.'); return; }
         const edited: any = {
+          isSlotBookingEnabled,
+          slotCapacity: capacity,
           shopName: name,
           businessName: name,
           contactName,
@@ -1238,6 +1247,15 @@ export default function Account() {
               )}
             </View>
 
+            <View style={styles.card}>
+              <Text style={styles.sectionTitle}>Slot Booking</Text>
+              <Text style={styles.label}>Enable one-hour bookings</Text>
+              <Switch accessibilityLabel="Enable slot booking" value={isSlotBookingEnabled} disabled={!editing} onValueChange={setSlotBookingEnabled} trackColor={{ false: '#CBD5E1', true: '#FFB86A' }} thumbColor={isSlotBookingEnabled ? '#FF7900' : '#F1F5F9'} />
+              <Text style={styles.label}>Concurrent bookings per hour</Text>
+              <TextInput accessibilityLabel="Slot capacity" value={slotCapacity} onChangeText={setSlotCapacity} keyboardType="number-pad" editable={editing} style={{ borderWidth: 1, borderColor: '#DCE2EB', borderRadius: 12, padding: 12, color: '#14223B' }} />
+              <Text style={styles.value}>Slots follow your business timings, breaks and weekly days off below. Save your profile to apply changes.</Text>
+              <BookingButton title="Manage Bookings" onPress={() => router.push('/merchant-bookings')} />
+            </View>
             {/* BUSINESS TIMINGS */}
             <View style={styles.card}>
               <Text style={styles.sectionTitle}>Business Timings</Text>
@@ -1474,7 +1492,7 @@ export default function Account() {
                 <View style={styles.menuIconWrap}><Ionicons name="gift-outline" size={20} color="#FF8A00" /></View>
                 <View style={styles.menuTextWrap}>
                   <Text style={styles.menuTitle}>My Rewards</Text>
-                  <Text style={styles.menuSubtitle}>View your INcoins balance and activity</Text>
+                  <Text style={styles.menuSubtitle}>View your INCoins balance and activity</Text>
                 </View>
                 <Ionicons name="chevron-forward" size={18} color="#CCC" />
               </TouchableOpacity>

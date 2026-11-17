@@ -1,3 +1,4 @@
+import { BookingButton } from '../components/BookingUI';
 import { MerchantProfileHeader } from '../components/MerchantProfileHeader';
 import { INCoinsWalletCard } from '../components/incoins/INCoinsWalletCard';
 import { MerchantPackBanner } from '../components/MerchantPackBanner';
@@ -725,6 +726,7 @@ export default function MerchantDashboard() {
         <MerchantOrderHistoryLink />
         <MerchantPackBanner />
 
+        <View style={{ paddingHorizontal: 16, marginVertical: 10 }}><BookingButton title="Manage Slot Bookings" onPress={() => router.push('/merchant-bookings')} /></View>
         <MerchantPaymentApprovals merchantId={merchantId} token={token} onApproved={() => setSalesRefresh(value => value + 1)} />
         <View style={[styles.transactionsCard, merchantCardSurface]}>
       <MerchantCardAccent />

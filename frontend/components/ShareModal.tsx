@@ -5,18 +5,14 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Image,
   Linking,
-  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
+import { useAuthStore } from '../store/authStore';
+import { APP_DOWNLOAD_URL, appShareMessage } from '../utils/appShare';
 
-const PLAY_STORE_URL =
-  'https://www.intownlocal.com/download';
 const SHARE_TITLE = 'INtown';
-const SHARE_TEXT =
-  'Download INtown and win a chance to get INcoins  ';
 
 interface ShareModalProps {
   visible: boolean;
@@ -50,14 +46,17 @@ const openOrFallback = async (primary: string, fallback: string) => {
 export default function ShareModal({
   visible,
   onClose,
-  url = PLAY_STORE_URL,
+  url = APP_DOWNLOAD_URL,
   title = SHARE_TITLE,
-  message = SHARE_TEXT,
+  message,
   subtitle = 'Share this app',
 }: ShareModalProps) {
   const [copyStatus, setCopyStatus] = useState<'idle' | 'copied'>('idle');
+  const { user, isAuthenticated, isGuest } = useAuthStore();
 
-  const fullMessage = composeMessage(message, url);
+  const fullMessage = message !== undefined
+    ? composeMessage(message, url)
+    : appShareMessage(isAuthenticated && !isGuest ? user?.phone : null, url);
   const encMsg = encodeURIComponent(fullMessage);
   const encUrl = encodeURIComponent(url);
 
@@ -69,8 +68,8 @@ export default function ShareModal({
 
   const handleShareFacebook = () =>
     openOrFallback(
-      `fb://facewebmodal/f?href=https://www.facebook.com/sharer/sharer.php?u=${encUrl}`,
-      `https://www.facebook.com/sharer/sharer.php?u=${encUrl}`,
+      `fb://facewebmodal/f?href=${encodeURIComponent(`https://www.facebook.com/sharer/sharer.php?u=${encUrl}&quote=${encMsg}`)}`,
+      `https://www.facebook.com/sharer/sharer.php?u=${encUrl}&quote=${encMsg}`,
     );
 
   const handleShareInstagram = async () => {
@@ -102,7 +101,7 @@ export default function ShareModal({
 
   const handleCopy = async () => {
     try {
-      await Clipboard.setStringAsync(url);
+      await Clipboard.setStringAsync(message !== undefined ? url : fullMessage);
       setCopyStatus('copied');
       setTimeout(() => setCopyStatus('idle'), 1800);
     } catch {

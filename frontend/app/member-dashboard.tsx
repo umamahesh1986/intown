@@ -1400,6 +1400,10 @@ export default function MemberDashboard() {
               <Ionicons name="receipt-outline" size={22} color="#FF8C00" />
               <Text style={styles.userPanelText}>My Orders</Text>
             </TouchableOpacity>
+            <TouchableOpacity style={styles.userPanelItem} onPress={() => { closeDropdown(); router.push('/my-bookings'); }}>
+              <Ionicons name="calendar-outline" size={22} color="#FF8C00" />
+              <Text style={styles.userPanelText}>My Bookings</Text>
+            </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.userPanelItem}

@@ -149,11 +149,11 @@ export default function RewardsScreen() {
       setActivity([...pointActivity, ...paymentActivity].sort((a, b) => b.sortDate - a.sortDate));
       setError(paymentError);
     } catch (error) {
-      console.error('[Rewards] Failed to fetch INcoins:', error);
+      console.error('[Rewards] Failed to fetch INCoins:', error);
       if (isCurrent()) {
         setError(
           historyOnly
-            ? 'INcoins history is temporarily unavailable. Pull down to try again.'
+            ? 'INCoins history is temporarily unavailable. Pull down to try again.'
             : 'Rewards are temporarily unavailable. Pull down to try again.',
         );
       }
@@ -212,7 +212,7 @@ export default function RewardsScreen() {
           if (isActive) {
             setError(
               historyOnly
-                ? 'We could not find your INcoins account. Please sign in again.'
+                ? 'We could not find your INCoins account. Please sign in again.'
                 : 'We could not find your rewards account. Please sign in again.',
             );
             setLoading(false);
@@ -254,7 +254,7 @@ export default function RewardsScreen() {
     try {
       const url = buildRedemptionWhatsAppUrl(redemptionProfile, balance, location);
       // Open directly from the tap so mobile browsers retain user activation.
-      void Linking.openURL(url).then(() => setRedemptionNotice('Send the prepared WhatsApp message to request redemption. Your INcoins remain unchanged until it is processed.'))
+      void Linking.openURL(url).then(() => setRedemptionNotice('Send the prepared WhatsApp message to request redemption. Your INCoins remain unchanged until it is processed.'))
         .catch(() => setRedemptionError('Could not open WhatsApp. Please check that WhatsApp is available and try again.'));
     } catch (reason: any) { setRedemptionError(reason.message); }
   };
@@ -263,7 +263,7 @@ export default function RewardsScreen() {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" color="#FF8A00" />
-        <Text style={styles.loadingText}>Loading INcoins...</Text>
+        <Text style={styles.loadingText}>Loading INCoins...</Text>
       </View>
     );
   }
@@ -300,8 +300,8 @@ export default function RewardsScreen() {
             <Ionicons name="arrow-back" size={20} color="#FFFFFF" />
           </TouchableOpacity>
           <View style={styles.headerCopy}>
-            {/* <Text style={styles.headerEyebrow}>{historyOnly ? 'INcoins' : 'INcoins REWARDS'}</Text> */}
-            <Text style={styles.headerTitle}>{historyOnly ? 'INcoins History' : 'Rewards'}</Text>
+            {/* <Text style={styles.headerEyebrow}>{historyOnly ? 'INCoins' : 'INCoins REWARDS'}</Text> */}
+            <Text style={styles.headerTitle}>{historyOnly ? 'INCoins History' : 'Rewards'}</Text>
             {!historyOnly && (
               <Text style={styles.headerSubtitle}>A little more value on every visit.</Text>
             )}
@@ -349,7 +349,7 @@ export default function RewardsScreen() {
                     <View style={styles.cardTop}>
                       <View style={styles.badge}>
                         <Ionicons name="ribbon-outline" size={16} color="#FFF" />
-                        <Text style={styles.badgeText}>INcoins REWARDS</Text>
+                        <Text style={styles.badgeText}>INCoins REWARDS</Text>
                       </View>
                       <Ionicons name="sparkles" size={21} color="#FFFFFF" />
                     </View>
@@ -359,7 +359,7 @@ export default function RewardsScreen() {
                       <Text style={[styles.balanceValue, isCompact && styles.balanceValueCompact]}>
                         <AnimatedNumber value={balance} precision={2} />
                       </Text>
-                      <TouchableOpacity onPress={redeem} disabled={redemptionLoading || !redemptionProfile || balance == null || !Number.isFinite(balance) || balance < 0} accessibilityRole="button" accessibilityLabel="Request INcoins redemption on WhatsApp" testID="rewards-redeem-whatsapp" style={[styles.redeemButton, (redemptionLoading || !redemptionProfile || balance == null || !Number.isFinite(balance) || balance < 0) && { opacity: 0.55 }]}>
+                      <TouchableOpacity onPress={redeem} disabled={redemptionLoading || !redemptionProfile || balance == null || !Number.isFinite(balance) || balance < 0} accessibilityRole="button" accessibilityLabel="Request INCoins redemption on WhatsApp" testID="rewards-redeem-whatsapp" style={[styles.redeemButton, (redemptionLoading || !redemptionProfile || balance == null || !Number.isFinite(balance) || balance < 0) && { opacity: 0.55 }]}>
                         {redemptionLoading ? <ActivityIndicator color="#FF7900" /> : <><Ionicons name="logo-whatsapp" size={19} color="#18A665" /><Text style={styles.redeemButtonText}>Redeem</Text><Ionicons name="arrow-forward" size={17} color="#FF7900" /></>}
                       </TouchableOpacity>
                       {!!redemptionError && <View><Text style={styles.redemptionMessage}>{redemptionError}</Text><TouchableOpacity onPress={() => setRedemptionRetry(value => value + 1)}><Text style={styles.redemptionRetry}>Retry</Text></TouchableOpacity></View>}
@@ -382,7 +382,7 @@ export default function RewardsScreen() {
                   <Animated.View entering={FadeInDown.delay(260).duration(550).springify()} layout={LinearTransition.springify()} style={[styles.statCard, isCompact && styles.statCardCompact]}>
                     <Ionicons name="sparkles-outline" size={18} color="#FF9B24" />
                     <Text style={[styles.statValue, isCompact && styles.statCardCompactValue]}><AnimatedNumber value={averagePoints} /></Text>
-                    <Text style={[styles.statLabel, isCompact && styles.statCardCompactLabel]}>Avg. INcoins</Text>
+                    <Text style={[styles.statLabel, isCompact && styles.statCardCompactLabel]}>Avg. INCoins</Text>
                   </Animated.View>
                 </View>
               </>
@@ -408,7 +408,7 @@ export default function RewardsScreen() {
               <View style={styles.filterRow}>
                 {([
                   { key: 'ALL', label: 'All activity' },
-                  { key: 'POINTS', label: 'INcoins' },
+                  { key: 'POINTS', label: 'INCoins' },
                   { key: 'PAYMENTS', label: 'Payment history' },
                 ] as const).map((filter) => (
                   <TouchableOpacity
@@ -466,7 +466,7 @@ export default function RewardsScreen() {
               {item.kind === 'PAYMENT' && item.value === null ? 'Amount unavailable' : <><AnimatedNumber
                 value={item.value ?? 0} precision={2}
                 prefix={(item.value ?? 0) >= 0 ? '+' : ''}
-              />{item.kind === 'POINTS' && <Text style={{ fontSize: 11, fontWeight: '600' }}> INcoins</Text>}</>}
+              />{item.kind === 'POINTS' && <Text style={{ fontSize: 11, fontWeight: '600' }}> INCoins</Text>}</>}
             </Text>
           </Animated.View>
         )}
@@ -481,14 +481,14 @@ export default function RewardsScreen() {
             </View>
             <Text style={styles.emptyTitle}>
               {historyOnly
-                ? 'No INcoins history yet'
+                ? 'No INCoins history yet'
                 : activeFilter === 'PAYMENTS'
                   ? 'No payments to show yet'
                   : 'Your rewards journey starts here'}
             </Text>
             <Text style={styles.emptyText}>
               {historyOnly
-                ? 'Your earned INcoins will appear here.'
+                ? 'Your earned INCoins will appear here.'
                 : activeFilter === 'PAYMENTS'
                   ? 'Your eligible purchase history will appear here.'
                   : 'Completed reward credits will appear here.'}

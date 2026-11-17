@@ -16,6 +16,6 @@ export function pickupRewardAmount(order: {
 
 export function pickupRewardApprovalMessage(amount: number | null): string {
   return amount === null
-    ? 'Your approval allows the customer to receive INcoins for their payment. The reward amount is not available yet.'
-    : `The customer will receive ${amount.toLocaleString('en-IN', { maximumFractionDigits: 2 })} INcoins on your approval.`;
+    ? 'Your approval allows the customer to receive INCoins for their payment. The reward amount is not available yet.'
+    : `The customer will receive ${amount.toLocaleString('en-IN', { maximumFractionDigits: 2 })} INCoins on your approval.`;
 }

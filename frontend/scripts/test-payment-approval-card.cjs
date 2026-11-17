@@ -42,6 +42,6 @@ async function check(fails) {
   assert.equal(states[0].length, fails ? 1 : 0, 'Only successful approval removes the payment');
   assert.equal(refreshed, fails ? 0 : 1);
   assert.equal(states[4], null, 'Approval button unlocks after the request');
-  assert.ok(fails ? states[2].includes('Approval denied') : states[3].includes('25 INcoins credited'));
+  assert.ok(fails ? states[2].includes('Approval denied') : states[3].includes('25 INCoins credited'));
 }
 check(false).then(() => check(true)).then(() => console.log('Approval card success, failure retention, dashboard refresh and duplicate-tap protection passed.')).catch(error => { console.error(error); process.exitCode = 1; });

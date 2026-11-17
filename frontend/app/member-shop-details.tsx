@@ -1,3 +1,4 @@
+import { BookingButton } from '../components/BookingUI';
 import { View, Text, TouchableOpacity, ScrollView, Image, Modal, Dimensions, ActivityIndicator, Alert, Platform, TextInput, Linking } from 'react-native';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
@@ -45,6 +46,7 @@ interface ShopData {
     s3ImageUrl: string;
   }>;
   distance: number;
+  isSlotBookingEnabled?: boolean;
   openAt?: string;
   closeAt?: string;
   breakStartAt?: string;
@@ -259,12 +261,13 @@ export default function MemberShopDetails() {
               specialOffers: 'specialOffers' in details ? details.specialOffers : prev.specialOffers,
               specialOfferEndDate: 'specialOfferEndDate' in details ? details.specialOfferEndDate : prev.specialOfferEndDate,
               merchantSubscriptionPlan: details.merchantSubscriptionPlan ?? null,
+              isSlotBookingEnabled: details.isSlotBookingEnabled === true,
             }
           : prev,
       );
     });
-    void refreshOffer();
-    const timer = setInterval(() => { setOfferNow(Date.now()); void refreshOffer(); }, 30000);
+    void refreshOffer().catch(() => {});
+    const timer = setInterval(() => { setOfferNow(Date.now()); void refreshOffer().catch(() => {}); }, 30000);
     return () => {
       cancelled = true;
       clearInterval(timer);
@@ -693,6 +696,23 @@ export default function MemberShopDetails() {
               <Text style={styles.orderBtnText}>Pick @ Shop</Text>
             </TouchableOpacity>
           )}
+          {shop.isSlotBookingEnabled === true && (
+            <TouchableOpacity
+              style={styles.orderBtn}
+              accessibilityRole="button"
+              onPress={() => {
+                if (requiresLogin) {
+                  setShowLoginModal(true);
+                  return;
+                }
+                router.push({ pathname: '/slot-booking', params: { merchantId: String(shop.id) } });
+              }}
+              testID="book-slot-btn"
+            >
+              <Ionicons name="calendar-outline" size={20} color="#FFFFFF" />
+              <Text style={styles.orderBtnText}>Book a Slot</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Description Card */}
@@ -708,6 +728,7 @@ export default function MemberShopDetails() {
           </View>
         </View>
 
+        {/restaurant|salon|saloon|clinic|hospital/i.test(shop.businessCategory || '') && shop.isSlotBookingEnabled !== true && <View style={[styles.infoCard, { gap: 8 }]}><Text style={{ fontWeight: '800', color: '#14223B', fontSize: 16 }}>Slot Booking</Text><Text style={{ color: '#64748B', lineHeight: 20 }}>Online slot booking is not enabled for this merchant yet. When enabled, choose your date and time here, request a booking, and wait for merchant confirmation.</Text><BookingButton title="My Bookings" onPress={() => router.push('/my-bookings')} /></View>}
         {/* Info Card */}
         <View style={styles.infoCard}>
           <ShopDetailRow icon="business-outline" tint="#FF8A00" tintBg="#FFF3E0" label="Business" value={shop.businessName || 'N/A'} />
