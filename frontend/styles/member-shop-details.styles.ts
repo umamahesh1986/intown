@@ -325,6 +325,8 @@ export const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     elevation: 3,
   },
+  orderBtnDisabled: { backgroundColor: '#B7BEC9', shadowOpacity: 0, elevation: 0 },
+  selfPickupNotice: { color: '#667085', fontSize: 12, lineHeight: 18, marginTop: 8 },
   orderBtnText: {
     color: '#FFFFFF',
     fontSize: 16,
