@@ -16,6 +16,8 @@ const CHANNEL_ID = 'orders';
 export interface PushData {
   type?: NotificationKind;
   pickup_id?: string;
+  bookingId?: string;
+  bookingDate?: string;
   status?: string;
   title?: string;
   body?: string;
@@ -130,9 +132,13 @@ export const notificationFromPushData = (
   fallbackTitle?: string,
   fallbackBody?: string,
 ): Omit<NotificationItem, 'id' | 'timestamp' | 'read'> | null => {
-  const pickupId = String(data?.pickup_id ?? '');
+  const pickupId = String(data?.bookingId ?? data?.pickup_id ?? '');
   if (!pickupId || !data?.type) return null;
   const status = String(data.status || '').toUpperCase();
+  if (data.type.startsWith('BOOKING_')) {
+    const merchant = data.type !== 'BOOKING_STATUS_CUSTOMER';
+    return { kind: data.type, title: data.title || fallbackTitle || 'Booking update', body: data.body || fallbackBody || 'Booking ' + pickupId, targetRoute: merchant ? '/merchant-bookings' : '/my-bookings', bookingDate: data.bookingDate, targetTab: status, pickup_id: pickupId };
+  }
   const isMerchant =
     data.type === 'ORDER_RECEIVED_MERCHANT' || data.type === 'ORDER_PICKED_UP_MERCHANT' || data.type === 'ORDER_CANCELLED_MERCHANT';
   return {

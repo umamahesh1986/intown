@@ -17,9 +17,9 @@ async function check() {
   assert.equal(calls[0].url, 'https://test.invalid/IN/customer/42');
   assert.equal(calls[0].options.headers.Authorization, 'Bearer token');
   const url = new URL(buildRedemptionWhatsAppUrl(customer, 70));
-  assert.equal(url.hostname, 'wa.me'); assert.equal(url.pathname, '/919052263555');
+  assert.equal(url.hostname, 'wa.me'); assert.equal(url.pathname, '/919390932585');
   const message = url.searchParams.get('text');
-  for (const value of ['Customer', 'Uma & Rao', '9876543210', 'uma@example.test', 'Hyderabad', 'Available INcoins: 70', '17.4,78.4']) assert.ok(message.includes(value));
+  for (const value of ['Customer', 'Uma & Rao', '9876543210', 'uma@example.test', 'Hyderabad', 'Available INCoins: 70', '17.4,78.4']) assert.ok(message.includes(value));
   profile = { ...profile, id: 43, contactName: 'Merchant Name' };
   const merchant = await loadRedemptionProfile('merchant');
   assert.equal(calls[1].url, 'https://test.invalid/IN/merchant/43');
@@ -27,8 +27,8 @@ async function check() {
   assert.ok(merchantUrl.searchParams.get('text').includes('Account type: Merchant'));
   assert.ok(merchantUrl.searchParams.get('text').includes('Current location: Current location'));
   assert.ok(merchantUrl.searchParams.get('text').includes('18,79'));
-  assert.ok(new URL(buildRedemptionWhatsAppUrl(customer, 0)).searchParams.get('text').includes('Available INcoins: 0'), 'Zero balance still allows a WhatsApp request with the accurate balance');
-  for (const balance of [-1, NaN, Infinity]) assert.throws(() => buildRedemptionWhatsAppUrl(customer, balance), /available INcoins/);
+  assert.ok(new URL(buildRedemptionWhatsAppUrl(customer, 0)).searchParams.get('text').includes('Available INCoins: 0'), 'Zero balance still allows a WhatsApp request with the accurate balance');
+  for (const balance of [-1, NaN, Infinity]) assert.throws(() => buildRedemptionWhatsAppUrl(customer, balance), /available INCoins/);
   await assert.rejects(() => loadRedemptionProfile('customer'), /could not be verified/);
   assert.ok(calls.every(call => !call.options.method || call.options.method === 'GET'), 'Preparing redemption must not credit or deduct points');
   console.log('WhatsApp redemption recipient, customer/merchant identity, personal details, location, balance and no-deduction checks passed.');

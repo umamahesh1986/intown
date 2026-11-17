@@ -13,6 +13,7 @@ import {
   ActivityIndicator,
   Image,
   Modal,
+  Keyboard,
 } from 'react-native';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -1432,7 +1433,7 @@ export default function RegisterMerchant() {
 
           {/* INTRODUCED BY */}
           <View style={styles.formGroup}>
-            <Text style={styles.label}>Introduced By
+            <Text style={styles.label}>Reffrered By
               <Text style={styles.slug}> (Phone number only)</Text>
             </Text>
             <TextInput
@@ -1720,14 +1721,30 @@ export default function RegisterMerchant() {
       </KeyboardAvoidingView>
       {/* PRODUCT SELECTION POPUP */}
       {showProductModal && (
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalBox}>
+        <Modal
+          transparent
+          animationType="fade"
+          onRequestClose={() => {
+            Keyboard.dismiss();
+            setShowProductModal(false);
+          }}
+        >
+        <SafeAreaView style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)' }}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
+        >
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 12 }}>
+          <View style={[styles.modalBox, { maxHeight: '100%' }]}>
 
             <Text style={styles.modalTitle}>
               Select Products ({businessCategory})
             </Text>
 
-            <ScrollView style={{ maxHeight: 300 }}>
+            <ScrollView
+              style={{ maxHeight: 300, flexShrink: 1 }}
+              keyboardShouldPersistTaps="handled"
+            >
               {[...products, ...customProducts].map(product => {
                 const checked = selectedProductIds.includes(product.id);
 
@@ -1758,9 +1775,12 @@ export default function RegisterMerchant() {
             {hasOtherProducts && (
               <TextInput
                 style={styles.input}
+                testID="merchant-custom-products-input"
                 placeholder="Enter products separated by comma"
                 value={customProductsCsv}
                 onChangeText={setCustomProductsCsv}
+                returnKeyType="done"
+                onSubmitEditing={Keyboard.dismiss}
               />
             )}
 
@@ -1768,6 +1788,7 @@ export default function RegisterMerchant() {
             <View style={styles.modalActions}>
               <TouchableOpacity
                 onPress={() => {
+                  Keyboard.dismiss();
                   resetOtherProducts();
                   setShowProductModal(false);
                 }}
@@ -1779,6 +1800,7 @@ export default function RegisterMerchant() {
               <TouchableOpacity
                 style={styles.okBtn}
                 onPress={() => {
+                  Keyboard.dismiss();
                   setShowProductModal(false);
                 }}
               >
@@ -1789,6 +1811,9 @@ export default function RegisterMerchant() {
 
           </View>
         </View>
+        </KeyboardAvoidingView>
+        </SafeAreaView>
+        </Modal>
       )}
 
       {/* TIME PICKER MODAL */}

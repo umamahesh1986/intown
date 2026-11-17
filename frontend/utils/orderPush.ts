@@ -14,7 +14,7 @@ interface OrderPush {
 
 // Fire-and-forget: relay → Expo Push → the other party's device (works while their app is closed).
 // The 15s poller remains as the fallback when the recipient has no push token.
-const send = async (p: OrderPush) => {
+export const send = async (p: OrderPush) => {
   if (p.toUserId == null || p.toUserId === '') return;
   const [merchantId, customerId] = await Promise.all([
     AsyncStorage.getItem('merchant_id'),

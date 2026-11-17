@@ -43,7 +43,7 @@ async function resolveCustomerName(customerId: number, merchantId: string | numb
 
 export async function getPendingPayments(merchantId: string | number, token?: string | null): Promise<PendingPayment[]> {
   const response = await fetch(`${INTOWN_API_BASE}/transactions/merchants/${encodeURIComponent(String(merchantId))}/pending`, { headers: headers(token) });
-  if (!response.ok) throw new Error('Unable to load INcoins approvals. Please retry.');
+  if (!response.ok) throw new Error('Unable to load INCoins approvals. Please retry.');
   const data = await response.json();
   if (!Array.isArray(data)) throw new Error('Unable to read pending payments. Please retry.');
   const pending: PendingPayment[] = data.filter(payment => String(payment.merchantId) === String(merchantId) && payment.status === 'PENDING_APPROVAL');

@@ -1,4 +1,5 @@
 import { INPOINTS_API_BASE } from './api';
+import { appShareMessage } from './appShare';
 
 export interface INCoinsBalance { phoneNumber: string; inCoins: number; lastUpdated: string | null }
 export interface INCoinsTransaction { id: number; coins: number; transactionType: string; description: string; created: string | null }
@@ -56,5 +57,5 @@ export const DOCUMENTED_REFERRAL_REWARDS = [
   { label: 'Merchant START', coins: 500 },
   { label: 'Merchant LAUNCH', coins: 1000 },
 ];
-export const referralShareMessage = (phone: string) => `Join INtown and enter my registered phone number ${walletPhone(phone)} in the Referred By field during registration to receive eligible INCoins referral rewards.`;
+export const referralShareMessage = (phone: string) => appShareMessage(walletPhone(phone));
 export const transactionTitle = (type: string) => type ? type.toLowerCase().replace(/_/g, ' ').replace(/\b\w/g, char => char.toUpperCase()) : 'INCoins activity';

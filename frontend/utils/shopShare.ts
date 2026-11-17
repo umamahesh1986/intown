@@ -2,6 +2,8 @@ import { formatOfferValidTill, getActiveSpecialOffers, getSpecialOfferImageUrl, 
 
 export interface ShopShareContent {
   title: string;
+  description: string;
+  downloadUrl: string;
   imageUrl: string | null;
   offers: string[];
   special: boolean;
@@ -12,6 +14,8 @@ export interface ShopShareContent {
 
 export function buildShopShareContent(shop: any, fallbackImages: string[] = [], now = Date.now()): ShopShareContent {
   const title = String(shop?.businessName || shop?.shopName || shop?.name || 'INtown merchant').trim();
+  const description = String(shop?.description || 'Discover this local merchant on INtown.').trim();
+  const downloadUrl = 'https://intownlocal.com/download';
   const specialOffers = getActiveSpecialOffers(shop, now);
   const raw = shop?.offer;
   const regular = (Array.isArray(raw) ? raw : typeof raw === 'string' ? raw.split('\n') : []).map(value => String(value || '').trim()).filter(Boolean);
@@ -24,11 +28,12 @@ export function buildShopShareContent(shop: any, fallbackImages: string[] = [], 
   const profileImage = [shop?.profileImage, shop?.profileImageUrl].find(url => typeof url === 'string' && url && !isSpecialOfferImageUrl(url));
   const imageUrl = specialImage || profileImage || images.find(image => image.primary)?.url || images[0]?.url || null;
   const validTill = specialOffers.length ? formatOfferValidTill(shop) : '';
-  const lines = [title, '', ...(offers.length ? [specialOffers.length ? 'Special offer' : 'Offers', ...offers.map(offer => `• ${offer}`)] : ['Discover this local merchant on INtown.'])];
+  const lines = [title, '', description];
+  if (offers.length) lines.push('', specialOffers.length ? 'Special offer' : 'Offers', ...offers.map(offer => `• ${offer}`));
   if (validTill) lines.push('', `Valid till ${validTill}`);
   if (shop?.address) lines.push('', String(shop.address));
-  if (shop?.id != null) lines.push('', `View in INtown: intown://member-shop-details?shopId=${encodeURIComponent(String(shop.id))}`);
-  return { title, imageUrl, offers, special: specialOffers.length > 0, validTill, caption: lines.join('\n'), filename: `intown-${String(shop?.id ?? 'merchant').replace(/[^a-zA-Z0-9_-]/g, '')}-post.png` };
+  lines.push('', `Download INtown: ${downloadUrl}`);
+  return { title, description, downloadUrl, imageUrl, offers, special: specialOffers.length > 0, validTill, caption: lines.join('\n'), filename: `intown-${String(shop?.id ?? 'merchant').replace(/[^a-zA-Z0-9_-]/g, '')}-post.png` };
 }
 
 // Browser post export. Native uses the rendered preview and view-shot instead.
@@ -49,7 +54,8 @@ export async function createShopShareImage(content: ShopShareContent): Promise<B
   const titleLines = wrap(content.title, 940);
   ctx.font = '42px sans-serif';
   const offerLines = content.offers.flatMap(offer => wrap(`• ${offer}`, 920));
-  const height = Math.max(1080, 900 + titleLines.length * 82 + offerLines.length * 58 + (content.validTill ? 80 : 0));
+  const descriptionLines = wrap(content.description || '', 920);
+  const height = Math.max(1080, 980 + titleLines.length * 82 + (offerLines.length + descriptionLines.length) * 58 + (content.validTill ? 80 : 0));
   if (height > 12000) throw new Error('This post has too much text for one image. Copy the caption to share all details.');
   canvas.width = 1080; canvas.height = height;
   ctx.fillStyle = '#FFF8EF'; ctx.fillRect(0, 0, 1080, height);
@@ -84,12 +90,14 @@ export async function createShopShareImage(content: ShopShareContent): Promise<B
   }
   let y = 665; ctx.fillStyle = '#1C2433'; ctx.font = 'bold 66px sans-serif';
   for (const line of titleLines) { ctx.fillText(line, 64, y); y += 82; }
+  ctx.fillStyle = '#273244'; ctx.font = '42px sans-serif';
+  for (const line of descriptionLines) { ctx.fillText(line, 64, y); y += 58; }
   y += 22; ctx.fillStyle = '#E87500'; ctx.font = 'bold 32px sans-serif';
   ctx.fillText(content.offers.length ? content.special ? 'SPECIAL OFFER' : 'OFFERS' : 'SHOP LOCAL WITH INTOWN', 64, y); y += 65;
   ctx.fillStyle = '#273244'; ctx.font = '42px sans-serif';
   for (const line of offerLines) { ctx.fillText(line, 64, y); y += 58; }
   if (content.validTill) { y += 30; ctx.font = 'bold 32px sans-serif'; ctx.fillText(`Valid till ${content.validTill}`, 64, y); }
-  ctx.fillStyle = '#667085'; ctx.font = '30px sans-serif'; ctx.fillText('Find this merchant on the INtown app', 64, height - 38);
+  ctx.fillStyle = '#667085'; ctx.font = '30px sans-serif'; ctx.fillText(`Download INtown: ${content.downloadUrl || 'https://intownlocal.com/download'}`, 64, height - 38);
   return new Promise((resolve, reject) => {
     try { canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Could not create the post image.')), 'image/png'); }
     catch { reject(new Error('This merchant image does not allow browser export. Please share from the mobile app.')); }

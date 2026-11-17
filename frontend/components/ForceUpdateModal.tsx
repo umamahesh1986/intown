@@ -6,33 +6,40 @@ import {
   TouchableOpacity,
   StyleSheet,
   Linking,
+  Alert,
+  AppState,
   Platform,
   BackHandler,
-  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { checkForUpdate, STORE_URLS } from '../utils/versionCheck';
 
 /**
  * Force Update Modal
- * - Checks the app version once on mount.
+ * - Checks the app version on mount and when returning to the foreground.
  * - If a newer version exists on Play Store / App Store, shows a non-dismissible
  *   modal with an "Update Now" CTA that opens the store listing.
  * - Hardware back button on Android cannot close it while update is required.
  */
 export default function ForceUpdateModal() {
   const [visible, setVisible] = useState(false);
+  const [storeUrl, setStoreUrl] = useState<string | null>(null);
   const [storeVersion, setStoreVersion] = useState<string | null>(null);
   const [installedVersion, setInstalledVersion] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
+    let checking = false;
     const run = async () => {
+      if (checking) return;
+      checking = true;
       try {
         const result = await checkForUpdate();
         if (cancelled) return;
         setInstalledVersion(result.installedVersion);
         setStoreVersion(result.storeVersion);
+        if (result.storeUrl) setStoreUrl(result.storeUrl);
+        if (result.storeVersion) setVisible(result.updateRequired);
         if (result.updateRequired) {
           console.log(
             `[ForceUpdate] Installed ${result.installedVersion} < Store ${result.storeVersion} → showing update modal`,
@@ -41,11 +48,17 @@ export default function ForceUpdateModal() {
         }
       } catch (e) {
         console.warn('[ForceUpdate] Check failed:', e);
+      } finally {
+        checking = false;
       }
     };
     run();
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') void run();
+    });
     return () => {
       cancelled = true;
+      subscription.remove();
     };
   }, []);
 
@@ -57,18 +70,17 @@ export default function ForceUpdateModal() {
   }, [visible]);
 
   const handleUpdate = async () => {
+    if (!storeUrl) return;
     const primary =
-      Platform.OS === 'android' ? STORE_URLS.android : STORE_URLS.ios;
-    const fallback =
-      Platform.OS === 'android' ? STORE_URLS.androidWeb : STORE_URLS.iosWeb;
+      Platform.OS === 'android' ? STORE_URLS.android : storeUrl.replace('https://', 'itms-apps://');
+    const fallback = storeUrl;
     try {
-      const supported = await Linking.canOpenURL(primary);
-      await Linking.openURL(supported ? primary : fallback);
-    } catch (e) {
+      await Linking.openURL(primary);
+    } catch {
       try {
         await Linking.openURL(fallback);
       } catch {
-        // last resort — leave modal open
+        Alert.alert('Unable to open store', 'Please try again or open INtown in your app store to update.');
       }
     }
   };

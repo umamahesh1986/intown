@@ -59,7 +59,7 @@ export const NotificationBell: React.FC<Props> = ({
     // Route to my-orders / merchant-orders with tab + highlight
     router.push({
       pathname: n.targetRoute,
-      params: { tab: n.targetTab, highlightId: n.pickup_id },
+      params: { tab: n.targetTab, date: n.bookingDate, highlightId: n.pickup_id },
     });
   };
 

@@ -1,3 +1,4 @@
+import { BookingButton } from '../components/BookingUI';
 import { MerchantProfileHeader } from '../components/MerchantProfileHeader';
 import { normalizeMerchantSales } from '../utils/merchantSales';
 import { MerchantCardAccent, merchantCardSurface } from '../components/MerchantCardAccent';
@@ -1181,6 +1182,7 @@ export default function DualDashboard() {
 
         {/* Transactions Section (merchant tab only — customers see deals instead) */}
         {activeTab === 'merchant' && <MerchantOrderHistoryLink />}
+        <View style={{ paddingHorizontal: 16, marginVertical: 10 }}><BookingButton title={activeTab === 'merchant' ? 'Manage Slot Bookings' : 'My Bookings'} onPress={() => router.push(activeTab === 'merchant' ? '/merchant-bookings' : '/my-bookings')} /></View>
         {activeTab === 'merchant' && <MerchantPaymentApprovals merchantId={merchantId} token={token} onApproved={() => setSalesRefresh(value => value + 1)} />}
         {activeTab === 'merchant' && (
         <View style={[styles.transactionsSection, merchantCardSurface]}>

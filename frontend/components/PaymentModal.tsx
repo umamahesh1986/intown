@@ -12,7 +12,9 @@ import {
   Platform,
   KeyboardAvoidingView,
   AppState,
+  Keyboard,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'expo-router';
@@ -47,6 +49,7 @@ export default function PaymentModal({
   redirectTo,
 }: PaymentModalProps) {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   const [amount, setAmount] = useState('');
   const [instantSavingsInput, setInstantSavingsInput] = useState('');
@@ -292,7 +295,7 @@ export default function PaymentModal({
         return;
       }
 
-      // INcoins are credited by the backend only after merchant approval.
+      // INCoins are credited by the backend only after merchant approval.
       setShowSuccess(true);
     } catch (error: any) {
       console.error(
@@ -408,6 +411,7 @@ export default function PaymentModal({
   };
 
   const handleDismiss = () => {
+    Keyboard.dismiss();
     setShowSuccess(false);
     setShowPaymentChooser(false);
     onClose();
@@ -424,7 +428,7 @@ export default function PaymentModal({
         style={styles.modalOverlay}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <View style={styles.modalContent}>
+        <View style={[styles.modalContent, { paddingBottom: Math.max(insets.bottom, 16) }]}>
           {showSuccess ? (
             <View style={styles.successContainer}>
               <View style={styles.successIconWrap}>
@@ -436,11 +440,11 @@ export default function PaymentModal({
               </View>
 
               <Text style={styles.successTitle}>
-                INcoins under review
+                INCoins under review
               </Text>
 
               <Text style={styles.successMessage}>
-                Your transaction has been submitted. Your INcoins are in progress and will be added after the merchant approves.
+                Your transaction has been submitted. Your INCoins are in progress and will be added after the merchant approves.
               </Text>
 
               <TouchableOpacity
@@ -543,6 +547,7 @@ export default function PaymentModal({
             </View>
           ) : (
             <ScrollView
+              style={styles.paymentScroll}
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
               contentContainerStyle={styles.scrollContent}
@@ -574,8 +579,10 @@ export default function PaymentModal({
                     value={amount}
                     onChangeText={setAmount}
                     placeholder="Enter total price"
-                    keyboardType="numeric"
+                    keyboardType="decimal-pad"
                     placeholderTextColor="#999"
+                    accessibilityLabel="Total price"
+                    testID="payment-total-price-input"
                   />
                 </View>
               </View>
@@ -592,9 +599,11 @@ export default function PaymentModal({
                     style={styles.amountInput}
                     value={instantSavingsInput}
                     onChangeText={setInstantSavingsInput}
-                    placeholder="Enter intown price"
-                    keyboardType="numeric"
+                    placeholder="Enter INtown price"
+                    keyboardType="decimal-pad"
                     placeholderTextColor="#999"
+                    accessibilityLabel="INtown price"
+                    testID="payment-intown-price-input"
                   />
                 </View>
               </View>
@@ -658,6 +667,8 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContent: {
+    maxHeight: '100%',
+    flexShrink: 1,
     backgroundColor: '#FFF',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
@@ -667,6 +678,9 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: 0,
+  },
+  paymentScroll: {
+    flexShrink: 1,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -694,18 +708,24 @@ const styles = StyleSheet.create({
     backgroundColor: '#F5F5F5',
     borderRadius: 8,
     paddingHorizontal: 16,
+    minHeight: 56,
   },
   amountPrefix: {
-    fontSize: 22,
+    fontSize: 20,
+    flexShrink: 0,
     fontWeight: 'bold',
     color: '#1A1A1A',
     marginRight: 6,
   },
   amountInput: {
     flex: 1,
+    minWidth: 0,
+    flexShrink: 1,
+    paddingHorizontal: 0,
     paddingVertical: 14,
-    fontSize: 24,
-    fontWeight: 'bold',
+    fontSize: 18,
+    fontWeight: '600',
+    includeFontPadding: false,
     color: '#1A1A1A',
     textAlign: 'left',
     ...(Platform.OS === 'web'

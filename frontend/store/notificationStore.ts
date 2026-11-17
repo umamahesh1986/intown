@@ -5,6 +5,9 @@ const STORAGE_KEY = 'intown_notifications_v1';
 const MAX_ITEMS = 50;
 
 export type NotificationKind =
+  | 'BOOKING_RECEIVED_MERCHANT'
+  | 'BOOKING_STATUS_CUSTOMER'
+  | 'BOOKING_CANCELLED_MERCHANT'
   | 'ORDER_PLACED_CUSTOMER'
   | 'ORDER_RECEIVED_MERCHANT'
   | 'ORDER_STATUS_CUSTOMER'
@@ -19,7 +22,8 @@ export interface NotificationItem {
   body: string;
   timestamp: number;
   read: boolean;
-  targetRoute: '/my-orders' | '/merchant-orders' | '/account';
+  targetRoute: '/my-orders' | '/merchant-orders' | '/account' | '/my-bookings' | '/merchant-bookings';
+  bookingDate?: string;
   targetTab: string;      // e.g. 'PLACED'
   pickup_id: string;
 }

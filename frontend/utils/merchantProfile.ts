@@ -1,5 +1,21 @@
 type RecordData = Record<string, any>;
 
+// A cached UI role can be stale after registration or switching dashboards.
+// Resolve merchant ownership from the signed-in phone's server search result.
+export function merchantFromLookup(response: any): RecordData | null {
+  let value = response;
+  for (let depth = 0; depth < 4; depth++) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+    if (value.merchant != null) {
+      const merchant = merchantRecord(value.merchant);
+      const id = Number(merchant?.id);
+      return merchant && Number.isSafeInteger(id) && id > 0 ? merchant : null;
+    }
+    value = value.data;
+  }
+  return null;
+}
+
 // Both search and detail endpoints may wrap their result in `data` or `merchant`.
 export function merchantRecord(response: any): RecordData | null {
   let value = response;

@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { INTOWN_API_BASE } from './api';
 
-export const REDEMPTION_WHATSAPP_NUMBER = '919052263555';
+export const REDEMPTION_WHATSAPP_NUMBER = '919390932585';
 export type RedemptionRole = 'customer' | 'merchant';
 export interface RedemptionProfile {
   role: RedemptionRole;
@@ -38,19 +38,19 @@ export async function loadRedemptionProfile(role: RedemptionRole, token?: string
 }
 
 export function buildRedemptionWhatsAppUrl(profile: RedemptionProfile, balance: number, location?: Location | null): string {
-  if (!Number.isFinite(balance) || balance < 0) throw new Error('Your available INcoins balance could not be verified. Please refresh and try again.');
+  if (!Number.isFinite(balance) || balance < 0) throw new Error('Your available INCoins balance could not be verified. Please refresh and try again.');
   const currentAddress = location?.fullAddress || [location?.area, location?.city].filter(Boolean).join(', ');
   const coordinates = location && Number.isFinite(location.latitude) && Number.isFinite(location.longitude) ? location : profile;
   const lines = [
-    'INtown INcoins redemption request', '',
+    'INtown INCoins redemption request', '',
     `Account type: ${profile.role === 'merchant' ? 'Merchant' : 'Customer'}`,
     `Account ID: ${profile.id}`, `Name: ${profile.name}`, `Phone number: ${profile.phone}`,
     `Email: ${profile.email}`, `Registered address: ${profile.address}`,
     ...(currentAddress ? [`Current location: ${currentAddress}`] : []),
     ...(Number.isFinite(coordinates.latitude) && Number.isFinite(coordinates.longitude)
       ? [`Map: https://www.google.com/maps?q=${coordinates.latitude},${coordinates.longitude}`] : []),
-    `Available INcoins: ${balance.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`, '',
-    'I would like to redeem my INcoins. Please help me with the next steps.',
+    `Available INCoins: ${balance.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`, '',
+    'I would like to redeem my INCoins. Please help me with the next steps.',
   ];
   return `https://wa.me/${REDEMPTION_WHATSAPP_NUMBER}?text=${encodeURIComponent(lines.join('\n'))}`;
 }

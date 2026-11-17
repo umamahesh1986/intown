@@ -261,7 +261,7 @@ export const registerMember = async (memberData: any) => {
     };
     
     
-    const response = await axios.post(`${INTOWN_API_BASE}/customers/register`, payload, {
+    const response = await axios.post(`${INTOWN_API_BASE}/customer/`, payload, {
       timeout: 30000,
       headers: {
         "Content-Type": "application/json",
@@ -339,7 +339,7 @@ export const registerMerchant = async (merchantData: any) => {
     };
     
     
-    const response = await axios.post(`${INTOWN_API_BASE}/merchants/register`, payload, {
+    const response = await axios.post(`${INTOWN_API_BASE}/merchant/`, payload, {
       timeout: 30000,
       headers: {
         "Content-Type": "application/json",
@@ -428,7 +428,7 @@ export const resolveInPointsCustomerId = async (phoneNumber: string): Promise<st
   const customerId = customerResponse?.customer?.id;
   const numericId = Number(customerId);
   if (customerId == null || !Number.isSafeInteger(numericId) || numericId <= 0) {
-    throw new Error('The INcoins customer lookup did not return a valid customer ID.');
+    throw new Error('The INCoins customer lookup did not return a valid customer ID.');
   }
 
   return String(numericId);
