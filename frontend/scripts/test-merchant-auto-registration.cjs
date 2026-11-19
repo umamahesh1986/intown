@@ -38,7 +38,7 @@ async function paymentCase(mode) {
   const scope = { registrationPending: { current: false }, validateForm: () => true, paymentCompleted: false, paymentDetails: null,
     setPaymentError() {}, setIsLoading() {}, products: [], customProducts: [], selectedProductIds: [], selectedCategoryId: 1,
     businessName: 'Shop', contactName: 'Owner', businessCategory: 'Grocery', description: 'Local', yearsInBusiness: '1', branches: '1', email: '', phoneNumber: '9876543210', pincode: '500081', location: { latitude: 17, longitude: 78 }, address: '', introducedBy: '', images: [], agreedToTerms: true,
-    openAt: '09:00', closeAt: '18:00', breakStartAt: '', breakEndAt: '', weekOff: '', offer: '', selectedPlanId: 'LAUNCH', JOINING_FEE_AMOUNT: 1178.82,
+    openAt: '09:00', closeAt: '18:00', breakStartAt: '', breakEndAt: '', weekOff: '', offer: '', isPickupEnabled: true, isSlotBookingEnabled: false, selectedPlanId: 'LAUNCH', JOINING_FEE_AMOUNT: 1178.82,
     registerMerchant: async value => { payload = value; return { id: 42 }; }, AsyncStorage: { setItem: async () => {}, removeItem: async () => {} }, setMerchantPlan: async () => {}, draftKey: 'draft', uploadImagesToS3: async () => {}, fetchMerchantImages: async () => {}, registrationReferralMessage: () => '', setSuccessMessage() {}, useINCoinsStore: { getState: () => ({ clear() {}, refresh: async () => {} }) }, setSuccessMerchantId() {}, setShowSuccessPopup() {}, successTimerRef: { current: null }, setTimeout: () => 1, clearTimeout() {}, console,
     Alert: { alert: () => assert.fail('Verified payment should automatically register without a payment-required alert') },
   };
@@ -47,5 +47,7 @@ async function paymentCase(mode) {
   assert.equal(payload.razorpayOrderId, proof.razorpayOrderId);
   assert.equal(payload.razorpaySignature, proof.razorpaySignature);
   assert.equal(payload.joiningFeePaid, true);
+  assert.equal(payload.isPickupEnabled, true);
+  assert.equal(payload.isSlotBookingEnabled, false);
   console.log('Automatic merchant registration checks passed: verified checkout, stale React state, duplicate taps, cancellation, failed verification and payment-preserving retry.');
 })().catch(error => { console.error(error); process.exitCode = 1; });

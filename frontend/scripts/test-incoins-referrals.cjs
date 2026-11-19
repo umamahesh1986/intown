@@ -146,7 +146,7 @@ const deferred = () => { let resolve; const promise = new Promise(done => { reso
       location: { latitude: 17, longitude: 78 }, pincode: '500081', address: '', images: [],
       referredBy: '9000000000', introducedBy: '9000000000', agreedToTerms: true,
       products: [], customProducts: [], selectedProductIds: [], selectedCategoryId: 1,
-      openAt: '09:00', closeAt: '18:00', breakStartAt: '', breakEndAt: '', weekOff: '', offer: '',
+      openAt: '09:00', closeAt: '18:00', breakStartAt: '', breakEndAt: '', weekOff: '', offer: '', isPickupEnabled: false, isSlotBookingEnabled: false,
       selectedPlan: { name: 'START' }, selectedPlanId: 'START', paymentCompleted: true,
       paymentDetails: { razorpayPaymentId: 'paid' }, JOINING_FEE_AMOUNT: 499, draftKey: 'draft',
       validateForm: () => true, registrationPending: { current: false },

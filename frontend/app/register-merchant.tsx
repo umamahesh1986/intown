@@ -89,6 +89,8 @@ export default function RegisterMerchant() {
   const timingErrors = validateBreakTimes(openAt, closeAt, breakStartAt, breakEndAt);
   const [weekOff, setWeekOff] = useState('');
   const [offer, setOffer] = useState('');
+  const [isPickupEnabled, setPickupEnabled] = useState(false);
+  const [isSlotBookingEnabled, setSlotBookingEnabled] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState<string | null>(null);
   const DAYS_OF_WEEK = ['None', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
@@ -546,6 +548,8 @@ export default function RegisterMerchant() {
         breakEndAt,
         weekOff,
         offer,
+        isPickupEnabled,
+        isSlotBookingEnabled,
       };
       await AsyncStorage.setItem(draftKey, JSON.stringify(draft));
     } catch (error) {
@@ -596,6 +600,9 @@ export default function RegisterMerchant() {
       setBreakEndAt(draft.breakEndAt ?? '');
       setWeekOff(draft.weekOff ?? '');
       setOffer(draft.offer ?? '');
+      setPickupEnabled(draft.isPickupEnabled === true);
+      setSlotBookingEnabled(draft.isSlotBookingEnabled === true);
+      if (draft.isPickupEnabled === true || draft.isSlotBookingEnabled === true) setSelectedPlanId('LAUNCH');
     } catch (error) {
       console.error('Failed to restore merchant draft', error);
     }
@@ -989,6 +996,8 @@ export default function RegisterMerchant() {
       breakEndAt,
       weekOff,
       offer,
+      isPickupEnabled,
+      isSlotBookingEnabled,
       subscriptionPlan: selectedPlanId,
       joiningFee: JOINING_FEE_AMOUNT,
       joiningFeePaid: true,
@@ -1591,6 +1600,32 @@ export default function RegisterMerchant() {
             />
           </View>
 
+          <View style={styles.formGroup}>
+            {[
+              { label: 'Pick @ shop is available', value: isPickupEnabled, setValue: setPickupEnabled, id: 'pickup' },
+              { label: 'Book a slot is available', value: isSlotBookingEnabled, setValue: setSlotBookingEnabled, id: 'slot-booking' },
+            ].map((option) => (
+              <TouchableOpacity
+                key={option.id}
+                style={[styles.row, { marginBottom: 12 }]}
+                accessibilityRole="checkbox"
+                accessibilityLabel={option.label}
+                accessibilityState={{ checked: option.value, disabled: isPaying || isLoading || paymentCompleted }}
+                disabled={isPaying || isLoading || paymentCompleted}
+                testID={`merchant-${option.id}-checkbox`}
+                onPress={() => {
+                  const enabled = !option.value;
+                  option.setValue(enabled);
+                  if (enabled) setSelectedPlanId('LAUNCH');
+                }}
+              >
+                <Ionicons name={option.value ? 'checkbox' : 'square-outline'} size={24} color={option.value ? '#FF8A00' : '#64748B'} />
+                <Text style={{ marginLeft: 8, flex: 1, color: '#1A1A1A' }}>{option.label}</Text>
+              </TouchableOpacity>
+            ))}
+            {(isPickupEnabled || isSlotBookingEnabled) && <Text style={styles.helperText}>These features require the LAUNCH plan.</Text>}
+          </View>
+
           {/* TERMS */}
           <View style={styles.row}>
             <Switch
@@ -1624,13 +1659,15 @@ export default function RegisterMerchant() {
           <View style={styles.plansRow}>
             {PLANS.map((plan) => {
               const isSelected = selectedPlanId === plan.id;
+              const isPlanDisabled = !agreedToTerms || paymentCompleted || isPaying || (plan.id === 'START' && (isPickupEnabled || isSlotBookingEnabled));
               return (
                 <TouchableOpacity
                   key={plan.id}
                   activeOpacity={0.85}
-                  style={[styles.planCard, isSelected && styles.planCardSelected, (!agreedToTerms || paymentCompleted || isPaying) && styles.planCardDisabled]}
-                  disabled={!agreedToTerms || paymentCompleted || isPaying}
-                  onPress={() => agreedToTerms && !paymentCompleted && !isPaying && setSelectedPlanId(plan.id)}
+                  style={[styles.planCard, isSelected && styles.planCardSelected, isPlanDisabled && styles.planCardDisabled]}
+                  disabled={isPlanDisabled}
+                  accessibilityState={{ disabled: isPlanDisabled, selected: isSelected }}
+                  onPress={() => !isPlanDisabled && setSelectedPlanId(plan.id)}
                   testID={`plan-card-${plan.id.toLowerCase()}`}
                 >
                   {plan.recommended && (

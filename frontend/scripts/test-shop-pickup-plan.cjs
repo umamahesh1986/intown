@@ -1,31 +1,21 @@
-const assert = require('node:assert/strict');
+﻿const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const ts = require('typescript');
-const read = file => fs.readFileSync(path.join(__dirname, '..', file), 'utf8');
-const plans = { exports: {}, require: () => ({}) };
-vm.runInNewContext(ts.transpileModule(read('utils/merchantPlans.ts'), {
-  compilerOptions: { module: ts.ModuleKind.CommonJS },
-}).outputText, plans);
-const source = ts.createSourceFile('shop.tsx', read('app/member-shop-details.tsx'), ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
-const expressions = {};
+const text = fs.readFileSync(path.join(__dirname, '..', 'app/member-shop-details.tsx'), 'utf8');
+const source = ts.createSourceFile('shop.tsx', text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+let expression;
 function visit(node) {
-  if (ts.isVariableDeclaration(node) && node.initializer) expressions[node.name.getText(source)] = node.initializer.getText(source);
+  if (ts.isVariableDeclaration(node) && node.name.getText(source) === 'canPickAtStore') expression = node.initializer.getText(source);
   ts.forEachChild(node, visit);
 }
 visit(source);
-for (const plan of ['START', 'LAUNCH', 'launch', null, undefined, 'UNKNOWN']) {
-  for (const category of ['Groceries', 'Pharmacy', 'Restaurants', ' restaurants ', 'unsupported', undefined]) {
-    const context = {
-      shop: { merchantSubscriptionPlan: plan, businessCategory: category },
-      getMerchantPlanById: plans.exports.getMerchantPlanById,
-      SUPPORTED_ORDER_CATEGORIES: vm.runInNewContext(expressions.SUPPORTED_ORDER_CATEGORIES),
-    };
-    const code = `const isOrderCategorySupported = ${expressions.isOrderCategorySupported}; const allowed = ${expressions.canPickAtStore};`;
-    const js = ts.transpileModule(code, { compilerOptions: { target: ts.ScriptTarget.ES2020 } }).outputText;
-    const actual = vm.runInNewContext(`${js}\nallowed`, context);
-    assert.equal(actual, ['LAUNCH', 'launch'].includes(plan) && ['Groceries', 'Pharmacy', 'Restaurants', ' restaurants '].includes(category));
-  }
+assert.ok(expression);
+for (const value of [true, false, undefined, null, 'true']) {
+  const js = ts.transpileModule(expression, { compilerOptions: { target: ts.ScriptTarget.ES2020 } }).outputText;
+  assert.equal(vm.runInNewContext(js, { shop: { isPickupEnabled: value } }), value === true);
 }
-console.log('Pickup visibility passed: LAUNCH only, supported categories only, missing/unknown plans hidden.');
+assert.match(text, /isPickupEnabled: details\.isPickupEnabled === true/);
+assert.match(text, /\{shop\.isSlotBookingEnabled === true && !isSelfPickup && \(/);
+console.log('Shop feature visibility follows the API boolean flags.');

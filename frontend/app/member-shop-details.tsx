@@ -20,7 +20,6 @@ import { styles } from '../styles/member-shop-details.styles';
 import { ShopDetailRow } from '../components/ShopDetailRow';
 import { getShopTagline } from '../utils/shopTagline';
 import { ShopShareModal } from '../components/ShopShareModal';
-import { getMerchantPlanById } from '../utils/merchantPlans';
 
 const PROMO_HERO = require('../assets/images/promo/promo-3.jpg');
 
@@ -46,6 +45,7 @@ interface ShopData {
     s3ImageUrl: string;
   }>;
   distance: number;
+  isPickupEnabled?: boolean;
   isSlotBookingEnabled?: boolean;
   openAt?: string;
   closeAt?: string;
@@ -89,19 +89,6 @@ export default function MemberShopDetails() {
   const requiresLogin = isGuest || !isAuthenticated;
 
   // ================= ORDER FEATURE STATE =================
-  const SUPPORTED_ORDER_CATEGORIES = [
-    'restaurants',
-    'pharmacy',
-    'dairy products',
-    'Restaurants',
-    'meat',
-    'bakery',
-    'stationery',
-    'bags & accessories',
-    'electronics & home appliances',
-    'groceries',
-  ];
-
   // Product coming from /IN/products/ grouped by unit-type
   interface OrderProduct {
     id: number;
@@ -261,6 +248,7 @@ export default function MemberShopDetails() {
               specialOffers: 'specialOffers' in details ? details.specialOffers : prev.specialOffers,
               specialOfferEndDate: 'specialOfferEndDate' in details ? details.specialOfferEndDate : prev.specialOfferEndDate,
               merchantSubscriptionPlan: details.merchantSubscriptionPlan ?? null,
+              isPickupEnabled: details.isPickupEnabled === true,
               isSlotBookingEnabled: details.isSlotBookingEnabled === true,
               phoneNumber: details.phoneNumber ?? prev.phoneNumber,
             }
@@ -331,12 +319,7 @@ export default function MemberShopDetails() {
   };
 
   // ================= ORDER FEATURE HANDLERS =================
-  const isOrderCategorySupported = (category?: string) => {
-    if (!category) return false;
-    return SUPPORTED_ORDER_CATEGORIES.includes(category.trim().toLowerCase());
-  };
-  const canPickAtStore = getMerchantPlanById(shop?.merchantSubscriptionPlan)?.id === 'LAUNCH'
-    && isOrderCategorySupported(shop?.businessCategory);
+  const canPickAtStore = shop?.isPickupEnabled === true;
   const isSelfPickup = isAuthenticated && !isGuest && matchesOwnStore(user?.phone, shop?.phoneNumber);
 
   useEffect(() => {
