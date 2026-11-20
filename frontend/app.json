@@ -57,6 +57,7 @@
         }
       ],
       "expo-build-properties",
+      "./plugins/withOptionalPortraitFeature",
       "./plugins/withUpiQueries",
       [
         "expo-speech-recognition",
