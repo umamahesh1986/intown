@@ -283,3 +283,6 @@
 - P2: Further refactor — `register-merchant.tsx` (still 1869 lines) and `member-shop-details.tsx` (still 1119 lines) can be split into smaller **UI sub-components** (`<PhotoUploader/>`, `<CategoryProductPicker/>`, `<LocationPicker/>`, `<JoiningFeeSection/>`, `<PlaceOrderModal/>`, `<ImageCarousel/>`, `<ProductGrid/>`). Styles are already externalised.
 - P3: Push notifications, App Store/Play Store deployment
 - Known external bug: Backend `/IN/search/by-product-names` returns HTTP 500 for out-of-service-area coordinates (gracefully handled on frontend)
+
+## Sync (latest)
+- Reset to GitHub `main` 58e07c4 ("updated issue"): new branding/splash assets, legalContent, slot bookings, merchant booking history, paymentApprovals, INCoins utils, dependency version bumps. Frontend deps reinstalled, web bundle re-exported to `dist`, preview verified.
