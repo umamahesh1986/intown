@@ -1,6 +1,11 @@
 import { Platform } from 'react-native';
 import * as Application from 'expo-application';
 import axios from 'axios';
+import { IS_PRODUCTION_API } from './api';
+
+// Store version checks only make sense for the published production app.
+// Dev / preview builds (EXPO_PUBLIC_ENV=dev or __DEV__) never show the update popup.
+export const IS_UPDATE_CHECK_ENABLED = IS_PRODUCTION_API;
 
 const ANDROID_PACKAGE_ID = 'com.intown.andriod';
 // Published App Store listing: "INtownlocal" (numeric id is stable even if the bundle id changes).
@@ -109,7 +114,11 @@ const getStoreRelease = (): Promise<StoreRelease | null> =>
 export const checkForUpdate = async (): Promise<VersionCheckResult> => {
   const installedVersion = Application.nativeApplicationVersion;
   const noUpdate = { updateRequired: false, installedVersion, storeVersion: null };
-  if ((Platform.OS !== 'android' && Platform.OS !== 'ios') || !isVersion(installedVersion)) {
+  if (
+    !IS_UPDATE_CHECK_ENABLED ||
+    (Platform.OS !== 'android' && Platform.OS !== 'ios') ||
+    !isVersion(installedVersion)
+  ) {
     return noUpdate;
   }
   try {

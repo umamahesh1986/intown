@@ -12,16 +12,21 @@ import {
   BackHandler,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { checkForUpdate, STORE_URLS } from '../utils/versionCheck';
+import { checkForUpdate, IS_UPDATE_CHECK_ENABLED, STORE_URLS } from '../utils/versionCheck';
 
 /**
- * Force Update Modal
+ * Force Update Modal (production builds only)
  * - Checks the app version on mount and when returning to the foreground.
  * - If a newer version exists on Play Store / App Store, shows a non-dismissible
  *   modal with an "Update Now" CTA that opens the store listing.
  * - Hardware back button on Android cannot close it while update is required.
  */
 export default function ForceUpdateModal() {
+  if (!IS_UPDATE_CHECK_ENABLED) return null;
+  return <ForceUpdateChecker />;
+}
+
+function ForceUpdateChecker() {
   const [visible, setVisible] = useState(false);
   const [storeUrl, setStoreUrl] = useState<string | null>(null);
   const [storeVersion, setStoreVersion] = useState<string | null>(null);

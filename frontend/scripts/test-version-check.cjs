@@ -9,6 +9,7 @@ const origLoad = Module._load;
 Module._load = function (request, ...rest) {
   if (request === 'react-native') return { Platform: platform };
   if (request === 'expo-application') return { nativeApplicationVersion: installed };
+  if (request === './api') return { IS_PRODUCTION_API: process.env.TEST_ENV !== 'dev' };
   return origLoad.call(this, request, ...rest);
 };
 
@@ -33,6 +34,13 @@ const assert = (c, msg) => { console.log((c ? 'PASS' : 'FAIL') + ' - ' + msg); i
   assert(vc.compareVersion('1.10.0', '1.9.9') > 0, '1.10.0 > 1.9.9 → no update');
   assert(vc.pickItunesApp([{ bundleId: 'com.other', trackId: 1, version: '9.9' }]) === null, 'unrelated app is ignored');
 
+  if (process.env.TEST_ENV === 'dev') {
+    platform.OS = 'android';
+    const r = await vc.checkForUpdate();
+    assert(r.updateRequired === false && r.storeVersion === null, 'dev/preview build never shows popup');
+    assert(vc.IS_UPDATE_CHECK_ENABLED === false, 'dev/preview build: update check disabled');
+    return;
+  }
   const play = await axios.get('https://play.google.com/store/apps/details?id=com.intown.andriod&hl=en_IN&gl=IN', { headers: { 'User-Agent': 'Mozilla/5.0', Accept: 'text/html' }, timeout: 15000 });
   const playVersion = vc.parsePlayStoreVersion(play.data);
   assert(/^\d+(\.\d+)+$/.test(playVersion || ''), `Play Store version parsed: ${playVersion}`);
@@ -47,6 +55,7 @@ const assert = (c, msg) => { console.log((c ? 'PASS' : 'FAIL') + ' - ' + msg); i
   assert(android.storeVersion && /^\d+(\.\d+)+$/.test(android.storeVersion), `Android checkForUpdate store=${android.storeVersion} url=${android.storeUrl}`);
   assert(android.updateRequired === (vc.compareVersion(installed, android.storeVersion) < 0), `Android updateRequired=${android.updateRequired} for installed ${installed}`);
 
+  assert(vc.IS_UPDATE_CHECK_ENABLED === true, 'production build: update check enabled');
   platform.OS = 'web';
   const web = await vc.checkForUpdate();
   assert(web.updateRequired === false && web.storeVersion === null, 'web never shows update popup');
