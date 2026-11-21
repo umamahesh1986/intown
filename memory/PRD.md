@@ -286,3 +286,8 @@
 
 ## Sync (latest)
 - Reset to GitHub `main` 58e07c4 ("updated issue"): new branding/splash assets, legalContent, slot bookings, merchant booking history, paymentApprovals, INCoins utils, dependency version bumps. Frontend deps reinstalled, web bundle re-exported to `dist`, preview verified.
+
+## App Version Update Popup (hardened)
+- Store-based version check (no backend): Android parses Play page for com.intown.andriod; iOS looks up App Store listing id 6766092424 (INtownlocal, bundle com.vinodreddy.intownlocalapp) with bundleId fallback. Always mandatory, non-dismissible, re-checked on foreground; Update Now deep-links to Play/App Store.
+- NOTE: repo iOS bundle id is com.vinodreddy.intownlocal (1.3.3) but the live App Store app is com.vinodreddy.intownlocalapp (2.0.0).
+- Test: `node frontend/scripts/test-version-check.cjs` (TEST_INSTALLED=x.y.z, TEST_PLATFORM).

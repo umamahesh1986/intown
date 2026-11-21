@@ -39,12 +39,14 @@ export default function ForceUpdateModal() {
         setInstalledVersion(result.installedVersion);
         setStoreVersion(result.storeVersion);
         if (result.storeUrl) setStoreUrl(result.storeUrl);
-        if (result.storeVersion) setVisible(result.updateRequired);
-        if (result.updateRequired) {
-          console.log(
-            `[ForceUpdate] Installed ${result.installedVersion} < Store ${result.storeVersion} → showing update modal`,
-          );
-          setVisible(true);
+        // Only a successful store lookup may change visibility; a failed lookup keeps the current state.
+        if (result.storeVersion) {
+          setVisible(result.updateRequired);
+          if (result.updateRequired) {
+            console.log(
+              `[ForceUpdate] Installed ${result.installedVersion} < Store ${result.storeVersion} → showing update modal`,
+            );
+          }
         }
       } catch (e) {
         console.warn('[ForceUpdate] Check failed:', e);
@@ -70,15 +72,15 @@ export default function ForceUpdateModal() {
   }, [visible]);
 
   const handleUpdate = async () => {
-    if (!storeUrl) return;
-    const primary =
-      Platform.OS === 'android' ? STORE_URLS.android : storeUrl.replace('https://', 'itms-apps://');
-    const fallback = storeUrl;
+    const web =
+      storeUrl ?? (Platform.OS === 'android' ? STORE_URLS.androidWeb : STORE_URLS.ios);
+    const native =
+      Platform.OS === 'android' ? STORE_URLS.android : web.replace(/^https:\/\//, 'itms-apps://');
     try {
-      await Linking.openURL(primary);
+      await Linking.openURL(native);
     } catch {
       try {
-        await Linking.openURL(fallback);
+        await Linking.openURL(web);
       } catch {
         Alert.alert('Unable to open store', 'Please try again or open INtown in your app store to update.');
       }

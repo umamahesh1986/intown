@@ -3,11 +3,15 @@ import * as Application from 'expo-application';
 import axios from 'axios';
 
 const ANDROID_PACKAGE_ID = 'com.intown.andriod';
-const IOS_BUNDLE_ID = 'com.vinodreddy.intownlocal';
+// Published App Store listing: "INtownlocal" (numeric id is stable even if the bundle id changes).
+const APP_STORE_ID = '6766092424';
+const IOS_BUNDLE_IDS = ['com.vinodreddy.intownlocalapp', 'com.vinodreddy.intownlocal'];
 
 export const STORE_URLS = {
   android: `market://details?id=${ANDROID_PACKAGE_ID}`,
   androidWeb: `https://play.google.com/store/apps/details?id=${ANDROID_PACKAGE_ID}`,
+  ios: `https://apps.apple.com/in/app/id${APP_STORE_ID}`,
+  iosNative: `itms-apps://apps.apple.com/in/app/id${APP_STORE_ID}`,
 };
 
 interface StoreRelease {
@@ -15,7 +19,7 @@ interface StoreRelease {
   storeUrl: string;
 }
 
-interface VersionCheckResult {
+export interface VersionCheckResult {
   updateRequired: boolean;
   installedVersion: string | null;
   storeVersion: string | null;
@@ -36,12 +40,13 @@ const isVersion = (value: unknown): value is string =>
   typeof value === 'string' && /^\d+(?:\.\d+)*$/.test(value);
 
 export const parsePlayStoreVersion = (html: string): string | null => {
-  // Play does not provide a public version API. Keep matches anchored to
-  // version metadata rather than matching unrelated numbers in the page.
+  // Play has no public version API; match only version-shaped metadata blocks.
   const patterns = [
     /"softwareVersion"\s*:\s*"(\d+(?:\.\d+)*)"/i,
     /\[\[\["(\d+(?:\.\d+)+)"\]\],/,
+    /\[\[\["(\d+(?:\.\d+)+)"\]\]/,
     /Current\s+Version[^<]*<\/div>\s*<span[^>]*>\s*(\d+(?:\.\d+)*)\s*</i,
+    /itemprop="softwareVersion"[^>]*>\s*(\d+(?:\.\d+)*)\s*</i,
   ];
   for (const pattern of patterns) {
     const version = html.match(pattern)?.[1];
@@ -50,33 +55,56 @@ export const parsePlayStoreVersion = (html: string): string | null => {
   return null;
 };
 
-const getStoreRelease = async (): Promise<StoreRelease | null> => {
-  if (Platform.OS === 'android') {
-    const response = await axios.get(`${STORE_URLS.androidWeb}&hl=en_IN&gl=IN`, {
-      timeout: 12000,
-      headers: { Accept: 'text/html', 'User-Agent': 'Mozilla/5.0' },
-    });
-    const version = typeof response.data === 'string'
-      ? parsePlayStoreVersion(response.data)
-      : null;
-    return version ? { version, storeUrl: STORE_URLS.androidWeb } : null;
-  }
+type ItunesApp = { bundleId?: string; version?: string; trackId?: number; trackViewUrl?: string };
 
+export const pickItunesApp = (results: unknown): ItunesApp | null => {
+  if (!Array.isArray(results)) return null;
+  const apps = results as ItunesApp[];
+  return (
+    apps.find((app) => String(app.trackId) === APP_STORE_ID) ??
+    apps.find((app) => !!app.bundleId && IOS_BUNDLE_IDS.includes(app.bundleId)) ??
+    null
+  );
+};
+
+const lookupItunes = async (params: Record<string, string>): Promise<ItunesApp | null> => {
   const response = await axios.get('https://itunes.apple.com/lookup', {
-    params: { bundleId: IOS_BUNDLE_ID, country: 'in' },
+    // `_` busts Apple's CDN cache so a fresh release is seen promptly.
+    params: { ...params, country: 'in', _: Date.now() },
     timeout: 12000,
     headers: { Accept: 'application/json' },
   });
-  const results = response.data?.results;
-  const app = Array.isArray(results)
-    ? results.find((result: { bundleId?: string }) => result.bundleId === IOS_BUNDLE_ID)
-    : null;
-  if (!isVersion(app?.version) || !Number.isSafeInteger(app?.trackId) || app.trackId <= 0) {
-    return null;
-  }
-  // Use Apple's numeric listing ID returned by lookup; bundle IDs are not app URLs.
-  return { version: app.version, storeUrl: `https://apps.apple.com/in/app/id${app.trackId}` };
+  const data = typeof response.data === 'string' ? JSON.parse(response.data) : response.data;
+  return pickItunesApp(data?.results);
 };
+
+const getAppStoreRelease = async (): Promise<StoreRelease | null> => {
+  let app = await lookupItunes({ id: APP_STORE_ID });
+  if (!app) {
+    for (const bundleId of IOS_BUNDLE_IDS) {
+      app = await lookupItunes({ bundleId });
+      if (app) break;
+    }
+  }
+  if (!app || !isVersion(app.version)) return null;
+  const storeUrl =
+    Number.isSafeInteger(app.trackId) && (app.trackId as number) > 0
+      ? `https://apps.apple.com/in/app/id${app.trackId}`
+      : STORE_URLS.ios;
+  return { version: app.version, storeUrl };
+};
+
+const getPlayStoreRelease = async (): Promise<StoreRelease | null> => {
+  const response = await axios.get(`${STORE_URLS.androidWeb}&hl=en_IN&gl=IN&_=${Date.now()}`, {
+    timeout: 12000,
+    headers: { Accept: 'text/html', 'User-Agent': 'Mozilla/5.0' },
+  });
+  const version = typeof response.data === 'string' ? parsePlayStoreVersion(response.data) : null;
+  return version ? { version, storeUrl: STORE_URLS.androidWeb } : null;
+};
+
+const getStoreRelease = (): Promise<StoreRelease | null> =>
+  Platform.OS === 'android' ? getPlayStoreRelease() : getAppStoreRelease();
 
 export const checkForUpdate = async (): Promise<VersionCheckResult> => {
   const installedVersion = Application.nativeApplicationVersion;
