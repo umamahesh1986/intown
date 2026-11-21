@@ -102,9 +102,7 @@ const deferred = () => { let resolve; const promise = new Promise(done => { reso
   balanceWork = async () => ({ inCoins: 22 });
   await wallet.getState().refresh(); assert.equal(wallet.getState().balance.inCoins, 22);
 
-  const memory = new Map();
-  const referral = load('utils/referralRegistration.ts', () => ({ default: { getItem: async key => memory.get(key), setItem: async (key, value) => memory.set(key, value) } }));
-  assert.equal(await referral.registrationDeviceId(), await referral.registrationDeviceId());
+  const referral = load('utils/referralRegistration.ts', () => ({}));
   assert.equal(referral.referralNumber(' 9123456789 '), '9123456789');
   assert.equal(referral.referralNumber(''), '');
   assert.throws(() => referral.referralNumber('123'));
@@ -123,7 +121,7 @@ const deferred = () => { let resolve; const promise = new Promise(done => { reso
       assert.equal(requests.at(-1).payload.referredBy, '9123456789', referrerRole);
       assert.equal(requests.at(-1).payload.phoneNumber, '9876543210');
       if (kind !== 'Customer') { assert.equal(requests.at(-1).payload.subscriptionPlan, kind); assert.equal(requests.at(-1).payload.openAt, '09:00'); }
-      else assert.ok(requests.at(-1).payload.deviceId);
+      assert.equal(Object.hasOwn(requests.at(-1).payload, 'deviceId'), false);
     }
   }
   const warning = "Referrer phone number is not registered with INtown. You won't receive referral INCoins.";
@@ -148,11 +146,11 @@ const deferred = () => { let resolve; const promise = new Promise(done => { reso
       location: { latitude: 17, longitude: 78 }, pincode: '500081', address: '', images: [],
       referredBy: '9000000000', introducedBy: '9000000000', agreedToTerms: true,
       products: [], customProducts: [], selectedProductIds: [], selectedCategoryId: 1,
-      openAt: '09:00', closeAt: '18:00', breakStartAt: '', breakEndAt: '', weekOff: '', offer: '',
+      openAt: '09:00', closeAt: '18:00', breakStartAt: '', breakEndAt: '', weekOff: '', offer: '', isPickupEnabled: false, isSlotBookingEnabled: false,
       selectedPlan: { name: 'START' }, selectedPlanId: 'START', paymentCompleted: true,
       paymentDetails: { razorpayPaymentId: 'paid' }, JOINING_FEE_AMOUNT: 499, draftKey: 'draft',
       validateForm: () => true, registrationPending: { current: false },
-      setIsLoading() {}, Alert: { alert: () => assert.fail('Successful referral warnings must not show registration failure') },
+      setIsLoading() {}, setPaymentError() {}, Alert: { alert: () => assert.fail('Successful referral warnings must not show registration failure') },
       registerMember: async () => { submissions++; return wait.promise; },
       registerMerchant: async () => { submissions++; return wait.promise; },
       AsyncStorage: { setItem: async () => {}, removeItem: async () => {} },

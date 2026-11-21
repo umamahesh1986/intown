@@ -1,3 +1,4 @@
+import { CHECKOUT_LOGO } from '../utils/branding';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Platform } from 'react-native';
 import { useState, useEffect } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -181,7 +182,7 @@ export default function Checkout() {
 
       const razorpayOptions = {
         description: `INtown ${selectedPlan.name} Plan`,
-        image: 'https://intown-prod.s3.ap-south-1.amazonaws.com/logo/intown-logo.png',
+        image: CHECKOUT_LOGO,
         currency: orderData.currency || 'INR',
         key: orderData.keyId || RAZORPAY_KEY_ID,
         amount: String(orderData.amount),

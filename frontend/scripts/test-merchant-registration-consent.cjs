@@ -30,7 +30,7 @@ assert.ok(text.indexOf('{/* TERMS */}') < text.indexOf('{/* JOINING FEE PAYMENT'
 async function check() {
   let message = '';
   const js = ts.transpileModule(`const pay = ${expression('handlePayJoiningFee')};`, { compilerOptions: { target: ts.ScriptTarget.ES2020 } }).outputText;
-  const handler = vm.runInNewContext(`${js}\npay`, { agreedToTerms: false, setPaymentError: value => { message = value; } });
+  const handler = vm.runInNewContext(`${js}\npay`, { agreedToTerms: false, paymentCompleted: false, paymentPending: { current: false }, registrationPending: { current: false }, setPaymentError: value => { message = value; } });
   await handler();
   assert.ok(message.includes('accept the Terms & Conditions'));
   console.log('Consent-before-payment, payment-before-registration, timing validation and checkout guards passed.');

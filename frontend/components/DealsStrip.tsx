@@ -47,6 +47,7 @@ export const DealsStrip = ({ shops, onPressShop }: DealsStripProps) => {
     [baseDeals, taps],
   );
   if (deals.length === 0) return null;
+  const fullWidth = showAll || deals.length === 1;
 
   return (
     <View style={styles.section} testID="deals-strip">
@@ -60,7 +61,7 @@ export const DealsStrip = ({ shops, onPressShop }: DealsStripProps) => {
         </View>
         <TouchableOpacity onPress={() => setShowAll(value => !value)} accessibilityRole="button" accessibilityLabel={showAll ? 'Show fewer nearby deals' : 'See all nearby deals'} testID="deals-see-all"><Text style={styles.seeAll}>{showAll ? 'Show less' : 'Show all'}</Text></TouchableOpacity>
       </View>
-      <ScrollView horizontal={!showAll} nestedScrollEnabled style={{ height: (showAll ? Math.min(deals.length, 3) * 254 : 256) * Math.max(1, fontScale), flexGrow: 0 }} showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.row, showAll && styles.allRow]}>
+      <ScrollView horizontal={!fullWidth} nestedScrollEnabled style={{ height: (showAll ? Math.min(deals.length, 3) * 254 : 256) * Math.max(1, fontScale), flexGrow: 0 }} showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.row, fullWidth && styles.allRow]}>
         {deals.map(({ shop, offers }) => {
           const name = shop.businessName || shop.shopName || shop.name || 'Shop';
           const timeLeft = formatOfferTimeLeft(shop);
@@ -68,7 +69,7 @@ export const DealsStrip = ({ shops, onPressShop }: DealsStripProps) => {
           return (
             <TouchableOpacity
               key={String(shop.id)}
-              style={[styles.card, showAll && styles.fullCard]}
+              style={[styles.card, fullWidth && styles.fullCard]}
               activeOpacity={0.9}
               onPress={() => onPressShop(shop)}
               testID={`deal-card-${shop.id}`}

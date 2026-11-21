@@ -1,4 +1,5 @@
 import { formatOfferValidTill, getActiveSpecialOffers, getSpecialOfferImageUrl, isSpecialOfferImageUrl } from './specialOffer';
+import { CHECKOUT_LOGO } from './branding';
 
 export interface ShopShareContent {
   title: string;
@@ -15,7 +16,9 @@ export interface ShopShareContent {
 export function buildShopShareContent(shop: any, fallbackImages: string[] = [], now = Date.now()): ShopShareContent {
   const title = String(shop?.businessName || shop?.shopName || shop?.name || 'INtown merchant').trim();
   const description = String(shop?.description || 'Discover this local merchant on INtown.').trim();
-  const downloadUrl = 'https://intownlocal.com/download';
+  // A new URL lets social apps fetch the updated website preview instead of
+  // reusing the thumbnail cached for the original download link.
+  const downloadUrl = 'https://intownlocal.com/download?brand=in-logo-20261118';
   const specialOffers = getActiveSpecialOffers(shop, now);
   const raw = shop?.offer;
   const regular = (Array.isArray(raw) ? raw : typeof raw === 'string' ? raw.split('\n') : []).map(value => String(value || '').trim()).filter(Boolean);
@@ -60,7 +63,14 @@ export async function createShopShareImage(content: ShopShareContent): Promise<B
   canvas.width = 1080; canvas.height = height;
   ctx.fillStyle = '#FFF8EF'; ctx.fillRect(0, 0, 1080, height);
   ctx.fillStyle = '#FF8A00'; ctx.fillRect(0, 0, 1080, 110);
-  ctx.fillStyle = '#FFF'; ctx.font = 'bold 44px sans-serif'; ctx.fillText('INtown · Discover local', 64, 73);
+  const logo = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const image = new globalThis.Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error('Could not load the INtown logo for the shared post.'));
+    image.src = CHECKOUT_LOGO;
+  });
+  ctx.drawImage(logo, 40, 15, 80, 80);
+  ctx.fillStyle = '#FFF'; ctx.font = 'bold 44px sans-serif'; ctx.fillText('INtown · Discover local', 150, 73);
   if (content.imageUrl) {
     const loadImage = (url: string) => new Promise<HTMLImageElement>((resolve, reject) => {
       const img = new globalThis.Image(); img.crossOrigin = 'anonymous';

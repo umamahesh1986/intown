@@ -1,3 +1,4 @@
+import { CHECKOUT_LOGO } from './branding';
 import { Platform } from 'react-native';
 import { INTOWN_API_BASE } from './api';
 import { loadRazorpayWebScript, openRazorpayWeb } from './razorpayWeb';
@@ -57,7 +58,7 @@ export const payForMerchantPlan = async (input: MerchantPlanPaymentInput): Promi
 
   const razorpayOptions: any = {
     description,
-    image: 'https://intown-prod.s3.ap-south-1.amazonaws.com/logo/intown-logo.png',
+    image: CHECKOUT_LOGO,
     currency: orderData.currency || 'INR',
     key: orderData.keyId || RAZORPAY_KEY_ID,
     amount: String(amountPaise),

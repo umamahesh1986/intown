@@ -1,3 +1,4 @@
+import { BRAND_LOGO } from '../utils/branding';
 import React, { useState } from 'react';
 import {
   View,
@@ -21,7 +22,7 @@ const RADIUS = 12;
 const VIDEO_URL =
   'https://intown-dev.s3.ap-south-1.amazonaws.com/LoginBackgroundVideo/INtownVideo.mp4';
 
-const BackgroundContent = React.memo(() => {
+const BackgroundContent = React.memo(function BackgroundContent() {
   if (Platform.OS === 'web') {
     return (
       <video
@@ -104,7 +105,7 @@ export default function LoginScreen() {
           <View style={styles.headerCard}>
             <View style={styles.logoBox}>
               <Image
-                source={{uri:'https://intown-dev.s3.ap-south-1.amazonaws.com/app_logo/intown-logo.jpg'}}
+                source={BRAND_LOGO}
                 style={styles.logo}
                 resizeMode="contain"
               />
@@ -206,7 +207,7 @@ const styles = StyleSheet.create({
 
   logo: {
     width: 220,
-    height: 48,
+    height: 108,
   },
 
   formWrap: {

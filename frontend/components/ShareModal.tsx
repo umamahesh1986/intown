@@ -6,11 +6,13 @@ import {
   StyleSheet,
   TouchableOpacity,
   Linking,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import { useAuthStore } from '../store/authStore';
 import { APP_DOWNLOAD_URL, appShareMessage } from '../utils/appShare';
+import { BRAND_ICON } from '../utils/branding';
 
 const SHARE_TITLE = 'INtown';
 
@@ -121,7 +123,7 @@ export default function ShareModal({
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.appBadge}>
-              <Text style={styles.appBadgeText}>IN</Text>
+              <Image source={BRAND_ICON} style={{ width: 44, height: 44, borderRadius: 10 }} resizeMode="contain" accessibilityLabel="INtown logo" />
             </View>
             <View style={{ flex: 1, marginLeft: 12 }}>
               <Text style={styles.title}>{title}</Text>

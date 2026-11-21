@@ -1,3 +1,4 @@
+import { CHECKOUT_LOGO } from '../utils/branding';
 import { useINCoinsStore } from '../store/incoinsStore';
 import { registrationReferralMessage } from '../utils/referralRegistration';
 import {
@@ -88,6 +89,8 @@ export default function RegisterMerchant() {
   const timingErrors = validateBreakTimes(openAt, closeAt, breakStartAt, breakEndAt);
   const [weekOff, setWeekOff] = useState('');
   const [offer, setOffer] = useState('');
+  const [isPickupEnabled, setPickupEnabled] = useState(false);
+  const [isSlotBookingEnabled, setSlotBookingEnabled] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState<string | null>(null);
   const DAYS_OF_WEEK = ['None', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
@@ -545,6 +548,8 @@ export default function RegisterMerchant() {
         breakEndAt,
         weekOff,
         offer,
+        isPickupEnabled,
+        isSlotBookingEnabled,
       };
       await AsyncStorage.setItem(draftKey, JSON.stringify(draft));
     } catch (error) {
@@ -595,6 +600,9 @@ export default function RegisterMerchant() {
       setBreakEndAt(draft.breakEndAt ?? '');
       setWeekOff(draft.weekOff ?? '');
       setOffer(draft.offer ?? '');
+      setPickupEnabled(draft.isPickupEnabled === true);
+      setSlotBookingEnabled(draft.isSlotBookingEnabled === true);
+      if (draft.isPickupEnabled === true || draft.isSlotBookingEnabled === true) setSelectedPlanId('LAUNCH');
     } catch (error) {
       console.error('Failed to restore merchant draft', error);
     }
@@ -776,6 +784,7 @@ export default function RegisterMerchant() {
   /* ================= JOINING FEE PAYMENT HANDLER ================= */
 
   const handlePayJoiningFee = async () => {
+    if (paymentPending.current || registrationPending.current || paymentCompleted) return;
     setPaymentError('');
     if (!agreedToTerms) {
       setPaymentError('Please accept the Terms & Conditions before selecting a pack and paying.');
@@ -811,7 +820,13 @@ export default function RegisterMerchant() {
       return;
     }
 
+    if (!validateForm()) {
+      setPaymentError('Please correct the highlighted fields before paying.');
+      return;
+    }
+    paymentPending.current = true;
     setIsPaying(true);
+    let paymentVerified = false;
     try {
       // Step 1: Create Order
       // Associate the selected merchant tier with the order before checkout.
@@ -846,7 +861,7 @@ export default function RegisterMerchant() {
 
       const razorpayOptions: any = {
         description: 'INtown Merchant Joining Fee',
-        image: 'https://intown-prod.s3.ap-south-1.amazonaws.com/logo/intown-logo.png',
+        image: CHECKOUT_LOGO,
         currency: orderData.currency || 'INR',
         key: orderData.keyId || RAZORPAY_KEY_ID,
         amount: String(amountPaise),
@@ -895,15 +910,21 @@ export default function RegisterMerchant() {
         throw new Error(verifyData?.message || 'Payment verification failed');
       }
 
-      setPaymentDetails({
+      const verifiedPayment = {
         razorpayPaymentId: paymentResponse.razorpay_payment_id,
         razorpayOrderId: paymentResponse.razorpay_order_id,
         razorpaySignature: paymentResponse.razorpay_signature,
-      });
+      };
+      paymentVerified = true;
+      setPaymentDetails(verifiedPayment);
       setPaymentCompleted(true);
       setPaymentError('');
-      Alert.alert('Payment received successfully', `Your ${selectedPlan.name} pack fee (₹${JOINING_FEE_AMOUNT.toFixed(0)} incl. GST) has been received. Tap Register Merchant to complete your registration.`);
+      await handleRegister(verifiedPayment);
     } catch (err: any) {
+      if (paymentVerified) {
+        setPaymentError('Payment received, but registration could not finish. Retry registration below without paying again.');
+        return;
+      }
       console.error('Joining fee payment error:', err);
       setPaymentCompleted(false);
       setPaymentDetails(null);
@@ -914,6 +935,7 @@ export default function RegisterMerchant() {
       setPaymentError(msg);
       Alert.alert(cancelled ? 'Payment Cancelled' : 'Payment Failed', msg);
     } finally {
+      paymentPending.current = false;
       setIsPaying(false);
     }
   };
@@ -921,18 +943,22 @@ export default function RegisterMerchant() {
   /* ================= SUBMIT (UNCHANGED) ================= */
 
   const registrationPending = useRef(false);
-  const handleRegister = async () => {
+  const paymentPending = useRef(false);
+  const handleRegister = async (verifiedPayment?: NonNullable<typeof paymentDetails>) => {
     if (registrationPending.current) return;
     if (!validateForm()) {
+      if (verifiedPayment || paymentCompleted) setPaymentError('Payment received. Correct the highlighted fields, then retry registration without paying again.');
       Alert.alert('Error', 'Please fill required fields');
       return;
     }
-    if (!paymentCompleted || !paymentDetails?.razorpayPaymentId) {
+    const registrationPayment = verifiedPayment ?? (paymentCompleted ? paymentDetails : null);
+    if (!registrationPayment?.razorpayPaymentId) {
       Alert.alert('Payment Required', `Please pay the ${selectedPlan.name} pack fee before completing registration.`);
       return;
     }
 
     registrationPending.current = true;
+    setPaymentError('');
     setIsLoading(true);
     // ✅ MERGE EXISTING PRODUCTS + CSV PRODUCTS
     const allProducts = [...products, ...customProducts];
@@ -970,12 +996,14 @@ export default function RegisterMerchant() {
       breakEndAt,
       weekOff,
       offer,
+      isPickupEnabled,
+      isSlotBookingEnabled,
       subscriptionPlan: selectedPlanId,
       joiningFee: JOINING_FEE_AMOUNT,
       joiningFeePaid: true,
-      razorpayPaymentId: paymentDetails?.razorpayPaymentId,
-      razorpayOrderId: paymentDetails?.razorpayOrderId,
-      razorpaySignature: paymentDetails?.razorpaySignature,
+      razorpayPaymentId: registrationPayment.razorpayPaymentId,
+      razorpayOrderId: registrationPayment.razorpayOrderId,
+      razorpaySignature: registrationPayment.razorpaySignature,
     };
 
     try {
@@ -1042,6 +1070,7 @@ export default function RegisterMerchant() {
 
       // Show error message with details
       const errorMessage = error.message || 'Registration failed. Please try again.';
+      setPaymentError(`Payment received, but registration could not finish. ${errorMessage} Retry registration below without paying again.`);
       Alert.alert(
         'Registration Failed',
         errorMessage,
@@ -1054,16 +1083,21 @@ export default function RegisterMerchant() {
 
   };
 
-  const handleSuccessClose = (merchantIdValue?: string | number | null) => {
+  const handleSuccessClose = async (merchantIdValue?: string | number | null) => {
     if (successTimerRef.current) {
       clearTimeout(successTimerRef.current);
       successTimerRef.current = null;
     }
     setShowSuccessPopup(false);
-    setUserType('merchant');
+    const nextUserType = user?.userType === 'member' || user?.userType === 'dual'
+      ? 'dual'
+      : 'merchant';
+    await setUserType(nextUserType);
+    await AsyncStorage.setItem('user_role', nextUserType);
+    await AsyncStorage.setItem('user_type', nextUserType === 'dual' ? 'dual' : 'IN_MERCHANT');
     const resolvedId = merchantIdValue ?? successMerchantId;
     router.replace({
-      pathname: '/merchant-dashboard',
+      pathname: nextUserType === 'dual' ? '/dual-dashboard' : '/merchant-dashboard',
       params: resolvedId ? { merchantId: String(resolvedId) } : {},
     });
   };
@@ -1566,6 +1600,32 @@ export default function RegisterMerchant() {
             />
           </View>
 
+          <View style={styles.formGroup}>
+            {[
+              { label: 'Pick @ shop is available', value: isPickupEnabled, setValue: setPickupEnabled, id: 'pickup' },
+              { label: 'Book a slot is available', value: isSlotBookingEnabled, setValue: setSlotBookingEnabled, id: 'slot-booking' },
+            ].map((option) => (
+              <TouchableOpacity
+                key={option.id}
+                style={[styles.row, { marginBottom: 12 }]}
+                accessibilityRole="checkbox"
+                accessibilityLabel={option.label}
+                accessibilityState={{ checked: option.value, disabled: isPaying || isLoading || paymentCompleted }}
+                disabled={isPaying || isLoading || paymentCompleted}
+                testID={`merchant-${option.id}-checkbox`}
+                onPress={() => {
+                  const enabled = !option.value;
+                  option.setValue(enabled);
+                  if (enabled) setSelectedPlanId('LAUNCH');
+                }}
+              >
+                <Ionicons name={option.value ? 'checkbox' : 'square-outline'} size={24} color={option.value ? '#FF8A00' : '#64748B'} />
+                <Text style={{ marginLeft: 8, flex: 1, color: '#1A1A1A' }}>{option.label}</Text>
+              </TouchableOpacity>
+            ))}
+            {(isPickupEnabled || isSlotBookingEnabled) && <Text style={styles.helperText}>These features require the LAUNCH plan.</Text>}
+          </View>
+
           {/* TERMS */}
           <View style={styles.row}>
             <Switch
@@ -1599,13 +1659,15 @@ export default function RegisterMerchant() {
           <View style={styles.plansRow}>
             {PLANS.map((plan) => {
               const isSelected = selectedPlanId === plan.id;
+              const isPlanDisabled = !agreedToTerms || paymentCompleted || isPaying || (plan.id === 'START' && (isPickupEnabled || isSlotBookingEnabled));
               return (
                 <TouchableOpacity
                   key={plan.id}
                   activeOpacity={0.85}
-                  style={[styles.planCard, isSelected && styles.planCardSelected, (!agreedToTerms || paymentCompleted || isPaying) && styles.planCardDisabled]}
-                  disabled={!agreedToTerms || paymentCompleted || isPaying}
-                  onPress={() => agreedToTerms && !paymentCompleted && !isPaying && setSelectedPlanId(plan.id)}
+                  style={[styles.planCard, isSelected && styles.planCardSelected, isPlanDisabled && styles.planCardDisabled]}
+                  disabled={isPlanDisabled}
+                  accessibilityState={{ disabled: isPlanDisabled, selected: isSelected }}
+                  onPress={() => !isPlanDisabled && setSelectedPlanId(plan.id)}
                   testID={`plan-card-${plan.id.toLowerCase()}`}
                 >
                   {plan.recommended && (
@@ -1688,12 +1750,12 @@ export default function RegisterMerchant() {
               <View style={styles.paymentReceivedBanner} testID="payment-received-banner">
                 <Ionicons name="checkmark-circle" size={20} color="#0C8A4A" />
                 <Text style={styles.paymentReceivedText}>
-                  {selectedPlan.name} pack activated — payment received successfully
+                  {isLoading ? 'Payment received. Completing registration...' : `${selectedPlan.name} pack payment received successfully`}
                 </Text>
               </View>
             )}
 
-            {!!paymentError && !paymentCompleted && (
+            {!!paymentError && (
               <View style={styles.paymentErrorBanner} testID="payment-error-banner">
                 <Ionicons name="alert-circle" size={18} color="#D32F2F" />
                 <Text style={styles.paymentErrorText}>{paymentError}</Text>
@@ -1701,19 +1763,21 @@ export default function RegisterMerchant() {
             )}
           </View>
 
-          {/* SUBMIT BUTTON */}
+          {/* Retry registration only if a verified payment could not be registered. */}
+          {paymentCompleted && !!paymentError && !showSuccessPopup && (
           <TouchableOpacity
             style={[styles.submitBtn, (!isFormValid || isLoading) && styles.submitBtnDisabled]}
-            onPress={handleRegister}
-            disabled={!isFormValid || isLoading}
+            onPress={() => void handleRegister()}
+            disabled={!isFormValid || isLoading || isPaying}
             testID="register-as-merchant-btn"
           >
             {isLoading ? (
               <ActivityIndicator color="#FFF" />
             ) : (
-              <Text style={styles.submitText}>Register Merchant</Text>
+              <Text style={styles.submitText}>Retry Registration</Text>
             )}
           </TouchableOpacity>
+          )}
 
           <View style={{ height: 40 }} />
 

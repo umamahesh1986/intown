@@ -3,7 +3,7 @@ import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { isSpecialOfferImageName, isSpecialOfferImageUrl, specialOfferImageFileName } from "./specialOffer";
 import { merchantRecord } from './merchantProfile';
-import { referralNumber, registrationDeviceId } from './referralRegistration';
+import { referralNumber } from './referralRegistration';
 import { intownApiBaseUrl } from './apiBaseUrl';
 
 // ==========================================================================
@@ -255,7 +255,6 @@ export const registerMember = async (memberData: any) => {
       longitude: memberData.location?.longitude,
       images: memberData.images || [],
       referredBy: referralNumber(memberData.referredBy),
-      deviceId: await registrationDeviceId(),
       isPrivileged: true,
       userType: "IN_CUSTOMER",
     };

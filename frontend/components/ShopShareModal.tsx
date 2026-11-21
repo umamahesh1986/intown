@@ -6,6 +6,7 @@ import * as Sharing from 'expo-sharing';
 import { captureRef } from 'react-native-view-shot';
 import { buildShopShareContent, createShopShareImage } from '../utils/shopShare';
 import { INTOWN_API_BASE } from '../utils/api';
+import { BRAND_LOGO } from '../utils/branding';
 
 type Network = 'Facebook' | 'Instagram' | 'WhatsApp';
 const networks = [
@@ -150,7 +151,7 @@ export function ShopShareModal({ visible, onClose, shop, images }: { visible: bo
       <View style={styles.heading}><View style={{ flex: 1, minWidth: 0 }}><Text style={styles.title}>Share this merchant</Text><Text style={styles.subtitle}>Their name, description and INtown download link</Text></View><TouchableOpacity onPress={onClose} disabled={busy} style={styles.close} accessibilityRole="button" accessibilityLabel="Close share preview"><Ionicons name="close" size={24} color="#344054" /></TouchableOpacity></View>
       {visible && <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
         <View key={`${shareKey}-${retry}-${loadingImages}`} ref={cardRef} collapsable={false} onLayout={() => setLaidOut(true)} style={styles.post} testID="shop-share-post-preview">
-          <View style={styles.brand}><Text style={styles.brandText}>INtown · Discover local</Text></View>
+          <View style={[styles.brand, { flexDirection: 'row', alignItems: 'center', gap: 12 }]}><Image source={BRAND_LOGO} style={{ width: 72, height: 36 }} resizeMode="contain" accessibilityLabel="INtown logo" /><Text style={styles.brandText}>Discover local</Text></View>
           {content.imageUrl ? <Image source={{ uri: content.imageUrl }} style={styles.photo} resizeMode="cover" onLoad={() => setImageReady(true)} onError={() => { setImageReady(false); setError('Merchant image could not load. Retry to include the image in your post.'); }} /> : <View style={[styles.photo, styles.placeholder]}><Ionicons name="storefront-outline" size={64} color="#FF8A00" /></View>}
           <View style={styles.postBody}><Text style={styles.merchant}>{content.title}</Text><Text style={styles.kicker}>{content.offers.length ? content.special ? 'SPECIAL OFFER' : 'OFFERS' : 'SHOP LOCAL WITH INTOWN'}</Text>
             <Text style={styles.offer}>{content.description}</Text>
@@ -160,13 +161,13 @@ export function ShopShareModal({ visible, onClose, shop, images }: { visible: bo
           </View>
         </View>
         <Text selectable style={styles.caption} testID="shop-share-caption">{content.caption}</Text>
-        {Platform.OS === 'web' && !!file && <TouchableOpacity onPress={download} disabled={busy} accessibilityRole="button" testID="shop-share-download"><Text style={styles.retry}>Download post image</Text></TouchableOpacity>}
+        {Platform.OS === 'web' && !!file && <TouchableOpacity onPress={download} disabled={busy} accessibilityRole="button" testID="shop-share-download"></TouchableOpacity>}
       </ScrollView>}
       {!!error && <View style={styles.notice}><Text style={styles.error}>{error}</Text><TouchableOpacity onPress={() => setRetry(value => value + 1)} accessibilityRole="button"><Text style={styles.retry}>Retry image</Text></TouchableOpacity></View>}
       {!!hint && <Text style={styles.hint} accessibilityLiveRegion="polite">{hint}</Text>}
       {(preparing || loadingImages) && <View style={styles.progress}><ActivityIndicator color="#FF8A00" /><Text style={styles.subtitle}>{loadingImages ? 'Loading merchant image...' : 'Preparing post image...'}</Text></View>}
       <Text style={styles.instructions}>Share merchant details to send the name, description and download link. For Instagram or image posts, paste the copied caption after attaching the image.</Text>
-      <TouchableOpacity onPress={() => sharePost(undefined, true)} disabled={!ready || busy} accessibilityRole="button" testID="shop-share-image"><Text style={[styles.retry, (!ready || busy) && styles.disabled]}>Share image</Text></TouchableOpacity>
+      {/* <TouchableOpacity onPress={() => sharePost(undefined, true)} disabled={!ready || busy} accessibilityRole="button" testID="shop-share-image"><Text style={[styles.retry, (!ready || busy) && styles.disabled]}>Share image</Text></TouchableOpacity> */}
       <View style={styles.networks}>{networks.map(network => <TouchableOpacity key={network.name} style={[styles.network, (busy || (network.name === 'Instagram' && !ready)) && styles.disabled]} onPress={() => sharePost(network.name)} disabled={busy || (network.name === 'Instagram' && !ready)} accessibilityRole="button" accessibilityLabel={`Share post to ${network.name}`} testID={`shop-share-${network.name.toLowerCase()}`}><Ionicons name={network.icon} size={27} color={network.color} /><Text style={styles.networkText}>{network.name}</Text></TouchableOpacity>)}</View>
       <View style={styles.actions}><TouchableOpacity style={styles.copy} onPress={copyCaption} disabled={busy} accessibilityRole="button"><Ionicons name="copy-outline" size={18} color="#667085" /><Text style={styles.copyText}>Copy caption</Text></TouchableOpacity><TouchableOpacity style={[styles.share, busy && styles.disabled]} onPress={() => sharePost()} disabled={busy} accessibilityRole="button" testID="shop-share-post"><Ionicons name="share-social-outline" size={18} color="#FFF" /><Text style={styles.shareText}>{busy ? 'Sharing...' : 'Share details'}</Text></TouchableOpacity></View>
     </View></View>

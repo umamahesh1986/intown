@@ -1,4 +1,3 @@
-import { BookingButton } from '../components/BookingUI';
 import { View, Text, TouchableOpacity, ScrollView, Image, Modal, Dimensions, ActivityIndicator, Alert, Platform, TextInput, Linking } from 'react-native';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
@@ -9,6 +8,7 @@ import { extractImageUrls, INTOWN_API_BASE, getAllProducts, getMerchantDetailsBy
 import { getNavShop } from '../utils/navCache';
 import { useLocationStore } from '../store/locationStore';
 import { useAuthStore } from '../store/authStore';
+import { isSelfPickup as matchesOwnStore } from '../utils/selfPickup';
 import { LoginRequiredModal } from '../components/LoginRequiredModal';
 import { useNotificationStore } from '../store/notificationStore';
 import { pushOrderPlaced } from '../utils/orderPush';
@@ -20,7 +20,6 @@ import { styles } from '../styles/member-shop-details.styles';
 import { ShopDetailRow } from '../components/ShopDetailRow';
 import { getShopTagline } from '../utils/shopTagline';
 import { ShopShareModal } from '../components/ShopShareModal';
-import { getMerchantPlanById } from '../utils/merchantPlans';
 
 const PROMO_HERO = require('../assets/images/promo/promo-3.jpg');
 
@@ -46,6 +45,7 @@ interface ShopData {
     s3ImageUrl: string;
   }>;
   distance: number;
+  isPickupEnabled?: boolean;
   isSlotBookingEnabled?: boolean;
   openAt?: string;
   closeAt?: string;
@@ -89,19 +89,6 @@ export default function MemberShopDetails() {
   const requiresLogin = isGuest || !isAuthenticated;
 
   // ================= ORDER FEATURE STATE =================
-  const SUPPORTED_ORDER_CATEGORIES = [
-    'restaurants',
-    'pharmacy',
-    'dairy products',
-    'Restaurants',
-    'meat',
-    'bakery',
-    'stationery',
-    'bags & accessories',
-    'electronics & home appliances',
-    'groceries',
-  ];
-
   // Product coming from /IN/products/ grouped by unit-type
   interface OrderProduct {
     id: number;
@@ -261,7 +248,9 @@ export default function MemberShopDetails() {
               specialOffers: 'specialOffers' in details ? details.specialOffers : prev.specialOffers,
               specialOfferEndDate: 'specialOfferEndDate' in details ? details.specialOfferEndDate : prev.specialOfferEndDate,
               merchantSubscriptionPlan: details.merchantSubscriptionPlan ?? null,
+              isPickupEnabled: details.isPickupEnabled === true,
               isSlotBookingEnabled: details.isSlotBookingEnabled === true,
+              phoneNumber: details.phoneNumber ?? prev.phoneNumber,
             }
           : prev,
       );
@@ -330,12 +319,15 @@ export default function MemberShopDetails() {
   };
 
   // ================= ORDER FEATURE HANDLERS =================
-  const isOrderCategorySupported = (category?: string) => {
-    if (!category) return false;
-    return SUPPORTED_ORDER_CATEGORIES.includes(category.trim().toLowerCase());
-  };
-  const canPickAtStore = getMerchantPlanById(shop?.merchantSubscriptionPlan)?.id === 'LAUNCH'
-    && isOrderCategorySupported(shop?.businessCategory);
+  const canPickAtStore = shop?.isPickupEnabled === true;
+  const isSelfPickup = isAuthenticated && !isGuest && matchesOwnStore(user?.phone, shop?.phoneNumber);
+
+  useEffect(() => {
+    if (isSelfPickup) {
+      setShowOrderModal(false);
+      setShowPayment(false);
+    }
+  }, [isSelfPickup]);
 
   // Deterministic pastel color per product name (Blinkit-style tile bg)
   const productTileColor = (name: string) => {
@@ -362,7 +354,7 @@ export default function MemberShopDetails() {
   };
 
   const openOrderModal = async () => {
-    if (!canPickAtStore) return;
+    if (!canPickAtStore || isSelfPickup) return;
     setOrderError('');
     setSelectedItems({});
     setChosenUnit({});
@@ -444,7 +436,7 @@ export default function MemberShopDetails() {
   };
 
   const handleSubmitOrder = async () => {
-    if (!canPickAtStore) return;
+    if (!canPickAtStore || isSelfPickup) return;
     setOrderError('');
     if (!customerId) {
       Alert.alert('Login Required', 'Please login again to place an order.');
@@ -680,9 +672,12 @@ export default function MemberShopDetails() {
           <Text style={styles.shopTagline} testID="shop-tagline">{getShopTagline(shop.businessCategory)}</Text>
 
           {/* Order Button — visible only for supported categories */}
-          {canPickAtStore && (
+          {canPickAtStore && !isSelfPickup && (
             <TouchableOpacity
-              style={styles.orderBtn}
+              style={[styles.orderBtn, isSelfPickup && styles.orderBtnDisabled]}
+              disabled={isSelfPickup}
+              accessibilityRole="button"
+              accessibilityState={{ disabled: isSelfPickup }}
               onPress={() => {
                 if (isUserFlow) {
                   setShowRegistrationModal(true);
@@ -696,11 +691,14 @@ export default function MemberShopDetails() {
               <Text style={styles.orderBtnText}>Pick @ Shop</Text>
             </TouchableOpacity>
           )}
-          {shop.isSlotBookingEnabled === true && (
+          {shop.isSlotBookingEnabled === true && !isSelfPickup && (
             <TouchableOpacity
-              style={styles.orderBtn}
+              style={[styles.orderBtn, isSelfPickup && styles.orderBtnDisabled]}
+              disabled={isSelfPickup}
               accessibilityRole="button"
+              accessibilityState={{ disabled: isSelfPickup }}
               onPress={() => {
+                if (isSelfPickup) return;
                 if (requiresLogin) {
                   setShowLoginModal(true);
                   return;
@@ -728,7 +726,6 @@ export default function MemberShopDetails() {
           </View>
         </View>
 
-        {/restaurant|salon|saloon|clinic|hospital/i.test(shop.businessCategory || '') && shop.isSlotBookingEnabled !== true && <View style={[styles.infoCard, { gap: 8 }]}><Text style={{ fontWeight: '800', color: '#14223B', fontSize: 16 }}>Slot Booking</Text><Text style={{ color: '#64748B', lineHeight: 20 }}>Online slot booking is not enabled for this merchant yet. When enabled, choose your date and time here, request a booking, and wait for merchant confirmation.</Text><BookingButton title="My Bookings" onPress={() => router.push('/my-bookings')} /></View>}
         {/* Info Card */}
         <View style={styles.infoCard}>
           <ShopDetailRow icon="business-outline" tint="#FF8A00" tintBg="#FFF3E0" label="Business" value={shop.businessName || 'N/A'} />
@@ -874,10 +871,15 @@ export default function MemberShopDetails() {
       <ShopContent />
       <ShopShareModal visible={showShopShare} onClose={() => setShowShopShare(false)} shop={shop} images={shopImages} />
 
-      <View style={styles.bottomButtons}>
+      {!isSelfPickup && <View style={styles.bottomButtons}>
         <TouchableOpacity
-          style={styles.navigateBtn}
+          style={[styles.navigateBtn, isSelfPickup && styles.orderBtnDisabled]}
+          disabled={isSelfPickup}
+          accessibilityRole="button"
+          accessibilityState={{ disabled: isSelfPickup }}
+          testID="shop-navigate-btn"
           onPress={() => {
+            if (isSelfPickup) return;
             if (requiresLogin) {
               setShowLoginModal(true);
               return;
@@ -902,8 +904,13 @@ export default function MemberShopDetails() {
           <Text style={styles.navigateBtnText}>Navigate</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={styles.payBtn}
+          style={[styles.payBtn, isSelfPickup && styles.orderBtnDisabled]}
+          disabled={isSelfPickup}
+          accessibilityRole="button"
+          accessibilityState={{ disabled: isSelfPickup }}
+          testID="shop-payment-btn"
           onPress={() => {
+            if (isSelfPickup) return;
             if (requiresLogin) {
               setShowLoginModal(true);
               return;
@@ -918,10 +925,10 @@ export default function MemberShopDetails() {
           <Ionicons name="card" size={20} color="#FFF" />
           <Text style={styles.payBtnText}>Payment Process</Text>
         </TouchableOpacity>
-      </View>
+      </View>}
 
       <PaymentModal
-        visible={showPayment}
+        visible={showPayment && !isSelfPickup}
         onClose={() => setShowPayment(false)}
         onSuccess={handlePaymentSuccess}
         merchantId={shop.id}
@@ -1238,7 +1245,7 @@ export default function MemberShopDetails() {
 
               {(() => {
                 const totalItems = Object.values(selectedItems).reduce((sum, i) => sum + (i.quantity || 0), 0);
-                const canSubmit = totalItems > 0 && !!orderType && !isSubmittingOrder;
+                const canSubmit = totalItems > 0 && !!orderType && !isSubmittingOrder && !isSelfPickup;
                 return (
                   <TouchableOpacity
                     style={[styles.orderSubmitBtn, !canSubmit && styles.orderSubmitBtnDisabled]}

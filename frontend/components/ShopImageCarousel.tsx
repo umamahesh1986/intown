@@ -12,6 +12,7 @@ interface CarouselSlide {
 const SLIDES: CarouselSlide[] = [
   { key: 'everything-within-500m', image: require('../assets/carousel/INtown-ios-1.jpeg') },
   { key: 'buy-local-support-local', image: require('../assets/carousel/INtown-ios-2.jpeg') },
+  { key: 'shop-local-support-local', image: require('../assets/carousel/INtown-ios-3.jpeg') },
 ];
 
 const SLIDE_DURATION_MS = 3000;
@@ -52,6 +53,8 @@ export function ShopImageCarousel() {
 const styles = StyleSheet.create({
   slide: {
     flex: 1,
+    minHeight: 0,
+    overflow: 'hidden',
     width: '100%',
     backgroundColor: '#FFF6ED',
   },

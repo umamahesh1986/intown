@@ -1,3 +1,4 @@
+import { BRAND_LOGO } from '../utils/branding';
 import { View, Text, StyleSheet, Image, Platform, Pressable } from 'react-native';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
@@ -127,7 +128,7 @@ export default function SplashScreen() {
     <View style={styles.container}>
       <View style={styles.logoContainer}>
         <Image
-          source={{uri:'https://intown-dev.s3.ap-south-1.amazonaws.com/app_logo/intown-logo.jpg'}}
+          source={BRAND_LOGO}
           style={styles.logoImage}
           resizeMode="contain"
         />
@@ -151,7 +152,7 @@ const styles = StyleSheet.create({
   },
   logoImage: {
     width: 250,
-    height: 100,
+    height: 122,
     marginBottom: 8,
   },
   tagline: {
@@ -165,10 +166,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF6ED',
   },
   carouselFooter: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
+    flexShrink: 0,
     padding: 24,
     paddingBottom: 60,
     alignItems: 'center',
