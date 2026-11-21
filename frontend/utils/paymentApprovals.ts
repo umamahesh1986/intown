@@ -5,6 +5,10 @@ export interface PendingPayment {
   customerId: number;
   merchantId: number;
   customerName?: string;
+  transactionDate?: string | null;
+  createdAt?: string | null;
+  expiresAt?: string | null;
+  otpExpiresAt?: string | null;
   totalPrice: number;
   payablePrice: number;
   inTownSavings?: number;

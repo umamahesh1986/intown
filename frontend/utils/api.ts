@@ -247,7 +247,7 @@ export const registerMember = async (memberData: any) => {
     
     const payload = {
       contactName: memberData.contactName,
-      email: memberData.email,
+      ...(memberData.email?.trim() ? { email: memberData.email.trim() } : {}),
       phoneNumber: cleanPhone,
       pincode: memberData.pincode,
       address: memberData.address || '',

@@ -119,7 +119,7 @@ export const presentLocalNotification = async (title: string, body: string, data
     await ensureAndroidChannel();
     await Notifications.scheduleNotificationAsync({
       content: { title, body, data: data as Record<string, unknown>, sound: 'default' },
-      trigger: null,
+      trigger: Platform.OS === 'android' ? { channelId: CHANNEL_ID } : null,
     });
   } catch (e) {
     console.warn('[push] local notification failed', e);

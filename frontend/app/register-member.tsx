@@ -191,7 +191,7 @@ export default function RegisterMember() {
 
     // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!email || !emailRegex.test(email)) {
+    if (email.trim() && !emailRegex.test(email.trim())) {
       newErrors.email = 'Please enter a valid email address';
     }
 
@@ -232,7 +232,7 @@ export default function RegisterMember() {
   const isFormValid = (
     !!contactName && contactName.trim().length >= 2 &&
     !!location &&
-    !!email && emailRegexFlag.test(email) &&
+    (!email.trim() || emailRegexFlag.test(email.trim())) &&
     !!phoneNumber && phoneRegexFlag.test(phoneNumber) &&
     !!pincode && pincodeRegexFlag.test(pincode) &&
     referredByValid &&
@@ -358,7 +358,7 @@ export default function RegisterMember() {
       const memberData = {
         contactName,
         location,
-        email,
+        email: email.trim(),
         phoneNumber,
         pincode,
         address,
@@ -521,7 +521,7 @@ export default function RegisterMember() {
 
           {/* Email */}
           <View style={styles.formGroup}>
-            <Text style={styles.label}>Email *</Text>
+            <Text style={styles.label}>Email (optional)</Text>
             <TextInput
               style={[styles.input, errors.email && styles.inputError]}
               value={email}

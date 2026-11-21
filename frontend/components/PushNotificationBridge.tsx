@@ -5,6 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNotificationStore } from '../store/notificationStore';
 import {
   isNativePush,
+  isPushRegistered,
   registerForPushNotifications,
   notificationFromPushData,
   PushData,
@@ -29,8 +30,8 @@ export default function PushNotificationBridge() {
       ]);
       const key = `${merchantId ?? ''}|${customerId ?? ''}`;
       if (key === '|' || key === registeredForRef.current) return;
-      registeredForRef.current = key;
-      await registerForPushNotifications({ merchantId, customerId });
+      const token = await registerForPushNotifications({ merchantId, customerId });
+      if (token && await isPushRegistered()) registeredForRef.current = key;
     })();
   }, [pathname]);
 

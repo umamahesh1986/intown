@@ -8,8 +8,8 @@ const source = ts.transpileModule(fs.readFileSync(path.join(__dirname, '../compo
 }).outputText;
 
 async function check(fails) {
-  const payment = { transactionId: 42, customerId: 10, merchantId: 20, status: 'PENDING_APPROVAL', pointsEarned: 25, payablePrice: 225, totalPrice: 250 };
-  const states = [[payment], false, '', '', null, 0]; let index = 0; let calls = 0; let refreshed = 0;
+  const payment = { transactionId: 42, customerId: 10, merchantId: 20, status: 'PENDING_APPROVAL', pointsEarned: 25, payablePrice: 225, totalPrice: 250, otpExpiresAt: new Date(Date.now() + 60000).toISOString() };
+  const states = [[payment], false, '', '', null, 0, Date.now()]; let index = 0; let calls = 0; let refreshed = 0;
   let finish;
   const result = new Promise((resolve, reject) => { finish = () => fails ? reject(new Error('Approval denied')) : resolve({ ...payment, status: 'COMPLETED', pointsEarned: 25 }); });
   const jsx = (type, props) => ({ type, props });
@@ -23,19 +23,27 @@ async function check(fails) {
       if (name === 'react-native') return { StyleSheet: { create: value => value }, View: 'View', Text: 'Text', TouchableOpacity: 'Button', ActivityIndicator: 'Spinner' };
       if (name === '@react-navigation/native') return { useFocusEffect() {} };
       if (name === '@expo/vector-icons') return { Ionicons: 'Icon' };
+      if (name.includes('incoinsStore')) return { useINCoinsStore: { getState: () => ({ refresh: () => {} }) } };
       return { approvePayment: async id => { assert.equal(id, 42); calls++; return result; } };
     },
   };
   vm.runInNewContext(source, scope);
+  const expiryTime = vm.runInNewContext('expiryTime', scope);
+  const start = '2026-11-21T12:00:00Z';
+  assert.equal(expiryTime({ transactionDate: start }), null);
+  assert.equal(expiryTime({ transactionDate: start, otpExpiresAt: '2026-11-21T12:05:00Z' }), Date.parse('2026-11-21T12:05:00Z'));
+  assert.equal(expiryTime({ otpExpiresAt: 'invalid' }), null);
   const tree = scope.exports.MerchantPaymentApprovals({ merchantId: 20, onApproved: () => { refreshed++; } });
-  let button;
+  let button; let progress;
   const visit = node => {
     if (!node || typeof node !== 'object') return;
     if (Array.isArray(node)) return node.forEach(visit);
     if (node.props?.testID === 'approve-payment-42') button = node;
+    if (node.props?.testID === 'approval-progress-42') progress = node;
     visit(node.props?.children);
   };
   visit(tree); assert.ok(button);
+  assert.ok(parseFloat(progress.props.style.width) > 6 && parseFloat(progress.props.style.width) < 7, 'One minute remaining fills one fifteenth of the bar, even without a transaction date');
   const first = button.props.onPress(); const second = button.props.onPress();
   assert.equal(calls, 1, 'Repeated taps must not send duplicate approvals');
   finish(); await Promise.all([first, second]);

@@ -618,7 +618,7 @@ export default function UserDashboard() {
               onPress={() => setShowLocationModal(true)}
             >
               <View style={styles.locationIcon}>
-              <MaterialIcons name="location-on" size={24} color="#FF8C00" />
+              <Image source={require('../assets/branding/icon.png')} style={{ width: 32, height: 32, borderRadius: 7 }} />
               </View>
 
               <View style={styles.locationCopy}>

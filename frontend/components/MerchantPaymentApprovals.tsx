@@ -8,6 +8,20 @@ import { GradientSectionHeading } from './GradientSectionHeading';
 import { MerchantCardAccent, merchantCardSurface } from './MerchantCardAccent';
 import { approvePayment, getPendingPayments, PendingPayment } from '../utils/paymentApprovals';
 
+function paymentDateTime(payment: PendingPayment): string {
+  const raw = payment.transactionDate || payment.createdAt;
+  if (!raw) return 'Date and time unavailable';
+  const date = new Date(raw);
+  if (Number.isNaN(date.getTime())) return 'Date and time unavailable';
+  return date.toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+}
+
+function expiryTime(payment: PendingPayment): number | null {
+  if (!payment.otpExpiresAt) return null;
+  const value = new Date(payment.otpExpiresAt).getTime();
+  return Number.isFinite(value) ? value : null;
+}
+
 export function MerchantPaymentApprovals({ merchantId, token, onApproved }: {
   merchantId: string | number | null; token?: string | null; onApproved?: () => void;
 }) {
@@ -17,6 +31,7 @@ export function MerchantPaymentApprovals({ merchantId, token, onApproved }: {
   const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState<number | null>(null);
   const [revision, setRevision] = useState(0);
+  const [now, setNow] = useState(Date.now());
   const lock = useRef(false);
   const currentMerchant = useRef(merchantId);
   currentMerchant.current = merchantId;
@@ -25,6 +40,11 @@ export function MerchantPaymentApprovals({ merchantId, token, onApproved }: {
   useEffect(() => {
     setPayments([]); setLoading(true); setError(''); setNotice('');
   }, [merchantId]);
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   useFocusEffect(useCallback(() => {
     if (!merchantId) { setLoading(false); return; }
@@ -45,7 +65,8 @@ export function MerchantPaymentApprovals({ merchantId, token, onApproved }: {
   }, [merchantId, token, revision]));
 
   const approve = async (payment: PendingPayment) => {
-    if (lock.current || String(payment.merchantId) !== String(merchantId)) return;
+    const expires = expiryTime(payment);
+    if (lock.current || String(payment.merchantId) !== String(merchantId) || expires === null || expires <= Date.now()) return;
     lock.current = true; setBusy(payment.transactionId); setError(''); setNotice('');
     try {
       const result = await approvePayment(payment.transactionId, token);
@@ -76,25 +97,39 @@ export function MerchantPaymentApprovals({ merchantId, token, onApproved }: {
     {!!error && <Text style={styles.error} accessibilityLiveRegion="polite">{error}</Text>}
     {!!notice && <Text style={styles.notice} accessibilityLiveRegion="polite">{notice}</Text>}
     {loading && <ActivityIndicator color="#FF8A00" />}
-    {payments.map(payment => <View key={payment.transactionId} style={styles.payment} testID={`payment-approval-${payment.transactionId}`}>
+    {payments.map(payment => {
+      const expires = expiryTime(payment);
+      const remaining = expires === null ? null : Math.max(0, Math.ceil((expires - now) / 1000));
+      const expired = remaining === 0;
+      const unavailable = remaining === null;
+      const progress = expires !== null ? Math.max(0, Math.min(1, (expires - now) / (15 * 60 * 1000))) : 0;
+      return <View key={payment.transactionId} style={styles.payment} testID={`payment-approval-${payment.transactionId}`}>
       <View style={styles.identity}>
         <LinearGradient colors={['#9460FF', '#D442D0']} start={{ x: 0, y: 1 }} end={{ x: 1, y: 0 }} style={styles.avatar}><Text style={styles.initials}>{payment.customerName?.trim().split(/\s+/).slice(0, 2).map(word => word[0]).join('').toUpperCase() || '?'}</Text></LinearGradient>
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text style={styles.customer}>{payment.customerName || 'Customer name unavailable'}</Text>
-          <View style={styles.transactionRow}><Text style={styles.transaction}>Transaction #{payment.transactionId}</Text><View style={styles.separator} /><View style={styles.status}><View style={styles.statusDot} /><Text style={styles.statusText}>Awaiting approval</Text></View></View>
+          <Text style={styles.customerId}>Cust ID #{payment.customerId}</Text>
         </View>
+        <View style={styles.status}><View style={styles.statusDot} /><Text style={styles.statusText}>{expired ? 'Expired' : 'Awaiting approval'}</Text></View>
+      </View>
+      <View style={styles.timeBox}>
+        <View style={styles.timeRow}><Text style={styles.timeLabel}>◷  Transaction Time</Text><Text style={styles.timeValue}>{paymentDateTime(payment)}</Text></View>
+        <View style={styles.timeRow}><Text style={styles.timeLabel}>OTP Expires In</Text><Text style={styles.countdown} testID={`approval-countdown-${payment.transactionId}`}>{unavailable ? 'Expiry unavailable' : expired ? 'Expired' : `${Math.floor(remaining / 60)}m ${String(remaining % 60).padStart(2, '0')}s left`}</Text></View>
+        <View style={styles.progressTrack}><LinearGradient testID={`approval-progress-${payment.transactionId}`} colors={['#1DBB80', '#FF8A00', '#EF4444']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ height: 6, width: `${progress * 100}%`, borderRadius: 4 }} /></View>
       </View>
       <View style={styles.breakdown}>
         <View style={styles.paid}><Text style={styles.paidLabel}>CUSTOMER PAID</Text><Text style={styles.paidAmount}>{currency(payment.payablePrice)}</Text></View>
         <View style={styles.bill}><Text style={styles.billLabel}>TOTAL BILL</Text><Text style={styles.billAmount}>{currency(payment.totalPrice)}</Text></View>
         <View style={styles.discount}><Text style={styles.discountLabel}>DISCOUNT</Text><Text style={styles.discountValue}>{currency(Math.max(0, Number(payment.totalPrice) - Number(payment.payablePrice)))} off</Text></View>
       </View>
-      <TouchableOpacity disabled={busy !== null} onPress={() => approve(payment)} style={[styles.buttonWrap, busy !== null && { opacity: 0.5 }]} accessibilityRole="button" testID={`approve-payment-${payment.transactionId}`}>
+      {payment.pointsEarned != null && <View style={styles.rewardRow}><Text style={styles.timeLabel}>Rewards Benefit</Text><Text style={styles.rewardValue}>+{payment.pointsEarned} INCoins to {payment.customerName || 'customer'}</Text></View>}
+      <TouchableOpacity disabled={busy !== null || expired || unavailable} onPress={() => approve(payment)} style={[styles.buttonWrap, (busy !== null || expired || unavailable) && { opacity: 0.5 }]} accessibilityRole="button" testID={`approve-payment-${payment.transactionId}`}>
         <LinearGradient colors={['#FF7B12', '#F45100']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.button}>
           {busy === payment.transactionId ? <ActivityIndicator color="#FFF" /> : <><View style={styles.check}><Ionicons name="checkmark" size={15} color="#FFF" /></View><Text style={styles.buttonText}>Approve payment &amp; INCoins</Text></>}
         </LinearGradient>
       </TouchableOpacity>
-    </View>)}
+      <Text style={styles.declineUnavailable}>Decline / Flag unavailable</Text>
+    </View>})}
   </View>;
 }
 
@@ -107,7 +142,11 @@ const styles = StyleSheet.create({
   count: { minWidth: 21, height: 21, paddingHorizontal: 5, borderRadius: 11, alignItems: 'center', justifyContent: 'center' }, countText: { fontSize: 12, fontWeight: '700', color: '#FFF' },
   refresh: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#FFF3E3', alignItems: 'center', justifyContent: 'center' },
   subtitle: { fontSize: 12, color: '#667085', lineHeight: 18, marginBottom: 8 },
-  payment: { paddingTop: 14, marginTop: 6, borderTopWidth: 1, borderTopColor: '#E7EDF4' },
+  payment: { padding: 14, marginTop: 10, borderWidth: 1, borderColor: '#FF8A00', borderRadius: 18 },
+  customerId: { alignSelf: 'flex-start', color: '#64748B', fontSize: 10, fontWeight: '700', backgroundColor: '#F1F5F9', paddingHorizontal: 6, paddingVertical: 3, borderRadius: 4 },
+  timeBox: { backgroundColor: '#F8FAFC', borderWidth: 1, borderColor: '#DFE7F1', borderRadius: 13, padding: 12, marginBottom: 14, gap: 10 },
+  timeRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 6 }, timeLabel: { color: '#71839F', fontSize: 12, fontWeight: '600', flexShrink: 1 }, timeValue: { color: '#17243B', fontSize: 11, fontWeight: '700', flexShrink: 1, textAlign: 'right' }, countdown: { color: '#EA7600', fontSize: 12, fontWeight: '700' }, progressTrack: { height: 6, borderRadius: 4, backgroundColor: '#E2E8F0', overflow: 'hidden' },
+  rewardRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 8, marginBottom: 6 }, rewardValue: { color: '#F07000', fontSize: 12, fontWeight: '700', flexShrink: 1, textAlign: 'right' }, declineUnavailable: { color: '#9C7A7A', fontSize: 11, marginTop: 12 },
   identity: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 14 }, avatar: { width: 40, height: 40, borderRadius: 16, alignItems: 'center', justifyContent: 'center' }, initials: { color: '#FFF', fontWeight: '800', fontSize: 12 }, customer: { fontSize: 14, color: '#101E34', fontWeight: '800', marginBottom: 5 },
   transactionRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }, transaction: { color: '#72839D', fontSize: 11 }, separator: { width: 5, height: 5, borderRadius: 3, backgroundColor: '#CBD6E5' }, status: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 7, paddingVertical: 3, backgroundColor: '#FFFBEB', borderWidth: 1, borderColor: '#FFD47A', borderRadius: 20 }, statusDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: '#FFA000' }, statusText: { fontSize: 10, color: '#D58200', fontWeight: '600' },
   breakdown: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#F7F9FF', borderWidth: 1, borderColor: '#DFE8FF', borderRadius: 17, padding: 12, marginBottom: 12 },
