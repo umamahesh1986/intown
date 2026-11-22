@@ -70,6 +70,13 @@ export default function Account() {
     }, [merchantId]),
   );
   const [isMerchant, setIsMerchant] = useState(false);
+  const serviceEditOpened = useRef(false);
+  useEffect(() => {
+    if (params.section === 'services' && !serviceEditOpened.current && !isProfileLoading && !profileError && isMerchant) {
+      serviceEditOpened.current = true;
+      setEditing(true);
+    }
+  }, [params.section, isProfileLoading, profileError, isMerchant]);
   const [hasMerchantIdentity, setHasMerchantIdentity] = useState(false);
   const [isDualUser, setIsDualUser] = useState(false);
 

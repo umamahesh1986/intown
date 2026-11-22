@@ -1179,7 +1179,7 @@ export default function DualDashboard() {
 
         {/* Transactions Section (merchant tab only — customers see deals instead) */}
         {activeTab === 'merchant' && <MerchantOrderHistoryLink />}
-        {activeTab === 'merchant' && <MerchantServiceSettings merchantId={merchantId} token={token} />}
+        {activeTab === 'merchant' && <MerchantServiceSettings merchantId={merchantId} token={token} from="dual-merchant" />}
         <View style={activeTab === 'merchant' ? styles.merchantBookingSection : { paddingHorizontal: 16, marginVertical: 10 }}>{activeTab === 'merchant' ? <ManageSlotBookingsButton onPress={() => router.push('/merchant-bookings')} /> : <BookingButton title="My Bookings" onPress={() => router.push('/my-bookings')} />}</View>
         {activeTab === 'merchant' && <MerchantPaymentApprovals merchantId={merchantId} token={token} onApproved={() => setSalesRefresh(value => value + 1)} />}
         {activeTab === 'merchant' && (
