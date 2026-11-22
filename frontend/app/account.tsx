@@ -83,6 +83,7 @@ export default function Account() {
   const [description, setDescription] = useState('');
   const [branches, setBranches] = useState('');
   const [fromYears, setFromYears] = useState('');
+  const [isPickupEnabled, setPickupEnabled] = useState(false);
   const [isSlotBookingEnabled, setSlotBookingEnabled] = useState(false);
   const [slotCapacity, setSlotCapacity] = useState('1');
   const [openAt, setOpenAt] = useState('');
@@ -339,6 +340,7 @@ export default function Account() {
         setBranches(m.branchesOfBusiness == null ? '' : String(m.branchesOfBusiness));
         setFromYears(m.fromYears == null ? '' : String(m.fromYears));
         setOpenAt(m.openAt || '');
+        setPickupEnabled(m.isPickupEnabled === true);
         setSlotBookingEnabled(m.isSlotBookingEnabled === true);
         setSlotCapacity(String(m.slotCapacity || 1));
         setCloseAt(m.closeAt || '');
@@ -443,6 +445,7 @@ export default function Account() {
         const capacity = Number(slotCapacity);
         if (!Number.isSafeInteger(capacity) || capacity < 1) { Alert.alert('Invalid capacity', 'Enter a positive whole number for slot capacity.'); return; }
         const edited: any = {
+          isPickupEnabled,
           isSlotBookingEnabled,
           slotCapacity: capacity,
           shopName: name,
@@ -1248,13 +1251,15 @@ export default function Account() {
             </View>
 
             <View style={styles.card}>
+              <Text style={styles.sectionTitle}>Pick @ Shop</Text>
+              <Text style={styles.label}>Allow customers to place pickup orders</Text>
+              <Switch accessibilityLabel="Enable Pick @ Shop" testID="account-pickup-switch" value={isPickupEnabled} disabled={!editing || merchantPlan !== 'LAUNCH'} onValueChange={setPickupEnabled} trackColor={{ false: '#CBD5E1', true: '#FFB86A' }} thumbColor={isPickupEnabled ? '#FF7900' : '#F1F5F9'} />
+            </View>
+
+            <View style={styles.card}>
               <Text style={styles.sectionTitle}>Slot Booking</Text>
               <Text style={styles.label}>Enable one-hour bookings</Text>
-              <Switch accessibilityLabel="Enable slot booking" value={isSlotBookingEnabled} disabled={!editing} onValueChange={setSlotBookingEnabled} trackColor={{ false: '#CBD5E1', true: '#FFB86A' }} thumbColor={isSlotBookingEnabled ? '#FF7900' : '#F1F5F9'} />
-              <Text style={styles.label}>Concurrent bookings per hour</Text>
-              <TextInput accessibilityLabel="Slot capacity" value={slotCapacity} onChangeText={setSlotCapacity} keyboardType="number-pad" editable={editing} style={{ borderWidth: 1, borderColor: '#DCE2EB', borderRadius: 12, padding: 12, color: '#14223B' }} />
-              <Text style={styles.value}>Slots follow your business timings, breaks and weekly days off below. Save your profile to apply changes.</Text>
-              <BookingButton title="Manage Bookings" onPress={() => router.push('/merchant-bookings')} />
+              <Switch accessibilityLabel="Enable slot booking" value={isSlotBookingEnabled} disabled={!editing || merchantPlan !== 'LAUNCH'} onValueChange={setSlotBookingEnabled} trackColor={{ false: '#CBD5E1', true: '#FFB86A' }} thumbColor={isSlotBookingEnabled ? '#FF7900' : '#F1F5F9'} />
             </View>
             {/* BUSINESS TIMINGS */}
             <View style={styles.card}>

@@ -4039,7 +4039,7 @@ expo-constants@~18.0.12:
     "@expo/config" "~12.0.12"
     "@expo/env" "~2.0.8"
 
-expo-constants@~18.0.13:
+expo-constants@~18.0.13, expo-constants@~18.0.14:
   version "18.0.14"
   resolved "https://registry.yarnpkg.com/expo-constants/-/expo-constants-18.0.14.tgz#fb60b93f498d76ebf0a42e0e6e55a2b2d84ede76"
   integrity sha512-BUZm9mkl/TX7zNaN0N4C83ws7mEnesCFiKhqK+rMZwTD2+Q4wWB2kBltqnC/LrCRaMyRi40XxhCRVwuKnJkxXQ==
