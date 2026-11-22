@@ -4,7 +4,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { INTOWN_API_BASE } from '../utils/api';
 import { merchantRecord } from '../utils/merchantProfile';
 
-type MerchantServices = { isPickupEnabled: boolean; isSlotBookingEnabled: boolean; merchantSubscriptionPlan: string };
+type MerchantServices = { isPickupEnabled: boolean | null; isSlotBookingEnabled: boolean | null; merchantSubscriptionPlan: string | null };
 
 export function MerchantServiceSettings({ merchantId, token }: { merchantId: string | null; token: string | null }) {
   const [profile, setProfile] = useState<MerchantServices | null>(null);
@@ -15,8 +15,8 @@ export function MerchantServiceSettings({ merchantId, token }: { merchantId: str
     const response = await fetch(`${INTOWN_API_BASE}/merchant/${encodeURIComponent(merchantId)}`, { headers: { Accept: 'application/json', Authorization: `Bearer ${token}` } });
     if (!response.ok) throw new Error('Unable to load service settings.');
     const data = merchantRecord(await response.json());
-    if (!data || String(data.id) !== merchantId || typeof data.isPickupEnabled !== 'boolean' || typeof data.isSlotBookingEnabled !== 'boolean' || typeof data.merchantSubscriptionPlan !== 'string') throw new Error('Service settings are unavailable.');
-    return { isPickupEnabled: data.isPickupEnabled, isSlotBookingEnabled: data.isSlotBookingEnabled, merchantSubscriptionPlan: data.merchantSubscriptionPlan };
+    if (!data || String(data.id) !== merchantId) throw new Error('Service settings are unavailable.');
+    return { isPickupEnabled: typeof data.isPickupEnabled === 'boolean' ? data.isPickupEnabled : null, isSlotBookingEnabled: typeof data.isSlotBookingEnabled === 'boolean' ? data.isSlotBookingEnabled : null, merchantSubscriptionPlan: typeof data.merchantSubscriptionPlan === 'string' ? data.merchantSubscriptionPlan : null };
   }, [merchantId, token]);
 
   useFocusEffect(useCallback(() => {
@@ -29,8 +29,8 @@ export function MerchantServiceSettings({ merchantId, token }: { merchantId: str
   if (!profile && !error) return <View style={styles.card}><ActivityIndicator color="#FF7900" /></View>;
   return <View style={styles.card}>
     <Text style={styles.title}>Customer services</Text>
-    {profile?.merchantSubscriptionPlan.toUpperCase() !== 'LAUNCH' && profile && <Text style={styles.copy}>Available with the LAUNCH plan.</Text>}
-    {profile && ([['isPickupEnabled', 'Pick @ Shop'], ['isSlotBookingEnabled', 'Book a slot']] as const).map(([key, label]) => <View key={key} style={styles.row}><Text style={styles.label}>{label}</Text><View style={[styles.badge, profile[key] ? styles.enabledBadge : styles.disabledBadge]}><Text style={profile[key] ? styles.enabled : styles.disabled}>{profile[key] ? 'Enabled' : 'Disabled'}</Text></View></View>)}
+    {profile?.merchantSubscriptionPlan && profile.merchantSubscriptionPlan.toUpperCase() !== 'LAUNCH' && <Text style={styles.copy}>Available with the LAUNCH plan.</Text>}
+    {profile && ([['isPickupEnabled', 'Pick @ Shop'], ['isSlotBookingEnabled', 'Book a slot']] as const).map(([key, label]) => <View key={key} style={styles.row}><Text style={styles.label}>{label}</Text><View style={[styles.badge, profile[key] === true ? styles.enabledBadge : styles.disabledBadge]}><Text style={profile[key] === true ? styles.enabled : styles.disabled}>{profile[key] === null ? 'Unavailable' : profile[key] ? 'Enabled' : 'Disabled'}</Text></View></View>)}
     {!!error && <Text accessibilityLiveRegion="polite" style={styles.error}>{error}</Text>}
   </View>;
 }

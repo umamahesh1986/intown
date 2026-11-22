@@ -323,6 +323,8 @@ export const registerMerchant = async (merchantData: any) => {
       address: merchantData.address,
       referredBy: referralNumber(merchantData.referredBy ?? merchantData.introducedBy),
       subscriptionPlan: merchantData.subscriptionPlan,
+      isPickupEnabled: merchantData.isPickupEnabled === true,
+      isSlotBookingEnabled: merchantData.isSlotBookingEnabled === true,
       images: merchantData.images || [],
       agreedToTerms: merchantData.agreedToTerms,
       categoryList: merchantData.categoryList || [],
