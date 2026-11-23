@@ -57,6 +57,7 @@
         }
       ],
       "expo-build-properties",
+      "./plugins/withStoreUpdate",
       "./plugins/withOptionalPortraitFeature",
       "./plugins/withUpiQueries",
       [

@@ -9,18 +9,11 @@ import {
   Alert,
   AppState,
   Platform,
-  BackHandler,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { checkForUpdate, STORE_URLS } from '../utils/versionCheck';
 
-/**
- * Force Update Modal
- * - Checks the app version on mount and when returning to the foreground.
- * - If a newer version exists on Play Store / App Store, shows a non-dismissible
- *   modal with an "Update Now" CTA that opens the store listing.
- * - Hardware back button on Android cannot close it while update is required.
- */
+/** Checks the native store on launch and foreground; users may defer an update. */
 export default function ForceUpdateModal() {
   const [visible, setVisible] = useState(false);
   const [storeUrl, setStoreUrl] = useState<string | null>(null);
@@ -30,9 +23,12 @@ export default function ForceUpdateModal() {
   useEffect(() => {
     let cancelled = false;
     let checking = false;
+    let lastCheck = 0;
+    let retryAfter = 0;
     const run = async () => {
-      if (checking) return;
+      if (checking || Date.now() < retryAfter || Date.now() - lastCheck < 60 * 60 * 1000) return;
       checking = true;
+      retryAfter = Date.now() + 5 * 60 * 1000;
       try {
         const result = await checkForUpdate();
         if (cancelled) return;
@@ -40,7 +36,8 @@ export default function ForceUpdateModal() {
         setStoreVersion(result.storeVersion);
         if (result.storeUrl) setStoreUrl(result.storeUrl);
         // Only a successful store lookup may change visibility; a failed lookup keeps the current state.
-        if (result.storeVersion) {
+        if (result.checked) {
+          lastCheck = Date.now();
           setVisible(result.updateRequired);
           if (result.updateRequired) {
             console.log(
@@ -63,13 +60,6 @@ export default function ForceUpdateModal() {
       subscription.remove();
     };
   }, []);
-
-  // Block Android hardware back button while the modal is forced
-  useEffect(() => {
-    if (!visible || Platform.OS !== 'android') return;
-    const sub = BackHandler.addEventListener('hardwareBackPress', () => true);
-    return () => sub.remove();
-  }, [visible]);
 
   const handleUpdate = async () => {
     const web =
@@ -95,19 +85,16 @@ export default function ForceUpdateModal() {
       transparent
       animationType="fade"
       statusBarTranslucent
-      onRequestClose={() => {
-        // Intentionally do nothing — non-dismissible
-      }}
+      onRequestClose={() => setVisible(false)}
     >
       <View style={styles.overlay}>
         <View style={styles.card} testID="force-update-modal">
           <View style={styles.iconWrap}>
             <Ionicons name="cloud-download" size={36} color="#FF8A00" />
           </View>
-          <Text style={styles.title}>Update Available</Text>
+          <Text style={styles.title}>New Update Available!</Text>
           <Text style={styles.message}>
-            A new version of the app is available. Please update the app to
-            continue using INtown.
+            A new version of INtownLocal is available. Update now to enjoy the latest improvements.
           </Text>
           {storeVersion && installedVersion ? (
             <Text style={styles.versionLine}>
@@ -123,6 +110,7 @@ export default function ForceUpdateModal() {
             <Ionicons name="open-outline" size={18} color="#FFFFFF" />
             <Text style={styles.buttonText}>Update Now</Text>
           </TouchableOpacity>
+          <TouchableOpacity onPress={() => setVisible(false)} accessibilityRole="button" style={styles.later}><Text style={styles.laterText}>Later</Text></TouchableOpacity>
         </View>
       </View>
     </Modal>
@@ -190,6 +178,8 @@ const styles = StyleSheet.create({
     gap: 8,
     width: '100%',
   },
+  later: { paddingHorizontal: 24, paddingTop: 16 },
+  laterText: { color: '#64748B', fontSize: 14, fontWeight: '600' },
   buttonText: {
     color: '#FFFFFF',
     fontSize: 16,
